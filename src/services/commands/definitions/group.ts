@@ -25,7 +25,21 @@ export const createGroupCommand: CommandDefinition = {
             name: "governance",
             type: "string",
             description: "Governance model",
-            defaultValue: "majority",
+            required: true,
+        }
+    },
+    output: "JSON object containing the created group details.",
+    outputSchema: {
+        type: "object",
+        properties: {
+            group: {
+                type: "object",
+                properties: {
+                    id: { type: "string" },
+                    name: { type: "string" },
+                    members: { type: "array", items: { type: "string" } }
+                }
+            }
         }
     },
     execute: async (args, context) => {

@@ -27,8 +27,23 @@ export const createAgentCommand: CommandDefinition = {
             name: "prompt",
             type: "string",
             description: "Getting started prompt for the agent",
-            required: false,
-            defaultValue: "",
+            required: true,
+            defaultValue: 0
+        }
+    },
+    output: "JSON object containing the created agent's ID and details.",
+    outputSchema: {
+        type: "object",
+        properties: {
+            agent: {
+                type: "object",
+                properties: {
+                    id: { type: "string" },
+                    name: { type: "string" },
+                    role: { type: "string" },
+                    did: { type: "string" }
+                }
+            }
         }
     },
     execute: async (args, context) => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { ViewId } from "./types";
 import { useActivityLog } from "./hooks/useActivityLog";
 import { useWorkspace } from "./hooks/useWorkspace";
@@ -29,26 +29,107 @@ import { createChannelCommand } from "./services/commands/definitions/channel";
 import { createGroupCommand } from "./services/commands/definitions/group";
 import type { CommandContext } from "./services/commands/types";
 
+// Import all new command definitions
+import { setApiKeyCommand, selectAiModelCommand } from "./services/commands/definitions/system";
+import { createArtifactCommand, editArtifactCommand, deleteArtifactCommand } from "./services/commands/definitions/artifact";
+import { saveEcosystemCommand, loadEcosystemCommand, listEcosystemsCommand, deleteEcosystemCommand } from "./services/commands/definitions/ecosystem";
+import { createBridgeCommand, deleteBridgeCommand, printTopologyCommand } from "./services/commands/definitions/topology";
+import { listAgentsCommand, listGroupsCommand, listChannelsCommand, listMessagesCommand } from "./services/commands/definitions/query";
+import { deleteAgentCommand, deleteChannelCommand, deleteGroupCommand, editChannelCommand } from "./services/commands/definitions/modification";
+import { promptArchitectCommand } from "./services/commands/definitions/architect";
+import { exportFullBackupCommand, exportWorkspaceCommand, exportEcosystemCommand, exportDataCommand } from "./services/commands/definitions/data";
+
 // Register Commands
 registry.register(createAgentCommand);
 registry.register(sendMessageCommand);
 registry.register(createChannelCommand);
 registry.register(createGroupCommand);
 
+// Architect
+registry.register(promptArchitectCommand);
+
+// Data Export
+registry.register(exportFullBackupCommand);
+registry.register(exportWorkspaceCommand);
+registry.register(exportEcosystemCommand);
+registry.register(exportDataCommand);
+
+// System
+registry.register(setApiKeyCommand);
+registry.register(selectAiModelCommand);
+
+// Artifacts
+registry.register(createArtifactCommand);
+registry.register(editArtifactCommand);
+registry.register(deleteArtifactCommand);
+
+// Ecosystem
+registry.register(saveEcosystemCommand);
+registry.register(loadEcosystemCommand);
+registry.register(listEcosystemsCommand);
+registry.register(deleteEcosystemCommand);
+
+// Topology
+registry.register(createBridgeCommand);
+registry.register(deleteBridgeCommand);
+registry.register(printTopologyCommand);
+
+// Query
+registry.register(listAgentsCommand);
+registry.register(listGroupsCommand);
+registry.register(listChannelsCommand);
+registry.register(listMessagesCommand);
+
+// Modification
+registry.register(deleteAgentCommand);
+registry.register(deleteChannelCommand);
+registry.register(deleteGroupCommand);
+registry.register(editChannelCommand);
+
 function AuthenticatedApp() {
   const [view, setView] = useState<ViewId>("architect");
   const { log, addLog } = useActivityLog();
   const { user, logout } = useAuth();
-  const { jobs, addJob, updateJobStatus, addArtifact, removeJob, clearJobs, allArtifacts, importArtifact, removeArtifact } = useJobs();
+  const {
+    jobs, addJob, updateJobStatus, addArtifact, removeJob, clearJobs,
+    allArtifacts, importArtifact, removeArtifact,
+    isPaused, toggleQueuePause, stopJob, reorderQueue
+  } = useJobs();
 
   const workspace = useWorkspace(addLog);
-  // ... (keep architect and ecosystem hooks as is)
+
+  const architect = useArchitect({
+    addLog,
+    setAgents: workspace.setAgents,
+    setChannels: workspace.setChannels,
+    setGroups: workspace.setGroups,
+    setMessages: workspace.setMessages,
+    setActiveChannels: workspace.setActiveChannels,
+  });
+
+  const ecosystem = useEcosystem({
+    addLog,
+    agents: workspace.agents,
+    channels: workspace.channels,
+    groups: workspace.groups,
+    messages: workspace.messages,
+    setAgents: workspace.setAgents,
+    setChannels: workspace.setChannels,
+    setGroups: workspace.setGroups,
+    setMessages: workspace.setMessages,
+    setView,
+  });
+
+  const processingRef = useRef(false);
 
   // Job Execution Loop
   useEffect(() => {
     const processJobs = async () => {
+      if (processingRef.current || isPaused) return;
+
       const queuedJob = jobs.find(j => j.status === "queued");
       if (queuedJob) {
+        processingRef.current = true;
         try {
           updateJobStatus(queuedJob.id, "running");
 
@@ -57,7 +138,32 @@ function AuthenticatedApp() {
               ...workspace,
               addLog
             },
-            auth: { user }
+            auth: { user },
+            jobs: {
+              addArtifact,
+              removeArtifact,
+              importArtifact,
+              allArtifacts
+            },
+            ecosystem: {
+              ecosystems: ecosystem.ecosystems,
+              bridges: ecosystem.bridges,
+              setEcosystems: ecosystem.setEcosystems,
+              setBridges: ecosystem.setBridges,
+              createBridge: ecosystem.createBridge,
+              removeBridge: ecosystem.removeBridge,
+              saveCurrentNetwork: ecosystem.saveCurrentNetwork,
+              loadNetwork: ecosystem.loadNetwork,
+              dissolveNetwork: ecosystem.dissolveNetwork
+            },
+            system: {
+              setApiKey: (key: string) => localStorage.setItem("anthropic_api_key", key),
+              setModel: (model: string) => localStorage.setItem("anthropic_model", model)
+            },
+            architect: {
+              generateNetwork: architect.generateNetwork,
+              deployNetwork: architect.deployNetwork
+            }
           };
 
           const commandResult = await registry.execute(queuedJob.type, queuedJob.request, context);
@@ -89,27 +195,7 @@ function AuthenticatedApp() {
 
     const interval = setInterval(processJobs, 1000); // Check every second (simple polling)
     return () => clearInterval(interval);
-  }, [jobs, updateJobStatus, workspace, addLog, user, addArtifact]);
-  const architect = useArchitect({
-    addLog,
-    setAgents: workspace.setAgents,
-    setChannels: workspace.setChannels,
-    setGroups: workspace.setGroups,
-    setMessages: workspace.setMessages,
-    setActiveChannels: workspace.setActiveChannels,
-  });
-  const ecosystem = useEcosystem({
-    addLog,
-    agents: workspace.agents,
-    channels: workspace.channels,
-    groups: workspace.groups,
-    messages: workspace.messages,
-    setAgents: workspace.setAgents,
-    setChannels: workspace.setChannels,
-    setGroups: workspace.setGroups,
-    setMessages: workspace.setMessages,
-    setView,
-  });
+  }, [jobs, updateJobStatus, workspace, addLog, user, addArtifact, ecosystem, architect]);
 
 
   // Responsive state
@@ -341,6 +427,10 @@ function AuthenticatedApp() {
         setView={setView}
         jobs={jobs}
         addJob={addJob}
+        isPaused={isPaused}
+        toggleQueuePause={toggleQueuePause}
+        stopJob={stopJob}
+        reorderQueue={reorderQueue}
         removeJob={removeJob}
         clearJobs={clearJobs}
       />

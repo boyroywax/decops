@@ -6,7 +6,7 @@ export const sendMessageCommand: CommandDefinition = {
     id: "send_message",
     description: "Sends a direct message from one agent to another",
     tags: ["messaging", "interaction"],
-    rbac: ["orchestrator", "user"],
+    rbac: ["orchestrator"],
     args: {
         from_agent_name: {
             name: "from_agent_name",
@@ -25,6 +25,15 @@ export const sendMessageCommand: CommandDefinition = {
             type: "string",
             description: "The content of the message",
             required: true,
+        }
+    },
+    output: "JSON object with delivery status and response content.",
+    outputSchema: {
+        type: "object",
+        properties: {
+            status: { type: "string", enum: ["delivered", "failed", "no-prompt"] },
+            messageId: { type: "string" },
+            response: { type: "string" }
         }
     },
     execute: async (args, context) => {

@@ -9,9 +9,13 @@ interface JobsPanelProps {
     onClose: () => void;
     removeJob: (id: string) => void;
     clearJobs: () => void;
+    isPaused: boolean;
+    toggleQueuePause: () => void;
+    stopJob: (id: string) => void;
+    reorderQueue: (ids: string[]) => void;
 }
 
-export function JobsPanel({ jobs, onClose, removeJob, clearJobs }: JobsPanelProps) {
+export function JobsPanel({ jobs, onClose, removeJob, clearJobs, isPaused, toggleQueuePause, stopJob, reorderQueue }: JobsPanelProps) {
     const [height, setHeight] = useState(400);
     const [isResizing, setIsResizing] = useState(false);
     const [activeTab, setActiveTab] = useState<"queue" | "history" | "commands">("queue");
@@ -43,9 +47,48 @@ export function JobsPanel({ jobs, onClose, removeJob, clearJobs }: JobsPanelProp
         };
     }, [isResizing]);
 
+    // Split jobs
     const queue = jobs.filter(j => j.status === "queued" || j.status === "running");
     const history = jobs.filter(j => j.status === "completed" || j.status === "failed");
     const commands = registry.getAll();
+
+    // Drag and Drop State
+    const [draggingId, setDraggingId] = useState<string | null>(null);
+
+    const handleDragStart = (e: React.DragEvent, id: string) => {
+        setDraggingId(id);
+        e.dataTransfer.effectAllowed = "move";
+        // e.dataTransfer.setData("text/plain", id); // Not strictly needed for internal reorder but good practice
+    };
+
+    const handleDragOver = (e: React.DragEvent, targetId: string) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+    };
+
+    const handleDrop = (e: React.DragEvent, targetId: string) => {
+        e.preventDefault();
+        if (!draggingId || draggingId === targetId) {
+            setDraggingId(null);
+            return;
+        }
+
+        // Calculate new order
+        const currentOrder = queue.map(j => j.id);
+        const fromIndex = currentOrder.indexOf(draggingId);
+        const toIndex = currentOrder.indexOf(targetId);
+
+        if (fromIndex === -1 || toIndex === -1) return;
+
+        const newOrder = [...currentOrder];
+        newOrder.splice(fromIndex, 1);
+        newOrder.splice(toIndex, 0, draggingId);
+
+        reorderQueue(newOrder); // Update state
+
+        setDraggingId(null);
+    };
+
 
     return (
         <div style={{
@@ -112,6 +155,18 @@ export function JobsPanel({ jobs, onClose, removeJob, clearJobs }: JobsPanelProp
                         >
                             Commands ({commands.length})
                         </button>
+                        <button
+                            onClick={toggleQueuePause}
+                            style={{
+                                background: isPaused ? "rgba(239,68,68,0.15)" : "rgba(0,229,160,0.15)",
+                                color: isPaused ? "#ef4444" : "#00e5a0",
+                                border: "none", borderRadius: 4, padding: "2px 8px", fontSize: 10, cursor: "pointer", transition: "all 0.15s",
+                                minWidth: 24, display: "flex", justifyContent: "center"
+                            }}
+                            title={isPaused ? "Unknown Resume Queue" : "Pause Queue"}
+                        >
+                            {isPaused ? "▶" : "⏸"}
+                        </button>
                     </div>
                 </div>
                 <button
@@ -141,11 +196,21 @@ export function JobsPanel({ jobs, onClose, removeJob, clearJobs }: JobsPanelProp
                 )}
 
                 {activeTab === "queue" && queue.map(job => (
-                    <JobItem key={job.id} job={job} removeJob={removeJob} />
+                    <JobItem
+                        key={job.id}
+                        job={job}
+                        removeJob={removeJob}
+                        stopJob={stopJob}
+                        draggable={true}
+                        onDragStart={(e) => handleDragStart(e, job.id)}
+                        onDragOver={(e) => handleDragOver(e, job.id)}
+                        onDrop={(e) => handleDrop(e, job.id)}
+                        isDragging={draggingId === job.id}
+                    />
                 ))}
 
                 {activeTab === "history" && history.map(job => (
-                    <JobItem key={job.id} job={job} removeJob={removeJob} />
+                    <JobItem key={job.id} job={job} removeJob={removeJob} stopJob={stopJob} />
                 ))}
 
                 {activeTab === "commands" && (
@@ -160,9 +225,25 @@ export function JobsPanel({ jobs, onClose, removeJob, clearJobs }: JobsPanelProp
     );
 }
 
+const getCommandColor = (tags: string[]) => {
+    if (tags.includes("architect")) return "#fb923c"; // Orange
+    if (tags.includes("data")) return "#3b82f6"; // Blue (Primary)
+    if (tags.includes("ecosystem")) return "#38bdf8"; // Cyan
+    if (tags.includes("agent")) return "#00e5a0"; // Green
+    if (tags.includes("channel")) return "#a78bfa"; // Purple
+    if (tags.includes("messaging")) return "#f472b6"; // Pink
+    if (tags.includes("topology")) return "#38bdf8"; // Cyan/Blue (Shared with Ecosystem?)
+    if (tags.includes("group")) return "#f472b6"; // Pink coverage
+    if (tags.includes("system")) return "#94a3b8"; // Slate
+    if (tags.includes("artifact")) return "#fbbf24"; // Amber/Yellow
+    if (tags.includes("modification")) return "#ef4444"; // Red
+    return "#71717a"; // Default
+};
+
 function CommandCard({ command }: { command: CommandDefinition }) {
     const [isFlipped, setIsFlipped] = useState(false);
     const [animationState, setAnimationState] = useState<"idle" | "pressing" | "flipping">("idle");
+    const color = getCommandColor(command.tags);
 
     const handleClick = () => {
         if (isFlipped) {
@@ -196,22 +277,22 @@ function CommandCard({ command }: { command: CommandDefinition }) {
         <div
             onClick={handleClick}
             style={{
-                perspective: "1200px", // Increased perspective for better depth
-                height: 150, // Slightly taller
+                perspective: "1200px",
+                height: 180, // Taller to fit output
                 cursor: "pointer",
-                zIndex: isFlipped || animationState !== "idle" ? 10 : 1, // Bring to front when interacting
-                position: "relative", // Needed for z-index
-                boxSizing: "border-box", // Critical fix
+                zIndex: isFlipped || animationState !== "idle" ? 10 : 1,
+                position: "relative",
+                boxSizing: "border-box",
             }}
         >
             <div style={{
                 position: "relative",
                 width: "100%",
                 height: "100%",
-                transition: animationState === "pressing" ? "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)" : "transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)", // Springy flip, snappy press
+                transition: animationState === "pressing" ? "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)" : "transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
                 transformStyle: "preserve-3d",
                 transform: getTransform(),
-                boxSizing: "border-box", // Critical fix
+                boxSizing: "border-box",
             }}>
                 {/* Front */}
                 <div style={{
@@ -219,15 +300,15 @@ function CommandCard({ command }: { command: CommandDefinition }) {
                     width: "100%",
                     height: "100%",
                     backfaceVisibility: "hidden",
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: `linear-gradient(145deg, rgba(255,255,255,0.03) 0%, ${color}05 100%)`,
+                    border: `1px solid ${color}30`,
                     borderRadius: 12,
                     padding: 16,
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
                     boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-                    boxSizing: "border-box", // Critical fix
+                    boxSizing: "border-box",
                 }}>
                     <div>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 12 }}>
@@ -235,7 +316,7 @@ function CommandCard({ command }: { command: CommandDefinition }) {
                                 fontFamily: "'Space Grotesk', sans-serif",
                                 fontWeight: 600,
                                 fontSize: 13,
-                                color: "#00e5a0",
+                                color: color,
                                 display: "flex", alignItems: "center", gap: 6
                             }}>
                                 <span style={{ fontSize: 10, opacity: 0.6 }}>/</span>
@@ -243,10 +324,11 @@ function CommandCard({ command }: { command: CommandDefinition }) {
                             </div>
                             <div style={{
                                 fontSize: 10,
-                                color: "#52525b",
-                                border: "1px solid rgba(255,255,255,0.06)",
+                                color: color,
+                                border: `1px solid ${color}20`,
                                 borderRadius: 4,
-                                padding: "2px 6px"
+                                padding: "2px 6px",
+                                background: `${color}10`
                             }}>
                                 CMD
                             </div>
@@ -261,13 +343,15 @@ function CommandCard({ command }: { command: CommandDefinition }) {
                         {command.tags.map(tag => (
                             <span key={tag} style={{
                                 fontSize: 9,
-                                background: "rgba(255,255,255,0.05)",
+                                background: `${color}10`,
+                                border: `1px solid ${color}10`,
                                 borderRadius: 4,
                                 padding: "2px 6px",
-                                color: "#71717a"
+                                color: color
                             }}>
                                 #{tag}
                             </span>
+
                         ))}
                     </div>
                 </div>
@@ -279,15 +363,15 @@ function CommandCard({ command }: { command: CommandDefinition }) {
                     height: "100%",
                     backfaceVisibility: "hidden",
                     background: "#09090b", // Darker solid background for legibility
-                    border: "1px solid rgba(0,229,160,0.3)",
+                    border: `1px solid ${color}50`,
                     borderRadius: 12,
-                    padding: 16, // Matched padding with Front
+                    padding: 16,
                     transform: "rotateY(180deg)",
                     overflow: "hidden",
                     display: "flex",
                     flexDirection: "column",
-                    boxShadow: "0 0 15px rgba(0,229,160,0.05)",
-                    boxSizing: "border-box", // Critical fix
+                    boxShadow: `0 0 15px ${color}10`,
+                    boxSizing: "border-box",
                 }}>
                     <div style={{
                         fontSize: 9,
@@ -300,7 +384,7 @@ function CommandCard({ command }: { command: CommandDefinition }) {
                         display: "flex", justifyContent: "space-between"
                     }}>
                         <span>Configuration</span>
-                        <span style={{ color: "#00e5a0" }}>●</span>
+                        <span style={{ color: color }}>●</span>
                     </div>
 
                     <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", gap: 6, paddingRight: 4 }}>
@@ -316,29 +400,30 @@ function CommandCard({ command }: { command: CommandDefinition }) {
                     </div>
 
                     <div style={{ marginTop: 12, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                        <div style={{ fontSize: 9, color: "#52525b", marginBottom: 4 }}>Required Roles</div>
-                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                            {command.rbac.map(role => (
-                                <span key={role} style={{
-                                    fontSize: 9,
-                                    color: "#a78bfa",
-                                    background: "rgba(167,139,250,0.1)",
-                                    padding: "2px 6px",
-                                    borderRadius: 3
-                                }}>
-                                    {role}
-                                </span>
-                            ))}
+                        <div style={{ fontSize: 9, color: "#52525b", marginBottom: 4 }}>Output</div>
+                        <div style={{ fontSize: 10, color: "#a1a1aa", lineHeight: 1.4 }}>
+                            {command.output}
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+
     );
 }
 
+interface JobItemProps {
+    job: Job;
+    removeJob: (id: string) => void;
+    stopJob: (id: string) => void;
+    draggable?: boolean;
+    onDragStart?: (e: React.DragEvent) => void;
+    onDragOver?: (e: React.DragEvent) => void;
+    onDrop?: (e: React.DragEvent) => void;
+    isDragging?: boolean;
+}
 
-function JobItem({ job, removeJob }: { job: Job, removeJob: (id: string) => void }) {
+function JobItem({ job, removeJob, stopJob, draggable, onDragStart, onDragOver, onDrop, isDragging }: JobItemProps) {
     const statusColors: Record<JobStatus, string> = {
         queued: "#a1a1aa",
         running: "#fbbf24",
@@ -347,17 +432,25 @@ function JobItem({ job, removeJob }: { job: Job, removeJob: (id: string) => void
     };
 
     return (
-        <div style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: 8,
-            padding: 12,
-            marginBottom: 8,
-            position: "relative",
-        }}>
+        <div
+            draggable={draggable && job.status === "queued"}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            style={{
+                background: isDragging ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.06)",
+                borderRadius: 8,
+                padding: 12,
+                marginBottom: 8,
+                position: "relative",
+                cursor: draggable && job.status === "queued" ? "grab" : "default",
+                opacity: isDragging ? 0.5 : 1
+            }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                 <div>
                     <div style={{ fontSize: 12, fontWeight: 500, color: "#e4e4e7", display: "flex", alignItems: "center", gap: 6 }}>
+                        {draggable && job.status === "queued" && <span style={{ color: "#52525b" }}>⋮⋮</span>}
                         {job.type}
                         <span style={{
                             fontSize: 9, padding: "1px 6px", borderRadius: 4,
@@ -371,15 +464,26 @@ function JobItem({ job, removeJob }: { job: Job, removeJob: (id: string) => void
                         ID: {job.id.split('-').pop()} · {new Date(job.createdAt).toLocaleTimeString()}
                     </div>
                 </div>
-                {(job.status === "completed" || job.status === "failed") && (
-                    <button
-                        onClick={() => removeJob(job.id)}
-                        style={{ background: "none", border: "none", color: "#52525b", cursor: "pointer", fontSize: 12 }}
-                        title="Remove"
-                    >
-                        ✕
-                    </button>
-                )}
+                <div style={{ display: "flex", gap: 6 }}>
+                    {job.status === "running" && (
+                        <button
+                            onClick={() => stopJob(job.id)}
+                            style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", fontSize: 10, padding: "2px 6px", borderRadius: 4 }}
+                            title="Stop"
+                        >
+                            Stop
+                        </button>
+                    )}
+                    {(job.status !== "running") && (
+                        <button
+                            onClick={() => removeJob(job.id)}
+                            style={{ background: "none", border: "none", color: "#52525b", cursor: "pointer", fontSize: 12 }}
+                            title="Remove"
+                        >
+                            ✕
+                        </button>
+                    )}
+                </div>
             </div>
 
             {job.status === "running" && (

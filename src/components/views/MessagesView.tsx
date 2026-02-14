@@ -28,6 +28,27 @@ interface MessagesViewProps {
   removeMessages: (ids: Set<string>) => void;
 }
 
+import { marked } from "marked";
+import { useMemo } from "react";
+
+// Configure marked
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+});
+
+const FormattedMessage = ({ content, className, style }: { content: string, className?: string, style?: React.CSSProperties }) => {
+  const html = useMemo(() => {
+    try {
+      return marked.parse(content) as string;
+    } catch {
+      return content;
+    }
+  }, [content]);
+
+  return <div className={className} style={style} dangerouslySetInnerHTML={{ __html: html }} />;
+};
+
 export function MessagesView({
   agents, channels, groups, messages,
   activeChannel, setActiveChannel, msgInput, setMsgInput, sending,
@@ -139,18 +160,18 @@ export function MessagesView({
                     <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
                       <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(m.id)} color="#fbbf24" />
                       <div style={{ width: 28, height: 28, borderRadius: 6, background: (sRole?.color || "#555") + "20", border: `1px solid ${sRole?.color || "#555"}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>{sRole?.icon}</div>
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 10, color: sRole?.color, marginBottom: 4 }}>{sender?.name} <span style={{ color: "#3f3f46", fontSize: 9 }}>{new Date(m.ts).toLocaleTimeString()}</span></div>
-                        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "2px 10px 10px 10px", padding: "10px 14px", fontSize: 12, lineHeight: 1.6, color: "#d4d4d8" }}>{m.content}</div>
+                        <FormattedMessage content={m.content} className="chat-md" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "2px 10px 10px 10px", padding: "10px 14px", fontSize: 12, lineHeight: 1.6, color: "#d4d4d8" }} />
                       </div>
                     </div>
                     {m.status === "sending" && <div style={{ paddingLeft: 56, fontSize: 11, color: "#fbbf24" }}><span style={{ animation: "pulse 1.5s infinite" }}>●</span> {receiver?.name} is thinking...</div>}
                     {m.response && (
                       <div style={{ display: "flex", gap: 10, paddingLeft: 38 }}>
                         <div style={{ width: 28, height: 28, borderRadius: 6, background: (rRole?.color || "#555") + "20", border: `1px solid ${rRole?.color || "#555"}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>{rRole?.icon}</div>
-                        <div style={{ flex: 1 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 10, color: rRole?.color, marginBottom: 4 }}>{receiver?.name} <span style={{ color: m.status === "no-prompt" ? "#ef4444" : "#3f3f46", fontSize: 9 }}>{m.status === "no-prompt" ? "no prompt" : "response"}</span></div>
-                          <div style={{ background: m.status === "no-prompt" ? "rgba(239,68,68,0.05)" : (rRole?.color || "#555") + "08", border: `1px solid ${m.status === "no-prompt" ? "rgba(239,68,68,0.15)" : (rRole?.color || "#555") + "15"}`, borderRadius: "10px 2px 10px 10px", padding: "10px 14px", fontSize: 12, lineHeight: 1.6, color: m.status === "no-prompt" ? "#71717a" : "#d4d4d8", whiteSpace: "pre-wrap" }}>{m.response}</div>
+                          <FormattedMessage content={m.response} className="chat-md" style={{ background: m.status === "no-prompt" ? "rgba(239,68,68,0.05)" : (rRole?.color || "#555") + "08", border: `1px solid ${m.status === "no-prompt" ? "rgba(239,68,68,0.15)" : (rRole?.color || "#555") + "15"}`, borderRadius: "10px 2px 10px 10px", padding: "10px 14px", fontSize: 12, lineHeight: 1.6, color: m.status === "no-prompt" ? "#71717a" : "#d4d4d8" }} />
                         </div>
                       </div>
                     )}
@@ -175,9 +196,9 @@ export function MessagesView({
                     <div key={m.id} style={{ marginBottom: 14, display: "flex", gap: 10, background: isChecked ? "rgba(239,68,68,0.04)" : "transparent", borderRadius: 8, padding: isChecked ? "8px" : 0, border: isChecked ? "1px solid rgba(239,68,68,0.15)" : "1px solid transparent", transition: "all 0.2s" }}>
                       <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(m.id)} color="#fbbf24" />
                       <div style={{ width: 28, height: 28, borderRadius: 6, background: (rRole?.color || "#555") + "20", border: `1px solid ${rRole?.color || "#555"}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>{rRole?.icon}</div>
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 10, color: rRole?.color, marginBottom: 4 }}>{receiver?.name}</div>
-                        {m.response && <div style={{ background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15`, borderRadius: 8, padding: "10px 14px", fontSize: 12, lineHeight: 1.6, color: "#d4d4d8", whiteSpace: "pre-wrap" }}>{m.response}</div>}
+                        {m.response && <FormattedMessage content={m.response} className="chat-md" style={{ background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15`, borderRadius: 8, padding: "10px 14px", fontSize: 12, lineHeight: 1.6, color: "#d4d4d8" }} />}
                         {m.status === "sending" && <div style={{ fontSize: 11, color: "#fbbf24" }}>● thinking...</div>}
                       </div>
                     </div>

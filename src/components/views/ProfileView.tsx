@@ -68,7 +68,7 @@ export function ProfileView() {
     return (
         <div style={{ maxWidth: 800 }}>
             <h2 className="settings-header" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <GemAvatar seed={user.email || user.username || "user"} size={36} />
+                <GemAvatar seed={user.email || "user"} size={36} />
                 Profile & Settings
             </h2>
 
@@ -98,7 +98,7 @@ export function ProfileView() {
                 {/* User Info Card */}
                 <section className="settings-section">
                     <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 24 }}>
-                        <GemAvatar seed={user.email || user.username || "user"} size={80} />
+                        <GemAvatar seed={user.email || "user"} size={80} />
                         <div>
                             <h3 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 4px 0" }}>{user.profile?.name || user.email}</h3>
                             <div style={{ color: "var(--text-subtle)", fontFamily: "var(--font-mono)", fontSize: 13 }}>{user.email}</div>

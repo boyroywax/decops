@@ -17,11 +17,15 @@ interface FooterProps {
     removeJob: (id: string) => void;
     clearJobs: () => void;
     addJob: (job: { type: string; request: any }) => void;
+    isPaused: boolean;
+    toggleQueuePause: () => void;
+    stopJob: (id: string) => void;
+    reorderQueue: (ids: string[]) => void;
 }
 
 type PanelMode = "none" | "activity" | "chat" | "jobs";
 
-export function Footer({ agents, channels, groups, messages, ecosystems, bridges, log, addLog, setView, jobs, removeJob, clearJobs, addJob }: FooterProps) {
+export function Footer({ agents, channels, groups, messages, ecosystems, bridges, log, addLog, setView, jobs, removeJob, clearJobs, addJob, ...jobsProps }: FooterProps) {
     const [panel, setPanel] = useState<PanelMode>("none");
     const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -100,6 +104,10 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                     onClose={() => setPanel("none")}
                     removeJob={removeJob}
                     clearJobs={clearJobs}
+                    isPaused={jobsProps.isPaused}
+                    toggleQueuePause={jobsProps.toggleQueuePause}
+                    stopJob={jobsProps.stopJob}
+                    reorderQueue={jobsProps.reorderQueue}
                 />
             )}
 

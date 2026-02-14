@@ -108,6 +108,8 @@ function ActionCard({ action, context }: { action: ParsedAction; context: Worksp
         }
     };
 
+    const [expandedArtifact, setExpandedArtifact] = useState<string | null>(null);
+
     return (
         <div style={{
             background: `${meta.color}08`,
@@ -179,23 +181,57 @@ function ActionCard({ action, context }: { action: ParsedAction; context: Worksp
                     <div style={{ fontSize: 10, color: "#71717a", marginBottom: 4 }}>Generated Artifacts:</div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                         {matchingJob.artifacts.map((art: any) => (
-                            <div key={art.id} style={{
-                                background: "rgba(255,255,255,0.04)",
-                                border: "1px solid rgba(255,255,255,0.08)",
-                                borderRadius: 4,
-                                padding: "2px 6px",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 4,
-                                color: "#e4e4e7"
-                            }}>
-                                <span style={{ fontSize: 10 }}>
+                            <button
+                                key={art.id}
+                                onClick={() => setExpandedArtifact(expandedArtifact === art.id ? null : art.id)}
+                                style={{
+                                    background: expandedArtifact === art.id ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.04)",
+                                    border: `1px solid ${expandedArtifact === art.id ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.08)"}`,
+                                    borderRadius: 4,
+                                    padding: "2px 6px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                    color: expandedArtifact === art.id ? "#fff" : "#e4e4e7",
+                                    cursor: "pointer",
+                                    fontSize: 10,
+                                    fontFamily: "inherit"
+                                }}
+                            >
+                                <span>
                                     {art.type === "image" ? "🖼️" : art.type === "json" ? "{}" : "📄"}
                                 </span>
                                 {art.name}
-                            </div>
+                            </button>
                         ))}
                     </div>
+                    {expandedArtifact && (() => {
+                        const art = matchingJob.artifacts.find((a: any) => a.id === expandedArtifact);
+                        if (!art) return null;
+
+                        let content = art.content;
+                        if (!content && art.url) {
+                            content = typeof art.url === "object" ? JSON.stringify(art.url, null, 2) : art.url;
+                        }
+
+                        return (
+                            <div style={{
+                                marginTop: 8,
+                                background: "rgba(0,0,0,0.3)",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                borderRadius: 6,
+                                padding: 8,
+                                fontSize: 10,
+                                fontFamily: "monospace",
+                                color: "#d4d4d8",
+                                overflowX: "auto",
+                                maxHeight: 200,
+                                whiteSpace: "pre-wrap"
+                            }}>
+                                {content || "No content available"}
+                            </div>
+                        );
+                    })()}
                 </div>
             )}
         </div>

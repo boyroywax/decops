@@ -23,7 +23,23 @@ export const createChannelCommand: CommandDefinition = {
             name: "type",
             type: "string",
             description: "Type of channel (data, control, financial)",
+            required: false,
             defaultValue: "data",
+        }
+    },
+    output: "JSON object containing the created channel details.",
+    outputSchema: {
+        type: "object",
+        properties: {
+            channel: {
+                type: "object",
+                properties: {
+                    id: { type: "string" },
+                    from: { type: "string" },
+                    to: { type: "string" },
+                    type: { type: "string" }
+                }
+            }
         }
     },
     execute: async (args, context) => {
