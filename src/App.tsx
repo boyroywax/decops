@@ -228,6 +228,83 @@ export default function App() {
       </div>
 
       <style>{`
+        :root {
+          /* ─── Core Palette ─── */
+          --bg-primary: #0a0a0f;
+          --bg-elevated: rgba(0,0,0,0.3);
+          --bg-surface: rgba(255,255,255,0.02);
+          --bg-surface-hover: rgba(255,255,255,0.04);
+          --bg-input: rgba(0,0,0,0.4);
+
+          --border-subtle: rgba(255,255,255,0.05);
+          --border-default: rgba(255,255,255,0.06);
+          --border-medium: rgba(255,255,255,0.08);
+
+          --text-primary: #e4e4e7;
+          --text-secondary: #d4d4d8;
+          --text-muted: #a1a1aa;
+          --text-subtle: #71717a;
+          --text-ghost: #52525b;
+
+          --color-accent: #00e5a0;
+          --color-warning: #fbbf24;
+          --color-danger: #ef4444;
+          --color-info: #38bdf8;
+          --color-channel: #a78bfa;
+          --color-group: #f472b6;
+
+          --font-mono: 'DM Mono', 'JetBrains Mono', monospace;
+          --font-display: 'Space Grotesk', sans-serif;
+
+          --radius-sm: 3px;
+          --radius-md: 4px;
+          --radius-lg: 6px;
+          --radius-xl: 8px;
+          --radius-2xl: 10px;
+        }
+
+        body { margin: 0; padding: 0; background: var(--bg-primary); color: var(--text-primary); }
+        
+        .settings-container { max-width: 800px; margin: 0 auto; }
+        .settings-header { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); letter-spacing: -0.01em; }
+        
+        .settings-section { 
+          background: var(--bg-surface); 
+          padding: 24px; 
+          border-radius: var(--radius-2xl); 
+          border: 1px solid var(--border-subtle);
+          margin-bottom: 24px;
+        }
+
+        .section-title {
+          font-family: var(--font-display);
+          font-size: 14px;
+          font-weight: 600;
+          margin-bottom: 8px;
+          display: flex; 
+          align-items: center; 
+          gap: 8px;
+        }
+
+        .section-desc { font-size: 12px; color: var(--text-subtle); margin-bottom: 20px; line-height: 1.5; font-family: var(--font-mono); }
+
+        .btn {
+          font-family: var(--font-mono); font-size: 11px; padding: 8px 16px;
+          border-radius: var(--radius-lg); cursor: pointer; transition: all 0.15s;
+          border: 1px solid transparent;
+          display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+
+        .btn-primary { background: var(--color-accent); color: var(--bg-primary); font-weight: 500; }
+        .btn-surface { background: #27272a; border: 1px solid #3f3f46; color: var(--text-primary); } /* Fallback for existing */
+        .btn-secondary { background: rgba(255,255,255,0.04); border: 1px solid var(--border-medium); color: var(--text-primary); }
+        .btn-danger { background: rgba(239,68,68,0.1); color: var(--color-danger); border-color: rgba(239,68,68,0.2); }
+        .btn-danger-solid { background: var(--color-danger); color: white; border: none; font-weight: 600; }
+
+        .btn-icon { font-size: 14px; }
+
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }

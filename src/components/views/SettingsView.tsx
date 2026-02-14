@@ -159,86 +159,38 @@ export function SettingsView({
     };
 
     return (
-        <div style={{ maxWidth: 800, margin: "0 auto" }}>
-            <h2
-                style={{
-                    fontSize: 24,
-                    fontWeight: 600,
-                    marginBottom: 24,
-                    fontFamily: "'Space Grotesk', sans-serif",
-                    color: "#e4e4e7",
-                }}
-            >
+        <div className="settings-container">
+            <h2 className="settings-header">
                 Data Management
             </h2>
 
             <div style={{ display: "grid", gap: 24 }}>
                 {/* Export Section */}
-                <section
-                    style={{
-                        background: "#18181b",
-                        padding: 24,
-                        borderRadius: 12,
-                        border: "1px solid #27272a",
-                    }}
-                >
-                    <h3
-                        style={{
-                            fontSize: 18,
-                            marginBottom: 16,
-                            color: "#fbbf24",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                        }}
-                    >
-                        <span>⭳</span> Export Data
+                <section className="settings-section">
+                    <h3 className="section-title" style={{ color: "var(--color-warning)" }}>
+                        <span className="btn-icon">⭳</span> Export Data
                     </h3>
-                    <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 20 }}>
+                    <p className="section-desc">
                         Download your current workspace or full ecosystem state as a JSON
                         file.
                     </p>
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                         <button
                             onClick={handleExportWorkspace}
-                            style={{
-                                padding: "8px 16px",
-                                background: "#27272a",
-                                border: "1px solid #3f3f46",
-                                color: "#e4e4e7",
-                                borderRadius: 6,
-                                cursor: "pointer",
-                                fontFamily: "inherit",
-                            }}
+                            className="btn btn-surface"
                         >
                             Export Workspace
                         </button>
                         <button
                             onClick={handleExportEcosystem}
-                            style={{
-                                padding: "8px 16px",
-                                background: "#27272a",
-                                border: "1px solid #3f3f46",
-                                color: "#e4e4e7",
-                                borderRadius: 6,
-                                cursor: "pointer",
-                                fontFamily: "inherit",
-                            }}
+                            className="btn btn-surface"
                         >
                             Export Ecosystem
                         </button>
                         <button
                             onClick={handleFullBackup}
-                            style={{
-                                padding: "8px 16px",
-                                background: "#00e5a0",
-                                border: "none",
-                                color: "#000",
-                                fontWeight: 600,
-                                borderRadius: 6,
-                                cursor: "pointer",
-                                fontFamily: "inherit",
-                            }}
+                            className="btn btn-primary"
+                            style={{ color: "#000" }}
                         >
                             Full Backup (.json)
                         </button>
@@ -246,42 +198,18 @@ export function SettingsView({
                 </section>
 
                 {/* Import Section */}
-                <section
-                    style={{
-                        background: "#18181b",
-                        padding: 24,
-                        borderRadius: 12,
-                        border: "1px solid #27272a",
-                    }}
-                >
-                    <h3
-                        style={{
-                            fontSize: 18,
-                            marginBottom: 16,
-                            color: "#38bdf8",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                        }}
-                    >
-                        <span>⭱</span> Import Data
+                <section className="settings-section">
+                    <h3 className="section-title" style={{ color: "var(--color-info)" }}>
+                        <span className="btn-icon">⭱</span> Import Data
                     </h3>
-                    <p style={{ color: "#a1a1aa", fontSize: 14, marginBottom: 20 }}>
+                    <p className="section-desc">
                         Restore a previous state from a JSON file. This will overwrite
                         current data.
                     </p>
                     <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                         <button
                             onClick={handleImportClick}
-                            style={{
-                                padding: "8px 16px",
-                                background: "#3f3f46",
-                                border: "none",
-                                color: "#fff",
-                                borderRadius: 6,
-                                cursor: "pointer",
-                                fontFamily: "inherit",
-                            }}
+                            className="btn btn-secondary"
                         >
                             Select JSON File...
                         </button>
@@ -295,8 +223,9 @@ export function SettingsView({
                         {importStatus && (
                             <span
                                 style={{
-                                    fontSize: 14,
-                                    color: importStatus.startsWith("Error") ? "#ef4444" : "#00e5a0",
+                                    fontSize: 12,
+                                    fontFamily: "var(--font-mono)",
+                                    color: importStatus.startsWith("Error") ? "var(--color-danger)" : "var(--color-accent)",
                                 }}
                             >
                                 {importStatus}
@@ -306,25 +235,9 @@ export function SettingsView({
                 </section>
 
                 {/* Danger Zone */}
-                <section
-                    style={{
-                        background: "rgba(239,68,68,0.05)",
-                        padding: 24,
-                        borderRadius: 12,
-                        border: "1px solid rgba(239,68,68,0.2)",
-                    }}
-                >
-                    <h3
-                        style={{
-                            fontSize: 18,
-                            marginBottom: 16,
-                            color: "#ef4444",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                        }}
-                    >
-                        <span>⚠</span> Danger Zone
+                <section className="settings-section" style={{ borderColor: "rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.05)" }}>
+                    <h3 className="section-title" style={{ color: "var(--color-danger)" }}>
+                        <span className="btn-icon">⚠</span> Danger Zone
                     </h3>
                     <div
                         style={{
@@ -333,22 +246,13 @@ export function SettingsView({
                             alignItems: "center",
                         }}
                     >
-                        <p style={{ color: "#fca5a5", fontSize: 14, margin: 0 }}>
+                        <p className="section-desc" style={{ margin: 0, color: "rgba(239,68,68,0.8)" }}>
                             Clear all data from LocalStorage and reset application to default
                             state.
                         </p>
                         <button
                             onClick={handleReset}
-                            style={{
-                                padding: "8px 16px",
-                                background: "#ef4444",
-                                border: "none",
-                                color: "#fff",
-                                borderRadius: 6,
-                                cursor: "pointer",
-                                fontWeight: 600,
-                                fontFamily: "inherit",
-                            }}
+                            className="btn btn-danger-solid"
                         >
                             Reset All Data
                         </button>
