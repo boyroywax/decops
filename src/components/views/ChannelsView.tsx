@@ -1,6 +1,8 @@
-import type { Agent, Channel, Message, ChannelForm, ViewId } from "../../types";
-import { ROLES, CHANNEL_TYPES } from "../../constants";
-import { inputStyle, SectionTitle, PillButton, BulkCheckbox, BulkActionBar } from "../shared/ui";
+import type { Agent, Channel, ChannelForm, ViewId, Message } from "../../types";
+import { CHANNEL_TYPES, ROLES } from "../../constants";
+import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar, PillButton } from "../shared/ui";
+import { ArrowLeftRight, X } from "lucide-react";
+import { GradientIcon } from "../shared/GradientIcon";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
 
 interface ChannelsViewProps {
@@ -31,7 +33,7 @@ export function ChannelsView({
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}><span style={{ color: "#a78bfa" }}>⟷</span> P2P Channels</h2>
+        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}><GradientIcon icon={ArrowLeftRight} size={18} gradient={["#a78bfa", "#c084fc"]} /> P2P Channels</h2>
         {channels.length > 0 && (
           <BulkCheckbox
             checked={bulk.isAllSelected(channels.map(c => c.id))}
@@ -53,7 +55,7 @@ export function ChannelsView({
               <option value="">From…</option>
               {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
-            <span style={{ color: "#52525b" }}>⟷</span>
+            <ArrowLeftRight size={10} color="#52525b" />
             <select value={channelForm.to} onChange={(e) => setChannelForm({ ...channelForm, to: e.target.value })} style={{ ...inputStyle, width: "auto", minWidth: 140, border: "1px solid rgba(167,139,250,0.2)" }}>
               <option value="">To…</option>
               {agents.filter((a) => a.id !== channelForm.from).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -82,14 +84,14 @@ export function ChannelsView({
             <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12 }}>
               <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(ch.id)} color="#a78bfa" />
               <span style={{ color: ROLES.find(r => r.id === from.role)?.color }}>{from.name}</span>
-              <span style={{ color: "#52525b" }}>⟷</span>
+              <ArrowLeftRight size={10} color="#52525b" />
               <span style={{ color: ROLES.find(r => r.id === to.role)?.color }}>{to.name}</span>
               <span style={{ background: "rgba(167,139,250,0.1)", color: "#a78bfa", padding: "3px 8px", borderRadius: 4, fontSize: 10 }}>{cType?.icon} {cType?.label}</span>
               {msgCount > 0 && <span style={{ fontSize: 9, color: "#fbbf24", background: "rgba(251,191,36,0.1)", padding: "2px 6px", borderRadius: 4 }}>{msgCount} msgs</span>}
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button onClick={() => { setActiveChannel(ch.id); setView("messages"); }} style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.2)", color: "#fbbf24", padding: "4px 10px", borderRadius: 4, fontFamily: "inherit", fontSize: 10, cursor: "pointer" }}>Message</button>
-              <button onClick={() => removeChannel(ch.id)} style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.2)", color: "#71717a", padding: "4px 10px", borderRadius: 4, fontFamily: "inherit", fontSize: 10, cursor: "pointer" }}>✕</button>
+              <button onClick={() => removeChannel(ch.id)} style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.2)", color: "#71717a", padding: "4px 10px", borderRadius: 4, fontFamily: "inherit", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", gap: 3 }}><X size={10} /></button>
             </div>
           </div>
         );

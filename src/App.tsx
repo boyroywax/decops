@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Compass, Rocket, CheckCircle, XCircle } from "lucide-react";
+import { GradientIcon } from "./components/shared/GradientIcon";
 import type { ViewId } from "./types";
-import { useActivityLog } from "./hooks/useActivityLog";
+import { useNotebook } from "./hooks/useNotebook";
 import { useWorkspace } from "./hooks/useWorkspace";
 import { useArchitect } from "./hooks/useArchitect";
 import { useEcosystem } from "./hooks/useEcosystem";
@@ -14,8 +16,9 @@ import { ChannelsView } from "./components/views/ChannelsView";
 import { GroupsView } from "./components/views/GroupsView";
 import { MessagesView } from "./components/views/MessagesView";
 import { NetworkView } from "./components/views/NetworkView";
-import { SettingsView } from "./components/views/SettingsView";
+
 import { ArtifactsView } from "./components/views/ArtifactsView";
+import { ActivityView } from "./components/views/ActivityView";
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LoginView } from "./components/views/LoginView";
@@ -87,8 +90,20 @@ registry.register(deleteGroupCommand);
 registry.register(editChannelCommand);
 
 function AuthenticatedApp() {
-  const [view, setView] = useState<ViewId>("architect");
-  const { log, addLog } = useActivityLog();
+  const [view, setViewRaw] = useState<ViewId>("architect");
+  const { entries: notebookEntries, addEntry: addNotebookEntry, addLog, clearNotebook, exportNotebook } = useNotebook();
+
+  // Wrap setView to track navigation in Notebook
+  const setView = useCallback((v: ViewId) => {
+    setViewRaw(v);
+    addNotebookEntry({
+      category: "navigation",
+      icon: <GradientIcon icon={Compass} size={16} gradient={["#38bdf8", "#818cf8"]} />,
+      title: `Navigated to ${v.charAt(0).toUpperCase() + v.slice(1)}`,
+      description: `Opened the ${v} view.`,
+      tags: ["navigation", v],
+    });
+  }, [addNotebookEntry]);
   const { user, logout } = useAuth();
   const {
     jobs, addJob, updateJobStatus, addArtifact, removeJob, clearJobs,
@@ -132,6 +147,14 @@ function AuthenticatedApp() {
         processingRef.current = true;
         try {
           updateJobStatus(queuedJob.id, "running");
+          addNotebookEntry({
+            category: "action",
+            icon: <GradientIcon icon={Rocket} size={16} gradient={["#fbbf24", "#f59e0b"]} />,
+            title: `Job Started: ${queuedJob.type}`,
+            description: `Running command "${queuedJob.type}" (Job ${queuedJob.id.slice(0, 8)}).`,
+            details: { jobId: queuedJob.id, command: queuedJob.type, request: queuedJob.request },
+            tags: ["job", queuedJob.type],
+          });
 
           const context: CommandContext = {
             workspace: {
@@ -169,6 +192,14 @@ function AuthenticatedApp() {
           const commandResult = await registry.execute(queuedJob.type, queuedJob.request, context);
 
           updateJobStatus(queuedJob.id, "completed", "Job finished successfully");
+          addNotebookEntry({
+            category: "output",
+            icon: <GradientIcon icon={CheckCircle} size={16} gradient={["#00e5a0", "#10b981"]} />,
+            title: `Job Completed: ${queuedJob.type}`,
+            description: `Command "${queuedJob.type}" finished successfully.`,
+            details: { jobId: queuedJob.id, command: queuedJob.type, result: commandResult },
+            tags: ["job", "success", queuedJob.type],
+          });
 
           // Enriched Result Artifact
           const resultArtifact = {
@@ -189,6 +220,16 @@ function AuthenticatedApp() {
         } catch (err: any) {
           console.error("Job Failed", err);
           updateJobStatus(queuedJob.id, "failed", err.message || "Unknown error");
+          addNotebookEntry({
+            category: "system",
+            icon: <GradientIcon icon={XCircle} size={16} gradient={["#ef4444", "#dc2626"]} />,
+            title: `Job Failed: ${queuedJob.type}`,
+            description: `Command "${queuedJob.type}" failed: ${err.message || "Unknown error"}.`,
+            details: { jobId: queuedJob.id, command: queuedJob.type, error: err.message },
+            tags: ["job", "error", queuedJob.type],
+          });
+        } finally {
+          processingRef.current = false;
         }
       }
     };
@@ -238,7 +279,22 @@ function AuthenticatedApp() {
         </div>
 
         <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
-          {view === "profile" && <ProfileView />}
+          {view === "profile" && (
+            <ProfileView
+              agents={workspace.agents}
+              channels={workspace.channels}
+              groups={workspace.groups}
+              messages={workspace.messages}
+              ecosystems={ecosystem.ecosystems}
+              bridges={ecosystem.bridges}
+              setAgents={workspace.setAgents}
+              setChannels={workspace.setChannels}
+              setGroups={workspace.setGroups}
+              setMessages={workspace.setMessages}
+              setEcosystems={ecosystem.setEcosystems}
+              setBridges={ecosystem.setBridges}
+            />
+          )}
 
           {view === "architect" && (
             <ArchitectView
@@ -388,28 +444,22 @@ function AuthenticatedApp() {
             />
           )}
 
-          {view === "data" && (
-            <SettingsView
-              agents={workspace.agents}
-              channels={workspace.channels}
-              groups={workspace.groups}
-              messages={workspace.messages}
-              ecosystems={ecosystem.ecosystems}
-              bridges={ecosystem.bridges}
-              setAgents={workspace.setAgents}
-              setChannels={workspace.setChannels}
-              setGroups={workspace.setGroups}
-              setMessages={workspace.setMessages}
-              setEcosystems={ecosystem.setEcosystems}
-              setBridges={ecosystem.setBridges}
-            />
-          )}
+
 
           {view === "artifacts" && (
             <ArtifactsView
               artifacts={allArtifacts}
               importArtifact={importArtifact}
               removeArtifact={removeArtifact}
+            />
+          )}
+
+          {view === "activity" && (
+            <ActivityView
+              entries={notebookEntries}
+              clearNotebook={clearNotebook}
+              exportNotebook={exportNotebook}
+              addEntry={addNotebookEntry}
             />
           )}
         </main>
@@ -422,7 +472,6 @@ function AuthenticatedApp() {
         messages={workspace.messages}
         ecosystems={ecosystem.ecosystems}
         bridges={ecosystem.bridges}
-        log={log}
         addLog={addLog}
         setView={setView}
         jobs={jobs}

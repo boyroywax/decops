@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Loader2, X, Check, FileText, AlertTriangle } from "lucide-react";
 import type { Job, JobStatus, JobArtifact } from "../../types";
 import { registry } from "../../services/commands/registry";
 import { CommandDefinition } from "../../services/commands/types";
@@ -173,15 +174,16 @@ export function JobsPanel({ jobs, onClose, removeJob, clearJobs, isPaused, toggl
                     onClick={onClose}
                     style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer", fontSize: 14, padding: "0 4px", lineHeight: 1 }}
                     title="Close jobs"
-                >✕</button>
+                ><X size={14} /></button>
             </div>
 
             {/* Content */}
             <div style={{ flex: 1, overflow: "auto", padding: 12 }}>
                 {activeTab === "queue" && queue.length === 0 && (
                     <div style={{ textAlign: "center", padding: "40px 0", color: "#3f3f46" }}>
-                        <div style={{ fontSize: 24, marginBottom: 8, opacity: 0.5 }}>◎</div>
+                        <div style={{ display: "flex", justifyContent: "center", marginBottom: 8, opacity: 0.5 }}><Loader2 size={24} className="spin" /></div>
                         <div style={{ fontSize: 11 }}>No jobs in queue</div>
+                        <style>{`.spin { animation: spin 2s linear infinite; } @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
                     </div>
                 )}
                 {activeTab === "history" && history.length === 0 && (
@@ -480,7 +482,7 @@ function JobItem({ job, removeJob, stopJob, draggable, onDragStart, onDragOver, 
                             style={{ background: "none", border: "none", color: "#52525b", cursor: "pointer", fontSize: 12 }}
                             title="Remove"
                         >
-                            ✕
+                            <X size={12} />
                         </button>
                     )}
                 </div>
@@ -505,7 +507,7 @@ function JobItem({ job, removeJob, stopJob, draggable, onDragStart, onDragOver, 
             {/* Result/Artifacts */}
             {job.status === "completed" && (
                 <div style={{ marginTop: 8 }}>
-                    {job.result && <div style={{ fontSize: 11, color: "#00e5a0", marginBottom: 4 }}>✓ {job.result}</div>}
+                    {job.result && <div style={{ fontSize: 11, color: "#00e5a0", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}><Check size={12} /> {job.result}</div>}
                     {job.artifacts.length > 0 && (
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                             {job.artifacts.map(art => (
@@ -514,7 +516,7 @@ function JobItem({ job, removeJob, stopJob, draggable, onDragStart, onDragOver, 
                                     borderRadius: 4, padding: "4px 8px", fontSize: 10, color: "#38bdf8",
                                     display: "flex", alignItems: "center", gap: 4
                                 }}>
-                                    <span>📄</span> {art.name}
+                                    <FileText size={10} /> {art.name}
                                     <span style={{ opacity: 0.5, marginLeft: 4 }}>{art.type}</span>
                                 </div>
                             ))}
@@ -525,7 +527,7 @@ function JobItem({ job, removeJob, stopJob, draggable, onDragStart, onDragOver, 
 
             {job.status === "failed" && job.result && (
                 <div style={{ marginTop: 8, fontSize: 11, color: "#ef4444" }}>
-                    ⚠ {job.result}
+                    <AlertTriangle size={12} style={{ marginRight: 4, verticalAlign: "bottom" }} /> {job.result}
                 </div>
             )}
         </div>

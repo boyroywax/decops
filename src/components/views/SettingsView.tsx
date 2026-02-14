@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Download, Upload, AlertTriangle, Database } from "lucide-react";
 import type { Agent, Channel, Group, Message, Network, Bridge } from "../../types";
 
 interface SettingsViewProps {
@@ -161,14 +162,14 @@ export function SettingsView({
     return (
         <div style={{ maxWidth: "800px" }}>
             <h2 className="settings-header" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ color: "#ef4444", fontSize: 20 }}>▣</span> Data Management
+                <span style={{ color: "#ef4444", display: "flex", alignItems: "center" }}><Database size={20} /></span> Data Management
             </h2>
 
             <div style={{ display: "grid", gap: 24 }}>
                 {/* Export Section */}
                 <section className="settings-section">
                     <h3 className="section-title" style={{ color: "var(--color-warning)" }}>
-                        <span className="btn-icon">📥</span> Export Data
+                        <span className="btn-icon"><Download size={18} color="#fbbf24" /></span> Export Data
                     </h3>
                     <p className="section-desc">
                         Download your current workspace or full ecosystem state as a JSON
@@ -200,7 +201,7 @@ export function SettingsView({
                 {/* Import Section */}
                 <section className="settings-section">
                     <h3 className="section-title" style={{ color: "var(--color-info)" }}>
-                        <span className="btn-icon">📤</span> Import Data
+                        <span className="btn-icon"><Upload size={18} color="#38bdf8" /></span> Import Data
                     </h3>
                     <p className="section-desc">
                         Restore a previous state from a JSON file. This will overwrite
@@ -237,7 +238,7 @@ export function SettingsView({
                 {/* Danger Zone */}
                 <section className="settings-section" style={{ borderColor: "rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.05)" }}>
                     <h3 className="section-title" style={{ color: "var(--color-danger)" }}>
-                        <span className="btn-icon">⚠️</span> Danger Zone
+                        <span className="btn-icon"><AlertTriangle size={18} color="#ef4444" /></span> Danger Zone
                     </h3>
                     <div
                         style={{

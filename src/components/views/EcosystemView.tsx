@@ -4,7 +4,10 @@ import type {
   BridgeMessage, BridgeForm, ViewId,
 } from "../../types";
 import { ROLES, CHANNEL_TYPES } from "../../constants";
-import { inputStyle, SectionTitle, PillButton } from "../shared/ui";
+import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar, PillButton } from "../shared/ui";
+import { useBulkSelect } from "../../hooks/useBulkSelect";
+import { Globe, ArrowLeftRight, X, Sparkles } from "lucide-react";
+import { GradientIcon } from "../shared/GradientIcon";
 import { EcosystemCanvas } from "../canvas/EcosystemCanvas";
 
 interface EcosystemViewProps {
@@ -55,7 +58,7 @@ export function EcosystemView({
   return (
     <div>
       <h2 style={{ fontFamily: "'Space Grotesky', sans-serif", fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
-        <span style={{ color: "#38bdf8" }}>◎</span> Ecosystem
+        <GradientIcon icon={Globe} size={18} gradient={["#38bdf8", "#60a5fa"]} /> Ecosystem
       </h2>
       <div style={{ fontSize: 11, color: "#71717a", marginBottom: 24, lineHeight: 1.6 }}>
         Save networks as independent entities. Bridge agents across networks for cross-mesh communication.
@@ -83,7 +86,7 @@ export function EcosystemView({
               <div key={net.id} style={{ background: "rgba(255,255,255,0.02)", border: `1px solid ${net.color}25`, borderRadius: 10, padding: 16, transition: "all 0.2s" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                   <div>
-                    <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 14, color: net.color }}>◎ {net.name}</div>
+                    <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 14, color: net.color, display: "flex", alignItems: "center", gap: 6 }}><Globe size={14} /> {net.name}</div>
                     <div style={{ fontSize: 9, color: "#52525b", marginTop: 2 }}>{net.agents.length} agents · {net.channels.length} ch · {net.groups.length} groups</div>
                   </div>
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: net.color, boxShadow: `0 0 8px ${net.color}` }} />
@@ -120,11 +123,11 @@ export function EcosystemView({
               {bridgeFromNet && (
                 <select value={bridgeForm.fromAgent} onChange={(e) => setBridgeForm({ ...bridgeForm, fromAgent: e.target.value })} style={{ ...inputStyle, border: "1px solid rgba(251,191,36,0.1)", marginTop: 6 }}>
                   <option value="">Select agent…</option>
-                  {bridgeFromNet.agents.map((a) => <option key={a.id} value={a.id}>{ROLES.find((r) => r.id === a.role)?.icon} {a.name}</option>)}
+                  {bridgeFromNet.agents.map((a) => <option key={a.id} value={a.id}>{a.name} ({ROLES.find((r) => r.id === a.role)?.label})</option>)}
                 </select>
               )}
             </div>
-            <div style={{ color: "#fbbf24", fontSize: 18, alignSelf: "center", flexShrink: 0, padding: "12px 0" }}>⟷</div>
+            <ArrowLeftRight size={18} color="#fbbf24" style={{ alignSelf: "center", flexShrink: 0, padding: "12px 0" }} />
             <div style={{ flex: 1, minWidth: 200 }}>
               <div style={{ fontSize: 9, color: "#52525b", marginBottom: 4 }}>TARGET NETWORK</div>
               <select value={bridgeForm.toNet} onChange={(e) => setBridgeForm({ ...bridgeForm, toNet: e.target.value, toAgent: "" })} style={{ ...inputStyle, border: "1px solid rgba(251,191,36,0.15)" }}>
@@ -134,7 +137,7 @@ export function EcosystemView({
               {bridgeToNet && (
                 <select value={bridgeForm.toAgent} onChange={(e) => setBridgeForm({ ...bridgeForm, toAgent: e.target.value })} style={{ ...inputStyle, border: "1px solid rgba(251,191,36,0.1)", marginTop: 6 }}>
                   <option value="">Select agent…</option>
-                  {bridgeToNet.agents.map((a) => <option key={a.id} value={a.id}>{ROLES.find((r) => r.id === a.role)?.icon} {a.name}</option>)}
+                  {bridgeToNet.agents.map((a) => <option key={a.id} value={a.id}>{a.name} ({ROLES.find((r) => r.id === a.role)?.label})</option>)}
                 </select>
               )}
             </div>
@@ -168,7 +171,7 @@ export function EcosystemView({
               return (
                 <div key={b.id} onClick={() => setSelectedBridge(isSel ? null : b.id)} style={{ background: isSel ? "rgba(251,191,36,0.08)" : "rgba(255,255,255,0.02)", border: `1px solid ${isSel ? "rgba(251,191,36,0.25)" : "rgba(255,255,255,0.05)"}`, borderRadius: 8, padding: 12, marginBottom: 8, cursor: "pointer", transition: "all 0.15s" }}>
                   <div style={{ fontSize: 11, color: isSel ? "#fbbf24" : "#a1a1aa", marginBottom: 4 }}>
-                    {fA?.name || "?"} <span style={{ color: "#fbbf24" }}>⟷</span> {tA?.name || "?"}
+                    {fA?.name || "?"} <ArrowLeftRight size={10} color="#fbbf24" /> {tA?.name || "?"}
                   </div>
                   <div style={{ fontSize: 9, color: "#52525b" }}>
                     {fNet?.name} → {tNet?.name}
@@ -176,7 +179,7 @@ export function EcosystemView({
                   </div>
                   <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
                     <span style={{ fontSize: 9, padding: "2px 6px", borderRadius: 3, background: "rgba(251,191,36,0.08)", color: "#fbbf24" }}>{CHANNEL_TYPES.find((t) => t.id === b.type)?.label || "Data"}</span>
-                    <button onClick={(e) => { e.stopPropagation(); removeBridge(b.id); }} style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.15)", color: "#71717a", padding: "2px 8px", borderRadius: 3, fontFamily: "inherit", fontSize: 9, cursor: "pointer", marginLeft: "auto" }}>✕</button>
+                    <button onClick={(e) => { e.stopPropagation(); removeBridge(b.id); }} style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.15)", color: "#71717a", padding: "2px 8px", borderRadius: 3, fontFamily: "inherit", fontSize: 9, cursor: "pointer", marginLeft: "auto", display: "flex", alignItems: "center" }}><X size={10} /></button>
                   </div>
                 </div>
               );
@@ -190,7 +193,7 @@ export function EcosystemView({
                 <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.2)" }}>
                   <div style={{ fontSize: 12, fontWeight: 500 }}>
                     <span style={{ color: ROLES.find((r) => r.id === selBridgeFrom.role)?.color }}>{selBridgeFrom.name}</span>
-                    <span style={{ color: "#fbbf24", margin: "0 8px" }}>⟷</span>
+                    <ArrowLeftRight size={10} color="#fbbf24" style={{ margin: "0 8px" }} />
                     <span style={{ color: ROLES.find((r) => r.id === selBridgeTo.role)?.color }}>{selBridgeTo.name}</span>
                   </div>
                   <div style={{ fontSize: 9, color: "#52525b", marginTop: 3 }}>
@@ -240,7 +243,7 @@ export function EcosystemView({
             ) : (
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#3f3f46" }}>
                 <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>⟷</div>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}><ArrowLeftRight size={28} color="#fbbf24" /></div>
                   <div style={{ fontSize: 11 }}>Select a bridge to send cross-network messages.</div>
                 </div>
               </div>
@@ -262,9 +265,9 @@ export function EcosystemView({
       {/* Empty state */}
       {ecosystems.length === 0 && agents.length === 0 && (
         <div style={{ textAlign: "center", padding: 60, color: "#3f3f46", border: "1px dashed rgba(56,189,248,0.1)", borderRadius: 12 }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>◎</div>
+          <GradientIcon icon={Globe} size={32} gradient={["#38bdf8", "#60a5fa"]} />
           <div style={{ fontSize: 12, marginBottom: 16 }}>Build networks with the Architect, then save them here to form an ecosystem.</div>
-          <button onClick={() => setView("architect")} style={{ background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.25)", color: "#fbbf24", padding: "10px 20px", borderRadius: 8, fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>✦ Open Architect</button>
+          <button onClick={() => setView("architect")} style={{ background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.25)", color: "#fbbf24", padding: "10px 20px", borderRadius: 8, fontFamily: "inherit", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Sparkles size={14} /> Open Architect</button>
         </div>
       )}
     </div>

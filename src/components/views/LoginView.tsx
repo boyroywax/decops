@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Key, CheckCircle, Rocket, Globe, Lightbulb } from 'lucide-react';
+import { GradientIcon } from "../shared/GradientIcon";
 import { useAuth } from '../../context/AuthContext';
 
 export function LoginView() {
@@ -38,7 +40,7 @@ export function LoginView() {
                 boxShadow: "0 4px 24px rgba(0,0,0,0.4)"
             }}>
                 <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
-                    <span style={{ fontSize: 28 }}>🔑</span> Decops Identity
+                    <GradientIcon icon={Key} size={28} gradient={["#00e5a0", "#38bdf8"]} /> Decops Identity
                 </h1>
                 <p style={{ fontSize: 14, color: "#a1a1aa", marginBottom: 32 }}>
                     Create or restore your Decentralized Identity
@@ -89,7 +91,7 @@ export function LoginView() {
                         border: "1px solid rgba(0,229,160,0.1)"
                     }}>
                         <p style={{ textAlign: "center", fontSize: 13, color: "#00e5a0", margin: 0 }}>
-                            ✅ Identity ready! Redirecting...
+                            <CheckCircle size={14} style={{ marginRight: 6, verticalAlign: "text-bottom" }} /> Identity ready! Redirecting...
                         </p>
                     </div>
                 )}
@@ -113,18 +115,18 @@ export function LoginView() {
                         letterSpacing: "0.5px",
                     }}
                 >
-                    {stage === 'generating' ? 'Generating...' : '🚀 Enter with DID:Key'}
+                    {stage === 'generating' ? 'Generating...' : <><Rocket size={16} /> Enter with DID:Key</>}
                 </button>
 
                 <div style={{ marginTop: 32, padding: 16, background: "rgba(255,255,255,0.03)", borderRadius: 8, fontSize: 12 }}>
-                    <h4 style={{ margin: "0 0 12px 0", color: "#e4e4e7" }}>🌐 How it works:</h4>
+                    <h4 style={{ margin: "0 0 12px 0", color: "#e4e4e7", display: "flex", alignItems: "center", gap: 8 }}><Globe size={14} /> How it works:</h4>
                     <ol style={{ paddingLeft: 20, margin: "0 0 16px 0", color: "#a1a1aa", lineHeight: 1.8 }}>
                         <li><strong>Generate Key</strong> — An Ed25519 keypair is created in your browser</li>
                         <li><strong>Create DID</strong> — A <code style={{ color: "#00e5a0" }}>did:key</code> identifier is derived from your public key</li>
                         <li><strong>Store Locally</strong> — Your keys are saved in localStorage for this device</li>
                     </ol>
                     <p style={{ margin: 0, color: "#71717a", lineHeight: 1.5 }}>
-                        💡 No server required. Your identity is fully self-sovereign and stored only on this device.
+                        <Lightbulb size={12} style={{ marginRight: 6, verticalAlign: "middle" }} /> No server required. Your identity is fully self-sovereign and stored only on this device.
                         Returning users are automatically authenticated.
                     </p>
                 </div>

@@ -1,6 +1,9 @@
 import type { Agent, Channel, Group, Message, NewAgentForm } from "../../types";
 import { ROLES, PROMPT_TEMPLATES } from "../../constants";
 import { inputStyle, SectionTitle, PillButton, BulkCheckbox, BulkActionBar } from "../shared/ui";
+import { useState } from "react";
+import { Bot, Hexagon, X } from "lucide-react";
+import { GradientIcon } from "../shared/GradientIcon";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
 
 interface AgentsViewProps {
@@ -42,7 +45,7 @@ export function AgentsView({
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}><span style={{ color: "#00e5a0" }}>◉</span> Agent Registry</h2>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}><GradientIcon icon={Bot} size={18} gradient={["#00e5a0", "#34d399"]} /> Agent Registry</h2>
           {agents.length > 0 && (
             <BulkCheckbox
               checked={bulk.isAllSelected(agents.map(a => a.id))}
@@ -51,7 +54,7 @@ export function AgentsView({
             />
           )}
         </div>
-        <button onClick={() => setShowCreate(!showCreate)} style={{ background: showCreate ? "rgba(239,68,68,0.15)" : "rgba(0,229,160,0.12)", color: showCreate ? "#ef4444" : "#00e5a0", border: `1px solid ${showCreate ? "rgba(239,68,68,0.3)" : "rgba(0,229,160,0.25)"}`, padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 11 }}>{showCreate ? "✕ Cancel" : "+ Create Agent"}</button>
+        <button onClick={() => setShowCreate(!showCreate)} style={{ background: showCreate ? "rgba(239,68,68,0.15)" : "rgba(0,229,160,0.12)", color: showCreate ? "#ef4444" : "#00e5a0", border: `1px solid ${showCreate ? "rgba(239,68,68,0.3)" : "rgba(0,229,160,0.25)"}`, padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>{showCreate ? <><X size={12} /> Cancel</> : "+ Create Agent"}</button>
       </div>
 
       {showCreate && (
@@ -88,7 +91,7 @@ export function AgentsView({
 
       {agents.length === 0 && !showCreate && (
         <div style={{ textAlign: "center", padding: 60, color: "#3f3f46", border: "1px dashed rgba(0,229,160,0.1)", borderRadius: 12 }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>⬡</div>
+          <GradientIcon icon={Bot} size={32} gradient={["#00e5a0", "#34d399"]} />
           <div style={{ fontSize: 12 }}>No agents yet. Use the Architect or create manually.</div>
         </div>
       )}
@@ -131,7 +134,7 @@ export function AgentsView({
                 <div><span style={{ color: "#52525b" }}>GROUPS </span><span style={{ color: "#71717a" }}>{agentGroups.length}</span></div>
                 <div><span style={{ color: "#52525b" }}>MSGS </span><span style={{ color: "#71717a" }}>{agentMsgs.length}</span></div>
               </div>
-              {agentGroups.length > 0 && <div style={{ marginTop: 8, display: "flex", gap: 4, flexWrap: "wrap" }}>{agentGroups.map((g) => (<span key={g.id} style={{ fontSize: 9, padding: "2px 8px", borderRadius: 10, background: g.color + "15", color: g.color, border: `1px solid ${g.color}30` }}>⬡ {g.name}</span>))}</div>}
+              {agentGroups.length > 0 && <div style={{ marginTop: 8, display: "flex", gap: 4, flexWrap: "wrap" }}>{agentGroups.map((g) => (<span key={g.id} style={{ fontSize: 9, padding: "2px 8px", borderRadius: 10, background: g.color + "15", color: g.color, border: `1px solid ${g.color}30`, display: "inline-flex", alignItems: "center", gap: 3 }}><Hexagon size={8} /> {g.name}</span>))}</div>}
               {isSelected && !isEditing && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: 8 }}>
                   <button onClick={(e) => { e.stopPropagation(); setEditingPrompt(a.id); setEditPromptText(a.prompt || ""); }} style={{ background: "rgba(0,229,160,0.1)", border: "1px solid rgba(0,229,160,0.2)", color: "#00e5a0", padding: "6px 12px", borderRadius: 4, fontFamily: "inherit", fontSize: 10, cursor: "pointer" }}>{a.prompt ? "Edit Prompt" : "Add Prompt"}</button>

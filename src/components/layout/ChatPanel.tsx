@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { Bot, ArrowLeftRight, Hexagon, MessageSquare, Sparkles, Settings, PlusCircle, X, AlignJustify, MessageCircle, Image, FileJson, FileText } from "lucide-react";
+import { GradientIcon } from "../shared/GradientIcon";
 import { chatWithWorkspace, getSelectedModel } from "../../services/ai";
 import type { ChatMessage, WorkspaceContext } from "../../services/ai";
 import { ANTHROPIC_MODELS } from "../../constants";
@@ -79,15 +81,15 @@ function parseActions(text: string): { cleanText: string; actions: ParsedAction[
 
 
 function ActionCard({ action, context }: { action: ParsedAction; context: WorkspaceContext }) {
-    const typeLabels: Record<string, { icon: string; color: string; label: string }> = {
-        create_agent: { icon: "◉", color: "#00e5a0", label: "Create Agent" },
-        create_channel: { icon: "⟷", color: "#a78bfa", label: "Create Channel" },
-        create_group: { icon: "⬡", color: "#f472b6", label: "Create Group" },
-        send_message: { icon: "◆", color: "#fbbf24", label: "Send Message" },
-        generate_mesh: { icon: "✦", color: "#fbbf24", label: "Generate Mesh" },
+    const typeLabels: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
+        create_agent: { icon: <Bot size={12} color="#00e5a0" />, color: "#00e5a0", label: "Create Agent" },
+        create_channel: { icon: <ArrowLeftRight size={12} color="#a78bfa" />, color: "#a78bfa", label: "Create Channel" },
+        create_group: { icon: <Hexagon size={12} color="#f472b6" />, color: "#f472b6", label: "Create Group" },
+        send_message: { icon: <MessageSquare size={12} color="#fbbf24" />, color: "#fbbf24", label: "Send Message" },
+        generate_mesh: { icon: <Sparkles size={12} color="#fbbf24" />, color: "#fbbf24", label: "Generate Mesh" },
     };
 
-    const meta = typeLabels[action.type] || { icon: "⚙", color: "#71717a", label: action.type };
+    const meta = typeLabels[action.type] || { icon: <Settings size={12} color="#71717a" />, color: "#71717a", label: action.type };
     const details = Object.entries(action)
         .filter(([k]) => k !== "type")
         .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`);
@@ -122,7 +124,7 @@ function ActionCard({ action, context }: { action: ParsedAction; context: Worksp
         }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ color: meta.color }}>{meta.icon}</span>
+                    <span style={{ color: meta.color, display: "flex", alignItems: "center" }}>{meta.icon}</span>
                     <span style={{ color: meta.color, fontWeight: 600, fontSize: 10, letterSpacing: "0.05em" }}>{meta.label}</span>
                 </div>
 
@@ -166,7 +168,7 @@ function ActionCard({ action, context }: { action: ParsedAction; context: Worksp
                             }}
                             title="Add to Job Queue"
                         >
-                            <span>◎</span> Add to Job
+                            <PlusCircle size={10} /> Add to Job
                         </button>
                     )
                 )}
@@ -198,9 +200,7 @@ function ActionCard({ action, context }: { action: ParsedAction; context: Worksp
                                     fontFamily: "inherit"
                                 }}
                             >
-                                <span>
-                                    {art.type === "image" ? "🖼️" : art.type === "json" ? "{}" : "📄"}
-                                </span>
+                                {art.type === "image" ? <Image size={10} /> : art.type === "json" ? <FileJson size={10} /> : <FileText size={10} />}
                                 {art.name}
                             </button>
                         ))}
@@ -484,7 +484,7 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
                             transition: "all 0.15s",
                         }}
                     >
-                        <span style={{ fontSize: 9 }}>▤</span>
+                        <AlignJustify size={9} />
                         Conversations
                         {conversations.length > 0 && (
                             <span style={{
@@ -505,9 +505,9 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
                     >+ New</button>
                     <button
                         onClick={onClose}
-                        style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer", fontSize: 14, padding: "0 4px", lineHeight: 1 }}
+                        style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer", padding: "0 4px", lineHeight: 1, display: "flex", alignItems: "center" }}
                         title="Close chat"
-                    >✕</button>
+                    ><X size={14} /></button>
                 </div>
             </div>
 
@@ -580,7 +580,7 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
                                 title="Delete conversation"
                                 onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
                                 onMouseLeave={e => (e.currentTarget.style.opacity = "0.5")}
-                            >✕</button>
+                            ><X size={12} /></button>
                         </div>
                     ))}
                 </div>
@@ -589,7 +589,7 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
                 <div style={{ flex: 1, overflow: "auto", padding: "12px 14px" }}>
                     {messages.length === 0 && !loading && (
                         <div style={{ textAlign: "center", padding: "40px 0", color: "#3f3f46" }}>
-                            <div style={{ fontSize: 24, marginBottom: 8, opacity: 0.5 }}>◇</div>
+                            <GradientIcon icon={MessageCircle} size={24} gradient={["#00e5a0", "#38bdf8"]} />
                             <div style={{ fontSize: 11, marginBottom: 4 }}>Workspace AI Assistant</div>
                             <div style={{ fontSize: 10, color: "#27272a", maxWidth: 300, margin: "0 auto", lineHeight: 1.5 }}>
                                 Ask about your agents, channels, groups, topology — or request workspace actions.

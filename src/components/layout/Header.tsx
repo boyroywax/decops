@@ -1,3 +1,5 @@
+import { Hexagon, Zap, LogOut } from "lucide-react";
+import { GradientIcon } from "../shared/GradientIcon";
 import type { ViewId } from "../../types";
 import { GemAvatar } from "../shared/GemAvatar";
 
@@ -11,7 +13,9 @@ export function Header({ user, logout, setView }: HeaderProps) {
   return (
     <header style={{ padding: "10px 20px", borderBottom: "1px solid rgba(0,229,160,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,229,160,0.02)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #00e5a0 0%, #0a0a0f 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⬡</div>
+        <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #00e5a0 0%, #0a0a0f 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Hexagon size={18} color="#0a0a0f" strokeWidth={2.5} />
+        </div>
         <div>
           <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, letterSpacing: "-0.02em" }}>MESH WORKSPACE</div>
           <div style={{ fontSize: 10, color: "#71717a", letterSpacing: "0.05em" }}>DECENTRALIZED AGENT COLLABORATION</div>
@@ -41,11 +45,29 @@ export function Header({ user, logout, setView }: HeaderProps) {
             </div>
           </button>
           <button
+            onClick={() => setView?.("activity")}
+            style={{
+              background: "none",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderRadius: 8,
+              padding: "6px 8px",
+              cursor: "pointer",
+              color: "#00e5a0",
+              transition: "all 0.15s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            title="Activity"
+          >
+            <GradientIcon icon={Zap} size={16} gradient={["#00e5a0", "#38bdf8"]} />
+          </button>
+          <button
             onClick={logout}
-            style={{ background: "none", border: "none", color: "#52525b", cursor: "pointer", fontSize: 14, padding: 4, transition: "color 0.15s" }}
+            style={{ background: "none", border: "none", color: "#52525b", cursor: "pointer", padding: 4, transition: "color 0.15s", display: "flex", alignItems: "center" }}
             title="Logout"
           >
-            ⏻
+            <LogOut size={14} />
           </button>
         </div>
       )}

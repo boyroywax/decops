@@ -1,4 +1,6 @@
-import type { Agent, Group, GroupForm, ViewId } from "../../types";
+import type { Agent, Group, GroupForm, GovernanceModelId, Channel, Message, ViewId } from "../../types";
+import { Hexagon, X, MessageSquare, Check, Plus } from "lucide-react";
+import { GradientIcon } from "../shared/GradientIcon";
 import { ROLES, GOVERNANCE_MODELS } from "../../constants";
 import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar } from "../shared/ui";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
@@ -38,7 +40,7 @@ export function GroupsView({
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}><span style={{ color: "#f472b6" }}>⬡</span> Group Governance</h2>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}><GradientIcon icon={Hexagon} size={18} gradient={["#f472b6", "#fb7185"]} /> Group Governance</h2>
           {groups.length > 0 && (
             <BulkCheckbox
               checked={bulk.isAllSelected(groups.map(g => g.id))}
@@ -47,7 +49,7 @@ export function GroupsView({
             />
           )}
         </div>
-        <button onClick={() => setShowGroupCreate(!showGroupCreate)} style={{ background: showGroupCreate ? "rgba(239,68,68,0.15)" : "rgba(244,114,182,0.12)", color: showGroupCreate ? "#ef4444" : "#f472b6", border: `1px solid ${showGroupCreate ? "rgba(239,68,68,0.3)" : "rgba(244,114,182,0.25)"}`, padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 11 }}>{showGroupCreate ? "✕ Cancel" : "+ Form Group"}</button>
+        <button onClick={() => setShowGroupCreate(!showGroupCreate)} style={{ background: showGroupCreate ? "rgba(239,68,68,0.15)" : "rgba(244,114,182,0.12)", color: showGroupCreate ? "#ef4444" : "#f472b6", border: `1px solid ${showGroupCreate ? "rgba(239,68,68,0.3)" : "rgba(244,114,182,0.25)"}`, padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 11, display: "flex", alignItems: "center", gap: 4 }}>{showGroupCreate ? <><X size={12} /> Cancel</> : "+ Form Group"}</button>
       </div>
 
       {showGroupCreate && (
@@ -107,7 +109,7 @@ export function GroupsView({
 
       {groups.length === 0 && !showGroupCreate && (
         <div style={{ textAlign: "center", padding: 60, color: "#3f3f46", border: "1px dashed rgba(244,114,182,0.1)", borderRadius: 12 }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>⬡</div>
+          <GradientIcon icon={Hexagon} size={32} gradient={["#f472b6", "#fb7185"]} />
           <div style={{ fontSize: 12 }}>No groups yet.</div>
         </div>
       )}
@@ -124,7 +126,7 @@ export function GroupsView({
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(g.id)} color={g.color} />
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 14, fontFamily: "'Space Grotesk', sans-serif", color: g.color }}>⬡ {g.name}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, fontFamily: "'Space Grotesk', sans-serif", color: g.color, display: "flex", alignItems: "center", gap: 6 }}><Hexagon size={14} /> {g.name}</div>
                     <div style={{ fontSize: 10, color: "#71717a", marginTop: 2 }}>{gov?.icon} {gov?.label}</div>
                   </div>
                 </div>
@@ -137,7 +139,7 @@ export function GroupsView({
                   const role = ROLES.find((r) => r.id === a.role)!;
                   return (
                     <span key={a.id} style={{ fontSize: 10, padding: "3px 10px", borderRadius: 10, background: role.color + "12", color: role.color, border: `1px solid ${role.color}25`, display: "flex", alignItems: "center", gap: 4 }}>
-                      {role.icon} {a.name}{a.prompt && <span style={{ fontSize: 8, opacity: 0.6 }}>◆</span>}
+                      {role.icon} {a.name}{a.prompt && <span style={{ fontSize: 8, opacity: 0.6 }}><MessageSquare size={6} /></span>}
                     </span>
                   );
                 })}

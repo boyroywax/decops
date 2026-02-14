@@ -18,7 +18,7 @@ interface UseEcosystemDeps {
   setChannels: React.Dispatch<React.SetStateAction<Channel[]>>;
   setGroups: React.Dispatch<React.SetStateAction<Group[]>>;
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
-  setView: React.Dispatch<React.SetStateAction<ViewId>>;
+  setView: (view: ViewId) => void;
 }
 
 export function useEcosystem({
@@ -51,7 +51,7 @@ export function useEcosystem({
       createdAt: new Date().toISOString(),
     };
     setEcosystems((prev) => [...prev, net]);
-    addLog(`Network "${net.name}" saved → ${net.did.slice(0, 24)}…`);
+    addLog(`Network "${net.name}" saved -> ${net.did.slice(0, 24)}…`);
     setEcoSaveName("");
   };
 
@@ -91,7 +91,7 @@ export function useEcosystem({
     const tNet = ecosystems.find((n) => n.id === toNet);
     const fAgent = fNet?.agents.find((a) => a.id === fromAgent);
     const tAgent = tNet?.agents.find((a) => a.id === toAgent);
-    addLog(`Bridge: ${fAgent?.name} (${fNet?.name}) ⟷ ${tAgent?.name} (${tNet?.name})`);
+    addLog(`Bridge: ${fAgent?.name} (${fNet?.name}) <-> ${tAgent?.name} (${tNet?.name})`);
     setBridgeForm({ fromNet: "", toNet: "", fromAgent: "", toAgent: "", type: "data" });
   };
 
@@ -120,7 +120,7 @@ export function useEcosystem({
     setBridgeMsgInput("");
     setBridgeSending(true);
     setActiveBridges((prev) => new Set([...prev, bridge.id]));
-    addLog(`Bridge msg: ${fromAgent.name} → ${toAgent.name} (cross-network)`);
+    addLog(`Bridge msg: ${fromAgent.name} -> ${toAgent.name} (cross-network)`);
 
     if (toAgent.prompt) {
       const history = bridgeMessages.filter((m) => m.bridgeId === bridge.id);

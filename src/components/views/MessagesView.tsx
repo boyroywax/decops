@@ -1,5 +1,7 @@
 import type { RefObject } from "react";
 import type { Agent, Channel, Group, Message } from "../../types";
+import { MessageSquare, ArrowLeftRight, Hexagon, X } from "lucide-react";
+import { GradientIcon } from "../shared/GradientIcon";
 import { ROLES, CHANNEL_TYPES } from "../../constants";
 import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar } from "../shared/ui";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
@@ -77,7 +79,7 @@ export function MessagesView({
     <div style={{ display: "flex", gap: 16, height: "calc(100vh - 120px)" }}>
       {/* Channel list sidebar */}
       <div style={{ width: 240, flexShrink: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: "0 0 8px" }}><span style={{ color: "#fbbf24" }}>◆</span> Messages</h2>
+        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: "0 0 8px" }}><GradientIcon icon={MessageSquare} size={18} gradient={["#fbbf24", "#fb923c"]} /> Messages</h2>
         <SectionTitle text="P2P Channels" />
         {channels.length === 0 && <div style={{ fontSize: 10, color: "#3f3f46", padding: 8 }}>No channels</div>}
         {channels.map((ch) => {
@@ -88,7 +90,7 @@ export function MessagesView({
           const isAc = activeChannel === ch.id && !broadcastGroup;
           return (
             <button key={ch.id} onClick={() => { setActiveChannel(ch.id); setBroadcastGroup(null); bulk.clearSelection(); }} style={{ background: isAc ? "rgba(251,191,36,0.08)" : "rgba(255,255,255,0.02)", border: `1px solid ${isAc ? "rgba(251,191,36,0.25)" : "rgba(255,255,255,0.05)"}`, borderRadius: 8, padding: "10px 12px", cursor: "pointer", fontFamily: "inherit", textAlign: "left", display: "block", width: "100%" }}>
-              <div style={{ fontSize: 11, color: isAc ? "#fbbf24" : "#a1a1aa" }}>{from.name} ⟷ {to.name}</div>
+              <div style={{ fontSize: 11, color: isAc ? "#fbbf24" : "#a1a1aa", display: "flex", alignItems: "center", gap: 4 }}>{from.name} <ArrowLeftRight size={10} /> {to.name}</div>
               <div style={{ fontSize: 9, color: "#52525b", marginTop: 3 }}>
                 {CHANNEL_TYPES.find((t) => t.id === ch.type)?.icon} {CHANNEL_TYPES.find((t) => t.id === ch.type)?.label}
                 {msgCount > 0 && <span style={{ marginLeft: 8, color: "#fbbf24" }}>{msgCount} msgs</span>}
@@ -103,7 +105,7 @@ export function MessagesView({
               const isAc = broadcastGroup === g.id;
               return (
                 <button key={g.id} onClick={() => { setBroadcastGroup(g.id); setActiveChannel(null); bulk.clearSelection(); }} style={{ background: isAc ? g.color + "12" : "rgba(255,255,255,0.02)", border: `1px solid ${isAc ? g.color + "30" : "rgba(255,255,255,0.05)"}`, borderRadius: 8, padding: "10px 12px", cursor: "pointer", fontFamily: "inherit", textAlign: "left", display: "block", width: "100%" }}>
-                  <div style={{ fontSize: 11, color: isAc ? g.color : "#a1a1aa" }}>⬡ {g.name}</div>
+                  <div style={{ fontSize: 11, color: isAc ? g.color : "#a1a1aa", display: "flex", alignItems: "center", gap: 4 }}><Hexagon size={10} /> {g.name}</div>
                   <div style={{ fontSize: 9, color: "#52525b", marginTop: 3 }}>{g.members.length} members</div>
                 </button>
               );
@@ -130,7 +132,7 @@ export function MessagesView({
                 )}
                 {broadcastGroup && (
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: groups.find(g => g.id === broadcastGroup)?.color }}>⬡ {groups.find(g => g.id === broadcastGroup)?.name} — Broadcast</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: groups.find(g => g.id === broadcastGroup)?.color, display: "flex", alignItems: "center", gap: 6 }}><Hexagon size={12} /> {groups.find(g => g.id === broadcastGroup)?.name} — Broadcast</div>
                   </div>
                 )}
               </div>
@@ -145,7 +147,7 @@ export function MessagesView({
             <div style={{ flex: 1, overflow: "auto", padding: 18 }}>
               {activeChannel && !broadcastGroup && channelMessages.length === 0 && (
                 <div style={{ textAlign: "center", padding: 40, color: "#3f3f46" }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>◆</div>
+                  <GradientIcon icon={MessageSquare} size={24} gradient={["#fbbf24", "#fb923c"]} />
                   <div style={{ fontSize: 11 }}>No messages yet.</div>
                 </div>
               )}
@@ -184,7 +186,7 @@ export function MessagesView({
                 const bMsgs = messages.filter((m) => m.content.includes(`[GROUP BROADCAST — ${group.name}]`) && group.members.includes(m.toId));
                 if (bMsgs.length === 0) return (
                   <div style={{ textAlign: "center", padding: 40, color: "#3f3f46" }}>
-                    <div style={{ fontSize: 24, marginBottom: 8 }}>⬡</div>
+                    <GradientIcon icon={Hexagon} size={24} gradient={["#f472b6", "#fb7185"]} />
                     <div style={{ fontSize: 11 }}>No broadcasts yet.</div>
                   </div>
                 );
@@ -240,7 +242,7 @@ export function MessagesView({
         ) : (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#3f3f46" }}>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>◆</div>
+              <GradientIcon icon={MessageSquare} size={32} gradient={["#fbbf24", "#fb923c"]} />
               <div style={{ fontSize: 12 }}>Select a channel or group.</div>
             </div>
           </div>

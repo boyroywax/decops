@@ -1,3 +1,5 @@
+import type React from "react";
+
 export type RoleId = "researcher" | "builder" | "curator" | "validator" | "orchestrator";
 
 export type ChannelTypeId = "data" | "task" | "consensus";
@@ -14,7 +16,21 @@ export type ViewId =
   | "network"
   | "data"
   | "profile"
-  | "artifacts";
+  | "artifacts"
+  | "activity";
+
+export type NotebookCategory = "action" | "output" | "navigation" | "system" | "narrative";
+
+export interface NotebookEntry {
+  id: string;
+  timestamp: number;
+  category: NotebookCategory;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  details?: Record<string, any>;
+  tags?: string[];
+}
 
 export interface User {
   id: string;
@@ -71,20 +87,21 @@ export type MessageStatus = "sending" | "delivered" | "no-prompt";
 export interface Role {
   id: RoleId;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
+  char: string;
   color: string;
 }
 
 export interface ChannelType {
   id: ChannelTypeId;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 export interface GovernanceModel {
   id: GovernanceModelId;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   desc: string;
 }
 
@@ -96,7 +113,7 @@ export interface PromptTemplate {
 export interface ScenarioPreset {
   id: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   color: string;
   desc: string;
 }

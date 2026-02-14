@@ -1,5 +1,7 @@
 import type { Agent, Channel, Group } from "../../types";
 import { NetworkCanvas } from "../canvas/NetworkCanvas";
+import { Share2 } from "lucide-react";
+import { GradientIcon } from "../shared/GradientIcon";
 
 interface NetworkViewProps {
   agents: Agent[];
@@ -11,7 +13,7 @@ interface NetworkViewProps {
 export function NetworkView({ agents, channels, groups, activeChannels }: NetworkViewProps) {
   return (
     <div style={{ height: "calc(100vh - 120px)" }}>
-      <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, marginBottom: 16 }}><span style={{ color: "#00e5a0" }}>◈</span> Network Topology</h2>
+      <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, marginBottom: 16 }}><GradientIcon icon={Share2} size={18} gradient={["#00e5a0", "#34d399"]} /> Network Topology</h2>
       {agents.length === 0 ? (
         <div style={{ textAlign: "center", padding: 60, color: "#3f3f46", border: "1px dashed rgba(0,229,160,0.1)", borderRadius: 12, height: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ fontSize: 12 }}>Create agents to visualize the mesh.</div>

@@ -1,5 +1,12 @@
-import { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import type { ViewId, Network, Message } from "../../types";
+import type { LucideIcon } from "lucide-react";
+import {
+  Sparkles, Globe, Bot, ArrowLeftRight,
+  Hexagon, MessageSquare, Network as NetworkIcon, Gem,
+  ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
+} from "lucide-react";
+import { GradientIcon } from "../shared/GradientIcon";
 
 interface SidebarProps {
   view: ViewId;
@@ -11,16 +18,15 @@ interface SidebarProps {
   isMobile?: boolean;
 }
 
-const NAV_ITEMS: { id: ViewId; label: string; icon: string; accent: string }[] = [
-  { id: "architect", label: "Architect", icon: "✦", accent: "#fbbf24" },
-  { id: "ecosystem", label: "Ecosystem", icon: "◎", accent: "#38bdf8" },
-  { id: "agents", label: "Agents", icon: "◉", accent: "#00e5a0" },
-  { id: "channels", label: "Channels", icon: "⟷", accent: "#a78bfa" },
-  { id: "groups", label: "Groups", icon: "⬡", accent: "#f472b6" },
-  { id: "messages", label: "Messages", icon: "◆", accent: "#fbbf24" },
-  { id: "network", label: "Topology", icon: "◈", accent: "#00e5a0" },
-  { id: "data", label: "Data", icon: "▣", accent: "#ef4444" },
-  { id: "artifacts", label: "Artifacts", icon: "❖", accent: "#818cf8" },
+const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; gradient: [string, string] }[] = [
+  { id: "architect", label: "Architect", icon: Sparkles, accent: "#fbbf24", gradient: ["#fbbf24", "#fb923c"] },
+  { id: "ecosystem", label: "Ecosystem", icon: Globe, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] },
+  { id: "agents", label: "Agents", icon: Bot, accent: "#00e5a0", gradient: ["#00e5a0", "#34d399"] },
+  { id: "channels", label: "Channels", icon: ArrowLeftRight, accent: "#a78bfa", gradient: ["#a78bfa", "#c084fc"] },
+  { id: "groups", label: "Groups", icon: Hexagon, accent: "#f472b6", gradient: ["#f472b6", "#fb7185"] },
+  { id: "messages", label: "Messages", icon: MessageSquare, accent: "#fbbf24", gradient: ["#fbbf24", "#fb923c"] },
+  { id: "network", label: "Topology", icon: NetworkIcon, accent: "#00e5a0", gradient: ["#00e5a0", "#38bdf8"] },
+  { id: "artifacts", label: "Artifacts", icon: Gem, accent: "#818cf8", gradient: ["#818cf8", "#a78bfa"] },
 ];
 
 export function Sidebar({ view, setView, ecosystems, messages, collapsed, setCollapsed, isMobile }: SidebarProps) {
@@ -67,7 +73,7 @@ export function Sidebar({ view, setView, ecosystems, messages, collapsed, setCol
         width: isMobile ? "100%" : (collapsed ? 60 : 200),
         height: isMobile ? "auto" : "100%",
         borderRight: isMobile ? "none" : "1px solid rgba(0,229,160,0.08)",
-        borderBottom: isMobile ? "none" : "none", // Handled by wrapper if mobile
+        borderBottom: isMobile ? "none" : "none",
         padding: isMobile ? "4px 32px 4px 4px" : "12px 0",
         display: "flex",
         flexDirection: isMobile ? "row" : "column",
@@ -77,8 +83,8 @@ export function Sidebar({ view, setView, ecosystems, messages, collapsed, setCol
         transition: "all 0.2s ease-in-out",
         overflowX: isMobile ? "auto" : "hidden",
         whiteSpace: isMobile ? "nowrap" : "normal",
-        scrollbarWidth: "none", // Firefox
-        msOverflowStyle: "none",  // IE 10+
+        scrollbarWidth: "none",
+        msOverflowStyle: "none",
       }}
     >
       {isMobile && (
@@ -111,7 +117,10 @@ export function Sidebar({ view, setView, ecosystems, messages, collapsed, setCol
             flexShrink: 0,
           }}
         >
-          <span style={{ fontSize: 14 }}>{tab.icon}</span>
+          {view === tab.id
+            ? <GradientIcon icon={tab.icon} size={14} gradient={tab.gradient} />
+            : <tab.icon size={14} />
+          }
           {(!collapsed || isMobile) && (
             <>
               {tab.label}
@@ -142,7 +151,7 @@ export function Sidebar({ view, setView, ecosystems, messages, collapsed, setCol
               fontSize: 12,
             }}
           >
-            {collapsed ? "»" : "« Collapse"}
+            {collapsed ? <ChevronsRight size={14} /> : <><ChevronsLeft size={14} /> Collapse</>}
           </button>
         </div>
       )}
@@ -163,7 +172,7 @@ export function Sidebar({ view, setView, ecosystems, messages, collapsed, setCol
               fontSize: 16
             }}
           >
-            ‹
+            <ChevronLeft size={14} />
           </button>
         )}
 
@@ -180,7 +189,7 @@ export function Sidebar({ view, setView, ecosystems, messages, collapsed, setCol
               fontSize: 16
             }}
           >
-            ›
+            <ChevronRight size={14} />
           </button>
         )}
       </div>

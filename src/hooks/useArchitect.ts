@@ -72,7 +72,7 @@ export function useArchitect({
       newAgents.push(agent);
       count++;
       setDeployProgress({ step: `Creating agent: ${a.name}`, count, total });
-      addLog(`Deployed agent "${a.name}" → ${agent.did.slice(0, 20)}…`);
+      addLog(`Deployed agent "${a.name}" -> ${agent.did.slice(0, 20)}…`);
       await new Promise(r => setTimeout(r, 150));
     }
     setAgents((prev) => [...prev, ...newAgents]);
@@ -91,8 +91,8 @@ export function useArchitect({
       };
       newChannels.push(ch);
       count++;
-      setDeployProgress({ step: `Channel: ${fromAgent.name} ⟷ ${toAgent.name}`, count, total });
-      addLog(`Channel: ${fromAgent.name} ⟷ ${toAgent.name} [${validType}]`);
+      setDeployProgress({ step: `Channel: ${fromAgent.name} <-> ${toAgent.name}`, count, total });
+      addLog(`Channel: ${fromAgent.name} <-> ${toAgent.name} [${validType}]`);
       await new Promise(r => setTimeout(r, 100));
     }
     setChannels((prev) => [...prev, ...newChannels]);
@@ -114,7 +114,7 @@ export function useArchitect({
         newGroups.push(group);
         count++;
         setDeployProgress({ step: `Group: ${g.name}`, count, total });
-        addLog(`Group "${g.name}" formed → ${group.did.slice(0, 22)}…`);
+        addLog(`Group "${g.name}" formed -> ${group.did.slice(0, 22)}…`);
         await new Promise(r => setTimeout(r, 100));
 
         // Auto-create consensus channels within group
@@ -149,8 +149,8 @@ export function useArchitect({
         if (!fromAgent || !toAgent) continue;
 
         count++;
-        setDeployProgress({ step: `Message: ${fromAgent.name} → ${toAgent.name}`, count, total });
-        addLog(`Example msg: ${fromAgent.name} → ${toAgent.name}`);
+        setDeployProgress({ step: `Message: ${fromAgent.name} -> ${toAgent.name}`, count, total });
+        addLog(`Example msg: ${fromAgent.name} -> ${toAgent.name}`);
 
         const msgId = crypto.randomUUID();
         const msg: Message = {

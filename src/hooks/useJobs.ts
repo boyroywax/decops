@@ -1,10 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useLocalStorage } from "./useLocalStorage";
 import type { Job, JobStatus, JobArtifact } from "../types";
 
 export function useJobs() {
-    const [jobs, setJobs] = useState<Job[]>([]);
+    const [jobs, setJobs] = useLocalStorage<Job[]>("decops_jobs", []);
 
-    const [standaloneArtifacts, setStandaloneArtifacts] = useState<JobArtifact[]>([]);
+    const [standaloneArtifacts, setStandaloneArtifacts] = useLocalStorage<JobArtifact[]>("decops_artifacts", []);
 
     const addJob = useCallback((jobData: Omit<Job, "id" | "status" | "createdAt" | "updatedAt" | "artifacts">) => {
         const newJob: Job = {

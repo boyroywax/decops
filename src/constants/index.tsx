@@ -1,24 +1,32 @@
+import React from "react";
+import {
+  Microscope, Zap, Package, Shield, Globe,
+  RefreshCw, Settings, Handshake,
+  Vote, Lock, User, Sparkles,
+  Dna, Palette, Siren, Rocket,
+} from "lucide-react";
+import { GradientIcon } from "../components/shared/GradientIcon";
 import type { Role, ChannelType, GovernanceModel, PromptTemplate, ScenarioPreset } from "../types";
 
 export const ROLES: Role[] = [
-  { id: "researcher", label: "Researcher", icon: "🔬", color: "#00e5a0" },
-  { id: "builder", label: "Builder", icon: "⚡", color: "#fbbf24" },
-  { id: "curator", label: "Curator", icon: "📦", color: "#a78bfa" },
-  { id: "validator", label: "Validator", icon: "🛡️", color: "#38bdf8" },
-  { id: "orchestrator", label: "Orchestrator", icon: "🌐", color: "#f472b6" },
+  { id: "researcher", label: "Researcher", char: "R", icon: <GradientIcon icon={Microscope} size={16} gradient={["#00e5a0", "#34d399"]} />, color: "#00e5a0" },
+  { id: "builder", label: "Builder", char: "B", icon: <GradientIcon icon={Zap} size={16} gradient={["#fbbf24", "#fb923c"]} />, color: "#fbbf24" },
+  { id: "curator", label: "Curator", char: "C", icon: <GradientIcon icon={Package} size={16} gradient={["#a78bfa", "#c084fc"]} />, color: "#a78bfa" },
+  { id: "validator", label: "Validator", char: "V", icon: <GradientIcon icon={Shield} size={16} gradient={["#38bdf8", "#60a5fa"]} />, color: "#38bdf8" },
+  { id: "orchestrator", label: "Orchestrator", char: "O", icon: <GradientIcon icon={Globe} size={16} gradient={["#f472b6", "#fb7185"]} />, color: "#f472b6" },
 ];
 
 export const CHANNEL_TYPES: ChannelType[] = [
-  { id: "data", label: "Data Sync", icon: "⟳" },
-  { id: "task", label: "Task Relay", icon: "⚙️" },
-  { id: "consensus", label: "Consensus", icon: "🤝" },
+  { id: "data", label: "Data Sync", icon: <GradientIcon icon={RefreshCw} size={14} gradient={["#00e5a0", "#38bdf8"]} /> },
+  { id: "task", label: "Task Relay", icon: <GradientIcon icon={Settings} size={14} gradient={["#a78bfa", "#f472b6"]} /> },
+  { id: "consensus", label: "Consensus", icon: <GradientIcon icon={Handshake} size={14} gradient={["#fbbf24", "#fb923c"]} /> },
 ];
 
 export const GOVERNANCE_MODELS: GovernanceModel[] = [
-  { id: "majority", label: "Majority Vote", icon: "🗳️", desc: "Simple >50% consensus" },
-  { id: "threshold", label: "Threshold Sig", icon: "🔐", desc: "M-of-N multisig required" },
-  { id: "delegated", label: "Delegated", icon: "👤", desc: "Elected lead with veto" },
-  { id: "unanimous", label: "Unanimous", icon: "✦", desc: "All members must agree" },
+  { id: "majority", label: "Majority Vote", icon: <GradientIcon icon={Vote} size={14} gradient={["#00e5a0", "#38bdf8"]} />, desc: "Simple >50% consensus" },
+  { id: "threshold", label: "Threshold Sig", icon: <GradientIcon icon={Lock} size={14} gradient={["#fbbf24", "#fb923c"]} />, desc: "M-of-N multisig required" },
+  { id: "delegated", label: "Delegated", icon: <GradientIcon icon={User} size={14} gradient={["#a78bfa", "#c084fc"]} />, desc: "Elected lead with veto" },
+  { id: "unanimous", label: "Unanimous", icon: <GradientIcon icon={Sparkles} size={14} gradient={["#f472b6", "#fb7185"]} />, desc: "All members must agree" },
 ];
 
 export const PROMPT_TEMPLATES: PromptTemplate[] = [
@@ -34,42 +42,42 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
   {
     id: "defi-audit",
     label: "DeFi Security Audit",
-    icon: "🔐",
+    icon: <GradientIcon icon={Lock} size={20} gradient={["#38bdf8", "#60a5fa"]} />,
     color: "#38bdf8",
     desc: "A multi-agent team that audits smart contracts, analyzes on-chain data, and produces security reports.",
   },
   {
     id: "research-lab",
     label: "Research Lab",
-    icon: "🧬",
+    icon: <GradientIcon icon={Dna} size={20} gradient={["#00e5a0", "#34d399"]} />,
     color: "#00e5a0",
     desc: "Autonomous research pipeline — literature review, hypothesis generation, experiment design, and peer review.",
   },
   {
     id: "content-studio",
     label: "Content Studio",
-    icon: "🎨",
+    icon: <GradientIcon icon={Palette} size={20} gradient={["#f472b6", "#fb7185"]} />,
     color: "#f472b6",
     desc: "A creative agency mesh for ideation, drafting, editing, fact-checking, and publication.",
   },
   {
     id: "incident-response",
     label: "Incident Response",
-    icon: "🚨",
+    icon: <GradientIcon icon={Siren} size={20} gradient={["#ef4444", "#f87171"]} />,
     color: "#ef4444",
     desc: "Security operations team that triages alerts, investigates threats, coordinates remediation, and writes postmortems.",
   },
   {
     id: "startup-ops",
     label: "Startup Operations",
-    icon: "🚀",
+    icon: <GradientIcon icon={Rocket} size={20} gradient={["#fbbf24", "#fb923c"]} />,
     color: "#fbbf24",
     desc: "CEO, CTO, CFO, and Marketing agents collaborating on strategy, roadmap, budgets, and go-to-market.",
   },
   {
     id: "supply-chain",
     label: "Supply Chain DAO",
-    icon: "📦",
+    icon: <GradientIcon icon={Package} size={20} gradient={["#a78bfa", "#c084fc"]} />,
     color: "#a78bfa",
     desc: "Decentralized supply chain with procurement, logistics, quality assurance, and compliance agents under threshold governance.",
   },

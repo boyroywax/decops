@@ -136,7 +136,7 @@ export function NetworkCanvas({ agents, channels, groups, activeChannels }: Netw
         ctx.font = "12px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(role?.icon || "●", pos.x, pos.y);
+        ctx.fillText(role?.char || "●", pos.x, pos.y);
         ctx.font = "600 9px 'DM Mono', monospace";
         ctx.fillStyle = "#d4d4d8";
         ctx.fillText(a.name, pos.x, pos.y + 26);

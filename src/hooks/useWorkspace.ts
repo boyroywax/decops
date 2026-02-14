@@ -49,7 +49,7 @@ export function useWorkspace(addLog: (msg: string) => void) {
       createdAt: new Date().toISOString(), status: "active",
     };
     setAgents((prev) => [...prev, agent]);
-    addLog(`Agent "${agent.name}" created → ${agent.did.slice(0, 20)}…`);
+    addLog(`Agent "${agent.name}" created -> ${agent.did.slice(0, 20)}…`);
     if (agent.prompt) addLog(`Prompt loaded (${agent.prompt.length} chars)`);
     setNewAgent({ name: "", role: "researcher", prompt: "", templateIdx: 0 });
     setShowCreate(false);
@@ -84,7 +84,7 @@ export function useWorkspace(addLog: (msg: string) => void) {
       type: channelForm.type, offset: Math.random() * 120, createdAt: new Date().toISOString(),
     };
     setChannels((prev) => [...prev, ch]);
-    addLog(`P2P channel: ${agents.find(a => a.id === channelForm.from)?.name} ⟷ ${agents.find(a => a.id === channelForm.to)?.name}`);
+    addLog(`P2P channel: ${agents.find(a => a.id === channelForm.from)?.name} <-> ${agents.find(a => a.id === channelForm.to)?.name}`);
     setChannelForm({ from: "", to: "", type: "data" });
   };
 
@@ -162,7 +162,7 @@ export function useWorkspace(addLog: (msg: string) => void) {
     setMsgInput("");
     setSending(true);
     setActiveChannels((prev) => new Set([...prev, activeChannel]));
-    addLog(`${fromAgent.name} → ${toAgent.name}: message sent`);
+    addLog(`${fromAgent.name} -> ${toAgent.name}: message sent`);
     if (toAgent.prompt) {
       const history = messages.filter((m) => m.channelId === activeChannel);
       const response = await callAgentAI(toAgent, fromAgent, msg.content, ch.type, history);

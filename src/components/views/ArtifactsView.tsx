@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import type { JobArtifact } from "../../types";
 import { SectionTitle } from "../shared/ui";
+import { FileText, Image, Code, File, X, Plus } from "lucide-react";
 
 interface ArtifactsViewProps {
     artifacts: JobArtifact[];
@@ -124,7 +125,7 @@ export function ArtifactsView({ artifacts, importArtifact, removeArtifact }: Art
                         gap: 6
                     }}
                 >
-                    <span>＋</span> Import Artifact
+                    <Plus size={14} /> Import Artifact
                 </button>
             </div>
 
@@ -217,7 +218,7 @@ export function ArtifactsView({ artifacts, importArtifact, removeArtifact }: Art
                     <div style={{ width: 400, background: "rgba(0,0,0,0.2)", borderLeft: "1px solid rgba(255,255,255,0.06)", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                             <div style={{ fontSize: 16, fontWeight: 600, color: "#e4e4e7" }}>{selectedArtifact.name}</div>
-                            <button onClick={() => setSelectedArtifact(null)} style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer" }}>✕</button>
+                            <button onClick={() => setSelectedArtifact(null)} style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer" }}><X size={16} /></button>
                         </div>
 
                         <div style={{ flex: 1, background: "rgba(0,0,0,0.3)", borderRadius: 8, padding: 16, overflow: "auto", border: "1px solid rgba(255,255,255,0.06)" }}>
@@ -249,11 +250,11 @@ export function ArtifactsView({ artifacts, importArtifact, removeArtifact }: Art
 
 function getIcon(type: string) {
     switch (type) {
-        case "markdown": return "📝";
-        case "json": return "{}";
-        case "image": return "🖼️";
-        case "code": return "💻";
-        default: return "📄";
+        case "markdown": return <FileText size={18} />;
+        case "json": return <Code size={18} />;
+        case "image": return <Image size={18} />;
+        case "code": return <Code size={18} />;
+        default: return <File size={18} />;
     }
 }
 

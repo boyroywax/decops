@@ -1,6 +1,8 @@
 import type { Agent, Channel, Group, Message, MeshConfig, ArchPhase, DeployProgress, ViewId } from "../../types";
 import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, SCENARIO_PRESETS } from "../../constants";
 import { inputStyle, SectionTitle } from "../shared/ui";
+import { ArrowLeftRight, Hexagon, Globe, Bot, Sparkles, CheckCircle } from "lucide-react";
+import { GradientIcon } from "../shared/GradientIcon";
 
 interface ArchitectViewProps {
   agents: Agent[];
@@ -29,7 +31,7 @@ export function ArchitectView({
     <div style={{ width: "100%", boxSizing: "border-box" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}>
-          <span style={{ color: "#fbbf24" }}>✦</span> Workspace Architect
+          <GradientIcon icon={Sparkles} size={16} gradient={["#fbbf24", "#fcd34d"]} /> Workspace Architect
         </h2>
         {(archPhase === "preview" || archPhase === "done") && (
           <button onClick={resetArchitect} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#71717a", padding: "6px 14px", borderRadius: 6, fontFamily: "inherit", fontSize: 10, cursor: "pointer" }}>
@@ -86,8 +88,8 @@ export function ArchitectView({
               display: "flex", alignItems: "center", gap: 8,
             }}
           >
-            {archGenerating && <span style={{ animation: "pulse 1.5s infinite" }}>✦</span>}
-            {archGenerating ? "Architecting mesh network…" : "✦ Generate Network"}
+            {archGenerating && <span style={{ animation: "pulse 1.5s infinite" }}><GradientIcon icon={Sparkles} size={16} gradient={["#fbbf24", "#fcd34d"]} /></span>}
+            {archGenerating ? "Architecting mesh network…" : <><GradientIcon icon={Sparkles} size={16} gradient={["#fbbf24", "#fcd34d"]} /> Generate Network</>}
           </button>
         </>
       )}
@@ -97,7 +99,7 @@ export function ArchitectView({
         <div>
           <div style={{ background: "rgba(251,191,36,0.04)", border: "1px solid rgba(251,191,36,0.12)", borderRadius: 12, padding: 20, marginBottom: 20 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: "#fbbf24" }}>✦ Network Blueprint</div>
+              <div style={{ fontSize: 13, fontWeight: 500, color: "#fbbf24" }}><GradientIcon icon={Sparkles} size={16} gradient={["#fbbf24", "#fcd34d"]} /> Network Blueprint</div>
               <div style={{ fontSize: 10, color: "#52525b" }}>
                 {archPreview.agents.length} agents · {archPreview.channels.length} channels · {archPreview.groups?.length || 0} groups · {archPreview.exampleMessages?.length || 0} messages
               </div>
@@ -132,7 +134,7 @@ export function ArchitectView({
                 return (
                   <div key={i} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(167,139,250,0.15)", borderRadius: 6, padding: "8px 12px", fontSize: 10 }}>
                     <span style={{ color: "#d4d4d8" }}>{from.name}</span>
-                    <span style={{ color: "#52525b", margin: "0 6px" }}>⟷</span>
+                    <span style={{ color: "#52525b", margin: "0 6px" }}><ArrowLeftRight size={12} color="#52525b" /></span>
                     <span style={{ color: "#d4d4d8" }}>{to.name}</span>
                     <span style={{ color: "#a78bfa", marginLeft: 8 }}>{cType.icon} {cType.label}</span>
                   </div>
@@ -148,7 +150,7 @@ export function ArchitectView({
                     const gov = GOVERNANCE_MODELS.find(m => m.id === g.governance) || GOVERNANCE_MODELS[0];
                     return (
                       <div key={i} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(244,114,182,0.15)", borderRadius: 8, padding: 12, minWidth: "min(200px, 100%)" }}>
-                        <div style={{ fontSize: 12, fontWeight: 500, color: "#f472b6", marginBottom: 4 }}>⬡ {g.name}</div>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: "#f472b6", marginBottom: 4 }}><GradientIcon icon={Hexagon} size={16} gradient={["#f472b6", "#ec4899"]} /> {g.name}</div>
                         <div style={{ fontSize: 9, color: "#71717a", marginBottom: 6 }}>{gov.icon} {gov.label}</div>
                         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                           {g.members.map((idx) => {
@@ -188,7 +190,7 @@ export function ArchitectView({
               background: "#fbbf24", color: "#0a0a0f", border: "none",
               padding: "12px 28px", borderRadius: 8, cursor: "pointer",
               fontFamily: "inherit", fontSize: 13, fontWeight: 600,
-            }}>⬡ Deploy Network</button>
+            }}><GradientIcon icon={Hexagon} size={16} gradient={["#f472b6", "#ec4899"]} /> Deploy Network</button>
             <button onClick={resetArchitect} style={{
               background: "transparent", border: "1px solid rgba(255,255,255,0.08)",
               color: "#71717a", padding: "12px 20px", borderRadius: 8, cursor: "pointer",
@@ -201,7 +203,7 @@ export function ArchitectView({
       {/* Deploying Phase */}
       {archPhase === "deploying" && (
         <div style={{ textAlign: "center", padding: "60px 0" }}>
-          <div style={{ fontSize: 40, marginBottom: 16, animation: "pulse 1.5s infinite" }}>⬡</div>
+          <div style={{ fontSize: 40, marginBottom: 16, animation: "pulse 1.5s infinite" }}><GradientIcon icon={Hexagon} size={40} gradient={["#f472b6", "#ec4899"]} /></div>
           <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 600, color: "#fbbf24", marginBottom: 8 }}>Deploying Mesh Network</div>
           <div style={{ fontSize: 11, color: "#71717a", marginBottom: 20 }}>{deployProgress.step}</div>
           <div style={{ maxWidth: 300, margin: "0 auto", background: "rgba(255,255,255,0.04)", borderRadius: 6, height: 6, overflow: "hidden" }}>
@@ -225,9 +227,9 @@ export function ArchitectView({
           </div>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <button onClick={() => setView("network")} style={{ background: "rgba(0,229,160,0.12)", border: "1px solid rgba(0,229,160,0.25)", color: "#00e5a0", padding: "10px 20px", borderRadius: 8, fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>◈ View Network</button>
-            <button onClick={() => setView("ecosystem")} style={{ background: "rgba(56,189,248,0.12)", border: "1px solid rgba(56,189,248,0.25)", color: "#38bdf8", padding: "10px 20px", borderRadius: 8, fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>◎ Save to Ecosystem</button>
-            <button onClick={() => setView("agents")} style={{ background: "rgba(0,229,160,0.08)", border: "1px solid rgba(0,229,160,0.15)", color: "#00e5a0", padding: "10px 20px", borderRadius: 8, fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>◉ Browse Agents</button>
-            <button onClick={resetArchitect} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#71717a", padding: "10px 20px", borderRadius: 8, fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>✦ Build Another</button>
+            <button onClick={() => setView("ecosystem")} style={{ background: "rgba(56,189,248,0.12)", border: "1px solid rgba(56,189,248,0.25)", color: "#38bdf8", padding: "10px 20px", borderRadius: 8, fontFamily: "inherit", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Globe size={14} /> Save to Ecosystem</button>
+            <button onClick={() => setView("agents")} style={{ background: "rgba(0,229,160,0.08)", border: "1px solid rgba(0,229,160,0.15)", color: "#00e5a0", padding: "10px 20px", borderRadius: 8, fontFamily: "inherit", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Bot size={14} /> Browse Agents</button>
+            <button onClick={resetArchitect} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#71717a", padding: "10px 20px", borderRadius: 8, fontFamily: "inherit", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}><Sparkles size={14} /> Build Another</button>
           </div>
         </div>
       )}
