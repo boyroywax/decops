@@ -159,9 +159,9 @@ export function SettingsView({
     };
 
     return (
-        <div className="settings-container">
-            <h2 className="settings-header">
-                Data Management
+        <div style={{ maxWidth: "800px" }}>
+            <h2 className="settings-header" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ color: "#ef4444", fontSize: 20 }}>⭳</span> Data Management
             </h2>
 
             <div style={{ display: "grid", gap: 24 }}>
