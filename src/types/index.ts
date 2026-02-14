@@ -11,7 +11,8 @@ export type ViewId =
   | "channels"
   | "groups"
   | "messages"
-  | "network";
+  | "network"
+  | "data";
 
 export type ArchPhase = "input" | "preview" | "deploying" | "done";
 

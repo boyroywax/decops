@@ -13,6 +13,7 @@ import { ChannelsView } from "./components/views/ChannelsView";
 import { GroupsView } from "./components/views/GroupsView";
 import { MessagesView } from "./components/views/MessagesView";
 import { NetworkView } from "./components/views/NetworkView";
+import { SettingsView } from "./components/views/SettingsView";
 
 export default function App() {
   const [view, setView] = useState<ViewId>("architect");
@@ -204,6 +205,23 @@ export default function App() {
               channels={workspace.channels}
               groups={workspace.groups}
               activeChannels={workspace.activeChannels}
+            />
+          )}
+
+          {view === "data" && (
+            <SettingsView
+              agents={workspace.agents}
+              channels={workspace.channels}
+              groups={workspace.groups}
+              messages={workspace.messages}
+              ecosystems={ecosystem.ecosystems}
+              bridges={ecosystem.bridges}
+              setAgents={workspace.setAgents}
+              setChannels={workspace.setChannels}
+              setGroups={workspace.setGroups}
+              setMessages={workspace.setMessages}
+              setEcosystems={ecosystem.setEcosystems}
+              setBridges={ecosystem.setBridges}
             />
           )}
         </main>

@@ -16,6 +16,7 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: string; accent: string }[] =
   { id: "groups", label: "Groups", icon: "⬡", accent: "#f472b6" },
   { id: "messages", label: "Messages", icon: "◆", accent: "#fbbf24" },
   { id: "network", label: "Topology", icon: "◈", accent: "#00e5a0" },
+  { id: "data", label: "Data", icon: "⭳", accent: "#ef4444" },
 ];
 
 export function Sidebar({ view, setView, log, ecosystems, messages }: SidebarProps) {

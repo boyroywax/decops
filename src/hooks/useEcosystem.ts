@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocalStorage } from "./useLocalStorage";
 import type {
   Agent, Channel, Group, Message, Network, Bridge,
   BridgeMessage, BridgeForm, ViewId,
@@ -24,8 +25,8 @@ export function useEcosystem({
   addLog, agents, channels, groups, messages,
   setAgents, setChannels, setGroups, setMessages, setView,
 }: UseEcosystemDeps) {
-  const [ecosystems, setEcosystems] = useState<Network[]>([]);
-  const [bridges, setBridges] = useState<Bridge[]>([]);
+  const [ecosystems, setEcosystems] = useLocalStorage<Network[]>("decops_ecosystems", []);
+  const [bridges, setBridges] = useLocalStorage<Bridge[]>("decops_bridges", []);
   const [bridgeMessages, setBridgeMessages] = useState<BridgeMessage[]>([]);
   const [activeBridges, setActiveBridges] = useState<Set<string>>(new Set());
   const [ecoSaveName, setEcoSaveName] = useState("");
@@ -155,5 +156,7 @@ export function useEcosystem({
     // Actions
     saveCurrentNetwork, loadNetwork, dissolveNetwork,
     createBridge, removeBridge, sendBridgeMessage,
+    // Setters
+    setEcosystems, setBridges,
   };
 }

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocalStorage } from "./useLocalStorage";
 import type {
   Agent, Channel, Group, Message,
   NewAgentForm, ChannelForm, GroupForm,
@@ -9,10 +10,10 @@ import { generateDID, generateKeyPair, generateGroupDID } from "../utils/identit
 import { callAgentAI } from "../services/ai";
 
 export function useWorkspace(addLog: (msg: string) => void) {
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [channels, setChannels] = useState<Channel[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [agents, setAgents] = useLocalStorage<Agent[]>("decops_agents", []);
+  const [channels, setChannels] = useLocalStorage<Channel[]>("decops_channels", []);
+  const [groups, setGroups] = useLocalStorage<Group[]>("decops_groups", []);
+  const [messages, setMessages] = useLocalStorage<Message[]>("decops_messages", []);
 
   // UI state
   const [showCreate, setShowCreate] = useState(false);
