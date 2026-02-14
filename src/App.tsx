@@ -254,6 +254,19 @@ function AuthenticatedApp() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Activity Pulse Logic
+  const [activityPulse, setActivityPulse] = useState(false);
+  const prevEntriesLengthRef = useRef(notebookEntries.length);
+
+  useEffect(() => {
+    if (notebookEntries.length > prevEntriesLengthRef.current) {
+      setActivityPulse(true);
+      const timer = setTimeout(() => setActivityPulse(false), 3000);
+      return () => clearTimeout(timer);
+    }
+    prevEntriesLengthRef.current = notebookEntries.length;
+  }, [notebookEntries.length]);
+
   return (
     <div style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", background: "#0a0a0f", color: "#e4e4e7", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -482,6 +495,8 @@ function AuthenticatedApp() {
         reorderQueue={reorderQueue}
         removeJob={removeJob}
         clearJobs={clearJobs}
+        activityPulse={activityPulse}
+        isMobile={isMobile}
       />
 
       <style>{`

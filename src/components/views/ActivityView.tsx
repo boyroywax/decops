@@ -19,6 +19,8 @@ const CATEGORY_META: Record<NotebookCategory, { label: string; color: string; ic
     narrative: { label: "Narrative", color: "#fbbf24", icon: <FileText size={12} color="#fbbf24" /> },
 };
 
+const FALLBACK_META = { label: "Unknown", color: "#71717a", icon: <Zap size={12} color="#71717a" /> };
+
 function relativeTime(ts: number): string {
     const diff = Date.now() - ts;
     if (diff < 60_000) return "just now";
@@ -41,7 +43,9 @@ function dayKey(ts: number): string {
 /** Renders markdown content as HTML */
 function renderMarkdown(md: string): string {
     try {
-        return marked.parse(md, { async: false }) as string;
+        const result = marked.parse(md);
+        if (result instanceof Promise) return md; // Safety check if marked returns a promise
+        return result as string;
     } catch {
         return md;
     }
@@ -53,6 +57,13 @@ function isMarkdownCategory(cat: NotebookCategory): boolean {
 }
 
 export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry }: ActivityViewProps) {
+    console.log("ActivityView rendering", { entriesCount: entries?.length });
+
+    if (!Array.isArray(entries)) {
+        console.error("ActivityView: entries is not an array", entries);
+        return <div style={{ padding: 20, color: "red" }}>Error: Invalid activity data.</div>;
+    }
+
     const [search, setSearch] = useState("");
     const [activeFilters, setActiveFilters] = useState<Set<NotebookCategory>>(new Set(["action", "output", "navigation", "system", "narrative"]));
     const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -352,7 +363,7 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
                             }} />
 
                             {group.entries.map((entry) => {
-                                const meta = CATEGORY_META[entry.category];
+                                const meta = CATEGORY_META[entry.category] || FALLBACK_META;
                                 const isExpanded = expandedId === entry.id;
                                 const useMarkdown = isMarkdownCategory(entry.category);
 

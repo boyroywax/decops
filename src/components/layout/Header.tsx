@@ -44,24 +44,7 @@ export function Header({ user, logout, setView }: HeaderProps) {
               <div style={{ fontSize: 9, color: "#52525b", fontFamily: "inherit" }}>{user.email || "User"}</div>
             </div>
           </button>
-          <button
-            onClick={() => setView?.("activity")}
-            style={{
-              background: "none",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 8,
-              padding: "6px 8px",
-              cursor: "pointer",
-              color: "#00e5a0",
-              transition: "all 0.15s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-            title="Activity"
-          >
-            <GradientIcon icon={Zap} size={16} gradient={["#00e5a0", "#38bdf8"]} />
-          </button>
+
           <button
             onClick={logout}
             style={{ background: "none", border: "none", color: "#52525b", cursor: "pointer", padding: 4, transition: "color 0.15s", display: "flex", alignItems: "center" }}
