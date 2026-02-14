@@ -6,6 +6,8 @@ interface SidebarProps {
   log: LogEntry[];
   ecosystems: Network[];
   messages: Message[];
+  user?: any;
+  logout?: () => void;
 }
 
 const NAV_ITEMS: { id: ViewId; label: string; icon: string; accent: string }[] = [
@@ -19,7 +21,7 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: string; accent: string }[] =
   { id: "data", label: "Data", icon: "⭳", accent: "#ef4444" },
 ];
 
-export function Sidebar({ view, setView, log, ecosystems, messages }: SidebarProps) {
+export function Sidebar({ view, setView, log, ecosystems, messages, user, logout }: SidebarProps) {
   return (
     <nav style={{ width: 200, borderRight: "1px solid rgba(0,229,160,0.08)", padding: "12px 0", display: "flex", flexDirection: "column", gap: 2, background: "rgba(0,0,0,0.3)", flexShrink: 0 }}>
       {NAV_ITEMS.map((tab) => (
@@ -52,6 +54,18 @@ export function Sidebar({ view, setView, log, ecosystems, messages }: SidebarPro
         </button>
       ))}
       <div style={{ marginTop: "auto", padding: "12px 14px", borderTop: "1px solid rgba(0,229,160,0.06)" }}>
+        {user ? (
+          <div style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ fontSize: 11 }}>
+              <div style={{ color: "#e4e4e7", fontWeight: 500 }}>{user.firstName || user.username}</div>
+              <div style={{ color: "#71717a", fontSize: 9 }}>{user.email || "User"}</div>
+            </div>
+            <button onClick={logout} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16 }} title="Logout">
+              ⏻
+            </button>
+          </div>
+        ) : null}
+
         <div style={{ fontSize: 9, color: "#52525b", letterSpacing: "0.1em", marginBottom: 8 }}>ACTIVITY LOG</div>
         <div style={{ maxHeight: 200, overflow: "auto" }}>
           {log.length === 0 && <div style={{ fontSize: 10, color: "#3f3f46" }}>No activity yet</div>}

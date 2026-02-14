@@ -15,9 +15,12 @@ import { MessagesView } from "./components/views/MessagesView";
 import { NetworkView } from "./components/views/NetworkView";
 import { SettingsView } from "./components/views/SettingsView";
 
-export default function App() {
+import { AuthProvider, useAuth } from "./context/AuthContext";
+
+function AuthenticatedApp() {
   const [view, setView] = useState<ViewId>("architect");
   const { log, addLog } = useActivityLog();
+  const { user, logout } = useAuth();
 
   const workspace = useWorkspace(addLog);
   const architect = useArchitect({
@@ -61,6 +64,8 @@ export default function App() {
           log={log}
           ecosystems={ecosystem.ecosystems}
           messages={workspace.messages}
+          user={user}
+          logout={logout}
         />
 
         <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
@@ -313,5 +318,51 @@ export default function App() {
         select option { background: #18181b; color: #e4e4e7; }
       `}</style>
     </div>
+  );
+}
+
+function LoginView() {
+  const { login } = useAuth();
+
+  return (
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#0a0a0f", color: "#e4e4e7", fontFamily: "'Space Grotesk', sans-serif" }}>
+      <div style={{ fontSize: 64, marginBottom: 24, animation: "pulse 3s infinite" }}>✦</div>
+      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Decops</h1>
+      <p style={{ fontSize: 14, color: "#71717a", marginBottom: 32 }}>Decentralized Agent Collaboration Workspace</p>
+
+      <button
+        onClick={() => login()}
+        style={{
+          background: "#00e5a0", color: "#0a0a0f", border: "none",
+          padding: "12px 32px", borderRadius: 8, cursor: "pointer",
+          fontFamily: "'DM Mono', monospace", fontSize: 14, fontWeight: 600,
+          display: "flex", alignItems: "center", gap: 12
+        }}
+      >
+        Login with Keycloak <span>➜</span>
+      </button>
+    </div>
+  );
+}
+
+function Main() {
+  const { isInitialized, isAuthenticated } = useAuth();
+
+  if (!isInitialized) {
+    return (
+      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a0f", color: "#52525b" }}>
+        Loading configuration...
+      </div>
+    );
+  }
+
+  return isAuthenticated ? <AuthenticatedApp /> : <LoginView />;
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Main />
+    </AuthProvider>
   );
 }

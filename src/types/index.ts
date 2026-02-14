@@ -14,6 +14,24 @@ export type ViewId =
   | "network"
   | "data";
 
+export interface UserProfile {
+  id?: string;
+  username?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  [key: string]: any;
+}
+
+export interface AuthContextType {
+  isAuthenticated: boolean;
+  user: UserProfile | null;
+  token: string | null;
+  login: () => void;
+  logout: () => void;
+  isInitialized: boolean;
+}
+
 export type ArchPhase = "input" | "preview" | "deploying" | "done";
 
 export type MessageStatus = "sending" | "delivered" | "no-prompt";
