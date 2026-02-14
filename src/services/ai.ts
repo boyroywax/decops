@@ -3,9 +3,43 @@ import { ROLES } from "../constants";
 import { repairJSON } from "../utils/json";
 
 const API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-sonnet-4-20250514";
+const DEFAULT_MODEL = "claude-sonnet-4-20250514";
+const ANTHROPIC_VERSION = "2023-06-01";
+
+/** Read the user's saved API key from localStorage */
+function getApiKey(): string {
+  const key = localStorage.getItem("anthropic_api_key");
+  if (!key) {
+    throw new Error(
+      "No Anthropic API key configured. Go to Profile & Settings to add your API key."
+    );
+  }
+  return key;
+}
+
+/** Read the user's selected model from localStorage, or fall back to default */
+export function getSelectedModel(): string {
+  return localStorage.getItem("anthropic_model") || DEFAULT_MODEL;
+}
+
+/** Save the selected model to localStorage */
+export function setSelectedModel(modelId: string): void {
+  localStorage.setItem("anthropic_model", modelId);
+}
+
+function buildHeaders(apiKey: string): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    "x-api-key": apiKey,
+    "anthropic-version": ANTHROPIC_VERSION,
+    "anthropic-dangerous-direct-browser-access": "true",
+  };
+}
 
 export async function generateMeshConfig(description: string): Promise<MeshConfig> {
+  const apiKey = getApiKey();
+  const model = getSelectedModel();
+
   const systemPrompt = `You are a Mesh Workspace Architect. Given a description, output a JSON mesh network config.
 
 RESPOND WITH ONLY VALID JSON. No markdown. No backticks. No explanation. Just the JSON object.
@@ -24,14 +58,18 @@ Example output format:
   try {
     const response = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: buildHeaders(apiKey),
       body: JSON.stringify({
-        model: MODEL,
+        model,
         max_tokens: 4096,
         system: systemPrompt,
         messages: [{ role: "user", content: `Design a mesh network for: ${description}\n\nRespond with ONLY the JSON object. Keep all strings under 30 words. No markdown.` }],
       }),
     });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
+    }
     const data = await response.json();
     if (data.error) throw new Error(data.error.message || "API error");
     const text = data.content?.map((b: { text?: string }) => b.text || "").join("") || "";
@@ -46,7 +84,7 @@ Example output format:
     return config;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    if (message.includes("Generation failed")) throw err;
+    if (message.includes("Generation failed") || message.includes("No Anthropic API key")) throw err;
     throw new Error(`Generation failed: ${message}`);
   }
 }
@@ -59,6 +97,9 @@ export async function callAgentAI(
   conversationHistory: (Message | BridgeMessage)[],
   crossNetworkCtx?: string,
 ): Promise<string> {
+  const apiKey = getApiKey();
+  const model = getSelectedModel();
+
   const systemPrompt = [
     `You are "${agent.name}", a ${ROLES.find(r => r.id === agent.role)?.label} agent in a decentralized mesh workspace.`,
     `Your DID: ${agent.did}`,
@@ -79,13 +120,17 @@ export async function callAgentAI(
   try {
     const response = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: MODEL, max_tokens: 1000, system: systemPrompt, messages }),
+      headers: buildHeaders(apiKey),
+      body: JSON.stringify({ model, max_tokens: 1000, system: systemPrompt, messages }),
     });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
+    }
     const data = await response.json();
     return data.content?.map((b: { text?: string }) => b.text || "").join("\n") || "[No response]";
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return `[Agent error: ${message}]`;
+    const msg = err instanceof Error ? err.message : String(err);
+    return `[Agent error: ${msg}]`;
   }
 }

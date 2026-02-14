@@ -1,6 +1,7 @@
 import type { Agent, Channel, Message, ChannelForm, ViewId } from "../../types";
 import { ROLES, CHANNEL_TYPES } from "../../constants";
-import { inputStyle, SectionTitle, PillButton } from "../shared/ui";
+import { inputStyle, SectionTitle, PillButton, BulkCheckbox, BulkActionBar } from "../shared/ui";
+import { useBulkSelect } from "../../hooks/useBulkSelect";
 
 interface ChannelsViewProps {
   agents: Agent[];
@@ -10,6 +11,7 @@ interface ChannelsViewProps {
   setChannelForm: (v: ChannelForm) => void;
   createChannel: () => void;
   removeChannel: (id: string) => void;
+  removeChannels: (ids: Set<string>) => void;
   setActiveChannel: (id: string) => void;
   setView: (v: ViewId) => void;
 }
@@ -17,11 +19,27 @@ interface ChannelsViewProps {
 export function ChannelsView({
   agents, channels, messages,
   channelForm, setChannelForm,
-  createChannel, removeChannel, setActiveChannel, setView,
+  createChannel, removeChannel, removeChannels, setActiveChannel, setView,
 }: ChannelsViewProps) {
+  const bulk = useBulkSelect();
+
+  const handleBulkDelete = () => {
+    removeChannels(bulk.selected);
+    bulk.clearSelection();
+  };
+
   return (
     <div>
-      <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, marginBottom: 20 }}>P2P Channels</h2>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}><span style={{ color: "#a78bfa" }}>⟷</span> P2P Channels</h2>
+        {channels.length > 0 && (
+          <BulkCheckbox
+            checked={bulk.isAllSelected(channels.map(c => c.id))}
+            onChange={() => bulk.toggleAll(channels.map(c => c.id))}
+            color="#a78bfa"
+          />
+        )}
+      </div>
 
       {agents.length < 2 ? (
         <div style={{ textAlign: "center", padding: 40, color: "#3f3f46", border: "1px dashed rgba(167,139,250,0.15)", borderRadius: 12 }}>
@@ -57,10 +75,12 @@ export function ChannelsView({
         const to = agents.find((a) => a.id === ch.to);
         const cType = CHANNEL_TYPES.find((t) => t.id === ch.type);
         const msgCount = messages.filter((m) => m.channelId === ch.id).length;
+        const isChecked = bulk.has(ch.id);
         if (!from || !to) return null;
         return (
-          <div key={ch.id} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 8, padding: 14, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div key={ch.id} style={{ background: isChecked ? "rgba(239,68,68,0.06)" : "rgba(255,255,255,0.02)", border: `1px solid ${isChecked ? "rgba(239,68,68,0.25)" : "rgba(255,255,255,0.05)"}`, borderRadius: 8, padding: 14, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", transition: "all 0.2s" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12 }}>
+              <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(ch.id)} color="#a78bfa" />
               <span style={{ color: ROLES.find(r => r.id === from.role)?.color }}>{from.name}</span>
               <span style={{ color: "#52525b" }}>⟷</span>
               <span style={{ color: ROLES.find(r => r.id === to.role)?.color }}>{to.name}</span>
@@ -74,6 +94,16 @@ export function ChannelsView({
           </div>
         );
       })}
+
+      <BulkActionBar
+        count={bulk.count}
+        total={channels.length}
+        onSelectAll={() => bulk.selectAll(channels.map(c => c.id))}
+        onClear={bulk.clearSelection}
+        onDelete={handleBulkDelete}
+        allSelected={bulk.isAllSelected(channels.map(c => c.id))}
+        entityName="channel"
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useArchitect } from "./hooks/useArchitect";
 import { useEcosystem } from "./hooks/useEcosystem";
 import { Header } from "./components/layout/Header";
 import { Sidebar } from "./components/layout/Sidebar";
+import { Footer } from "./components/layout/Footer";
 import { ArchitectView } from "./components/views/ArchitectView";
 import { EcosystemView } from "./components/views/EcosystemView";
 import { AgentsView } from "./components/views/AgentsView";
@@ -16,6 +17,8 @@ import { NetworkView } from "./components/views/NetworkView";
 import { SettingsView } from "./components/views/SettingsView";
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { LoginView } from "./components/views/LoginView";
+import { ProfileView } from "./components/views/ProfileView";
 
 function AuthenticatedApp() {
   const [view, setView] = useState<ViewId>("architect");
@@ -48,20 +51,12 @@ function AuthenticatedApp() {
     <div style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", background: "#0a0a0f", color: "#e4e4e7", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
 
-      <Header
-        agents={workspace.agents}
-        channels={workspace.channels}
-        groups={workspace.groups}
-        messages={workspace.messages}
-        ecosystems={ecosystem.ecosystems}
-        bridges={ecosystem.bridges}
-      />
+      <Header />
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <Sidebar
           view={view}
           setView={setView}
-          log={log}
           ecosystems={ecosystem.ecosystems}
           messages={workspace.messages}
           user={user}
@@ -69,6 +64,8 @@ function AuthenticatedApp() {
         />
 
         <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
+          {view === "profile" && <ProfileView />}
+
           {view === "architect" && (
             <ArchitectView
               agents={workspace.agents}
@@ -144,6 +141,7 @@ function AuthenticatedApp() {
               createAgent={workspace.createAgent}
               updateAgentPrompt={workspace.updateAgentPrompt}
               removeAgent={workspace.removeAgent}
+              removeAgents={workspace.removeAgents}
             />
           )}
 
@@ -156,6 +154,7 @@ function AuthenticatedApp() {
               setChannelForm={workspace.setChannelForm}
               createChannel={workspace.createChannel}
               removeChannel={workspace.removeChannel}
+              removeChannels={workspace.removeChannels}
               setActiveChannel={workspace.setActiveChannel}
               setView={setView}
             />
@@ -173,6 +172,7 @@ function AuthenticatedApp() {
               setSelectedGroup={workspace.setSelectedGroup}
               createGroup={workspace.createGroup}
               removeGroup={workspace.removeGroup}
+              removeGroups={workspace.removeGroups}
               toggleGroupMember={workspace.toggleGroupMember}
               setBroadcastGroup={workspace.setBroadcastGroup}
               setView={setView}
@@ -201,6 +201,7 @@ function AuthenticatedApp() {
               acTo={workspace.acTo}
               sendMessage={workspace.sendMessage}
               sendBroadcast={workspace.sendBroadcast}
+              removeMessages={workspace.removeMessages}
             />
           )}
 
@@ -231,6 +232,16 @@ function AuthenticatedApp() {
           )}
         </main>
       </div>
+
+      <Footer
+        agents={workspace.agents}
+        channels={workspace.channels}
+        groups={workspace.groups}
+        messages={workspace.messages}
+        ecosystems={ecosystem.ecosystems}
+        bridges={ecosystem.bridges}
+        log={log}
+      />
 
       <style>{`
         :root {
@@ -267,9 +278,10 @@ function AuthenticatedApp() {
           --radius-xl: 8px;
           --radius-2xl: 10px;
         }
-
-        body { margin: 0; padding: 0; background: var(--bg-primary); color: var(--text-primary); }
         
+        html, body { margin: 0; padding: 0; height: 100%; background: #0a0a0f; color: #e4e4e7; overflow: hidden; }
+        #root { height: 100%; display: flex; flex-direction: column; }
+
         .settings-container { max-width: 800px; margin: 0 auto; }
         .settings-header { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); letter-spacing: -0.01em; }
         
@@ -321,34 +333,12 @@ function AuthenticatedApp() {
   );
 }
 
-function LoginView() {
-  const { login } = useAuth();
-
-  return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#0a0a0f", color: "#e4e4e7", fontFamily: "'Space Grotesk', sans-serif" }}>
-      <div style={{ fontSize: 64, marginBottom: 24, animation: "pulse 3s infinite" }}>✦</div>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Decops</h1>
-      <p style={{ fontSize: 14, color: "#71717a", marginBottom: 32 }}>Decentralized Agent Collaboration Workspace</p>
-
-      <button
-        onClick={() => login()}
-        style={{
-          background: "#00e5a0", color: "#0a0a0f", border: "none",
-          padding: "12px 32px", borderRadius: 8, cursor: "pointer",
-          fontFamily: "'DM Mono', monospace", fontSize: 14, fontWeight: 600,
-          display: "flex", alignItems: "center", gap: 12
-        }}
-      >
-        Login with Keycloak <span>➜</span>
-      </button>
-    </div>
-  );
-}
-
 function Main() {
-  const { isInitialized, isAuthenticated } = useAuth();
+  const { isInitialized, isLoading, isAuthenticated } = useAuth();
+  console.log('[App] Main render:', { isInitialized, isLoading, isAuthenticated });
 
-  if (!isInitialized) {
+
+  if (!isInitialized || isLoading) {
     return (
       <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#0a0a0f", color: "#52525b" }}>
         Loading configuration...

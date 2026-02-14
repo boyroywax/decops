@@ -221,6 +221,38 @@ export function useWorkspace(addLog: (msg: string) => void) {
     addLog("Workspace cleared");
   };
 
+  // Bulk delete operations
+  const removeAgents = (ids: Set<string>) => {
+    const count = ids.size;
+    setAgents((prev) => prev.filter((a) => !ids.has(a.id)));
+    setChannels((prev) => prev.filter((c) => !ids.has(c.from) && !ids.has(c.to)));
+    setGroups((prev) => prev.map((g) => ({ ...g, members: g.members.filter((m) => !ids.has(m)) })));
+    setMessages((prev) => prev.filter((m) => !ids.has(m.fromId) && !ids.has(m.toId)));
+    if (selectedAgent && ids.has(selectedAgent)) setSelectedAgent(null);
+    addLog(`Bulk revoked ${count} agent${count !== 1 ? "s" : ""}`);
+  };
+
+  const removeChannels = (ids: Set<string>) => {
+    const count = ids.size;
+    setChannels((prev) => prev.filter((c) => !ids.has(c.id)));
+    setMessages((prev) => prev.filter((m) => !ids.has(m.channelId)));
+    if (activeChannel && ids.has(activeChannel)) setActiveChannel(null);
+    addLog(`Bulk dissolved ${count} channel${count !== 1 ? "s" : ""}`);
+  };
+
+  const removeGroups = (ids: Set<string>) => {
+    const count = ids.size;
+    setGroups((prev) => prev.filter((g) => !ids.has(g.id)));
+    if (selectedGroup && ids.has(selectedGroup)) setSelectedGroup(null);
+    addLog(`Bulk dissolved ${count} group${count !== 1 ? "s" : ""}`);
+  };
+
+  const removeMessages = (ids: Set<string>) => {
+    const count = ids.size;
+    setMessages((prev) => prev.filter((m) => !ids.has(m.id)));
+    addLog(`Bulk deleted ${count} message${count !== 1 ? "s" : ""}`);
+  };
+
   // Active channel computed values
   const acCh = channels.find((c) => c.id === activeChannel);
   const acFrom = acCh ? agents.find((a) => a.id === acCh.from) : null;
@@ -261,5 +293,8 @@ export function useWorkspace(addLog: (msg: string) => void) {
     createGroup, removeGroup, toggleGroupMember,
     sendMessage, sendBroadcast,
     clearWorkspace,
+    // Bulk actions
+    removeAgents, removeChannels, removeGroups, removeMessages,
   };
 }
+

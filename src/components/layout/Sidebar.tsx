@@ -1,9 +1,8 @@
-import type { ViewId, LogEntry, Network, Message } from "../../types";
+import type { ViewId, Network, Message } from "../../types";
 
 interface SidebarProps {
   view: ViewId;
   setView: (view: ViewId) => void;
-  log: LogEntry[];
   ecosystems: Network[];
   messages: Message[];
   user?: any;
@@ -18,10 +17,10 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: string; accent: string }[] =
   { id: "groups", label: "Groups", icon: "⬡", accent: "#f472b6" },
   { id: "messages", label: "Messages", icon: "◆", accent: "#fbbf24" },
   { id: "network", label: "Topology", icon: "◈", accent: "#00e5a0" },
-  { id: "data", label: "Data", icon: "⭳", accent: "#ef4444" },
+  { id: "data", label: "Data", icon: "▣", accent: "#ef4444" },
 ];
 
-export function Sidebar({ view, setView, log, ecosystems, messages, user, logout }: SidebarProps) {
+export function Sidebar({ view, setView, ecosystems, messages, user, logout }: SidebarProps) {
   return (
     <nav style={{ width: 200, borderRight: "1px solid rgba(0,229,160,0.08)", padding: "12px 0", display: "flex", flexDirection: "column", gap: 2, background: "rgba(0,0,0,0.3)", flexShrink: 0 }}>
       {NAV_ITEMS.map((tab) => (
@@ -53,29 +52,19 @@ export function Sidebar({ view, setView, log, ecosystems, messages, user, logout
           )}
         </button>
       ))}
-      <div style={{ marginTop: "auto", padding: "12px 14px", borderTop: "1px solid rgba(0,229,160,0.06)" }}>
-        {user ? (
-          <div style={{ marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      {user ? (
+        <div style={{ marginTop: "auto", padding: "12px 14px", borderTop: "1px solid rgba(0,229,160,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <button onClick={() => setView("profile")} style={{ background: view === "profile" ? "rgba(161,161,170,0.1)" : "none", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 6, textAlign: "left", transition: "all 0.15s" }}>
             <div style={{ fontSize: 11 }}>
-              <div style={{ color: "#e4e4e7", fontWeight: 500 }}>{user.firstName || user.username}</div>
+              <div style={{ color: view === "profile" ? "#e4e4e7" : "#a1a1aa", fontWeight: 500 }}>{user.firstName || user.username}</div>
               <div style={{ color: "#71717a", fontSize: 9 }}>{user.email || "User"}</div>
             </div>
-            <button onClick={logout} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16 }} title="Logout">
-              ⏻
-            </button>
-          </div>
-        ) : null}
-
-        <div style={{ fontSize: 9, color: "#52525b", letterSpacing: "0.1em", marginBottom: 8 }}>ACTIVITY LOG</div>
-        <div style={{ maxHeight: 200, overflow: "auto" }}>
-          {log.length === 0 && <div style={{ fontSize: 10, color: "#3f3f46" }}>No activity yet</div>}
-          {log.map((l, i) => (
-            <div key={l.ts + "-" + i} style={{ fontSize: 9, color: "#71717a", marginBottom: 6, lineHeight: 1.4 }}>
-              <span style={{ color: "#00e5a0", opacity: 0.5 }}>▸</span> {l.msg}
-            </div>
-          ))}
+          </button>
+          <button onClick={logout} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16 }} title="Logout">
+            ⏻
+          </button>
         </div>
-      </div>
+      ) : null}
     </nav>
   );
 }

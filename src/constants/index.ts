@@ -78,3 +78,10 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
 export const NETWORK_COLORS = ["#00e5a0", "#38bdf8", "#f472b6", "#fbbf24", "#a78bfa", "#fb923c", "#34d399", "#ef4444"];
 
 export const GROUP_COLORS = ["#f472b6", "#fb923c", "#34d399", "#60a5fa", "#c084fc", "#fbbf24"];
+
+export const ANTHROPIC_MODELS = [
+  { id: "claude-sonnet-4-20250514", label: "Claude Sonnet 4", desc: "Best balance of speed and intelligence", tier: "recommended" },
+  { id: "claude-opus-4-20250514", label: "Claude Opus 4", desc: "Most capable model for complex tasks", tier: "premium" },
+  { id: "claude-haiku-3-5-20241022", label: "Claude 3.5 Haiku", desc: "Fastest and most affordable", tier: "fast" },
+  { id: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet", desc: "Previous generation balanced model", tier: "standard" },
+] as const;

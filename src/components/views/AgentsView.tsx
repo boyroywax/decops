@@ -1,6 +1,7 @@
 import type { Agent, Channel, Group, Message, NewAgentForm } from "../../types";
 import { ROLES, PROMPT_TEMPLATES } from "../../constants";
-import { inputStyle, SectionTitle, PillButton } from "../shared/ui";
+import { inputStyle, SectionTitle, PillButton, BulkCheckbox, BulkActionBar } from "../shared/ui";
+import { useBulkSelect } from "../../hooks/useBulkSelect";
 
 interface AgentsViewProps {
   agents: Agent[];
@@ -20,6 +21,7 @@ interface AgentsViewProps {
   createAgent: () => void;
   updateAgentPrompt: (id: string) => void;
   removeAgent: (id: string) => void;
+  removeAgents: (ids: Set<string>) => void;
 }
 
 export function AgentsView({
@@ -27,12 +29,28 @@ export function AgentsView({
   showCreate, setShowCreate, newAgent, setNewAgent,
   selectedAgent, setSelectedAgent, editingPrompt, setEditingPrompt,
   editPromptText, setEditPromptText,
-  createAgent, updateAgentPrompt, removeAgent,
+  createAgent, updateAgentPrompt, removeAgent, removeAgents,
 }: AgentsViewProps) {
+  const bulk = useBulkSelect();
+
+  const handleBulkDelete = () => {
+    removeAgents(bulk.selected);
+    bulk.clearSelection();
+  };
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}>Agent Registry</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}><span style={{ color: "#00e5a0" }}>◉</span> Agent Registry</h2>
+          {agents.length > 0 && (
+            <BulkCheckbox
+              checked={bulk.isAllSelected(agents.map(a => a.id))}
+              onChange={() => bulk.toggleAll(agents.map(a => a.id))}
+              color="#00e5a0"
+            />
+          )}
+        </div>
         <button onClick={() => setShowCreate(!showCreate)} style={{ background: showCreate ? "rgba(239,68,68,0.15)" : "rgba(0,229,160,0.12)", color: showCreate ? "#ef4444" : "#00e5a0", border: `1px solid ${showCreate ? "rgba(239,68,68,0.3)" : "rgba(0,229,160,0.25)"}`, padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 11 }}>{showCreate ? "✕ Cancel" : "+ Create Agent"}</button>
       </div>
 
@@ -83,10 +101,12 @@ export function AgentsView({
           const agentMsgs = messages.filter((m) => m.fromId === a.id || m.toId === a.id);
           const isSelected = selectedAgent === a.id;
           const isEditing = editingPrompt === a.id;
+          const isChecked = bulk.has(a.id);
           return (
-            <div key={a.id} onClick={() => { if (!isEditing) setSelectedAgent(isSelected ? null : a.id); }} style={{ background: isSelected ? "rgba(0,229,160,0.06)" : "rgba(255,255,255,0.02)", border: `1px solid ${isSelected ? role.color + "40" : "rgba(255,255,255,0.05)"}`, borderRadius: 10, padding: 16, cursor: isEditing ? "default" : "pointer", transition: "all 0.2s" }}>
+            <div key={a.id} onClick={() => { if (!isEditing) setSelectedAgent(isSelected ? null : a.id); }} style={{ background: isChecked ? "rgba(239,68,68,0.06)" : isSelected ? "rgba(0,229,160,0.06)" : "rgba(255,255,255,0.02)", border: `1px solid ${isChecked ? "rgba(239,68,68,0.25)" : isSelected ? role.color + "40" : "rgba(255,255,255,0.05)"}`, borderRadius: 10, padding: 16, cursor: isEditing ? "default" : "pointer", transition: "all 0.2s" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(a.id)} color={role.color} />
                   <div style={{ width: 36, height: 36, borderRadius: 8, background: role.color + "15", border: `1px solid ${role.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>{role.icon}</div>
                   <div><div style={{ fontWeight: 500, fontSize: 13 }}>{a.name}</div><div style={{ fontSize: 10, color: role.color }}>{role.label}</div></div>
                 </div>
@@ -122,6 +142,16 @@ export function AgentsView({
           );
         })}
       </div>
+
+      <BulkActionBar
+        count={bulk.count}
+        total={agents.length}
+        onSelectAll={() => bulk.selectAll(agents.map(a => a.id))}
+        onClear={bulk.clearSelection}
+        onDelete={handleBulkDelete}
+        allSelected={bulk.isAllSelected(agents.map(a => a.id))}
+        entityName="agent"
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
     // Get from local storage then parse stored json or return initialValue
@@ -18,22 +18,32 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 
     const [storedValue, setStoredValue] = useState<T>(readValue);
 
+    // Keep a ref to the latest value so localStorage writes are always current
+    const valueRef = useRef(storedValue);
+    useEffect(() => {
+        valueRef.current = storedValue;
+    }, [storedValue]);
+
     const setValue = useCallback(
         (value: T | ((val: T) => T)) => {
             try {
-                const valueToStore =
-                    value instanceof Function ? value(storedValue) : value;
+                // Use functional setState so React always provides the latest state
+                setStoredValue((prev) => {
+                    const valueToStore =
+                        value instanceof Function ? value(prev) : value;
 
-                setStoredValue(valueToStore);
+                    // Sync to localStorage immediately with the resolved value
+                    if (typeof window !== "undefined") {
+                        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+                    }
 
-                if (typeof window !== "undefined") {
-                    window.localStorage.setItem(key, JSON.stringify(valueToStore));
-                }
+                    return valueToStore;
+                });
             } catch (error) {
                 console.warn(`Error setting localStorage key "${key}":`, error);
             }
         },
-        [key, storedValue]
+        [key]
     );
 
     useEffect(() => {

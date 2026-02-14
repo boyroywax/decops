@@ -1,6 +1,7 @@
 import type { Agent, Group, GroupForm, ViewId } from "../../types";
 import { ROLES, GOVERNANCE_MODELS } from "../../constants";
-import { inputStyle, SectionTitle } from "../shared/ui";
+import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar } from "../shared/ui";
+import { useBulkSelect } from "../../hooks/useBulkSelect";
 
 interface GroupsViewProps {
   agents: Agent[];
@@ -13,6 +14,7 @@ interface GroupsViewProps {
   setSelectedGroup: (v: string | null) => void;
   createGroup: () => void;
   removeGroup: (id: string) => void;
+  removeGroups: (ids: Set<string>) => void;
   toggleGroupMember: (agentId: string) => void;
   setBroadcastGroup: (id: string) => void;
   setView: (v: ViewId) => void;
@@ -22,13 +24,29 @@ export function GroupsView({
   agents, groups,
   showGroupCreate, setShowGroupCreate, groupForm, setGroupForm,
   selectedGroup, setSelectedGroup,
-  createGroup, removeGroup, toggleGroupMember,
+  createGroup, removeGroup, removeGroups, toggleGroupMember,
   setBroadcastGroup, setView,
 }: GroupsViewProps) {
+  const bulk = useBulkSelect();
+
+  const handleBulkDelete = () => {
+    removeGroups(bulk.selected);
+    bulk.clearSelection();
+  };
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}>Group Governance</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}><span style={{ color: "#f472b6" }}>⬡</span> Group Governance</h2>
+          {groups.length > 0 && (
+            <BulkCheckbox
+              checked={bulk.isAllSelected(groups.map(g => g.id))}
+              onChange={() => bulk.toggleAll(groups.map(g => g.id))}
+              color="#f472b6"
+            />
+          )}
+        </div>
         <button onClick={() => setShowGroupCreate(!showGroupCreate)} style={{ background: showGroupCreate ? "rgba(239,68,68,0.15)" : "rgba(244,114,182,0.12)", color: showGroupCreate ? "#ef4444" : "#f472b6", border: `1px solid ${showGroupCreate ? "rgba(239,68,68,0.3)" : "rgba(244,114,182,0.25)"}`, padding: "8px 16px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 11 }}>{showGroupCreate ? "✕ Cancel" : "+ Form Group"}</button>
       </div>
 
@@ -99,12 +117,16 @@ export function GroupsView({
           const gov = GOVERNANCE_MODELS.find((m) => m.id === g.governance);
           const memberAgents = g.members.map((mid) => agents.find((a) => a.id === mid)).filter(Boolean) as Agent[];
           const isSelected = selectedGroup === g.id;
+          const isChecked = bulk.has(g.id);
           return (
-            <div key={g.id} onClick={() => setSelectedGroup(isSelected ? null : g.id)} style={{ background: isSelected ? g.color + "08" : "rgba(255,255,255,0.02)", border: `1px solid ${isSelected ? g.color + "35" : "rgba(255,255,255,0.05)"}`, borderRadius: 10, padding: 18, cursor: "pointer", transition: "all 0.2s" }}>
+            <div key={g.id} onClick={() => setSelectedGroup(isSelected ? null : g.id)} style={{ background: isChecked ? "rgba(239,68,68,0.06)" : isSelected ? g.color + "08" : "rgba(255,255,255,0.02)", border: `1px solid ${isChecked ? "rgba(239,68,68,0.25)" : isSelected ? g.color + "35" : "rgba(255,255,255,0.05)"}`, borderRadius: 10, padding: 18, cursor: "pointer", transition: "all 0.2s" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 14, fontFamily: "'Space Grotesk', sans-serif", color: g.color }}>⬡ {g.name}</div>
-                  <div style={{ fontSize: 10, color: "#71717a", marginTop: 2 }}>{gov?.icon} {gov?.label}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(g.id)} color={g.color} />
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14, fontFamily: "'Space Grotesk', sans-serif", color: g.color }}>⬡ {g.name}</div>
+                    <div style={{ fontSize: 10, color: "#71717a", marginTop: 2 }}>{gov?.icon} {gov?.label}</div>
+                  </div>
                 </div>
                 <span style={{ fontSize: 10, color: "#52525b", background: "rgba(255,255,255,0.04)", padding: "3px 8px", borderRadius: 4 }}>{memberAgents.length} members</span>
               </div>
@@ -139,6 +161,16 @@ export function GroupsView({
           );
         })}
       </div>
+
+      <BulkActionBar
+        count={bulk.count}
+        total={groups.length}
+        onSelectAll={() => bulk.selectAll(groups.map(g => g.id))}
+        onClear={bulk.clearSelection}
+        onDelete={handleBulkDelete}
+        allSelected={bulk.isAllSelected(groups.map(g => g.id))}
+        entityName="group"
+      />
     </div>
   );
 }
