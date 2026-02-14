@@ -26,7 +26,7 @@ export function ArchitectView({
   archPhase, deployProgress, generateNetwork, deployNetwork, resetArchitect, setView,
 }: ArchitectViewProps) {
   return (
-    <div>
+    <div style={{ width: "100%", boxSizing: "border-box" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
         <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}>
           <span style={{ color: "#fbbf24" }}>✦</span> Workspace Architect
@@ -45,7 +45,7 @@ export function ArchitectView({
       {archPhase === "input" && (
         <>
           <SectionTitle text="Quick Scenarios" />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10, marginBottom: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))", gap: 10, marginBottom: 24 }}>
             {SCENARIO_PRESETS.map((s) => (
               <button key={s.id} onClick={() => setArchPrompt(s.desc)} style={{
                 background: archPrompt === s.desc ? s.color + "10" : "rgba(255,255,255,0.02)",
@@ -104,7 +104,7 @@ export function ArchitectView({
             </div>
 
             <SectionTitle text="Agents" />
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10, marginBottom: 20 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 10, marginBottom: 20 }}>
               {archPreview.agents.map((a, i) => {
                 const role = ROLES.find(r => r.id === a.role) || ROLES[0];
                 return (
@@ -147,7 +147,7 @@ export function ArchitectView({
                   {archPreview.groups.map((g, i) => {
                     const gov = GOVERNANCE_MODELS.find(m => m.id === g.governance) || GOVERNANCE_MODELS[0];
                     return (
-                      <div key={i} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(244,114,182,0.15)", borderRadius: 8, padding: 12, minWidth: 200 }}>
+                      <div key={i} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(244,114,182,0.15)", borderRadius: 8, padding: 12, minWidth: "min(200px, 100%)" }}>
                         <div style={{ fontSize: 12, fontWeight: 500, color: "#f472b6", marginBottom: 4 }}>⬡ {g.name}</div>
                         <div style={{ fontSize: 9, color: "#71717a", marginBottom: 6 }}>{gov.icon} {gov.label}</div>
                         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>

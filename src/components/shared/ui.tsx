@@ -11,6 +11,7 @@ export const inputStyle: CSSProperties = {
   outline: "none",
   width: "100%",
   resize: "none",
+  boxSizing: "border-box",
 };
 
 export function SectionTitle({ text }: { text: string }) {

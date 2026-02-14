@@ -1,6 +1,15 @@
-export function Header() {
+import type { ViewId } from "../../types";
+import { GemAvatar } from "../shared/GemAvatar";
+
+interface HeaderProps {
+  user?: any;
+  logout?: () => void;
+  setView?: (v: ViewId) => void;
+}
+
+export function Header({ user, logout, setView }: HeaderProps) {
   return (
-    <header style={{ padding: "12px 20px", borderBottom: "1px solid rgba(0,229,160,0.12)", display: "flex", alignItems: "center", background: "rgba(0,229,160,0.02)" }}>
+    <header style={{ padding: "10px 20px", borderBottom: "1px solid rgba(0,229,160,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,229,160,0.02)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #00e5a0 0%, #0a0a0f 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⬡</div>
         <div>
@@ -8,6 +17,38 @@ export function Header() {
           <div style={{ fontSize: 10, color: "#71717a", letterSpacing: "0.05em" }}>DECENTRALIZED AGENT COLLABORATION</div>
         </div>
       </div>
+
+      {user && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            onClick={() => setView?.("profile")}
+            style={{
+              background: "none",
+              border: "1px solid rgba(255,255,255,0.06)",
+              borderRadius: 8,
+              padding: "4px 10px 4px 4px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              transition: "all 0.15s",
+            }}
+          >
+            <GemAvatar seed={user.email || user.username || "user"} size={28} />
+            <div style={{ textAlign: "left" }}>
+              <div style={{ fontSize: 11, color: "#e4e4e7", fontWeight: 500, fontFamily: "inherit" }}>{user.firstName || user.username}</div>
+              <div style={{ fontSize: 9, color: "#52525b", fontFamily: "inherit" }}>{user.email || "User"}</div>
+            </div>
+          </button>
+          <button
+            onClick={logout}
+            style={{ background: "none", border: "none", color: "#52525b", cursor: "pointer", fontSize: 14, padding: 4, transition: "color 0.15s" }}
+            title="Logout"
+          >
+            ⏻
+          </button>
+        </div>
+      )}
     </header>
   );
 }

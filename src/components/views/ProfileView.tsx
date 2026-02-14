@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { ANTHROPIC_MODELS } from "../../constants";
 import { getSelectedModel, setSelectedModel } from "../../services/ai";
+import { GemAvatar } from "../shared/GemAvatar";
 
 export function ProfileView() {
     const { user } = useAuth();
@@ -67,7 +68,7 @@ export function ProfileView() {
     return (
         <div style={{ maxWidth: 800 }}>
             <h2 className="settings-header" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontSize: 24, background: "rgba(255,255,255,0.1)", borderRadius: "50%", padding: 8, display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40 }}>👤</span>
+                <GemAvatar seed={user.email || user.username || "user"} size={36} />
                 Profile & Settings
             </h2>
 
@@ -97,9 +98,7 @@ export function ProfileView() {
                 {/* User Info Card */}
                 <section className="settings-section">
                     <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 24 }}>
-                        <div style={{ width: 80, height: 80, borderRadius: "50%", background: "linear-gradient(135deg, #00e5a0 0%, #38bdf8 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 700, color: "#0a0a0f" }}>
-                            {user.profile?.name?.charAt(0) || user.email?.charAt(0) || "U"}
-                        </div>
+                        <GemAvatar seed={user.email || user.username || "user"} size={80} />
                         <div>
                             <h3 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 4px 0" }}>{user.profile?.name || user.email}</h3>
                             <div style={{ color: "var(--text-subtle)", fontFamily: "var(--font-mono)", fontSize: 13 }}>{user.email}</div>

@@ -1,3 +1,4 @@
+import { useRef, useState, useEffect } from "react";
 import type { ViewId, Network, Message } from "../../types";
 
 interface SidebarProps {
@@ -5,8 +6,9 @@ interface SidebarProps {
   setView: (view: ViewId) => void;
   ecosystems: Network[];
   messages: Message[];
-  user?: any;
-  logout?: () => void;
+  collapsed: boolean;
+  setCollapsed: (v: boolean) => void;
+  isMobile?: boolean;
 }
 
 const NAV_ITEMS: { id: ViewId; label: string; icon: string; accent: string }[] = [
@@ -20,51 +22,169 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: string; accent: string }[] =
   { id: "data", label: "Data", icon: "▣", accent: "#ef4444" },
 ];
 
-export function Sidebar({ view, setView, ecosystems, messages, user, logout }: SidebarProps) {
-  return (
-    <nav style={{ width: 200, borderRight: "1px solid rgba(0,229,160,0.08)", padding: "12px 0", display: "flex", flexDirection: "column", gap: 2, background: "rgba(0,0,0,0.3)", flexShrink: 0 }}>
+export function Sidebar({ view, setView, ecosystems, messages, collapsed, setCollapsed, isMobile }: SidebarProps) {
+  const navRef = useRef<HTMLElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const checkScroll = () => {
+    if (navRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = navRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      // Small buffer (1px) for float comparisons
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+    }
+  };
+
+  useEffect(() => {
+    if (isMobile) {
+      checkScroll();
+      const el = navRef.current;
+      if (el) {
+        el.addEventListener('scroll', checkScroll);
+        window.addEventListener('resize', checkScroll);
+        return () => {
+          el.removeEventListener('scroll', checkScroll);
+          window.removeEventListener('resize', checkScroll);
+        };
+      }
+    }
+  }, [isMobile, ecosystems.length, messages.length]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (navRef.current) {
+      const scrollAmount = 200;
+      navRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const navContent = (
+    <nav
+      ref={navRef}
+      className={isMobile ? "no-scrollbar" : ""}
+      style={{
+        width: isMobile ? "100%" : (collapsed ? 60 : 200),
+        height: isMobile ? "auto" : "100%",
+        borderRight: isMobile ? "none" : "1px solid rgba(0,229,160,0.08)",
+        borderBottom: isMobile ? "none" : "none", // Handled by wrapper if mobile
+        padding: isMobile ? "4px 32px 4px 4px" : "12px 0",
+        display: "flex",
+        flexDirection: isMobile ? "row" : "column",
+        gap: 2,
+        background: isMobile ? "transparent" : "rgba(0,0,0,0.3)",
+        flexShrink: 0,
+        transition: "all 0.2s ease-in-out",
+        overflowX: isMobile ? "auto" : "hidden",
+        whiteSpace: isMobile ? "nowrap" : "normal",
+        scrollbarWidth: "none", // Firefox
+        msOverflowStyle: "none",  // IE 10+
+      }}
+    >
+      {isMobile && (
+        <style>{`
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+        `}</style>
+      )}
+
       {NAV_ITEMS.map((tab) => (
         <button
           key={tab.id}
           onClick={() => setView(tab.id)}
+          title={collapsed ? tab.label : undefined}
           style={{
             background: view === tab.id ? tab.accent + "10" : "transparent",
             border: "none",
             color: view === tab.id ? tab.accent : "#71717a",
-            padding: "10px 16px",
-            textAlign: "left",
+            padding: isMobile ? "8px 12px" : (collapsed ? "10px 0" : "10px 16px"),
+            textAlign: collapsed ? "center" : "left",
             cursor: "pointer",
             fontFamily: "inherit",
             fontSize: 12,
             display: "flex",
+            justifyContent: isMobile || collapsed ? "center" : "flex-start",
             alignItems: "center",
             gap: 8,
-            borderLeft: view === tab.id ? `2px solid ${tab.accent}` : "2px solid transparent",
+            borderLeft: !isMobile && view === tab.id ? `2px solid ${tab.accent}` : "2px solid transparent",
+            borderBottom: isMobile && view === tab.id ? `2px solid ${tab.accent}` : "2px solid transparent",
             transition: "all 0.15s",
+            flexShrink: 0,
           }}
         >
-          <span style={{ fontSize: 14 }}>{tab.icon}</span> {tab.label}
-          {tab.id === "ecosystem" && ecosystems.length > 0 && (
-            <span style={{ marginLeft: "auto", fontSize: 9, background: "rgba(56,189,248,0.15)", color: "#38bdf8", padding: "1px 6px", borderRadius: 8 }}>{ecosystems.length}</span>
-          )}
-          {tab.id === "messages" && messages.length > 0 && (
-            <span style={{ marginLeft: "auto", fontSize: 9, background: "rgba(251,191,36,0.15)", color: "#fbbf24", padding: "1px 6px", borderRadius: 8 }}>{messages.length}</span>
+          <span style={{ fontSize: 14 }}>{tab.icon}</span>
+          {(!collapsed || isMobile) && (
+            <>
+              {tab.label}
+              {tab.id === "ecosystem" && ecosystems.length > 0 && (
+                <span style={{ marginLeft: "auto", fontSize: 9, background: "rgba(56,189,248,0.15)", color: "#38bdf8", padding: "1px 6px", borderRadius: 8 }}>{ecosystems.length}</span>
+              )}
+              {tab.id === "messages" && messages.length > 0 && (
+                <span style={{ marginLeft: "auto", fontSize: 9, background: "rgba(251,191,36,0.15)", color: "#fbbf24", padding: "1px 6px", borderRadius: 8 }}>{messages.length}</span>
+              )}
+            </>
           )}
         </button>
       ))}
-      {user ? (
-        <div style={{ marginTop: "auto", padding: "12px 14px", borderTop: "1px solid rgba(0,229,160,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <button onClick={() => setView("profile")} style={{ background: view === "profile" ? "rgba(161,161,170,0.1)" : "none", border: "none", cursor: "pointer", padding: "4px 6px", borderRadius: 6, textAlign: "left", transition: "all 0.15s" }}>
-            <div style={{ fontSize: 11 }}>
-              <div style={{ color: view === "profile" ? "#e4e4e7" : "#a1a1aa", fontWeight: 500 }}>{user.firstName || user.username}</div>
-              <div style={{ color: "#71717a", fontSize: 9 }}>{user.email || "User"}</div>
-            </div>
-          </button>
-          <button onClick={logout} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 16 }} title="Logout">
-            ⏻
+
+      {!isMobile && (
+        <div style={{ marginTop: "auto", padding: collapsed ? "12px 0" : "12px 16px" }}>
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#52525b",
+              cursor: "pointer",
+              width: "100%",
+              display: "flex",
+              justifyContent: collapsed ? "center" : "flex-end",
+              padding: 4,
+              fontSize: 12,
+            }}
+          >
+            {collapsed ? "»" : "« Collapse"}
           </button>
         </div>
-      ) : null}
+      )}
     </nav>
   );
+
+  if (isMobile) {
+    return (
+      <div style={{ position: "relative", width: "100%", background: "rgba(0,0,0,0.3)", borderBottom: "1px solid rgba(0,229,160,0.08)" }}>
+        {canScrollLeft && (
+          <button
+            onClick={() => scroll("left")}
+            style={{
+              position: "absolute", left: 0, top: 0, bottom: 0, width: 32,
+              background: "linear-gradient(to right, #0a0a0f 40%, transparent)",
+              border: "none", color: "#e4e4e7", cursor: "pointer", zIndex: 10,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 16
+            }}
+          >
+            ‹
+          </button>
+        )}
+
+        {navContent}
+
+        {canScrollRight && (
+          <button
+            onClick={() => scroll("right")}
+            style={{
+              position: "absolute", right: 0, top: 0, bottom: 0, width: 32,
+              background: "linear-gradient(to left, #0a0a0f 40%, transparent)",
+              border: "none", color: "#e4e4e7", cursor: "pointer", zIndex: 10,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 16
+            }}
+          >
+            ›
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return navContent;
 }

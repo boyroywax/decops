@@ -1,4 +1,4 @@
-import type { Agent, MeshConfig, Message, BridgeMessage } from "../types";
+import type { Agent, Channel, Group, Message, Network, Bridge, MeshConfig, BridgeMessage } from "../types";
 import { ROLES } from "../constants";
 import { repairJSON } from "../utils/json";
 
@@ -134,3 +134,127 @@ export async function callAgentAI(
     return `[Agent error: ${msg}]`;
   }
 }
+
+export interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface WorkspaceContext {
+  agents: Agent[];
+  channels: Channel[];
+  groups: Group[];
+  messages: Message[];
+  ecosystems: Network[];
+  bridges: Bridge[];
+}
+
+function buildWorkspaceSystemPrompt(ctx: WorkspaceContext): string {
+  const agentSummary = ctx.agents.length > 0
+    ? ctx.agents.map(a => `  - "${a.name}" (${a.role}, DID: ${a.did.slice(0, 24)}…)`).join("\n")
+    : "  (none)";
+
+  const channelSummary = ctx.channels.length > 0
+    ? ctx.channels.map(c => {
+      const from = ctx.agents.find(a => a.id === c.from);
+      const to = ctx.agents.find(a => a.id === c.to);
+      return `  - ${from?.name || "?"} ↔ ${to?.name || "?"} (${c.type})`;
+    }).join("\n")
+    : "  (none)";
+
+  const groupSummary = ctx.groups.length > 0
+    ? ctx.groups.map(g => {
+      const memberNames = g.members.map(mid => ctx.agents.find(a => a.id === mid)?.name || "?").join(", ");
+      return `  - "${g.name}" — governance: ${g.governance}, members: [${memberNames}], threshold: ${g.threshold}`;
+    }).join("\n")
+    : "  (none)";
+
+  const recentMsgs = ctx.messages.slice(-10).map(m => {
+    const from = ctx.agents.find(a => a.id === m.fromId);
+    const to = ctx.agents.find(a => a.id === m.toId);
+    return `  [${from?.name || "?"}→${to?.name || "?"}]: ${m.content.slice(0, 80)}${m.content.length > 80 ? "…" : ""}${m.response ? ` → ${m.response.slice(0, 60)}…` : ""}`;
+  }).join("\n") || "  (none)";
+
+  const netSummary = ctx.ecosystems.length > 0
+    ? ctx.ecosystems.map(n => `  - "${n.name}" (${n.agents.length} agents, ${n.channels.length} channels)`).join("\n")
+    : "  (none)";
+
+  return `You are the Mesh Workspace AI Assistant. You help the user manage their decentralized agent collaboration workspace.
+
+CURRENT WORKSPACE STATE:
+═══════════════════════
+Agents (${ctx.agents.length}):
+${agentSummary}
+
+Channels (${ctx.channels.length}):
+${channelSummary}
+
+Groups (${ctx.groups.length}):
+${groupSummary}
+
+Recent Messages (last ${Math.min(ctx.messages.length, 10)} of ${ctx.messages.length}):
+${recentMsgs}
+
+Ecosystem Networks (${ctx.ecosystems.length}):
+${netSummary}
+
+Bridges: ${ctx.bridges.length}
+═══════════════════════
+
+You can help the user with:
+- Answering questions about their workspace (agents, channels, groups, messages, topology)
+- Suggesting workspace operations (creating agents, channels, groups, sending messages)
+- Analyzing agent relationships and communication patterns
+- Recommending governance models and mesh configurations
+- Explaining decentralized identity concepts (DIDs, verifiable credentials)
+
+When you want to suggest a workspace action, include a JSON action block like:
+\`\`\`action
+{"type": "create_agent", "name": "Scout", "role": "researcher", "prompt": "You research and report findings."}
+\`\`\`
+
+Available action types:
+- create_agent: {name, role, prompt} — roles: researcher, builder, curator, validator, orchestrator
+- create_channel: {from_agent_name, to_agent_name, type} — types: data, task, consensus  
+- create_group: {name, governance, member_agent_names, threshold} — governance: majority, threshold, delegated, unanimous
+- send_message: {from_agent_name, to_agent_name, message}
+- generate_mesh: {description} — generate an entire mesh network from description
+
+Be concise, helpful, and in-character as a workspace management AI. Use markdown formatting for readability. Keep responses under 300 words unless the user asks for detailed analysis.`;
+}
+
+export async function chatWithWorkspace(
+  userMessage: string,
+  history: ChatMessage[],
+  ctx: WorkspaceContext,
+): Promise<string> {
+  const apiKey = getApiKey();
+  const model = getSelectedModel();
+  const systemPrompt = buildWorkspaceSystemPrompt(ctx);
+
+  const messages = [
+    ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
+    { role: "user" as const, content: userMessage },
+  ];
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: buildHeaders(apiKey),
+      body: JSON.stringify({ model, max_tokens: 2048, system: systemPrompt, messages }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
+    }
+    const data = await response.json();
+    return data.content?.map((b: { text?: string }) => b.text || "").join("\n") || "[No response]";
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("No Anthropic API key")) {
+      return "⚠️ No API key configured. Go to **Profile & Settings** to add your Anthropic API key.";
+    }
+    return `[Chat error: ${msg}]`;
+  }
+}
+

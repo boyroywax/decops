@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ViewId } from "./types";
 import { useActivityLog } from "./hooks/useActivityLog";
 import { useWorkspace } from "./hooks/useWorkspace";
@@ -47,21 +47,45 @@ function AuthenticatedApp() {
     setView,
   });
 
+
+  // Responsive state
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth < 768) {
+        setSidebarCollapsed(true);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
-    <div style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", background: "#0a0a0f", color: "#e4e4e7", minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", background: "#0a0a0f", color: "#e4e4e7", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
 
-      <Header />
+      <Header user={user} logout={logout} setView={setView} />
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        <Sidebar
-          view={view}
-          setView={setView}
-          ecosystems={ecosystem.ecosystems}
-          messages={workspace.messages}
-          user={user}
-          logout={logout}
-        />
+      <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative", flexDirection: isMobile ? "column" : "row" }}>
+        <div style={{
+          position: "relative",
+          zIndex: 20,
+          height: isMobile ? "auto" : "100%",
+          width: isMobile ? "100%" : "auto",
+        }}>
+          <Sidebar
+            view={view}
+            setView={setView}
+            ecosystems={ecosystem.ecosystems}
+            messages={workspace.messages}
+            collapsed={sidebarCollapsed}
+            setCollapsed={setSidebarCollapsed}
+            isMobile={isMobile}
+          />
+        </div>
 
         <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
           {view === "profile" && <ProfileView />}
@@ -241,6 +265,8 @@ function AuthenticatedApp() {
         ecosystems={ecosystem.ecosystems}
         bridges={ecosystem.bridges}
         log={log}
+        addLog={addLog}
+        setView={setView}
       />
 
       <style>{`
@@ -323,6 +349,80 @@ function AuthenticatedApp() {
         .btn-icon { font-size: 14px; }
 
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* Chat markdown styles */
+        .chat-md p { margin: 0 0 8px 0; }
+        .chat-md p:last-child { margin-bottom: 0; }
+        .chat-md h1, .chat-md h2, .chat-md h3, .chat-md h4 {
+          font-family: 'Space Grotesk', sans-serif;
+          margin: 12px 0 6px 0;
+          color: #f4f4f5;
+        }
+        .chat-md h1 { font-size: 16px; }
+        .chat-md h2 { font-size: 14px; }
+        .chat-md h3 { font-size: 13px; color: #a1a1aa; }
+        .chat-md h4 { font-size: 12px; color: #71717a; }
+        .chat-md pre {
+          background: rgba(0,0,0,0.5);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 6px;
+          padding: 10px 12px;
+          overflow-x: auto;
+          margin: 6px 0;
+          font-size: 11px;
+          line-height: 1.5;
+        }
+        .chat-md code {
+          font-family: 'DM Mono', 'JetBrains Mono', monospace;
+          font-size: 11px;
+        }
+        .chat-md :not(pre) > code {
+          background: rgba(0,229,160,0.08);
+          color: #00e5a0;
+          padding: 1px 5px;
+          border-radius: 3px;
+          font-size: 11px;
+        }
+        .chat-md ul, .chat-md ol {
+          margin: 4px 0 8px 0;
+          padding-left: 20px;
+        }
+        .chat-md li { margin-bottom: 3px; }
+        .chat-md li::marker { color: #52525b; }
+        .chat-md blockquote {
+          border-left: 2px solid rgba(0,229,160,0.3);
+          margin: 6px 0;
+          padding: 4px 12px;
+          color: #a1a1aa;
+          background: rgba(0,229,160,0.03);
+          border-radius: 0 4px 4px 0;
+        }
+        .chat-md a { color: #38bdf8; text-decoration: none; }
+        .chat-md a:hover { text-decoration: underline; }
+        .chat-md strong { color: #f4f4f5; font-weight: 600; }
+        .chat-md em { color: #a1a1aa; }
+        .chat-md hr {
+          border: none;
+          border-top: 1px solid rgba(255,255,255,0.06);
+          margin: 10px 0;
+        }
+        .chat-md table {
+          border-collapse: collapse;
+          width: 100%;
+          margin: 6px 0;
+          font-size: 11px;
+        }
+        .chat-md th, .chat-md td {
+          border: 1px solid rgba(255,255,255,0.08);
+          padding: 4px 8px;
+          text-align: left;
+        }
+        .chat-md th {
+          background: rgba(255,255,255,0.04);
+          color: #a1a1aa;
+          font-weight: 600;
+        }
+
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
