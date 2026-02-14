@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mesh Workspace — Design System</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    /* ─── Core Palette ─── */
+    --bg-primary: #0a0a0f;
+    --bg-elevated: rgba(0,0,0,0.3);
+    --bg-surface: rgba(255,255,255,0.02);
+    --bg-surface-hover: rgba(255,255,255,0.04);
+    --bg-input: rgba(0,0,0,0.4);
+
+    --border-subtle: rgba(255,255,255,0.05);
+    --border-default: rgba(255,255,255,0.06);
+    --border-medium: rgba(255,255,255,0.08);
+
+    --text-primary: #e4e4e7;
+    --text-secondary: #d4d4d8;
+    --text-muted: #a1a1aa;
+    --text-subtle: #71717a;
+    --text-ghost: #52525b;
+    --text-invisible: #3f3f46;
+    --text-void: #27272a;
+
+    /* ─── Role Colors ─── */
+    --color-researcher: #00e5a0;
+    --color-builder: #fbbf24;
+    --color-curator: #a78bfa;
+    --color-validator: #38bdf8;
+    --color-orchestrator: #f472b6;
+
+    /* ─── Semantic Colors ─── */
+    --color-accent: #00e5a0;
+    --color-warning: #fbbf24;
+    --color-danger: #ef4444;
+    --color-info: #38bdf8;
+    --color-channel: #a78bfa;
+    --color-group: #f472b6;
+
+    /* ─── Group Rotation Colors ─── */
+    --group-1: #f472b6;
+    --group-2: #fb923c;
+    --group-3: #34d399;
+    --group-4: #60a5fa;
+    --group-5: #c084fc;
+    --group-6: #fbbf24;
+
+    /* ─── Typography ─── */
+    --font-mono: 'DM Mono', 'JetBrains Mono', monospace;
+    --font-display: 'Space Grotesk', sans-serif;
+
+    /* ─── Spacing ─── */
+    --space-xs: 4px;
+    --space-sm: 6px;
+    --space-md: 8px;
+    --space-lg: 12px;
+    --space-xl: 16px;
+    --space-2xl: 20px;
+    --space-3xl: 24px;
+
+    /* ─── Radii ─── */
+    --radius-sm: 3px;
+    --radius-md: 4px;
+    --radius-lg: 6px;
+    --radius-xl: 8px;
+    --radius-2xl: 10px;
+    --radius-3xl: 12px;
+  }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* ─── Section Structure ─── */
+  .guide-header { margin-bottom: 60px; border-bottom: 1px solid rgba(0,229,160,0.12); padding-bottom: 40px; }
+  .guide-header h1 { font-family: var(--font-display); font-size: 28px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 8px; }
+  .guide-header .subtitle { font-size: 11px; color: var(--text-subtle); letter-spacing: 0.05em; }
+  .guide-header .meta { font-size: 10px; color: var(--text-ghost); margin-top: 16px; }
+
+  section { margin-bottom: 56px; }
+  section h2 {
+    font-family: var(--font-display); font-size: 18px; font-weight: 600;
+    letter-spacing: -0.01em; margin-bottom: 8px;
+  }
+  section .section-desc { font-size: 11px; color: var(--text-subtle); margin-bottom: 24px; line-height: 1.6; }
+  .subsection { margin-bottom: 32px; }
+  .subsection h3 { font-size: 9px; color: var(--text-ghost); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 14px; }
+
+  /* ─── Color Swatches ─── */
+  .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .swatch {
+    border-radius: var(--radius-xl); overflow: hidden;
+    border: 1px solid var(--border-subtle);
+  }
+  .swatch-color { height: 64px; position: relative; }
+  .swatch-color .opacity-variants {
+    position: absolute; bottom: 6px; left: 8px; display: flex; gap: 3px;
+  }
+  .swatch-color .opacity-variants span {
+    width: 16px; height: 16px; border-radius: 3px; border: 1px solid rgba(255,255,255,0.1);
+  }
+  .swatch-info { padding: 10px 12px; background: var(--bg-surface); }
+  .swatch-info .label { font-size: 11px; font-weight: 500; margin-bottom: 2px; }
+  .swatch-info .hex { font-size: 10px; color: var(--text-subtle); }
+  .swatch-info .usage { font-size: 9px; color: var(--text-ghost); margin-top: 4px; }
+
+  /* ─── Typography Samples ─── */
+  .type-sample { padding: 16px 0; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: baseline; gap: 24px; }
+  .type-sample:last-child { border-bottom: none; }
+  .type-meta { width: 180px; flex-shrink: 0; }
+  .type-meta .name { font-size: 10px; color: var(--text-ghost); letter-spacing: 0.05em; }
+  .type-meta .spec { font-size: 9px; color: var(--text-invisible); margin-top: 2px; }
+  .type-preview { flex: 1; }
+
+  /* ─── Component Demos ─── */
+  .component-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .demo-card {
+    background: var(--bg-surface); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-2xl); padding: 16px; min-width: 240px; flex: 1;
+  }
+  .demo-label { font-size: 9px; color: var(--text-ghost); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; }
+
+  /* ─── Buttons ─── */
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .btn {
+    font-family: var(--font-mono); font-size: 11px; padding: 8px 16px;
+    border-radius: var(--radius-lg); cursor: pointer; transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .btn-primary { background: var(--color-accent); color: var(--bg-primary); font-weight: 500; }
+  .btn-secondary { background: rgba(0,229,160,0.12); color: var(--color-accent); border-color: rgba(0,229,160,0.25); }
+  .btn-channel { background: var(--color-channel); color: var(--bg-primary); font-weight: 500; }
+  .btn-group { background: var(--color-group); color: var(--bg-primary); font-weight: 500; }
+  .btn-message { background: var(--color-warning); color: var(--bg-primary); font-weight: 500; }
+  .btn-danger { background: rgba(239,68,68,0.1); color: var(--color-danger); border-color: rgba(239,68,68,0.2); }
+  .btn-ghost { background: transparent; color: var(--text-subtle); border-color: var(--border-medium); }
+  .btn-pill {
+    font-family: var(--font-mono); font-size: 11px; padding: 8px 12px;
+    border-radius: var(--radius-lg); cursor: pointer; border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.3); color: var(--text-subtle); transition: all 0.15s;
+  }
+  .btn-pill.active { background: rgba(0,229,160,0.18); color: var(--color-accent); border-color: rgba(0,229,160,0.45); }
+
+  /* ─── Inputs ─── */
+  .input-demo {
+    background: var(--bg-input); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius-lg); padding: 10px 14px; color: var(--text-primary);
+    font-family: var(--font-mono); font-size: 12px; outline: none; width: 100%;
+  }
+  .input-accent { border-color: rgba(0,229,160,0.15); }
+  .input-channel { border-color: rgba(167,139,250,0.2); }
+  .input-group { border-color: rgba(244,114,182,0.15); }
+
+  /* ─── Badges ─── */
+  .badge {
+    font-size: 9px; padding: 2px 6px; border-radius: var(--radius-sm);
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .badge-prompted { color: var(--text-ghost); background: rgba(0,229,160,0.08); }
+  .badge-count { color: var(--color-warning); background: rgba(251,191,36,0.15); border-radius: 8px; padding: 1px 6px; }
+  .badge-group { border-radius: 10px; padding: 2px 8px; }
+
+  /* ─── Status Indicators ─── */
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .status-active { background: var(--color-accent); box-shadow: 0 0 8px var(--color-accent); }
+
+  /* ─── Borders & Dividers ─── */
+  .border-demo { display: flex; gap: 16px; flex-direction: column; }
+  .border-sample { padding: 12px 16px; border-radius: var(--radius-xl); font-size: 10px; color: var(--text-subtle); }
+
+  /* ─── Code Block ─── */
+  .code-block {
+    background: var(--bg-input); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl); padding: 16px 20px; font-size: 11px;
+    color: var(--text-muted); line-height: 1.8; overflow-x: auto;
+    white-space: pre;
+  }
+  .code-block .comment { color: var(--text-ghost); }
+  .code-block .key { color: var(--color-accent); }
+  .code-block .value { color: var(--color-warning); }
+  .code-block .str { color: var(--color-channel); }
+
+  /* ─── Spacing Demos ─── */
+  .spacing-row { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
+  .spacing-bar { height: 24px; background: rgba(0,229,160,0.12); border-radius: 3px; border: 1px solid rgba(0,229,160,0.2); }
+  .spacing-label { font-size: 10px; color: var(--text-ghost); width: 60px; flex-shrink: 0; }
+  .spacing-value { font-size: 10px; color: var(--text-subtle); width: 40px; }
+
+  /* ─── Network Legend ─── */
+  .network-legend { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-surface); border-radius: var(--radius-xl); border: 1px solid var(--border-subtle); }
+  .legend-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .legend-text .lt-label { font-size: 11px; font-weight: 500; }
+  .legend-text .lt-desc { font-size: 9px; color: var(--text-ghost); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<div class="guide-header">
+  <div style="display:flex; align-items:center; gap:14px; margin-bottom:20px;">
+    <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#00e5a0 0%,#0a0a0f 100%);display:flex;align-items:center;justify-content:center;font-size:20px;">⬡</div>
+    <div>
+      <h1>Mesh Workspace</h1>
+      <div class="subtitle">DESIGN SYSTEM &amp; VISUAL STYLE GUIDE</div>
+    </div>
+  </div>
+  <div class="meta">
+    Version 1.0 &nbsp;|&nbsp; Last updated: February 2026 &nbsp;|&nbsp; Decentralized Agent Collaboration UI
+  </div>
+</div>
+
+<!-- ═══════════════ DESIGN PRINCIPLES ═══════════════ -->
+<section>
+  <h2>Design Principles</h2>
+  <div class="section-desc">
+    The Mesh Workspace aesthetic is rooted in terminal-grade precision with an organic, living network feel.
+    Dark-first. Monospaced clarity. Color encodes meaning — never decoration.
+  </div>
+  <div class="component-row">
+    <div class="demo-card">
+      <div class="demo-label">Terminal Precision</div>
+      <div style="font-size:11px; color:var(--text-muted); line-height:1.6;">
+        Monospaced typography creates a code-native feel. Data is presented with DID-style formatting.
+        Every pixel serves function.
+      </div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-label">Color = Meaning</div>
+      <div style="font-size:11px; color:var(--text-muted); line-height:1.6;">
+        Each role, channel type, and state has a dedicated color. Users learn the system through consistent chromatic encoding.
+      </div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-label">Depth Through Opacity</div>
+      <div style="font-size:11px; color:var(--text-muted); line-height:1.6;">
+        Layering is achieved via opacity variants of a single color — not new colors. Backgrounds at 8-15%, borders at 25-45%, text at 90-100%.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ COLOR SYSTEM ═══════════════ -->
+<section>
+  <h2>Color System</h2>
+  <div class="section-desc">Colors are functional identifiers. Each maps to a specific domain in the workspace.</div>
+
+  <div class="subsection">
+    <h3>Role Colors</h3>
+    <div class="swatch-grid">
+      <div class="swatch">
+        <div class="swatch-color" style="background:#00e5a0;">
+          <div class="opacity-variants">
+            <span style="background:rgba(0,229,160,0.15);"></span>
+            <span style="background:rgba(0,229,160,0.40);"></span>
+            <span style="background:rgba(0,229,160,0.90);"></span>
+          </div>
+        </div>
+        <div class="swatch-info"><div class="label">Researcher</div><div class="hex">#00e5a0</div><div class="usage">Also: primary accent, active states, success</div></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#fbbf24;">
+          <div class="opacity-variants">
+            <span style="background:rgba(251,191,36,0.15);"></span>
+            <span style="background:rgba(251,191,36,0.40);"></span>
+            <span style="background:rgba(251,191,36,0.90);"></span>
+          </div>
+        </div>
+        <div class="swatch-info"><div class="label">Builder</div><div class="hex">#fbbf24</div><div class="usage">Also: message activity, warnings, counts</div></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#a78bfa;">
+          <div class="opacity-variants">
+            <span style="background:rgba(167,139,250,0.15);"></span>
+            <span style="background:rgba(167,139,250,0.40);"></span>
+            <span style="background:rgba(167,139,250,0.90);"></span>
+          </div>
+        </div>
+        <div class="swatch-info"><div class="label">Curator</div><div class="hex">#a78bfa</div><div class="usage">Also: channel system, P2P connections</div></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#38bdf8;">
+          <div class="opacity-variants">
+            <span style="background:rgba(56,189,248,0.15);"></span>
+            <span style="background:rgba(56,189,248,0.40);"></span>
+            <span style="background:rgba(56,189,248,0.90);"></span>
+          </div>
+        </div>
+        <div class="swatch-info"><div class="label">Validator</div><div class="hex">#38bdf8</div><div class="usage">Also: informational callouts</div></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#f472b6;">
+          <div class="opacity-variants">
+            <span style="background:rgba(244,114,182,0.15);"></span>
+            <span style="background:rgba(244,114,182,0.40);"></span>
+            <span style="background:rgba(244,114,182,0.90);"></span>
+          </div>
+        </div>
+        <div class="swatch-info"><div class="label">Orchestrator</div><div class="hex">#f472b6</div><div class="usage">Also: group governance system</div></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:#ef4444;">
+          <div class="opacity-variants">
+            <span style="background:rgba(239,68,68,0.10);"></span>
+            <span style="background:rgba(239,68,68,0.20);"></span>
+            <span style="background:rgba(239,68,68,0.90);"></span>
+          </div>
+        </div>
+        <div class="swatch-info"><div class="label">Danger</div><div class="hex">#ef4444</div><div class="usage">Revoke, dissolve, cancel, no-prompt states</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Background &amp; Surface Layers</h3>
+    <div class="swatch-grid">
+      <div class="swatch">
+        <div class="swatch-color" style="background:#0a0a0f;border-bottom:1px solid rgba(255,255,255,0.05);"></div>
+        <div class="swatch-info"><div class="label">Background Primary</div><div class="hex">#0a0a0f</div><div class="usage">Page background, base layer</div></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:rgba(0,0,0,0.3);border-bottom:1px solid rgba(255,255,255,0.05);"></div>
+        <div class="swatch-info"><div class="label">Background Elevated</div><div class="hex">rgba(0,0,0,0.3)</div><div class="usage">Sidebar, message thread bg</div></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.05);"></div>
+        <div class="swatch-info"><div class="label">Surface</div><div class="hex">rgba(255,255,255,0.02)</div><div class="usage">Cards, list items, inactive buttons</div></div>
+      </div>
+      <div class="swatch">
+        <div class="swatch-color" style="background:rgba(0,0,0,0.4);border-bottom:1px solid rgba(255,255,255,0.05);"></div>
+        <div class="swatch-info"><div class="label">Input Background</div><div class="hex">rgba(0,0,0,0.4)</div><div class="usage">Text inputs, selects, textareas</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Text Hierarchy</h3>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span style="width:120px; font-size:10px; color:var(--text-ghost);">Primary</span>
+        <span style="color:#e4e4e7;">Agent names, headings, user content</span>
+        <span style="font-size:10px; color:var(--text-ghost); margin-left:auto;">#e4e4e7</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span style="width:120px; font-size:10px; color:var(--text-ghost);">Secondary</span>
+        <span style="color:#d4d4d8;">Network labels, canvas text</span>
+        <span style="font-size:10px; color:var(--text-ghost); margin-left:auto;">#d4d4d8</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span style="width:120px; font-size:10px; color:var(--text-ghost);">Muted</span>
+        <span style="color:#a1a1aa;">DID strings, prompt previews, code</span>
+        <span style="font-size:10px; color:var(--text-ghost); margin-left:auto;">#a1a1aa</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span style="width:120px; font-size:10px; color:var(--text-ghost);">Subtle</span>
+        <span style="color:#71717a;">Metadata labels, inactive nav, log text</span>
+        <span style="font-size:10px; color:var(--text-ghost); margin-left:auto;">#71717a</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span style="width:120px; font-size:10px; color:var(--text-ghost);">Ghost</span>
+        <span style="color:#52525b;">Section titles, field labels, stat counters</span>
+        <span style="font-size:10px; color:var(--text-ghost); margin-left:auto;">#52525b</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span style="width:120px; font-size:10px; color:var(--text-ghost);">Invisible</span>
+        <span style="color:#3f3f46;">Empty states, disabled, placeholder hints</span>
+        <span style="font-size:10px; color:var(--text-ghost); margin-left:auto;">#3f3f46</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span style="width:120px; font-size:10px; color:var(--text-ghost);">Void</span>
+        <span style="color:#27272a;">Deepest muted hint text</span>
+        <span style="font-size:10px; color:var(--text-ghost); margin-left:auto;">#27272a</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Opacity Pattern for Colored Elements</h3>
+    <div class="code-block"><span class="comment">/* Every role/semantic color follows this layering pattern: */</span>
+<span class="key">background:</span>   <span class="str">{color}08</span> — <span class="str">{color}15</span>   <span class="comment">/* Card/surface fill */</span>
+<span class="key">border:</span>       <span class="str">{color}25</span> — <span class="str">{color}45</span>   <span class="comment">/* Container borders */</span>
+<span class="key">text/icon:</span>    <span class="str">{color}80</span> — <span class="str">{color}ff</span>   <span class="comment">/* Readable content */</span>
+<span class="key">glow/shadow:</span>  <span class="str">{color}30</span> — <span class="str">{color}40</span>   <span class="comment">/* Canvas radial gradients */</span></div>
+  </div>
+</section>
+
+<!-- ═══════════════ TYPOGRAPHY ═══════════════ -->
+<section>
+  <h2>Typography</h2>
+  <div class="section-desc">Two typefaces. Mono for data and UI. Display for headings and titles.</div>
+
+  <div class="type-sample">
+    <div class="type-meta"><div class="name">Display / H1</div><div class="spec">Space Grotesk 700 · 28px · -0.03em</div></div>
+    <div class="type-preview" style="font-family:var(--font-display); font-weight:700; font-size:28px; letter-spacing:-0.03em;">Mesh Workspace</div>
+  </div>
+  <div class="type-sample">
+    <div class="type-meta"><div class="name">Section Title</div><div class="spec">Space Grotesk 600 · 18px · -0.01em</div></div>
+    <div class="type-preview" style="font-family:var(--font-display); font-weight:600; font-size:18px; letter-spacing:-0.01em;">Agent Registry</div>
+  </div>
+  <div class="type-sample">
+    <div class="type-meta"><div class="name">App Title</div><div class="spec">Space Grotesk 700 · 15px · -0.02em</div></div>
+    <div class="type-preview" style="font-family:var(--font-display); font-weight:700; font-size:15px; letter-spacing:-0.02em;">MESH WORKSPACE</div>
+  </div>
+  <div class="type-sample">
+    <div class="type-meta"><div class="name">Card Name</div><div class="spec">DM Mono 500 · 13px</div></div>
+    <div class="type-preview" style="font-family:var(--font-mono); font-weight:500; font-size:13px;">Agent Alpha</div>
+  </div>
+  <div class="type-sample">
+    <div class="type-meta"><div class="name">Body / UI</div><div class="spec">DM Mono 400 · 12px</div></div>
+    <div class="type-preview" style="font-family:var(--font-mono); font-weight:400; font-size:12px;">Default interface text, nav labels, input content</div>
+  </div>
+  <div class="type-sample">
+    <div class="type-meta"><div class="name">Button / Control</div><div class="spec">DM Mono 400–500 · 11px</div></div>
+    <div class="type-preview" style="font-family:var(--font-mono); font-weight:400; font-size:11px;">Generate Identity &nbsp; Connect &nbsp; Send</div>
+  </div>
+  <div class="type-sample">
+    <div class="type-meta"><div class="name">Metadata / Label</div><div class="spec">DM Mono 400 · 10px</div></div>
+    <div class="type-preview" style="font-family:var(--font-mono); font-weight:400; font-size:10px; color:var(--text-subtle);">PUB 0x3a9f1c2b8e4d... &nbsp; CH 3 &nbsp; GROUPS 1</div>
+  </div>
+  <div class="type-sample">
+    <div class="type-meta"><div class="name">Section Header</div><div class="spec">DM Mono 400 · 9px · 0.12em · uppercase</div></div>
+    <div class="type-preview" style="font-family:var(--font-mono); font-weight:400; font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-ghost);">AGENT PROMPT — DEFINES BEHAVIOR &amp; CAPABILITIES</div>
+  </div>
+  <div class="type-sample">
+    <div class="type-meta"><div class="name">Log / Caption</div><div class="spec">DM Mono 400 · 9px</div></div>
+    <div class="type-preview" style="font-family:var(--font-mono); font-weight:400; font-size:9px; color:var(--text-subtle);">▸ Agent "Atlas" created → did:peer:3a9f1c2b…</div>
+  </div>
+</section>
+
+<!-- ═══════════════ COMPONENTS ═══════════════ -->
+<section>
+  <h2>Components</h2>
+  <div class="section-desc">Reusable elements that compose the workspace interface.</div>
+
+  <div class="subsection">
+    <h3>Buttons</h3>
+    <div class="btn-row" style="margin-bottom:12px;">
+      <button class="btn btn-primary">Generate Identity</button>
+      <button class="btn btn-secondary">+ Create Agent</button>
+      <button class="btn btn-channel">Connect</button>
+      <button class="btn btn-group">Form Group</button>
+      <button class="btn btn-message">Send</button>
+    </div>
+    <div class="btn-row" style="margin-bottom:12px;">
+      <button class="btn btn-danger">Revoke Identity</button>
+      <button class="btn btn-ghost">Cancel</button>
+      <button class="btn btn-ghost" style="color:#ef4444; border-color:rgba(239,68,68,0.2);">✕</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn-pill active">🔬 Researcher</button>
+      <button class="btn-pill">⚡ Builder</button>
+      <button class="btn-pill">📦 Curator</button>
+      <button class="btn-pill">🛡️ Validator</button>
+      <button class="btn-pill">🌐 Orchestrator</button>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Inputs</h3>
+    <div style="display:flex; gap:12px; flex-direction:column; max-width:400px;">
+      <input class="input-demo input-accent" placeholder="Agent name" value="Atlas">
+      <input class="input-demo input-channel" placeholder="From agent…">
+      <input class="input-demo input-group" placeholder="Group name">
+      <textarea class="input-demo input-accent" rows="3" style="resize:none; line-height:1.6;" placeholder="Define this agent's behavior..."></textarea>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Badges &amp; Indicators</h3>
+    <div class="btn-row">
+      <span class="badge badge-prompted">PROMPTED</span>
+      <span class="badge badge-count">12 msgs</span>
+      <span class="badge badge-group" style="background:rgba(244,114,182,0.15); color:#f472b6; border:1px solid rgba(244,114,182,0.30);">⬡ Research DAO</span>
+      <span class="badge badge-group" style="background:rgba(251,191,36,0.15); color:#fbbf24; border:1px solid rgba(251,191,36,0.30);">⬡ Build Squad</span>
+      <span class="status-dot status-active" style="margin-left:8px;"></span>
+      <span style="font-size:9px; color:var(--text-ghost);">Active</span>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Card Anatomy</h3>
+    <div style="max-width:340px;">
+      <div class="demo-card" style="padding:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:36px;height:36px;border-radius:8px;background:rgba(0,229,160,0.15);border:1px solid rgba(0,229,160,0.30);display:flex;align-items:center;justify-content:center;font-size:16px;">🔬</div>
+            <div>
+              <div style="font-weight:500; font-size:13px;">Atlas</div>
+              <div style="font-size:10px; color:#00e5a0;">Researcher</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span class="badge badge-prompted">PROMPTED</span>
+            <span class="status-dot status-active"></span>
+          </div>
+        </div>
+        <div style="margin-top:12px; padding:8px 10px; border-radius:6px; background:rgba(0,0,0,0.3); border:1px solid rgba(0,229,160,0.08); font-size:10px; color:var(--text-muted); line-height:1.5;">
+          <span style="color:var(--text-ghost); font-size:9px; letter-spacing:0.05em;">PROMPT </span>
+          You analyze datasets, identify patterns...
+        </div>
+        <div style="margin-top:12px; font-size:10px;">
+          <div style="color:var(--text-ghost); margin-bottom:4px; letter-spacing:0.05em;">DID</div>
+          <div style="color:var(--text-muted);">did:peer:3a9f1c2b...e4d7a1</div>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:12px; font-size:10px;">
+          <div><span style="color:var(--text-ghost);">CH </span><span style="color:var(--text-subtle);">3</span></div>
+          <div><span style="color:var(--text-ghost);">GROUPS </span><span style="color:var(--text-subtle);">1</span></div>
+          <div><span style="color:var(--text-ghost);">MSGS </span><span style="color:var(--text-subtle);">7</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ BORDERS & RADII ═══════════════ -->
+<section>
+  <h2>Borders &amp; Radii</h2>
+  <div class="section-desc">Borders are near-invisible by default. Color-tinted borders appear contextually.</div>
+  <div class="component-row">
+    <div class="demo-card">
+      <div class="demo-label">Border Tokens</div>
+      <div class="border-demo">
+        <div class="border-sample" style="border:1px solid rgba(255,255,255,0.05);">Subtle — rgba(255,255,255,0.05) — Cards, list items</div>
+        <div class="border-sample" style="border:1px solid rgba(255,255,255,0.06);">Default — rgba(255,255,255,0.06) — Inactive controls</div>
+        <div class="border-sample" style="border:1px solid rgba(255,255,255,0.08);">Medium — rgba(255,255,255,0.08) — Inputs, sidebar</div>
+        <div class="border-sample" style="border:1px solid rgba(0,229,160,0.12);">Accent — rgba(0,229,160,0.12) — Header, form panels</div>
+        <div class="border-sample" style="border:1px dashed rgba(0,229,160,0.1);">Dashed — Empty state containers</div>
+      </div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-label">Border Radius</div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:end;">
+        <div style="text-align:center;">
+          <div style="width:40px;height:40px;border:1px solid rgba(0,229,160,0.25);border-radius:3px;margin-bottom:6px;"></div>
+          <div style="font-size:9px;color:var(--text-ghost);">3px<br>badges</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="width:40px;height:40px;border:1px solid rgba(0,229,160,0.25);border-radius:4px;margin-bottom:6px;"></div>
+          <div style="font-size:9px;color:var(--text-ghost);">4px<br>small btns</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="width:40px;height:40px;border:1px solid rgba(0,229,160,0.25);border-radius:6px;margin-bottom:6px;"></div>
+          <div style="font-size:9px;color:var(--text-ghost);">6px<br>buttons, inputs</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="width:40px;height:40px;border:1px solid rgba(0,229,160,0.25);border-radius:8px;margin-bottom:6px;"></div>
+          <div style="font-size:9px;color:var(--text-ghost);">8px<br>role icons, selectors</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="width:40px;height:40px;border:1px solid rgba(0,229,160,0.25);border-radius:10px;margin-bottom:6px;"></div>
+          <div style="font-size:9px;color:var(--text-ghost);">10px<br>cards, forms</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="width:40px;height:40px;border:1px solid rgba(0,229,160,0.25);border-radius:12px;margin-bottom:6px;"></div>
+          <div style="font-size:9px;color:var(--text-ghost);">12px<br>panels, canvas</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ SPACING ═══════════════ -->
+<section>
+  <h2>Spacing Scale</h2>
+  <div class="section-desc">Consistent spacing using a compact scale optimized for data-dense interfaces.</div>
+  <div style="max-width:500px;">
+    <div class="spacing-row"><span class="spacing-label">xs</span><div class="spacing-bar" style="width:16px;"></div><span class="spacing-value">4px</span></div>
+    <div class="spacing-row"><span class="spacing-label">sm</span><div class="spacing-bar" style="width:24px;"></div><span class="spacing-value">6px</span></div>
+    <div class="spacing-row"><span class="spacing-label">md</span><div class="spacing-bar" style="width:32px;"></div><span class="spacing-value">8px</span></div>
+    <div class="spacing-row"><span class="spacing-label">lg</span><div class="spacing-bar" style="width:48px;"></div><span class="spacing-value">12px</span></div>
+    <div class="spacing-row"><span class="spacing-label">xl</span><div class="spacing-bar" style="width:64px;"></div><span class="spacing-value">16px</span></div>
+    <div class="spacing-row"><span class="spacing-label">2xl</span><div class="spacing-bar" style="width:80px;"></div><span class="spacing-value">20px</span></div>
+    <div class="spacing-row"><span class="spacing-label">3xl</span><div class="spacing-bar" style="width:96px;"></div><span class="spacing-value">24px</span></div>
+  </div>
+</section>
+
+<!-- ═══════════════ NETWORK CANVAS ═══════════════ -->
+<section>
+  <h2>Network Canvas Specification</h2>
+  <div class="section-desc">The canvas visualization renders the live mesh topology with animated connections.</div>
+
+  <div class="subsection">
+    <h3>Agent Nodes</h3>
+    <div class="network-legend">
+      <div class="legend-item">
+        <div class="legend-icon" style="background:rgba(0,229,160,0.2); border:1.5px solid rgba(0,229,160,0.6);">🔬</div>
+        <div class="legend-text"><div class="lt-label">Standard Node</div><div class="lt-desc">Outer glow (r=28) → ring (r=16) → core fill (r=14) → emoji</div></div>
+      </div>
+      <div class="legend-item">
+        <div class="legend-icon" style="background:rgba(0,229,160,0.2); border:1.5px solid rgba(0,229,160,0.6); box-shadow: 0 0 0 4px rgba(0,229,160,0.12);">🔬</div>
+        <div class="legend-text"><div class="lt-label">Prompted Node</div><div class="lt-desc">Double ring — outer ring at r=20 with 0.8px stroke</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Channel Lines</h3>
+    <div class="network-legend">
+      <div class="legend-item">
+        <div style="width:60px; height:2px; border-top:1.5px dashed rgba(0,229,160,0.40);"></div>
+        <div class="legend-text"><div class="lt-label" style="color:#00e5a0;">Data Sync</div><div class="lt-desc">Dashed [4,6] · 1.5px · 1 pulse · speed 0.8</div></div>
+      </div>
+      <div class="legend-item">
+        <div style="width:60px; height:2px; border-top:1.5px dashed rgba(251,191,36,0.40);"></div>
+        <div class="legend-text"><div class="lt-label" style="color:#fbbf24;">Task Relay</div><div class="lt-desc">Dashed [4,6] · 1.5px · 1 pulse · speed 0.8</div></div>
+      </div>
+      <div class="legend-item">
+        <div style="width:60px; height:2px; border-top:1.5px dashed rgba(167,139,250,0.40);"></div>
+        <div class="legend-text"><div class="lt-label" style="color:#a78bfa;">Consensus</div><div class="lt-desc">Dashed [4,6] · 1.5px · 1 pulse · speed 0.8</div></div>
+      </div>
+      <div class="legend-item">
+        <div style="width:60px; height:3px; background:rgba(0,229,160,0.80);border-radius:2px;"></div>
+        <div class="legend-text"><div class="lt-label" style="color:#fbbf24;">Active Channel</div><div class="lt-desc">Solid · 2.5px · 3 pulses · speed 1.5 · midpoint glow</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Group Hulls</h3>
+    <div class="legend-item" style="max-width:400px;">
+      <div style="width:48px;height:48px;border:1px dashed rgba(244,114,182,0.35);border-radius:50%;flex-shrink:0;"></div>
+      <div class="legend-text"><div class="lt-label" style="color:#f472b6;">Group Boundary</div><div class="lt-desc">Dashed circle [6,4] · 1px · pulsing opacity (sin wave) · radius = max member distance + 40px · label above</div></div>
+    </div>
+  </div>
+
+  <div class="subsection">
+    <h3>Grid</h3>
+    <div style="font-size:10px; color:var(--text-subtle); line-height:1.6;">
+      30px intervals · stroke rgba(0,229,160,0.04) · 0.5px weight · full canvas coverage
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ MESSAGE THREAD ═══════════════ -->
+<section>
+  <h2>Message Thread Anatomy</h2>
+  <div class="section-desc">Messages display as a threaded conversation between two agents on a P2P channel.</div>
+
+  <div style="max-width:500px; background:rgba(0,0,0,0.2); border-radius:12px; border:1px solid rgba(255,255,255,0.05); padding:18px;">
+    <!-- Sent -->
+    <div style="display:flex; gap:10px; margin-bottom:10px;">
+      <div style="width:28px;height:28px;border-radius:6px;background:rgba(0,229,160,0.2);border:1px solid rgba(0,229,160,0.30);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">🔬</div>
+      <div style="flex:1;">
+        <div style="font-size:10px; color:#00e5a0; margin-bottom:4px;">Atlas <span style="color:var(--text-invisible); font-size:9px;">10:42 AM</span></div>
+        <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); border-radius:2px 10px 10px 10px; padding:10px 14px; font-size:12px; line-height:1.6; color:var(--text-secondary);">Analyze the latest credential issuance patterns across the network.</div>
+      </div>
+    </div>
+    <!-- Response -->
+    <div style="display:flex; gap:10px; padding-left:38px;">
+      <div style="width:28px;height:28px;border-radius:6px;background:rgba(251,191,36,0.2);border:1px solid rgba(251,191,36,0.30);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">⚡</div>
+      <div style="flex:1;">
+        <div style="font-size:10px; color:#fbbf24; margin-bottom:4px;">Forge <span style="color:var(--text-invisible); font-size:9px;">response</span></div>
+        <div style="background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.15); border-radius:10px 2px 10px 10px; padding:10px 14px; font-size:12px; line-height:1.6; color:var(--text-secondary);">Detected 3 anomalous issuance spikes...</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px; font-size:10px; color:var(--text-ghost); line-height:1.8;">
+    Sent bubble: border-radius 2px 10px 10px 10px (top-left sharp)<br>
+    Response bubble: border-radius 10px 2px 10px 10px (top-right sharp)<br>
+    Response is indented 38px (icon width + gap) to create visual threading
+  </div>
+</section>
+
+<!-- ═══════════════ LAYOUT ═══════════════ -->
+<section>
+  <h2>Layout Structure</h2>
+  <div class="section-desc">Fixed sidebar navigation with fluid main content area.</div>
+  <div class="code-block"><span class="comment">/* App Shell */</span>
+<span class="key">Header:</span>      <span class="value">56px</span> fixed  <span class="comment">/* padding: 16px 20px */</span>
+<span class="key">Sidebar:</span>     <span class="value">200px</span> fixed  <span class="comment">/* nav + activity log */</span>
+<span class="key">Main:</span>        <span class="value">flex: 1</span>      <span class="comment">/* padding: 24px, scrollable */</span>
+
+<span class="comment">/* Messages View (split pane) */</span>
+<span class="key">Channel List:</span> <span class="value">240px</span> fixed  <span class="comment">/* P2P + Group selectors */</span>
+<span class="key">Thread:</span>       <span class="value">flex: 1</span>      <span class="comment">/* header + messages + input */</span>
+
+<span class="comment">/* Card Grids */</span>
+<span class="key">Agents:</span>      <span class="str">repeat(auto-fill, minmax(300px, 1fr))</span>  <span class="comment">/* gap: 12px */</span>
+<span class="key">Groups:</span>      <span class="str">repeat(auto-fill, minmax(320px, 1fr))</span>  <span class="comment">/* gap: 12px */</span>
+<span class="key">Governance:</span>  <span class="str">repeat(auto-fill, minmax(180px, 1fr))</span>  <span class="comment">/* gap: 8px  */</span></div>
+</section>
+
+<!-- ═══════════════ ANIMATION ═══════════════ -->
+<section>
+  <h2>Animation &amp; Motion</h2>
+  <div class="section-desc">Minimal CSS transitions. Canvas handles all real-time animation.</div>
+  <div class="component-row">
+    <div class="demo-card">
+      <div class="demo-label">CSS Transitions</div>
+      <div style="font-size:10px; color:var(--text-muted); line-height:1.8;">
+        <strong style="color:var(--text-primary);">all 0.15s</strong> — Buttons, pills, nav items, cards<br>
+        <strong style="color:var(--text-primary);">all 0.2s</strong> — Card selection state changes<br>
+        <strong style="color:var(--text-primary);">smooth</strong> — scrollIntoView for message thread
+      </div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-label">Canvas Animation</div>
+      <div style="font-size:10px; color:var(--text-muted); line-height:1.8;">
+        <strong style="color:var(--text-primary);">requestAnimationFrame</strong> — 60fps render loop<br>
+        <strong style="color:var(--text-primary);">Pulse travel:</strong> tick * speed + offset mod 120<br>
+        <strong style="color:var(--text-primary);">Group hull pulse:</strong> sin(tick * 0.02) * 0.15 + 0.85<br>
+        <strong style="color:var(--text-primary);">Active glow:</strong> 12 + sin(tick * 0.1) * 4 radius
+      </div>
+    </div>
+    <div class="demo-card">
+      <div class="demo-label">Keyframes</div>
+      <div style="font-size:10px; color:var(--text-muted); line-height:1.8;">
+        <strong style="color:var(--text-primary);">@keyframes pulse</strong> — "Agent is thinking" indicator<br>
+        0%, 100%: opacity 1<br>
+        50%: opacity 0.3<br>
+        Duration: 1.5s infinite
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ SCROLLBAR ═══════════════ -->
+<section>
+  <h2>Scrollbar &amp; Select Styles</h2>
+  <div class="code-block"><span class="key">::-webkit-scrollbar</span>          { <span class="key">width:</span> <span class="value">6px</span>; }
+<span class="key">::-webkit-scrollbar-track</span>    { <span class="key">background:</span> <span class="str">transparent</span>; }
+<span class="key">::-webkit-scrollbar-thumb</span>    { <span class="key">background:</span> <span class="str">rgba(255,255,255,0.08)</span>; <span class="key">border-radius:</span> <span class="value">3px</span>; }
+<span class="key">::-webkit-scrollbar-thumb:hover</span> { <span class="key">background:</span> <span class="str">rgba(255,255,255,0.15)</span>; }
+
+<span class="key">select option</span>               { <span class="key">background:</span> <span class="str">#18181b</span>; <span class="key">color:</span> <span class="str">#e4e4e7</span>; }</div>
+</section>
+
+<div style="margin-top:60px; padding-top:30px; border-top:1px solid rgba(0,229,160,0.08); font-size:9px; color:var(--text-ghost); text-align:center;">
+  MESH WORKSPACE DESIGN SYSTEM v1.0 &nbsp;·&nbsp; Decentralized Agent Collaboration &nbsp;·&nbsp; February 2026
+</div>
+
+</body>
+</html>
