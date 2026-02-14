@@ -76,7 +76,9 @@ function parseActions(text: string): { cleanText: string; actions: ParsedAction[
     return { cleanText, actions };
 }
 
-function ActionCard({ action }: { action: ParsedAction }) {
+
+
+function ActionCard({ action, context }: { action: ParsedAction; context: WorkspaceContext }) {
     const typeLabels: Record<string, { icon: string; color: string; label: string }> = {
         create_agent: { icon: "◉", color: "#00e5a0", label: "Create Agent" },
         create_channel: { icon: "⟷", color: "#a78bfa", label: "Create Channel" },
@@ -90,6 +92,22 @@ function ActionCard({ action }: { action: ParsedAction }) {
         .filter(([k]) => k !== "type")
         .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`);
 
+    // Check if this action is associated with a job
+    const matchingJob = context.jobs?.find(j =>
+        j.type === action.type &&
+        JSON.stringify(j.request) === JSON.stringify(action)
+    );
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case "queued": return "#fbbf24";
+            case "running": return "#38bdf8";
+            case "completed": return "#00e5a0";
+            case "failed": return "#ef4444";
+            default: return "#71717a";
+        }
+    };
+
     return (
         <div style={{
             background: `${meta.color}08`,
@@ -98,19 +116,93 @@ function ActionCard({ action }: { action: ParsedAction }) {
             padding: "8px 12px",
             marginTop: 6,
             fontSize: 11,
+            position: "relative",
         }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                <span style={{ color: meta.color }}>{meta.icon}</span>
-                <span style={{ color: meta.color, fontWeight: 600, fontSize: 10, letterSpacing: "0.05em" }}>{meta.label}</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ color: meta.color }}>{meta.icon}</span>
+                    <span style={{ color: meta.color, fontWeight: 600, fontSize: 10, letterSpacing: "0.05em" }}>{meta.label}</span>
+                </div>
+
+                {matchingJob ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{
+                            fontSize: 9,
+                            color: getStatusColor(matchingJob.status),
+                            background: getStatusColor(matchingJob.status) + "20",
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            fontWeight: 600,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4
+                        }}>
+                            <span style={{
+                                display: "inline-block", width: 4, height: 4, borderRadius: "50%",
+                                background: getStatusColor(matchingJob.status),
+                                boxShadow: matchingJob.status === "running" ? `0 0 4px ${getStatusColor(matchingJob.status)}` : "none"
+                            }} />
+                            {matchingJob.status.toUpperCase()}
+                        </span>
+                    </div>
+                ) : (
+                    context.addJob && (
+                        <button
+                            onClick={() => context.addJob!({ type: action.type, request: action })}
+                            style={{
+                                background: "rgba(255,255,255,0.06)",
+                                border: "1px solid rgba(255,255,255,0.1)",
+                                color: "#a1a1aa",
+                                borderRadius: 4,
+                                padding: "2px 6px",
+                                fontSize: 9,
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                                transition: "all 0.15s"
+                            }}
+                            title="Add to Job Queue"
+                        >
+                            <span>◎</span> Add to Job
+                        </button>
+                    )
+                )}
             </div>
+
             {details.map((d, i) => (
                 <div key={i} style={{ color: "#a1a1aa", fontSize: 10, marginLeft: 16 }}>{d}</div>
             ))}
+
+            {matchingJob && matchingJob.status === "completed" && matchingJob.artifacts.length > 0 && (
+                <div style={{ marginTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 8 }}>
+                    <div style={{ fontSize: 10, color: "#71717a", marginBottom: 4 }}>Generated Artifacts:</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                        {matchingJob.artifacts.map((art: any) => (
+                            <div key={art.id} style={{
+                                background: "rgba(255,255,255,0.04)",
+                                border: "1px solid rgba(255,255,255,0.08)",
+                                borderRadius: 4,
+                                padding: "2px 6px",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                                color: "#e4e4e7"
+                            }}>
+                                <span style={{ fontSize: 10 }}>
+                                    {art.type === "image" ? "🖼️" : art.type === "json" ? "{}" : "📄"}
+                                </span>
+                                {art.name}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
 
-function MessageBubble({ msg }: { msg: ChatMessage }) {
+function MessageBubble({ msg, context }: { msg: ChatMessage; context: WorkspaceContext }) {
     const isUser = msg.role === "user";
     const { cleanText, actions } = parseActions(msg.content);
 
@@ -148,7 +240,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
                     ? cleanText
                     : <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />
                 }
-                {actions.map((a, i) => <ActionCard key={i} action={a} />)}
+                {actions.map((a, i) => <ActionCard key={i} action={a} context={context} />)}
             </div>
         </div>
     );
@@ -468,7 +560,7 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
                             </div>
                         </div>
                     )}
-                    {messages.map((m, i) => <MessageBubble key={i} msg={m} />)}
+                    {messages.map((m, i) => <MessageBubble key={i} msg={m} context={context} />)}
                     {loading && (
                         <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 8 }}>
                             <div style={{

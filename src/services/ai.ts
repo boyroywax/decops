@@ -1,4 +1,4 @@
-import type { Agent, Channel, Group, Message, Network, Bridge, MeshConfig, BridgeMessage } from "../types";
+import type { Agent, Channel, Group, Message, Network, Bridge, MeshConfig, BridgeMessage, Job } from "../types";
 import { ROLES } from "../constants";
 import { repairJSON } from "../utils/json";
 
@@ -140,6 +140,7 @@ export interface ChatMessage {
   content: string;
 }
 
+
 export interface WorkspaceContext {
   agents: Agent[];
   channels: Channel[];
@@ -147,6 +148,8 @@ export interface WorkspaceContext {
   messages: Message[];
   ecosystems: Network[];
   bridges: Bridge[];
+  addJob?: (job: { type: string; request: any }) => void;
+  jobs: Job[];
 }
 
 function buildWorkspaceSystemPrompt(ctx: WorkspaceContext): string {

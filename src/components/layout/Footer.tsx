@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import type { Agent, Channel, Group, Message, Network, Bridge, LogEntry, ViewId } from "../../types";
+import type { Agent, Channel, Group, Message, Network, Bridge, LogEntry, ViewId, Job } from "../../types";
 import { ChatPanel } from "./ChatPanel";
+import { JobsPanel } from "./JobsPanel";
 
 interface FooterProps {
     agents: Agent[];
@@ -12,11 +13,15 @@ interface FooterProps {
     log: LogEntry[];
     addLog?: (msg: string) => void;
     setView: (view: ViewId) => void;
+    jobs: Job[];
+    removeJob: (id: string) => void;
+    clearJobs: () => void;
+    addJob: (job: { type: string; request: any }) => void;
 }
 
-type PanelMode = "none" | "activity" | "chat";
+type PanelMode = "none" | "activity" | "chat" | "jobs";
 
-export function Footer({ agents, channels, groups, messages, ecosystems, bridges, log, addLog, setView }: FooterProps) {
+export function Footer({ agents, channels, groups, messages, ecosystems, bridges, log, addLog, setView, jobs, removeJob, clearJobs, addJob }: FooterProps) {
     const [panel, setPanel] = useState<PanelMode>("none");
     const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +49,7 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
         transition: "all 0.1s",
     };
 
-    const workspaceContext = { agents, channels, groups, messages, ecosystems, bridges };
+    const workspaceContext = { agents, channels, groups, messages, ecosystems, bridges, addJob, jobs };
 
     return (
         <>
@@ -85,6 +90,16 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                     context={workspaceContext}
                     onClose={() => setPanel("none")}
                     addLog={addLog}
+                />
+            )}
+
+            {/* Expandable jobs panel */}
+            {panel === "jobs" && (
+                <JobsPanel
+                    jobs={jobs}
+                    onClose={() => setPanel("none")}
+                    removeJob={removeJob}
+                    clearJobs={clearJobs}
                 />
             )}
 
@@ -190,6 +205,41 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                             }}>{log.length}</span>
                         )}
                     </button>
+
+                    {/* Divider */}
+                    <span style={{ color: "#27272a", fontSize: 10 }}>│</span>
+
+                    {/* Jobs toggle */}
+                    <button
+                        onClick={() => toggle("jobs")}
+                        style={{
+                            background: panel === "jobs" ? "rgba(0,229,160,0.1)" : "none",
+                            border: "none",
+                            color: panel === "jobs" ? "#00e5a0" : "#52525b",
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                            fontSize: 10,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                            padding: "2px 6px",
+                            borderRadius: 3,
+                            transition: "all 0.15s",
+                        }}
+                    >
+                        <span style={{ fontSize: 10 }}>◎</span>
+                        Jobs
+                        {jobs.filter(j => j.status === 'running' || j.status === 'queued').length > 0 && (
+                            <span style={{
+                                fontSize: 9,
+                                background: panel === "jobs" ? "rgba(0,229,160,0.15)" : "rgba(255,255,255,0.06)",
+                                padding: "0 5px",
+                                borderRadius: 6,
+                                color: panel === "jobs" ? "#00e5a0" : "#71717a",
+                            }}>{jobs.filter(j => j.status === 'running' || j.status === 'queued').length}</span>
+                        )}
+                    </button>
+
                 </div>
             </footer>
         </>

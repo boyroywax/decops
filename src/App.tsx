@@ -15,17 +15,81 @@ import { GroupsView } from "./components/views/GroupsView";
 import { MessagesView } from "./components/views/MessagesView";
 import { NetworkView } from "./components/views/NetworkView";
 import { SettingsView } from "./components/views/SettingsView";
+import { ArtifactsView } from "./components/views/ArtifactsView";
 
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LoginView } from "./components/views/LoginView";
 import { ProfileView } from "./components/views/ProfileView";
+import { useJobs } from "./hooks/useJobs";
+
+import { registry } from "./services/commands/registry";
+import { createAgentCommand } from "./services/commands/definitions/agent";
+import { sendMessageCommand } from "./services/commands/definitions/messaging";
+import { createChannelCommand } from "./services/commands/definitions/channel";
+import { createGroupCommand } from "./services/commands/definitions/group";
+import type { CommandContext } from "./services/commands/types";
+
+// Register Commands
+registry.register(createAgentCommand);
+registry.register(sendMessageCommand);
+registry.register(createChannelCommand);
+registry.register(createGroupCommand);
 
 function AuthenticatedApp() {
   const [view, setView] = useState<ViewId>("architect");
   const { log, addLog } = useActivityLog();
   const { user, logout } = useAuth();
+  const { jobs, addJob, updateJobStatus, addArtifact, removeJob, clearJobs, allArtifacts, importArtifact, removeArtifact } = useJobs();
 
   const workspace = useWorkspace(addLog);
+  // ... (keep architect and ecosystem hooks as is)
+
+  // Job Execution Loop
+  useEffect(() => {
+    const processJobs = async () => {
+      const queuedJob = jobs.find(j => j.status === "queued");
+      if (queuedJob) {
+        try {
+          updateJobStatus(queuedJob.id, "running");
+
+          const context: CommandContext = {
+            workspace: {
+              ...workspace,
+              addLog
+            },
+            auth: { user }
+          };
+
+          const commandResult = await registry.execute(queuedJob.type, queuedJob.request, context);
+
+          updateJobStatus(queuedJob.id, "completed", "Job finished successfully");
+
+          // Enriched Result Artifact
+          const resultArtifact = {
+            jobId: queuedJob.id,
+            timestamp: Date.now(),
+            status: "success",
+            command: queuedJob.type,
+            data: commandResult || {}
+          };
+
+          addArtifact(queuedJob.id, {
+            id: `art-${Date.now()}`,
+            type: "json",
+            name: "result.json",
+            content: JSON.stringify(resultArtifact, null, 2)
+          });
+
+        } catch (err: any) {
+          console.error("Job Failed", err);
+          updateJobStatus(queuedJob.id, "failed", err.message || "Unknown error");
+        }
+      }
+    };
+
+    const interval = setInterval(processJobs, 1000); // Check every second (simple polling)
+    return () => clearInterval(interval);
+  }, [jobs, updateJobStatus, workspace, addLog, user, addArtifact]);
   const architect = useArchitect({
     addLog,
     setAgents: workspace.setAgents,
@@ -254,6 +318,14 @@ function AuthenticatedApp() {
               setBridges={ecosystem.setBridges}
             />
           )}
+
+          {view === "artifacts" && (
+            <ArtifactsView
+              artifacts={allArtifacts}
+              importArtifact={importArtifact}
+              removeArtifact={removeArtifact}
+            />
+          )}
         </main>
       </div>
 
@@ -267,6 +339,10 @@ function AuthenticatedApp() {
         log={log}
         addLog={addLog}
         setView={setView}
+        jobs={jobs}
+        addJob={addJob}
+        removeJob={removeJob}
+        clearJobs={clearJobs}
       />
 
       <style>{`

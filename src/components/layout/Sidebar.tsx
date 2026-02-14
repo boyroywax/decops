@@ -20,6 +20,7 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: string; accent: string }[] =
   { id: "messages", label: "Messages", icon: "◆", accent: "#fbbf24" },
   { id: "network", label: "Topology", icon: "◈", accent: "#00e5a0" },
   { id: "data", label: "Data", icon: "▣", accent: "#ef4444" },
+  { id: "artifacts", label: "Artifacts", icon: "❖", accent: "#818cf8" },
 ];
 
 export function Sidebar({ view, setView, ecosystems, messages, collapsed, setCollapsed, isMobile }: SidebarProps) {

@@ -13,7 +13,8 @@ export type ViewId =
   | "messages"
   | "network"
   | "data"
-  | "profile";
+  | "profile"
+  | "artifacts";
 
 export interface User {
   id: string;
@@ -344,8 +345,32 @@ export interface EmailOTPRequest {
   email: string;
 }
 
+
 export interface EmailOTPVerification {
   email: string;
   otp: string;
+}
+
+// Job Queue Types
+
+export type JobStatus = "queued" | "running" | "completed" | "failed";
+
+export interface JobArtifact {
+  id: string;
+  type: "markdown" | "json" | "yaml" | "csv" | "image" | "code";
+  content?: string; // Text content
+  url?: string; // URL for images or downloads
+  name: string;
+}
+
+export interface Job {
+  id: string;
+  type: string;
+  status: JobStatus;
+  request: Record<string, any>; // Flexible request parameters
+  result?: string;
+  artifacts: JobArtifact[];
+  createdAt: number;
+  updatedAt: number;
 }
 
