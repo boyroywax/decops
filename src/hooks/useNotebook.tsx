@@ -17,9 +17,10 @@ function loadEntries(): NotebookEntry[] {
 export function useNotebook() {
     const [entries, setEntries] = useState<NotebookEntry[]>(loadEntries);
 
-    // Persist to localStorage on change
+    // Persist to localStorage on change (exclude icon as it can't be serialized if it's a ReactNode)
     useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        const serializableEntries = entries.map(({ icon, ...rest }) => rest);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableEntries));
     }, [entries]);
 
     const addEntry = useCallback((entry: Omit<NotebookEntry, "id" | "timestamp">) => {

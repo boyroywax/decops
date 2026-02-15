@@ -28,6 +28,7 @@ import { useJobs } from "./hooks/useJobs";
 import { registry } from "./services/commands/registry";
 import { createAgentCommand } from "./services/commands/definitions/agent";
 import { sendMessageCommand } from "./services/commands/definitions/messaging";
+import { ErrorBoundary } from "./components/shared/ErrorBoundary";
 import { createChannelCommand } from "./services/commands/definitions/channel";
 import { createGroupCommand } from "./services/commands/definitions/group";
 import type { CommandContext } from "./services/commands/types";
@@ -468,12 +469,14 @@ function AuthenticatedApp() {
           )}
 
           {view === "activity" && (
-            <ActivityView
-              entries={notebookEntries}
-              clearNotebook={clearNotebook}
-              exportNotebook={exportNotebook}
-              addEntry={addNotebookEntry}
-            />
+            <ErrorBoundary>
+              <ActivityView
+                entries={notebookEntries}
+                clearNotebook={clearNotebook}
+                exportNotebook={exportNotebook}
+                addEntry={addNotebookEntry}
+              />
+            </ErrorBoundary>
           )}
         </main>
       </div>

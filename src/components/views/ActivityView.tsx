@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, isValidElement } from "react";
 import { marked } from "marked";
 import type { NotebookEntry, NotebookCategory } from "../../types";
 import { Zap, Upload, Compass, Settings, FileText, Edit, Download, Trash2 } from "lucide-react";
@@ -59,9 +59,10 @@ function isMarkdownCategory(cat: NotebookCategory): boolean {
 export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry }: ActivityViewProps) {
     console.log("ActivityView rendering", { entriesCount: entries?.length });
 
+    const safeEntries = Array.isArray(entries) ? entries : [];
+
     if (!Array.isArray(entries)) {
         console.error("ActivityView: entries is not an array", entries);
-        return <div style={{ padding: 20, color: "red" }}>Error: Invalid activity data.</div>;
     }
 
     const [search, setSearch] = useState("");
@@ -84,7 +85,7 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
     };
 
     const filtered = useMemo(() => {
-        return entries.filter(e => {
+        return safeEntries.filter(e => {
             if (!activeFilters.has(e.category)) return false;
             if (search) {
                 const q = search.toLowerCase();
@@ -92,7 +93,7 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
             }
             return true;
         });
-    }, [entries, activeFilters, search]);
+    }, [safeEntries, activeFilters, search]);
 
     // Group by day
     const grouped = useMemo(() => {
@@ -294,7 +295,7 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
             </div>
 
             {/* Empty State */}
-            {entries.length === 0 && (
+            {safeEntries.length === 0 && (
                 <div style={{
                     textAlign: "center",
                     padding: "60px 24px",
@@ -319,7 +320,7 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
             )}
 
             {/* No results after filter */}
-            {entries.length > 0 && filtered.length === 0 && (
+            {safeEntries.length > 0 && filtered.length === 0 && (
                 <div style={{
                     textAlign: "center", padding: "40px 24px",
                     color: "var(--text-subtle)", fontSize: 13, fontFamily: "var(--font-mono)",
@@ -397,7 +398,9 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
                                         >
                                             {/* Header row */}
                                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                                <span style={{ fontSize: 16, flexShrink: 0 }}>{entry.icon}</span>
+                                                <span style={{ fontSize: 16, flexShrink: 0 }}>
+                                                    {isValidElement(entry.icon) ? entry.icon : (typeof entry.icon === 'string' ? entry.icon : meta.icon)}
+                                                </span>
                                                 <div style={{ flex: 1, minWidth: 0 }}>
                                                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                         <span style={{
@@ -513,7 +516,7 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
             </div>
 
             {/* Footer stats */}
-            {entries.length > 0 && (
+            {safeEntries.length > 0 && (
                 <div style={{
                     marginTop: 24, padding: 12,
                     textAlign: "center",
@@ -521,7 +524,7 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
                     fontFamily: "var(--font-mono)",
                     borderTop: "1px solid var(--border-subtle)",
                 }}>
-                    {entries.length} total {entries.length === 1 ? "entry" : "entries"} · Showing {filtered.length} · Storage: ~{(JSON.stringify(entries).length / 1024).toFixed(1)} KB
+                    {safeEntries.length} total {safeEntries.length === 1 ? "entry" : "entries"} · Showing {filtered.length} · Storage: ~{(JSON.stringify(safeEntries).length / 1024).toFixed(1)} KB
                 </div>
             )}
 
