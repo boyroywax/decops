@@ -74,7 +74,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 interface AuthContextType extends AuthState {
     login: (email: string, password: string) => Promise<void>;
     loginWithDID: (did: string, signature: string) => Promise<void>;
-    loginWithLocalDID: () => Promise<void>;
+    loginWithLocalDID: (password: string) => Promise<void>;
     registerDID: () => Promise<{ did: string } | null>;
     issueEmailCredential: () => Promise<boolean>;
     updateEmailValidation: (validation: EmailValidation) => void;
@@ -205,18 +205,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     // Login with locally generated did:key (no server required)
-    const loginWithLocalDID = async () => {
+    const loginWithLocalDID = async (password: string) => {
         dispatch({ type: 'AUTH_START' });
         try {
-            // Use the DID registration flow from credebl service which falls back
-            // to local did:key generation
-            const didResult = await authService.registerDID('key');
-            if (!didResult.success || !didResult.data) {
-                dispatch({ type: 'AUTH_ERROR', payload: 'Failed to generate DID' });
-                return;
+            let userResult;
+
+            // Check if we have an existing identity to unlock
+            if (authService.hasLocalIdentity()) {
+                const unlockResult = await authService.unlockLocalIdentity(password);
+                if (!unlockResult.success) {
+                    throw new Error(unlockResult.error || 'Failed to unlock identity');
+                }
+                userResult = unlockResult;
+            } else {
+                // Create new identity
+                const createResult = await authService.registerLocalIdentity(password);
+                if (!createResult.success) {
+                    throw new Error(createResult.error || 'Failed to create identity');
+                }
+                userResult = createResult;
             }
 
-            const did = didResult.data.did;
+            if (!userResult.data) {
+                throw new Error('No identity data returned');
+            }
+
+            const did = userResult.data.did;
             const shortDid = did.substring(did.lastIndexOf(':') + 1, did.lastIndexOf(':') + 9);
 
             const user: User = {
@@ -235,7 +249,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             dispatch({ type: 'AUTH_SUCCESS', payload: user });
         } catch (error) {
             console.error('DID login error:', error);
-            const message = error instanceof Error ? error.message : 'DID generation failed';
+            const message = error instanceof Error ? error.message : 'DID generation/unlock failed';
             dispatch({ type: 'AUTH_ERROR', payload: message });
         }
     };

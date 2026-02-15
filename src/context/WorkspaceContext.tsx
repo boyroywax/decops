@@ -5,7 +5,7 @@ import { useGroups } from '../hooks/useGroups';
 import { useMessages } from '../hooks/useMessages';
 import type { Agent, Channel, Group, Message, NewAgentForm, ChannelForm, GroupForm } from '../types';
 
-interface WorkspaceContextType {
+export interface WorkspaceContextType {
     // Agents
     agents: Agent[];
     setAgents: React.Dispatch<React.SetStateAction<Agent[]>>;

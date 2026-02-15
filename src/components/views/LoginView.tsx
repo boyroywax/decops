@@ -5,12 +5,16 @@ import { useAuth } from '../../context/AuthContext';
 
 export function LoginView() {
     const [stage, setStage] = useState<'idle' | 'generating' | 'complete'>('idle');
+    const [password, setPassword] = useState('');
     const { loginWithLocalDID, isLoading, error } = useAuth();
 
     const handleDIDLogin = async () => {
+        if (!password) {
+            return;
+        }
         try {
             setStage('generating');
-            await loginWithLocalDID();
+            await loginWithLocalDID(password);
             setStage('complete');
             // AuthContext state change will trigger redirect in App.tsx
         } catch (err) {
@@ -42,9 +46,37 @@ export function LoginView() {
                 <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
                     <GradientIcon icon={Key} size={28} gradient={["#00e5a0", "#38bdf8"]} /> Decops Identity
                 </h1>
-                <p style={{ fontSize: 14, color: "#a1a1aa", marginBottom: 32 }}>
-                    Create or restore your Decentralized Identity
+                <p style={{ fontSize: 14, color: "#a1a1aa", marginBottom: 24 }}>
+                    Create or unlock your Decentralized Identity
                 </p>
+
+                <div style={{ marginBottom: 24 }}>
+                    <label style={{ display: "block", fontSize: 13, color: "#e4e4e7", marginBottom: 8 }}>
+                        Identity Password
+                    </label>
+                    <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Enter password to encrypt/unlock your keys"
+                        style={{
+                            width: "100%",
+                            background: "rgba(0,0,0,0.2)",
+                            border: "1px solid rgba(255,255,255,0.1)",
+                            borderRadius: 8,
+                            padding: "12px 16px",
+                            color: "#e4e4e7",
+                            fontFamily: "inherit",
+                            outline: "none",
+                            transition: "border-color 0.2s"
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = "rgba(0, 229, 160, 0.5)"}
+                        onBlur={(e) => e.target.style.borderColor = "rgba(255,255,255,0.1)"}
+                    />
+                    <p style={{ fontSize: 12, color: "#71717a", marginTop: 6 }}>
+                        This password encrypts your private keys on this device.
+                    </p>
+                </div>
 
                 {error && (
                     <div style={{
@@ -98,7 +130,7 @@ export function LoginView() {
 
                 <button
                     onClick={handleDIDLogin}
-                    disabled={isLoading || stage !== 'idle'}
+                    disabled={isLoading || stage !== 'idle' || !password}
                     style={{
                         width: "100%",
                         background: "linear-gradient(135deg, #00e5a0, #00c7e5)",

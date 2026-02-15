@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Loader2, Check, AlertTriangle, Clock, Maximize2, Trash2, StopCircle } from "lucide-react";
 import type { Job, JobStatus } from "../../types";
 
-interface JobCardProps {
+export interface JobCardProps {
     job: Job;
     removeJob: (id: string) => void;
     stopJob: (id: string) => void;
