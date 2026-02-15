@@ -76,7 +76,8 @@ export function JobCard({ job, removeJob, stopJob, onView }: JobCardProps) {
                     width: "100%",
                     height: "100%",
                     backfaceVisibility: "hidden",
-                    background: `linear-gradient(145deg, rgba(255,255,255,0.03) 0%, ${color}05 100%)`,
+                    WebkitBackfaceVisibility: "hidden", // Safari fix
+                    background: `linear-gradient(145deg, rgba(255,255,255,0.05) 0%, ${color}10 100%)`, // Slightly more opaque
                     border: `1px solid ${color}30`,
                     borderRadius: 12,
                     padding: 16,
@@ -138,6 +139,7 @@ export function JobCard({ job, removeJob, stopJob, onView }: JobCardProps) {
                     width: "100%",
                     height: "100%",
                     backfaceVisibility: "hidden",
+                    WebkitBackfaceVisibility: "hidden", // Safari fix
                     background: "#09090b",
                     border: `1px solid ${color}50`,
                     borderRadius: 12,
@@ -150,68 +152,89 @@ export function JobCard({ job, removeJob, stopJob, onView }: JobCardProps) {
                     boxSizing: "border-box",
                 }}>
                     {/* Header with Actions */}
-                    <span style={{ fontSize: 10, color: color, fontWeight: 600, textTransform: "uppercase" }}>
-                        DETAILS
-                    </span>
-                    <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onView(); }}
-                            style={{ background: "rgba(255,255,255,0.05)", border: "none", color: "#fff", cursor: "pointer", padding: 4, borderRadius: 4 }}
-                            title="Expand View"
-                        >
-                            <Maximize2 size={12} />
-                        </button>
-                        {isRunning ? (
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                        <span style={{ fontSize: 10, color: color, fontWeight: 600, textTransform: "uppercase" }}>
+                            DETAILS
+                        </span>
+                        <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
                             <button
-                                onClick={(e) => { e.stopPropagation(); stopJob(job.id); }}
-                                style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "#ef4444", cursor: "pointer", padding: 4, borderRadius: 4 }}
-                                title="Stop Job"
+                                onClick={(e) => { e.stopPropagation(); onView(); }}
+                                style={{ background: "rgba(255,255,255,0.05)", border: "none", color: "#fff", cursor: "pointer", padding: 4, borderRadius: 4 }}
+                                title="Expand View"
                             >
-                                <StopCircle size={12} />
+                                <Maximize2 size={12} />
                             </button>
-                        ) : (
-                            <button
-                                onClick={(e) => { e.stopPropagation(); removeJob(job.id); }}
-                                style={{ background: "rgba(255,255,255,0.05)", border: "none", color: "#71717a", cursor: "pointer", padding: 4, borderRadius: 4 }}
-                                title="Delete Job"
-                            >
-                                <Trash2 size={12} />
-                            </button>
+                            {isRunning ? (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); stopJob(job.id); }}
+                                    style={{ background: "rgba(239, 68, 68, 0.1)", border: "none", color: "#ef4444", cursor: "pointer", padding: 4, borderRadius: 4 }}
+                                    title="Stop Job"
+                                >
+                                    <StopCircle size={12} />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); removeJob(job.id); }}
+                                    style={{ background: "rgba(255,255,255,0.05)", border: "none", color: "#71717a", cursor: "pointer", padding: 4, borderRadius: 4 }}
+                                    title="Delete Job"
+                                >
+                                    <Trash2 size={12} />
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Content */}
+                    <div style={{ flex: 1, overflow: "auto", fontSize: 10, color: "#a1a1aa" }}>
+                        {job.status === "completed" && job.result && (
+                            <div style={{ marginBottom: 8 }}>
+                                <div style={{ fontSize: 9, color: "#52525b", marginBottom: 2 }}>RESULT</div>
+                                <div style={{
+                                    color: "#00e5a0",
+                                    whiteSpace: "pre-wrap",
+                                    wordBreak: "break-word",
+                                    overflowWrap: "anywhere"
+                                }}>{job.result}</div>
+                            </div>
+                        )}
+
+                        {job.status === "failed" && job.result && (
+                            <div style={{ marginBottom: 8 }}>
+                                <div style={{ fontSize: 9, color: "#52525b", marginBottom: 2 }}>ERROR</div>
+                                <div style={{
+                                    color: "#ef4444",
+                                    whiteSpace: "pre-wrap",
+                                    wordBreak: "break-word",
+                                    overflowWrap: "anywhere"
+                                }}>{job.result}</div>
+                            </div>
+                        )}
+
+                        <div style={{ marginBottom: 8 }}>
+                            <div style={{ fontSize: 9, color: "#52525b", marginBottom: 2 }}>REQUEST</div>
+                            <pre style={{
+                                margin: 0,
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-word",
+                                overflowWrap: "anywhere",
+                                background: "rgba(255,255,255,0.02)",
+                                padding: 4,
+                                borderRadius: 4,
+                                overflowX: "hidden"
+                            }}>
+                                {JSON.stringify(job.request, null, 2)}
+                            </pre>
+                        </div>
+
+                        {job.artifacts.length > 0 && (
+                            <div>
+                                <div style={{ fontSize: 9, color: "#52525b", marginBottom: 2 }}>ARTIFACTS</div>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                                    {job.artifacts.length} Items
+                                </div>
+                            </div>
                         )}
                     </div>
-                </div>
-
-                {/* Content */}
-                <div style={{ flex: 1, overflow: "auto", fontSize: 10, color: "#a1a1aa" }}>
-                    {job.status === "completed" && job.result && (
-                        <div style={{ marginBottom: 8 }}>
-                            <div style={{ fontSize: 9, color: "#52525b", marginBottom: 2 }}>RESULT</div>
-                            <div style={{ color: "#00e5a0" }}>{job.result}</div>
-                        </div>
-                    )}
-
-                    {job.status === "failed" && job.result && (
-                        <div style={{ marginBottom: 8 }}>
-                            <div style={{ fontSize: 9, color: "#52525b", marginBottom: 2 }}>ERROR</div>
-                            <div style={{ color: "#ef4444" }}>{job.result}</div>
-                        </div>
-                    )}
-
-                    <div style={{ marginBottom: 8 }}>
-                        <div style={{ fontSize: 9, color: "#52525b", marginBottom: 2 }}>REQUEST</div>
-                        <pre style={{ margin: 0, whiteSpace: "pre-wrap", background: "rgba(255,255,255,0.02)", padding: 4, borderRadius: 4, overflowX: "hidden" }}>
-                            {JSON.stringify(job.request, null, 2)}
-                        </pre>
-                    </div>
-
-                    {job.artifacts.length > 0 && (
-                        <div>
-                            <div style={{ fontSize: 9, color: "#52525b", marginBottom: 2 }}>ARTIFACTS</div>
-                            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                                {job.artifacts.length} Items
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>
