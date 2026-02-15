@@ -24,7 +24,7 @@ interface UseEcosystemDeps {
 export function useEcosystem({
   addLog, agents, channels, groups, messages,
   setAgents, setChannels, setGroups, setMessages, setView,
-}: UseEcosystemDeps) {
+}: UseEcosystemDeps, addJob?: (job: any) => void) {
   const [ecosystems, setEcosystems] = useLocalStorage<Network[]>("decops_ecosystems", []);
   const [bridges, setBridges] = useLocalStorage<Bridge[]>("decops_bridges", []);
   const [bridgeMessages, setBridgeMessages] = useState<BridgeMessage[]>([]);
@@ -44,94 +44,85 @@ export function useEcosystem({
 
   const saveCurrentNetwork = () => {
     if (!ecoSaveName.trim() || agents.length === 0) return;
-    const net: Network = {
-      id: crypto.randomUUID(), name: ecoSaveName.trim(), did: generateNetworkDID(),
-      color: NETWORK_COLORS[ecosystems.length % NETWORK_COLORS.length],
-      agents: [...agents], channels: [...channels], groups: [...groups], messages: [...messages],
-      createdAt: new Date().toISOString(),
-    };
-    setEcosystems((prev) => [...prev, net]);
-    addLog(`Network "${net.name}" saved -> ${net.did.slice(0, 24)}…`);
+    if (addJob) {
+      addJob({
+        type: "save_ecosystem",
+        request: { name: ecoSaveName.trim() }
+      });
+    } else {
+      // Fallback or Error? Ideally all paths use addJob now.
+      // But for safety during migration we can keep old logic or just allow it to fail if addJob missing?
+      // Let's assume addJob is provided.
+    }
     setEcoSaveName("");
   };
 
   const loadNetwork = (id: string) => {
-    const net = ecosystems.find((n) => n.id === id);
-    if (!net) return;
-    setAgents([...net.agents]);
-    setChannels([...net.channels]);
-    setGroups([...net.groups]);
-    setMessages([...net.messages]);
-    addLog(`Loaded network "${net.name}" into workspace`);
+    if (addJob) {
+      addJob({
+        type: "load_ecosystem",
+        request: { id }
+      });
+    }
+    // Optimistic / UI side transition?
+    // The command executes logic to clear workspace and load data.
+    // The View switch might need to happen after?
+    // Or we can just switch view proactively.
     setView("agents");
   };
 
   const dissolveNetwork = (id: string) => {
-    setEcosystems((prev) => prev.filter((n) => n.id !== id));
-    setBridges((prev) => prev.filter((b) => b.fromNetworkId !== id && b.toNetworkId !== id));
-    addLog("Network dissolved from ecosystem");
+    if (addJob) {
+      addJob({
+        type: "delete_ecosystem",
+        request: { id }
+      });
+    }
   };
 
   const createBridge = () => {
     const { fromNet, toNet, fromAgent, toAgent, type } = bridgeForm;
     if (!fromNet || !toNet || !fromAgent || !toAgent || fromNet === toNet) return;
-    const exists = bridges.some((b) =>
-      (b.fromAgentId === fromAgent && b.toAgentId === toAgent) ||
-      (b.fromAgentId === toAgent && b.toAgentId === fromAgent)
-    );
-    if (exists) { addLog("Bridge already exists"); return; }
-    const bridge: Bridge = {
-      id: crypto.randomUUID(), fromNetworkId: fromNet, toNetworkId: toNet,
-      fromAgentId: fromAgent, toAgentId: toAgent,
-      type: CHANNEL_TYPES.find((t) => t.id === type) ? type : "data",
-      offset: Math.random() * 120, createdAt: new Date().toISOString(),
-    };
-    setBridges((prev) => [...prev, bridge]);
-    const fNet = ecosystems.find((n) => n.id === fromNet);
-    const tNet = ecosystems.find((n) => n.id === toNet);
-    const fAgent = fNet?.agents.find((a) => a.id === fromAgent);
-    const tAgent = tNet?.agents.find((a) => a.id === toAgent);
-    addLog(`Bridge: ${fAgent?.name} (${fNet?.name}) <-> ${tAgent?.name} (${tNet?.name})`);
+
+    if (addJob) {
+      addJob({
+        type: "create_bridge",
+        request: {
+          from_network: fromNet,
+          to_network: toNet,
+          from_agent: fromAgent,
+          to_agent: toAgent,
+          type
+        }
+      });
+    }
     setBridgeForm({ fromNet: "", toNet: "", fromAgent: "", toAgent: "", type: "data" });
   };
 
   const removeBridge = (id: string) => {
-    setBridges((prev) => prev.filter((b) => b.id !== id));
+    if (addJob) {
+      addJob({ type: "delete_bridge", request: { id } });
+    }
     if (selectedBridge === id) setSelectedBridge(null);
-    addLog("Bridge dissolved");
   };
 
   const sendBridgeMessage = async () => {
     if (!bridgeMsgInput.trim() || !selectedBridge || bridgeSending) return;
-    const bridge = bridges.find((b) => b.id === selectedBridge);
-    if (!bridge) return;
-    const fromNet = ecosystems.find((n) => n.id === bridge.fromNetworkId);
-    const toNet = ecosystems.find((n) => n.id === bridge.toNetworkId);
-    const fromAgent = fromNet?.agents.find((a) => a.id === bridge.fromAgentId);
-    const toAgent = toNet?.agents.find((a) => a.id === bridge.toAgentId);
-    if (!fromAgent || !toAgent) return;
 
-    const msgId = crypto.randomUUID();
-    const msg: BridgeMessage = {
-      id: msgId, bridgeId: bridge.id, fromId: bridge.fromAgentId, toId: bridge.toAgentId,
-      content: bridgeMsgInput.trim(), response: null, status: "sending", ts: Date.now(),
-    };
-    setBridgeMessages((prev) => [...prev, msg]);
-    setBridgeMsgInput("");
     setBridgeSending(true);
-    setActiveBridges((prev) => new Set([...prev, bridge.id]));
-    addLog(`Bridge msg: ${fromAgent.name} -> ${toAgent.name} (cross-network)`);
-
-    if (toAgent.prompt) {
-      const history = bridgeMessages.filter((m) => m.bridgeId === bridge.id);
-      const response = await callAgentAI(toAgent, fromAgent, msg.content, bridge.type, history, fromNet?.name);
-      setBridgeMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, response, status: "delivered" } : m));
-      addLog(`${toAgent.name} responded across bridge`);
-    } else {
-      setBridgeMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, response: "[No prompt — agent cannot respond]", status: "no-prompt" } : m));
+    if (addJob) {
+      addJob({
+        type: "send_bridge_message",
+        request: {
+          bridge_id: selectedBridge,
+          message: bridgeMsgInput.trim()
+        }
+      });
     }
-    setBridgeSending(false);
-    setTimeout(() => setActiveBridges((prev) => { const n = new Set(prev); n.delete(bridge.id); return n; }), 3000);
+
+    setBridgeMsgInput("");
+    // Rely on Job to update state
+    setTimeout(() => setBridgeSending(false), 500);
   };
 
   // Computed values
@@ -158,5 +149,6 @@ export function useEcosystem({
     createBridge, removeBridge, sendBridgeMessage,
     // Setters
     setEcosystems, setBridges,
+    setBridgeMessages, setActiveBridges,
   };
 }

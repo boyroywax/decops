@@ -380,6 +380,22 @@ export interface JobArtifact {
   name: string;
 }
 
+export interface JobStep {
+  id: string;
+  commandId: string;
+  args: Record<string, any>;
+}
+
+export interface JobDefinition {
+  id: string;
+  name: string;
+  description: string;
+  mode: 'serial' | 'parallel';
+  steps: JobStep[];
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface Job {
   id: string;
   type: string;
@@ -389,5 +405,12 @@ export interface Job {
   artifacts: JobArtifact[];
   createdAt: number;
   updatedAt: number;
+
+  // Multi-step job fields
+  jobDefinitionId?: string;
+  steps?: JobStep[];
+  currentStepIndex?: number;
+  stepResults?: Record<string, any>;
+  mode?: 'serial' | 'parallel';
 }
 

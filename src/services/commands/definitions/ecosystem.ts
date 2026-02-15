@@ -62,7 +62,17 @@ export const loadEcosystemCommand: CommandDefinition = {
     output: "Confirmation of load operation.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
     execute: async (args, context: CommandContext) => {
-        context.ecosystem.loadNetwork(args.id);
+        const net = context.ecosystem.ecosystems.find((n: any) => n.id === args.id);
+        if (!net) throw new Error("Ecosystem not found");
+
+        const { setAgents, setChannels, setGroups, setMessages, addLog } = context.workspace;
+
+        setAgents([...net.agents]);
+        setChannels([...net.channels]);
+        setGroups([...net.groups]);
+        setMessages([...net.messages]);
+
+        addLog(`Loaded network "${net.name}" into workspace`);
         return { success: true };
     }
 };
@@ -101,7 +111,13 @@ export const deleteEcosystemCommand: CommandDefinition = {
     output: "Confirmation of deletion.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
     execute: async (args, context: CommandContext) => {
-        context.ecosystem.dissolveNetwork(args.id);
+        const { setEcosystems, setBridges } = context.ecosystem;
+        const id = args.id;
+
+        setEcosystems((prev: any[]) => prev.filter((n: any) => n.id !== id));
+        setBridges((prev: any[]) => prev.filter((b: any) => b.fromNetworkId !== id && b.toNetworkId !== id));
+
+        context.workspace.addLog("Network dissolved from ecosystem");
         return { success: true };
     }
 };

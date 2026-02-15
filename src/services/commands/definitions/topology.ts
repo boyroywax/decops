@@ -52,7 +52,9 @@ export const deleteBridgeCommand: CommandDefinition = {
     output: "Confirmation of deletion.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
     execute: async (args, context: CommandContext) => {
-        context.ecosystem.removeBridge(args.id);
+        const bridgeId = args.id;
+        context.ecosystem.setBridges((prev: any[]) => prev.filter((b: any) => b.id !== bridgeId));
+        context.workspace.addLog("Bridge dissolved");
         return { success: true };
     }
 };

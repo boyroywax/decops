@@ -29,6 +29,15 @@ export function useJobs() {
         }));
     }, []);
 
+    const updateJob = useCallback((id: string, updates: Partial<Job>) => {
+        setJobs((prev) => prev.map((job) => {
+            if (job.id === id) {
+                return { ...job, ...updates, updatedAt: Date.now() };
+            }
+            return job;
+        }));
+    }, []);
+
     const addArtifact = useCallback((jobId: string, artifact: JobArtifact) => {
         setJobs((prev) => prev.map((job) => {
             if (job.id === jobId) {
@@ -137,6 +146,7 @@ export function useJobs() {
         isPaused,
         toggleQueuePause,
         stopJob,
+        updateJob,
         reorderQueue
     };
 }

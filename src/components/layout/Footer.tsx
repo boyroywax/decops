@@ -16,18 +16,21 @@ interface FooterProps {
     jobs: Job[];
     removeJob: (id: string) => void;
     clearJobs: () => void;
-    addJob: (job: { type: string; request: any }) => void;
+    addJob: (job: any) => void;
     isPaused: boolean;
     toggleQueuePause: () => void;
     stopJob: (id: string) => void;
     reorderQueue: (ids: string[]) => void;
     activityPulse?: boolean;
     isMobile?: boolean;
+    savedJobs: any[];
+    saveJob: (job: any) => void;
+    deleteJob: (id: string) => void;
 }
 
 type PanelMode = "none" | "chat" | "jobs";
 
-export function Footer({ agents, channels, groups, messages, ecosystems, bridges, addLog, setView, jobs, removeJob, clearJobs, addJob, ...jobsProps }: FooterProps) {
+export function Footer({ agents, channels, groups, messages, ecosystems, bridges, addLog, setView, jobs, removeJob, clearJobs, addJob, savedJobs, saveJob, deleteJob, ...jobsProps }: FooterProps) {
     const [panel, setPanel] = useState<PanelMode>("none");
 
     const toggle = (mode: PanelMode) => setPanel(prev => prev === mode ? "none" : mode);
@@ -77,6 +80,9 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                     toggleQueuePause={jobsProps.toggleQueuePause}
                     stopJob={jobsProps.stopJob}
                     reorderQueue={jobsProps.reorderQueue}
+                    savedJobs={savedJobs}
+                    saveJob={saveJob}
+                    deleteJob={deleteJob}
                 />
             )}
 
@@ -95,25 +101,25 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
             }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <button onClick={() => setView("agents")} style={footerBtnStyle} title="View Agents">
-                        <Bot size={10} color="#00e5a0" /> {!jobsProps.isMobile && `${agents.length} agents`}
+                        <Bot size={10} color="#00e5a0" /> {agents.length} {!jobsProps.isMobile && "agents"}
                     </button>
                     <button onClick={() => setView("channels")} style={footerBtnStyle} title="View Channels">
-                        <ArrowLeftRight size={10} color="#a78bfa" /> {!jobsProps.isMobile && `${channels.length} ch`}
+                        <ArrowLeftRight size={10} color="#a78bfa" /> {channels.length} {!jobsProps.isMobile && "ch"}
                     </button>
                     <button onClick={() => setView("groups")} style={footerBtnStyle} title="View Groups">
-                        <Hexagon size={10} color="#f472b6" /> {!jobsProps.isMobile && `${groups.length} groups`}
+                        <Hexagon size={10} color="#f472b6" /> {groups.length} {!jobsProps.isMobile && "groups"}
                     </button>
                     <button onClick={() => setView("messages")} style={footerBtnStyle} title="View Messages">
-                        <MessageSquare size={10} color="#fbbf24" /> {!jobsProps.isMobile && `${messages.length} msgs`}
+                        <MessageSquare size={10} color="#fbbf24" /> {messages.length} {!jobsProps.isMobile && "msgs"}
                     </button>
                     {ecosystems.length > 0 && (
                         <button onClick={() => setView("ecosystem")} style={footerBtnStyle} title="View Ecosystems">
-                            <Globe size={10} color="#38bdf8" /> {!jobsProps.isMobile && `${ecosystems.length} nets`}
+                            <Globe size={10} color="#38bdf8" /> {ecosystems.length} {!jobsProps.isMobile && "nets"}
                         </button>
                     )}
                     {bridges.length > 0 && (
                         <button onClick={() => setView("network")} style={footerBtnStyle} title="View Topology">
-                            <NetworkIcon size={10} color="#fb923c" /> {!jobsProps.isMobile && `${bridges.length} bridges`}
+                            <NetworkIcon size={10} color="#fb923c" /> {bridges.length} {!jobsProps.isMobile && "bridges"}
                         </button>
                     )}
                 </div>

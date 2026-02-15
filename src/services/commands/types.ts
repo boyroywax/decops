@@ -23,6 +23,9 @@ export interface CommandContext {
         setGroups: React.Dispatch<React.SetStateAction<any[]>>;
         setMessages: React.Dispatch<React.SetStateAction<any[]>>;
         addLog: (msg: string) => void;
+        activeChannel?: string | null;
+        setActiveChannel?: React.Dispatch<React.SetStateAction<string | null>>;
+        setActiveChannels?: React.Dispatch<React.SetStateAction<Set<string>>>;
     };
     auth: {
         user: any;
@@ -32,12 +35,26 @@ export interface CommandContext {
         removeArtifact: (id: string) => void;
         importArtifact: (artifact: any) => void;
         allArtifacts: any[];
+        // Queue Management
+        addJob: (job: any) => void;
+        removeJob: (id: string) => void;
+        pauseQueue: () => void;
+        resumeQueue: () => void;
+        isPaused: boolean;
+        getQueue: () => any[];
+        // Catalog Management
+        getCatalog: () => any[];
+        saveDefinition: (def: any) => void;
+        deleteDefinition: (id: string) => void;
     };
     ecosystem: {
         ecosystems: any[];
         bridges: any[];
+        bridgeMessages: any[]; // [NEW]
         setEcosystems: React.Dispatch<React.SetStateAction<any[]>>;
         setBridges: React.Dispatch<React.SetStateAction<any[]>>;
+        setBridgeMessages: React.Dispatch<React.SetStateAction<any[]>>; // [NEW]
+        setActiveBridges: React.Dispatch<React.SetStateAction<Set<string>>>; // [NEW]
         createBridge: (from: string, to: string) => void;
         removeBridge: (id: string) => void;
         saveCurrentNetwork: () => void;

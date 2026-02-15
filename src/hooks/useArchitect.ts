@@ -19,7 +19,7 @@ interface UseArchitectDeps {
 
 export function useArchitect({
   addLog, setAgents, setChannels, setGroups, setMessages, setActiveChannels,
-}: UseArchitectDeps) {
+}: UseArchitectDeps, addJob?: (job: any) => void) {
   const [archPrompt, setArchPrompt] = useState("");
   const [archGenerating, setArchGenerating] = useState(false);
   const [archPreview, setArchPreview] = useState<MeshConfig | null>(null);
@@ -55,127 +55,36 @@ export function useArchitect({
   const deployNetwork = async () => {
     if (!archPreview) return;
     setArchPhase("deploying");
-    const config = archPreview;
-    const total = config.agents.length + config.channels.length + (config.groups?.length || 0) + (config.exampleMessages?.length || 0);
-    let count = 0;
 
-    // 1. Create agents
-    const newAgents: Agent[] = [];
-    for (const a of config.agents) {
-      if (!a || !a.name) continue;
-      const validRole = ROLES.find(r => r.id === a.role) ? a.role as Agent["role"] : "researcher";
-      const agent: Agent = {
-        id: crypto.randomUUID(), name: a.name, role: validRole,
-        prompt: a.prompt || "", did: generateDID(), keys: generateKeyPair(),
-        createdAt: new Date().toISOString(), status: "active",
-      };
-      newAgents.push(agent);
-      count++;
-      setDeployProgress({ step: `Creating agent: ${a.name}`, count, total });
-      addLog(`Deployed agent "${a.name}" -> ${agent.did.slice(0, 20)}…`);
-      await new Promise(r => setTimeout(r, 150));
+    // Instead of executing logic here, queue a job!
+    if (addJob) {
+      addJob({
+        type: "deploy_network",
+        request: { config: archPreview }
+      });
+
+      // Optimistic / UI updates
+      // We can mimic progress or just wait for job completion.
+      // For now, let's just set phase to done after a short delay or rely on logs?
+      // The original code had detailed progress updates (setDeployProgress).
+      // The Job execution (in App.tsx) doesn't update 'deployProgress' state in this hook.
+      // That's a trade-off. We lose granular client-side progress bars unless we wire job progress events.
+      // However, the logs from the job will stream in.
+
+      // Let's set a generic "Deploying via Job..." message.
+      setDeployProgress({ step: "Queued for deployment...", count: 0, total: 100 });
+
+      // We can reset phase to "done" immediately or after a timeout?
+      // Ideally we reset when we see the job finish. But hooks are decoupled.
+      // Let's just set it to done to clear the UI blocking state, assuming job handles it.
+      setTimeout(() => {
+        setArchPhase("done");
+        setDeployProgress({ step: "Deployment Job Started", count: 100, total: 100 });
+      }, 1000);
+
+    } else {
+      console.error("No addJob function provided to useArchitect");
     }
-    setAgents((prev) => [...prev, ...newAgents]);
-
-    // 2. Create channels
-    const newChannels: Channel[] = [];
-    for (const c of config.channels) {
-      if (c.from == null || c.to == null) continue;
-      const fromAgent = newAgents[c.from];
-      const toAgent = newAgents[c.to];
-      if (!fromAgent || !toAgent) continue;
-      const validType = CHANNEL_TYPES.find(t => t.id === c.type) ? c.type as Channel["type"] : "data";
-      const ch: Channel = {
-        id: crypto.randomUUID(), from: fromAgent.id, to: toAgent.id,
-        type: validType, offset: Math.random() * 120, createdAt: new Date().toISOString(),
-      };
-      newChannels.push(ch);
-      count++;
-      setDeployProgress({ step: `Channel: ${fromAgent.name} <-> ${toAgent.name}`, count, total });
-      addLog(`Channel: ${fromAgent.name} <-> ${toAgent.name} [${validType}]`);
-      await new Promise(r => setTimeout(r, 100));
-    }
-    setChannels((prev) => [...prev, ...newChannels]);
-
-    // 3. Create groups
-    const newGroups: Group[] = [];
-    if (config.groups) {
-      for (const g of config.groups) {
-        if (!g || !g.name) continue;
-        const memberIds = (g.members || []).map(idx => newAgents[idx]?.id).filter(Boolean);
-        if (memberIds.length < 2) continue;
-        const validGov = GOVERNANCE_MODELS.find(m => m.id === g.governance) ? g.governance as Group["governance"] : "majority";
-        const group: Group = {
-          id: crypto.randomUUID(), name: g.name, governance: validGov,
-          members: memberIds, threshold: g.threshold || 2,
-          did: generateGroupDID(), color: GROUP_COLORS[newGroups.length % GROUP_COLORS.length],
-          createdAt: new Date().toISOString(),
-        };
-        newGroups.push(group);
-        count++;
-        setDeployProgress({ step: `Group: ${g.name}`, count, total });
-        addLog(`Group "${g.name}" formed -> ${group.did.slice(0, 22)}…`);
-        await new Promise(r => setTimeout(r, 100));
-
-        // Auto-create consensus channels within group
-        for (let i = 0; i < memberIds.length; i++) {
-          for (let j = i + 1; j < memberIds.length; j++) {
-            const exists = newChannels.some(c =>
-              (c.from === memberIds[i] && c.to === memberIds[j]) ||
-              (c.from === memberIds[j] && c.to === memberIds[i])
-            );
-            if (!exists) {
-              const ch: Channel = {
-                id: crypto.randomUUID(), from: memberIds[i], to: memberIds[j],
-                type: "consensus", offset: Math.random() * 120, createdAt: new Date().toISOString(),
-              };
-              newChannels.push(ch);
-              setChannels((prev) => [...prev, ch]);
-            }
-          }
-        }
-      }
-    }
-    setGroups((prev) => [...prev, ...newGroups]);
-
-    // 4. Send example messages
-    if (config.exampleMessages && config.exampleMessages.length > 0) {
-      for (const em of config.exampleMessages) {
-        if (em.channelIdx == null || !em.message) continue;
-        const ch = newChannels[em.channelIdx];
-        if (!ch) continue;
-        const fromAgent = newAgents.find(a => a.id === ch.from);
-        const toAgent = newAgents.find(a => a.id === ch.to);
-        if (!fromAgent || !toAgent) continue;
-
-        count++;
-        setDeployProgress({ step: `Message: ${fromAgent.name} -> ${toAgent.name}`, count, total });
-        addLog(`Example msg: ${fromAgent.name} -> ${toAgent.name}`);
-
-        const msgId = crypto.randomUUID();
-        const msg: Message = {
-          id: msgId, channelId: ch.id, fromId: ch.from, toId: ch.to,
-          content: em.message, response: null, status: "sending", ts: Date.now(),
-        };
-        setMessages((prev) => [...prev, msg]);
-        setActiveChannels((prev) => new Set([...prev, ch.id]));
-
-        if (toAgent.prompt) {
-          const response = await callAgentAI(toAgent, fromAgent, em.message, ch.type, []);
-          setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, response, status: "delivered" } : m));
-          addLog(`${toAgent.name} responded (${response.length} chars)`);
-        } else {
-          setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, response: "[No prompt]", status: "no-prompt" } : m));
-        }
-
-        setTimeout(() => setActiveChannels((prev) => { const n = new Set(prev); n.delete(ch.id); return n; }), 3000);
-        await new Promise(r => setTimeout(r, 200));
-      }
-    }
-
-    setArchPhase("done");
-    setDeployProgress({ step: "Complete", count: total, total });
-    addLog(`Mesh network deployed: ${newAgents.length} agents, ${newChannels.length} channels, ${newGroups.length} groups`);
   };
 
   const resetArchitect = () => {

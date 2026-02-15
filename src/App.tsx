@@ -39,18 +39,39 @@ import { createArtifactCommand, editArtifactCommand, deleteArtifactCommand } fro
 import { saveEcosystemCommand, loadEcosystemCommand, listEcosystemsCommand, deleteEcosystemCommand } from "./services/commands/definitions/ecosystem";
 import { createBridgeCommand, deleteBridgeCommand, printTopologyCommand } from "./services/commands/definitions/topology";
 import { listAgentsCommand, listGroupsCommand, listChannelsCommand, listMessagesCommand } from "./services/commands/definitions/query";
-import { deleteAgentCommand, deleteChannelCommand, deleteGroupCommand, editChannelCommand } from "./services/commands/definitions/modification";
-import { promptArchitectCommand } from "./services/commands/definitions/architect";
+import { deleteAgentCommand, deleteChannelCommand, deleteGroupCommand, editChannelCommand, updateAgentPromptCommand, toggleGroupMemberCommand } from "./services/commands/definitions/modification";
+import { promptArchitectCommand, deployNetworkCommand } from "./services/commands/definitions/architect";
 import { exportFullBackupCommand, exportWorkspaceCommand, exportEcosystemCommand, exportDataCommand } from "./services/commands/definitions/data";
+import { resetWorkspaceCommand, bulkDeleteCommand } from "./services/commands/definitions/maintenance";
+import { broadcastMessageCommand } from "./services/commands/definitions/broadcast";
+import {
+  queueNewJobCommand, pauseQueueCommand, resumeQueueCommand, deleteQueuedJobCommand, listQueueCommand,
+  listCatalogJobsCommand, saveJobDefinitionCommand, deleteJobDefinitionCommand
+} from "./services/commands/definitions/jobs";
+import { useJobCatalog } from "./hooks/useJobCatalog";
 
 // Register Commands
 registry.register(createAgentCommand);
 registry.register(sendMessageCommand);
 registry.register(createChannelCommand);
 registry.register(createGroupCommand);
+registry.register(broadcastMessageCommand);
+
+// Modification
+registry.register(deleteAgentCommand);
+registry.register(deleteChannelCommand);
+registry.register(deleteGroupCommand);
+registry.register(editChannelCommand);
+registry.register(updateAgentPromptCommand);
+registry.register(toggleGroupMemberCommand);
+
+// Maintenance
+registry.register(resetWorkspaceCommand);
+registry.register(bulkDeleteCommand);
 
 // Architect
 registry.register(promptArchitectCommand);
+registry.register(deployNetworkCommand);
 
 // Data Export
 registry.register(exportFullBackupCommand);
@@ -90,6 +111,16 @@ registry.register(deleteChannelCommand);
 registry.register(deleteGroupCommand);
 registry.register(editChannelCommand);
 
+// Jobs
+registry.register(queueNewJobCommand);
+registry.register(pauseQueueCommand);
+registry.register(resumeQueueCommand);
+registry.register(deleteQueuedJobCommand);
+registry.register(listQueueCommand);
+registry.register(listCatalogJobsCommand);
+registry.register(saveJobDefinitionCommand);
+registry.register(deleteJobDefinitionCommand);
+
 function AuthenticatedApp() {
   const [view, setViewRaw] = useState<ViewId>("architect");
   const { entries: notebookEntries, addEntry: addNotebookEntry, addLog, clearNotebook, exportNotebook } = useNotebook();
@@ -112,7 +143,9 @@ function AuthenticatedApp() {
     isPaused, toggleQueuePause, stopJob, reorderQueue
   } = useJobs();
 
-  const workspace = useWorkspace(addLog);
+  const { savedJobs, saveJob, deleteJob } = useJobCatalog();
+
+  const workspace = useWorkspace(addLog, addJob);
 
   const architect = useArchitect({
     addLog,
@@ -121,7 +154,7 @@ function AuthenticatedApp() {
     setGroups: workspace.setGroups,
     setMessages: workspace.setMessages,
     setActiveChannels: workspace.setActiveChannels,
-  });
+  }, addJob);
 
   const ecosystem = useEcosystem({
     addLog,
@@ -134,7 +167,7 @@ function AuthenticatedApp() {
     setGroups: workspace.setGroups,
     setMessages: workspace.setMessages,
     setView,
-  });
+  }, addJob);
 
   const processingRef = useRef(false);
 
@@ -160,20 +193,37 @@ function AuthenticatedApp() {
           const context: CommandContext = {
             workspace: {
               ...workspace,
-              addLog
+              addLog,
+              activeChannel: workspace.activeChannel,
+              setActiveChannel: workspace.setActiveChannel,
+              setActiveChannels: workspace.setActiveChannels
             },
             auth: { user },
             jobs: {
               addArtifact,
               removeArtifact,
               importArtifact,
-              allArtifacts
+              allArtifacts,
+              // Queue Management
+              addJob,
+              removeJob,
+              pauseQueue: () => (!isPaused && toggleQueuePause()),
+              resumeQueue: () => (isPaused && toggleQueuePause()),
+              isPaused,
+              getQueue: () => jobs,
+              // Catalog Management
+              getCatalog: () => savedJobs,
+              saveDefinition: saveJob,
+              deleteDefinition: deleteJob
             },
             ecosystem: {
               ecosystems: ecosystem.ecosystems,
               bridges: ecosystem.bridges,
+              bridgeMessages: ecosystem.bridgeMessages,
               setEcosystems: ecosystem.setEcosystems,
               setBridges: ecosystem.setBridges,
+              setBridgeMessages: ecosystem.setBridgeMessages,
+              setActiveBridges: ecosystem.setActiveBridges,
               createBridge: ecosystem.createBridge,
               removeBridge: ecosystem.removeBridge,
               saveCurrentNetwork: ecosystem.saveCurrentNetwork,
@@ -190,15 +240,40 @@ function AuthenticatedApp() {
             }
           };
 
-          const commandResult = await registry.execute(queuedJob.type, queuedJob.request, context);
+          let finalResult;
 
-          updateJobStatus(queuedJob.id, "completed", "Job finished successfully");
+          if (queuedJob.steps && queuedJob.steps.length > 0) {
+            // Multi-step Job
+            if (queuedJob.mode === "parallel") {
+              const promises = queuedJob.steps.map(async (step) => {
+                const res = await registry.execute(step.commandId, step.args, context);
+                return { stepId: step.id, result: res };
+              });
+              const results = await Promise.all(promises);
+              finalResult = "All steps completed";
+              // Optionally store detailed results in job
+            } else {
+              // Serial
+              for (let i = 0; i < queuedJob.steps.length; i++) {
+                const step = queuedJob.steps[i];
+                // Update progress?
+                // updateJob(queuedJob.id, { currentStepIndex: i }); 
+                await registry.execute(step.commandId, step.args, context);
+              }
+              finalResult = "Sequence completed";
+            }
+          } else {
+            // Legacy / Single Command Job
+            finalResult = await registry.execute(queuedJob.type, queuedJob.request, context);
+          }
+
+          updateJobStatus(queuedJob.id, "completed", typeof finalResult === 'string' ? finalResult : "Done");
           addNotebookEntry({
             category: "output",
             icon: <GradientIcon icon={CheckCircle} size={16} gradient={["#00e5a0", "#10b981"]} />,
             title: `Job Completed: ${queuedJob.type}`,
-            description: `Command "${queuedJob.type}" finished successfully.`,
-            details: { jobId: queuedJob.id, command: queuedJob.type, result: commandResult },
+            description: `Job "${queuedJob.type}" finished successfully.`,
+            details: { jobId: queuedJob.id, command: queuedJob.type, result: finalResult },
             tags: ["job", "success", queuedJob.type],
           });
 
@@ -208,7 +283,7 @@ function AuthenticatedApp() {
             timestamp: Date.now(),
             status: "success",
             command: queuedJob.type,
-            data: commandResult || {}
+            data: finalResult || {}
           };
 
           addArtifact(queuedJob.id, {
@@ -225,7 +300,7 @@ function AuthenticatedApp() {
             category: "system",
             icon: <GradientIcon icon={XCircle} size={16} gradient={["#ef4444", "#dc2626"]} />,
             title: `Job Failed: ${queuedJob.type}`,
-            description: `Command "${queuedJob.type}" failed: ${err.message || "Unknown error"}.`,
+            description: `Job "${queuedJob.type}" failed: ${err.message || "Unknown error"}.`,
             details: { jobId: queuedJob.id, command: queuedJob.type, error: err.message },
             tags: ["job", "error", queuedJob.type],
           });
@@ -500,6 +575,9 @@ function AuthenticatedApp() {
         clearJobs={clearJobs}
         activityPulse={activityPulse}
         isMobile={isMobile}
+        savedJobs={savedJobs}
+        saveJob={saveJob}
+        deleteJob={deleteJob}
       />
 
       <style>{`

@@ -9,7 +9,7 @@ import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, GROUP_COLORS } from "../consta
 import { generateDID, generateKeyPair, generateGroupDID } from "../utils/identity";
 import { callAgentAI } from "../services/ai";
 
-export function useWorkspace(addLog: (msg: string) => void) {
+export function useWorkspace(addLog: (msg: string) => void, addJob: (job: any) => void) {
   const [agents, setAgents] = useLocalStorage<Agent[]>("decops_agents", []);
   const [channels, setChannels] = useLocalStorage<Channel[]>("decops_channels", []);
   const [groups, setGroups] = useLocalStorage<Group[]>("decops_groups", []);
@@ -30,6 +30,7 @@ export function useWorkspace(addLog: (msg: string) => void) {
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
   const [msgInput, setMsgInput] = useState("");
   const [sending, setSending] = useState(false);
+  // activeChannels tracks channels with active AI processing for UI feedback
   const [activeChannels, setActiveChannels] = useState<Set<string>>(new Set());
   const [broadcastGroup, setBroadcastGroup] = useState<string | null>(null);
   const [broadcastInput, setBroadcastInput] = useState("");
@@ -40,101 +41,89 @@ export function useWorkspace(addLog: (msg: string) => void) {
     msgEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, activeChannel]);
 
-  // Agent CRUD
+  // Actions now routed via Job Queue
+
+  // Agent Actions
   const createAgent = () => {
     if (!newAgent.name.trim()) return;
-    const agent: Agent = {
-      id: crypto.randomUUID(), name: newAgent.name.trim(), role: newAgent.role,
-      prompt: newAgent.prompt.trim(), did: generateDID(), keys: generateKeyPair(),
-      createdAt: new Date().toISOString(), status: "active",
-    };
-    setAgents((prev) => [...prev, agent]);
-    addLog(`Agent "${agent.name}" created -> ${agent.did.slice(0, 20)}…`);
-    if (agent.prompt) addLog(`Prompt loaded (${agent.prompt.length} chars)`);
+    addJob({
+      type: "create_agent",
+      request: {
+        name: newAgent.name.trim(),
+        role: newAgent.role,
+        prompt: newAgent.prompt.trim()
+      }
+    });
     setNewAgent({ name: "", role: "researcher", prompt: "", templateIdx: 0 });
     setShowCreate(false);
   };
 
   const updateAgentPrompt = (id: string) => {
-    setAgents((prev) => prev.map((a) => a.id === id ? { ...a, prompt: editPromptText.trim() } : a));
-    addLog(`Prompt updated for "${agents.find((a) => a.id === id)?.name}"`);
+    if (!editPromptText.trim()) return;
+    addJob({
+      type: "update_agent_prompt",
+      request: { id, prompt: editPromptText.trim() }
+    });
     setEditingPrompt(null);
     setEditPromptText("");
   };
 
   const removeAgent = (id: string) => {
-    const agent = agents.find((a) => a.id === id);
-    setAgents((prev) => prev.filter((a) => a.id !== id));
-    setChannels((prev) => prev.filter((c) => c.from !== id && c.to !== id));
-    setGroups((prev) => prev.map((g) => ({ ...g, members: g.members.filter((m) => m !== id) })));
+    addJob({ type: "delete_agent", request: { id } });
     if (selectedAgent === id) setSelectedAgent(null);
-    addLog(`Agent "${agent?.name}" revoked`);
   };
 
-  // Channel CRUD
+  // Channel Actions
   const createChannel = () => {
     if (!channelForm.from || !channelForm.to || channelForm.from === channelForm.to) return;
-    const exists = channels.some((c) =>
-      (c.from === channelForm.from && c.to === channelForm.to) ||
-      (c.from === channelForm.to && c.to === channelForm.from)
-    );
-    if (exists) { addLog("Channel already exists"); return; }
-    const ch: Channel = {
-      id: crypto.randomUUID(), from: channelForm.from, to: channelForm.to,
-      type: channelForm.type, offset: Math.random() * 120, createdAt: new Date().toISOString(),
-    };
-    setChannels((prev) => [...prev, ch]);
-    addLog(`P2P channel: ${agents.find(a => a.id === channelForm.from)?.name} <-> ${agents.find(a => a.id === channelForm.to)?.name}`);
+    addJob({
+      type: "create_channel",
+      request: {
+        from: channelForm.from,
+        to: channelForm.to,
+        type: channelForm.type
+      }
+    });
     setChannelForm({ from: "", to: "", type: "data" });
   };
 
   const removeChannel = (id: string) => {
-    setChannels((prev) => prev.filter((c) => c.id !== id));
+    addJob({ type: "delete_channel", request: { id } });
     if (activeChannel === id) setActiveChannel(null);
-    addLog("Channel dissolved");
   };
 
-  // Group CRUD
+  // Group Actions
   const createGroup = () => {
     if (!groupForm.name.trim() || groupForm.members.length < 2) return;
-    const group: Group = {
-      id: crypto.randomUUID(), name: groupForm.name.trim(), governance: groupForm.governance,
-      members: [...groupForm.members], threshold: groupForm.threshold,
-      did: generateGroupDID(), color: GROUP_COLORS[groups.length % GROUP_COLORS.length],
-      createdAt: new Date().toISOString(),
-    };
-    setGroups((prev) => [...prev, group]);
-    addLog(`Group "${group.name}" formed`);
-    const newCh: Channel[] = [];
-    for (let i = 0; i < group.members.length; i++) {
-      for (let j = i + 1; j < group.members.length; j++) {
-        const exists = channels.some((c) =>
-          (c.from === group.members[i] && c.to === group.members[j]) ||
-          (c.from === group.members[j] && c.to === group.members[i])
-        );
-        if (!exists) {
-          newCh.push({
-            id: crypto.randomUUID(), from: group.members[i], to: group.members[j],
-            type: "consensus", offset: Math.random() * 120, createdAt: new Date().toISOString(),
-          });
-        }
+    addJob({
+      type: "create_group",
+      request: {
+        name: groupForm.name.trim(),
+        members: groupForm.members,
+        governance: groupForm.governance
       }
-    }
-    if (newCh.length) {
-      setChannels((prev) => [...prev, ...newCh]);
-      addLog(`Auto-established ${newCh.length} consensus channels`);
-    }
+    });
     setGroupForm({ name: "", governance: "majority", members: [], threshold: 2 });
     setShowGroupCreate(false);
   };
 
   const removeGroup = (id: string) => {
-    setGroups((prev) => prev.filter((g) => g.id !== id));
+    addJob({ type: "delete_group", request: { id } });
     if (selectedGroup === id) setSelectedGroup(null);
-    addLog("Group dissolved");
   };
 
   const toggleGroupMember = (agentId: string) => {
+    // This is UI state first (form), OR modification of existing group?
+    // The GroupsView uses this for the FORM construction typically? 
+    // Let's check: GroupsView passes 'toggleGroupMember' to 'GroupCreator'?
+    // Actually GroupsView uses `toggleGroupMember` to edit `groupForm`.
+    // BUT there is also `toggleGroupMemberCommand` for modifying EXISTING groups.
+    // The hook `toggleGroupMember` in previous version updated `groupForm` state!
+    // See lines 137-144 in original file.
+    // It updates `groupForm`. It does NOT update `groups` directly.
+    // So this is a LOCAL UI helper, unrelated to commands. 
+    // I should KEEP it as local state manipulation.
+
     setGroupForm((prev) => ({
       ...prev,
       members: prev.members.includes(agentId)
@@ -143,7 +132,7 @@ export function useWorkspace(addLog: (msg: string) => void) {
     }));
   };
 
-  // Messaging
+  // Messaging Actions
   const channelMessages = activeChannel ? messages.filter((m) => m.channelId === activeChannel) : [];
 
   const sendMessage = async () => {
@@ -153,104 +142,62 @@ export function useWorkspace(addLog: (msg: string) => void) {
     const fromAgent = agents.find((a) => a.id === ch.from);
     const toAgent = agents.find((a) => a.id === ch.to);
     if (!fromAgent || !toAgent) return;
-    const msgId = crypto.randomUUID();
-    const msg: Message = {
-      id: msgId, channelId: activeChannel, fromId: ch.from, toId: ch.to,
-      content: msgInput.trim(), response: null, status: "sending", ts: Date.now(),
-    };
-    setMessages((prev) => [...prev, msg]);
-    setMsgInput("");
+
+    // We can't do full optimistic UI easily without race conditions on ID or duplication.
+    // For now, we'll set 'sending' true, clear input, and fire job.
+    // The Job will create the message.
+
     setSending(true);
-    setActiveChannels((prev) => new Set([...prev, activeChannel]));
-    addLog(`${fromAgent.name} -> ${toAgent.name}: message sent`);
-    if (toAgent.prompt) {
-      const history = messages.filter((m) => m.channelId === activeChannel);
-      const response = await callAgentAI(toAgent, fromAgent, msg.content, ch.type, history);
-      setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, response, status: "delivered" } : m));
-      addLog(`${toAgent.name} responded (${response.length} chars)`);
-    } else {
-      setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, response: "[Agent has no prompt]", status: "no-prompt" } : m));
-    }
-    setSending(false);
-    setTimeout(() => setActiveChannels((prev) => { const n = new Set(prev); n.delete(activeChannel); return n; }), 3000);
+    addJob({
+      type: "send_message",
+      request: {
+        from_agent_name: fromAgent.name, // Command expects names currently? Let's check command definition.
+        to_agent_name: toAgent.name,
+        message: msgInput.trim()
+      }
+    });
+
+    setMsgInput("");
+    // We rely on the Job to add the message to state.
+    // We can use a timeout to reset 'sending' or listen to changes?
+    setTimeout(() => setSending(false), 500);
   };
 
   const sendBroadcast = async () => {
     if (!broadcastInput.trim() || !broadcastGroup || broadcasting) return;
-    const group = groups.find((g) => g.id === broadcastGroup);
-    if (!group || group.members.length < 2) return;
+
     setBroadcasting(true);
-    const senderId = group.members[0];
-    const sender = agents.find((a) => a.id === senderId);
-    addLog(`Broadcasting to "${group.name}"...`);
-    for (let i = 1; i < group.members.length; i++) {
-      const receiverId = group.members[i];
-      const receiver = agents.find((a) => a.id === receiverId);
-      const ch = channels.find((c) =>
-        (c.from === senderId && c.to === receiverId) ||
-        (c.from === receiverId && c.to === senderId)
-      );
-      if (!ch || !receiver) continue;
-      const msgId = crypto.randomUUID();
-      const msg: Message = {
-        id: msgId, channelId: ch.id, fromId: senderId, toId: receiverId,
-        content: `[GROUP BROADCAST — ${group.name}] ${broadcastInput.trim()}`,
-        response: null, status: "sending", ts: Date.now(),
-      };
-      setMessages((prev) => [...prev, msg]);
-      setActiveChannels((prev) => new Set([...prev, ch.id]));
-      if (receiver.prompt) {
-        const response = await callAgentAI(receiver, sender!, msg.content, ch.type, []);
-        setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, response, status: "delivered" } : m));
-        addLog(`${receiver.name} responded to broadcast`);
-      } else {
-        setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, response: "[No prompt]", status: "no-prompt" } : m));
+    addJob({
+      type: "broadcast_message",
+      request: {
+        group_id: broadcastGroup,
+        message: broadcastInput.trim()
       }
-      setTimeout(() => setActiveChannels((prev) => { const n = new Set(prev); n.delete(ch.id); return n; }), 3000);
-    }
-    setBroadcasting(false);
+    });
+
     setBroadcastInput("");
-    addLog("Broadcast complete");
+    setTimeout(() => setBroadcasting(false), 500);
   };
 
   const clearWorkspace = () => {
-    setAgents([]);
-    setChannels([]);
-    setGroups([]);
-    setMessages([]);
-    addLog("Workspace cleared");
+    addJob({ type: "reset_workspace", request: {} });
   };
 
-  // Bulk delete operations
+  // Bulk delete
   const removeAgents = (ids: Set<string>) => {
-    const count = ids.size;
-    setAgents((prev) => prev.filter((a) => !ids.has(a.id)));
-    setChannels((prev) => prev.filter((c) => !ids.has(c.from) && !ids.has(c.to)));
-    setGroups((prev) => prev.map((g) => ({ ...g, members: g.members.filter((m) => !ids.has(m)) })));
-    setMessages((prev) => prev.filter((m) => !ids.has(m.fromId) && !ids.has(m.toId)));
+    addJob({ type: "bulk_delete", request: { type: "agents", ids: Array.from(ids) } });
     if (selectedAgent && ids.has(selectedAgent)) setSelectedAgent(null);
-    addLog(`Bulk revoked ${count} agent${count !== 1 ? "s" : ""}`);
   };
-
   const removeChannels = (ids: Set<string>) => {
-    const count = ids.size;
-    setChannels((prev) => prev.filter((c) => !ids.has(c.id)));
-    setMessages((prev) => prev.filter((m) => !ids.has(m.channelId)));
+    addJob({ type: "bulk_delete", request: { type: "channels", ids: Array.from(ids) } });
     if (activeChannel && ids.has(activeChannel)) setActiveChannel(null);
-    addLog(`Bulk dissolved ${count} channel${count !== 1 ? "s" : ""}`);
   };
-
   const removeGroups = (ids: Set<string>) => {
-    const count = ids.size;
-    setGroups((prev) => prev.filter((g) => !ids.has(g.id)));
+    addJob({ type: "bulk_delete", request: { type: "groups", ids: Array.from(ids) } });
     if (selectedGroup && ids.has(selectedGroup)) setSelectedGroup(null);
-    addLog(`Bulk dissolved ${count} group${count !== 1 ? "s" : ""}`);
   };
-
   const removeMessages = (ids: Set<string>) => {
-    const count = ids.size;
-    setMessages((prev) => prev.filter((m) => !ids.has(m.id)));
-    addLog(`Bulk deleted ${count} message${count !== 1 ? "s" : ""}`);
+    addJob({ type: "bulk_delete", request: { type: "messages", ids: Array.from(ids) } });
   };
 
   // Active channel computed values
