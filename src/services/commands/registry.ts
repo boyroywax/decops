@@ -30,11 +30,11 @@ export class CommandRegistry {
             const value = args[argName];
 
             // Check required
-            if (argDef.required !== false && (value === undefined || value === null)) {
-                // Use default if available
+            // Handle missing values
+            if (value === undefined || value === null) {
                 if (argDef.defaultValue !== undefined) {
                     args[argName] = argDef.defaultValue;
-                } else {
+                } else if (argDef.required !== false) {
                     throw new Error(`Missing required argument: ${argName}`);
                 }
             }
