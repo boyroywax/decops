@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job } from "../../types";
-import { Bot, ArrowLeftRight, Hexagon, MessageSquare, Globe, Network as NetworkIcon, MessageCircle, ListTodo, Zap } from "lucide-react";
+import { Bot, ArrowLeftRight, Hexagon, MessageSquare, Globe, Network as NetworkIcon, MessageCircle, ListTodo, Zap, WifiOff } from "lucide-react";
 import { ChatPanel } from "./ChatPanel";
 import { JobsPanel } from "./JobsPanel";
 
@@ -32,6 +32,20 @@ type PanelMode = "none" | "chat" | "jobs";
 
 export function Footer({ agents, channels, groups, messages, ecosystems, bridges, addLog, setView, jobs, removeJob, clearJobs, addJob, savedJobs, saveJob, deleteJob, ...jobsProps }: FooterProps) {
     const [panel, setPanel] = useState<PanelMode>("none");
+    const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+    useEffect(() => {
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, []);
 
     const toggle = (mode: PanelMode) => setPanel(prev => prev === mode ? "none" : mode);
 
@@ -202,6 +216,15 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                     >
                         <Zap size={10} color={jobsProps.activityPulse ? "#00e5a0" : "#52525b"} style={{ fill: jobsProps.activityPulse ? "#00e5a0" : "none" }} />
                     </button>
+                    {!isOnline && (
+                        <>
+                            <span style={{ color: "#27272a", fontSize: 10 }}>│</span>
+                            <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#ef4444", fontSize: 10 }}>
+                                <WifiOff size={10} />
+                                <span>Offline</span>
+                            </div>
+                        </>
+                    )}
                 </div>
                 <style>{pulseStyle}</style>
             </footer >

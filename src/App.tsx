@@ -570,6 +570,7 @@ function AuthenticatedApp() {
         savedJobs={savedJobs}
         saveJob={saveJob}
         deleteJob={deleteJob}
+
       />
 
       <style>{`
