@@ -1,4 +1,4 @@
-import type { Agent, Channel, Group, Message, Network, Bridge, MeshConfig, BridgeMessage, Job } from "../types";
+import type { Agent, Channel, Group, Message, Network, Bridge, MeshConfig, BridgeMessage, Job, Keystone } from "../types";
 import { ROLES } from "../constants";
 import { repairJSON } from "../utils/json";
 
@@ -95,16 +95,23 @@ export async function callAgentAI(
   message: string,
   channelType: string,
   conversationHistory: (Message | BridgeMessage)[],
+  keystones: Keystone[] = [],
   crossNetworkCtx?: string,
 ): Promise<string> {
   const apiKey = getApiKey();
   const model = getSelectedModel();
+
+  // Format Keystones for context
+  const keystoneContext = keystones.length > 0
+    ? `\nActive Strategic Keystones (Gravity):\n${keystones.map(k => `- ${k.label}: ${k.description} (Weight: ${k.weight})`).join("\n")}\nConsider these concepts as core influences on your decision making.`
+    : "";
 
   const systemPrompt = [
     `You are "${agent.name}", a ${ROLES.find(r => r.id === agent.role)?.label} agent in a decentralized mesh workspace.`,
     `Your DID: ${agent.did}`,
     `Communication channel type: ${channelType}`,
     agent.prompt ? `\nYour core directive:\n${agent.prompt}` : "",
+    keystoneContext,
     crossNetworkCtx ? `\nCROSS-NETWORK BRIDGE: This message comes from "${senderAgent.name}" in the "${crossNetworkCtx}" network. You are in a different network. Acknowledge the cross-network context.` : "",
     `\nYou are receiving a message from "${senderAgent.name}" (${ROLES.find(r => r.id === senderAgent.role)?.label}, DID: ${senderAgent.did}).`,
     `Respond concisely and in-character. Keep responses under 150 words. If you have structured output, use markdown formatting.`,

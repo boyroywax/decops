@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import type {
-  Agent, Channel, Group, Message,
+  Agent, Channel, Group, Message, Keystone,
   NewAgentForm, ChannelForm, GroupForm,
   ChannelTypeId,
 } from "../types";
@@ -205,12 +205,17 @@ export function useWorkspace(addLog: (msg: string) => void, addJob: (job: any) =
   const acFrom = acCh ? agents.find((a) => a.id === acCh.from) : null;
   const acTo = acCh ? agents.find((a) => a.id === acCh.to) : null;
 
+  const updateGroup = (id: string, updates: Partial<Group>) => {
+    setGroups(groups.map(g => g.id === id ? { ...g, ...updates } : g));
+  };
+
   return {
     // Core data
     agents, setAgents,
     channels, setChannels,
     groups, setGroups,
     messages, setMessages,
+    updateGroup,
     // Agent UI
     showCreate, setShowCreate,
     newAgent, setNewAgent,

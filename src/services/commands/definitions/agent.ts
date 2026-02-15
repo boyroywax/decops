@@ -28,7 +28,20 @@ export const createAgentCommand: CommandDefinition = {
             type: "string",
             description: "Getting started prompt for the agent",
             required: true,
-            defaultValue: 0
+            defaultValue: ""
+        },
+        model: {
+            name: "model",
+            type: "string",
+            description: "The AI model to use",
+            required: false,
+            defaultValue: "claude-3-haiku-20240307"
+        },
+        icon: {
+            name: "icon",
+            type: "string",
+            description: "Icon identifier for the agent",
+            required: false
         }
     },
     output: "JSON object containing the created agent's ID and details.",
@@ -47,7 +60,7 @@ export const createAgentCommand: CommandDefinition = {
         }
     },
     execute: async (args, context) => {
-        const { name, role, prompt } = args;
+        const { name, role, prompt, model, icon } = args;
         const { workspace } = context;
 
         // Simulate delay
@@ -58,6 +71,8 @@ export const createAgentCommand: CommandDefinition = {
             name,
             role,
             prompt,
+            model,
+            icon,
             did: generateDID(),
             keys: generateKeyPair(),
             createdAt: new Date().toISOString(),

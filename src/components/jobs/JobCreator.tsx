@@ -43,7 +43,8 @@ export function JobCreator({ onSave, onRun, onCancel, initialJob }: JobCreatorPr
         const newStep: JobStep = {
             id: `step-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
             commandId,
-            args
+            args,
+            status: "pending"
         };
 
         setSteps(prev => [...prev, newStep]);

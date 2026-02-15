@@ -83,16 +83,17 @@ export const sendMessageCommand: CommandDefinition = {
         addLog(`${fromAgent.name} → ${toAgent.name}: message sent via command`);
 
         // 5. Trigger AI Response (if recipient has prompt)
+        // 5. Trigger AI Response (if recipient has prompt)
         if (toAgent.prompt) {
-            // We need 'messages' history for context, but reading fresh state inside async execute might be tricky 
-            // if we rely on the closure 'context.workspace.messages'. 
-            // It's a snapshot. Ideally we pass current messages or fetch them.
-            // For now, let's just pass empty history or what we have in snapshot.
             try {
-                const response = await callAgentAI(toAgent, fromAgent, message, channel.type, []);
+                // Pass group-specific keystones for context injection
+                const agentGroups = context.workspace.groups.filter((g: any) => g.members.includes(toAgent.id));
+                const keystones = agentGroups.flatMap((g: any) => g.keystones || []);
+
+                const response = await callAgentAI(toAgent, fromAgent, message, channel.type, [], keystones);
 
                 // Update message with response
-                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, response, status: "delivered" } : m));
+                setMessages((prev: any[]) => prev.map((m: any) => m.id === msgId ? { ...m, response, status: "delivered" } : m));
                 addLog(`${toAgent.name} responded to command message`);
 
                 return {
@@ -101,11 +102,11 @@ export const sendMessageCommand: CommandDefinition = {
                     response
                 };
             } catch (err: any) {
-                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, status: "failed", response: `Error: ${err.message}` } : m));
+                setMessages((prev: any[]) => prev.map((m: any) => m.id === msgId ? { ...m, status: "failed", response: `Error: ${err.message}` } : m));
                 throw err;
             }
         } else {
-            setMessages(prev => prev.map(m => m.id === msgId ? { ...m, status: "no-prompt", response: "[No Prompt]" } : m));
+            setMessages((prev: any[]) => prev.map((m: any) => m.id === msgId ? { ...m, status: "no-prompt", response: "[No Prompt]" } : m));
             return { status: "no-prompt", messageId: msgId };
         }
     },

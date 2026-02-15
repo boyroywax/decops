@@ -1,4 +1,4 @@
-import type { Agent, Group, GroupForm, GovernanceModelId, Channel, Message, ViewId } from "../../types";
+import type { Agent, Group, GroupForm, GovernanceModelId, Channel, Message, ViewId, Keystone } from "../../types";
 import { Hexagon, X, MessageSquare, Check, Plus } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { ROLES, GOVERNANCE_MODELS } from "../../constants";
@@ -20,6 +20,7 @@ interface GroupsViewProps {
   toggleGroupMember: (agentId: string) => void;
   setBroadcastGroup: (id: string) => void;
   setView: (v: ViewId) => void;
+  updateGroup: (id: string, updates: Partial<Group>) => void;
 }
 
 export function GroupsView({
@@ -27,7 +28,7 @@ export function GroupsView({
   showGroupCreate, setShowGroupCreate, groupForm, setGroupForm,
   selectedGroup, setSelectedGroup,
   createGroup, removeGroup, removeGroups, toggleGroupMember,
-  setBroadcastGroup, setView,
+  setBroadcastGroup, setView, updateGroup
 }: GroupsViewProps) {
   const bulk = useBulkSelect();
 
@@ -146,6 +147,70 @@ export function GroupsView({
               </div>
               {isSelected && (
                 <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${g.color}15` }}>
+                  <SectionTitle text="Strategic Keystones" />
+                  <div style={{ marginBottom: 12 }}>
+                    {g.keystones && g.keystones.length > 0 ? (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+                        {g.keystones.map((k, idx) => (
+                          <div key={k.id} style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 6, padding: "4px 8px", display: "flex", alignItems: "center", gap: 6 }}>
+                            <span style={{ fontSize: 10, color: "#fbbf24", fontWeight: 600 }}>{k.label}</span>
+                            <span style={{ fontSize: 9, color: "rgba(251,191,36,0.7)" }}>{k.weight}%</span>
+                            <button onClick={(e) => {
+                              e.stopPropagation();
+                              const newKeys = g.keystones?.filter(nk => nk.id !== k.id) || [];
+                              updateGroup(g.id, { keystones: newKeys });
+                            }} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: "#fbbf24", opacity: 0.6 }}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 10, color: "#52525b", fontStyle: "italic", marginBottom: 8 }}>No active keystones.</div>
+                    )}
+
+                    {/* Add Keystone Inline Form */}
+                    <div onClick={e => e.stopPropagation()} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <input
+                        placeholder="New Concept..."
+                        id={`new-key-${g.id}`}
+                        style={{ ...inputStyle, padding: "4px 8px", fontSize: 10, height: 24, width: 100 }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const input = e.currentTarget;
+                            const val = input.value.trim();
+                            if (val) {
+                              const newKey: Keystone = {
+                                id: `k-${Date.now()}`,
+                                label: val,
+                                description: "",
+                                weight: 50,
+                                tags: [],
+                                createdAt: Date.now()
+                              };
+                              updateGroup(g.id, { keystones: [...(g.keystones || []), newKey] });
+                              input.value = "";
+                            }
+                          }
+                        }}
+                      />
+                      <button onClick={(e) => {
+                        e.stopPropagation();
+                        const input = document.getElementById(`new-key-${g.id}`) as HTMLInputElement;
+                        if (input && input.value.trim()) {
+                          const newKey: Keystone = {
+                            id: `k-${Date.now()}`,
+                            label: input.value.trim(),
+                            description: "",
+                            weight: 50,
+                            tags: [],
+                            createdAt: Date.now()
+                          };
+                          updateGroup(g.id, { keystones: [...(g.keystones || []), newKey] });
+                          input.value = "";
+                        }
+                      }} style={{ background: "rgba(251,191,36,0.1)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)", borderRadius: 4, height: 24, padding: "0 8px", fontSize: 10, cursor: "pointer" }}>+</button>
+                    </div>
+                  </div>
+
                   <SectionTitle text="Member Capabilities" />
                   {memberAgents.map((a) => (
                     <div key={a.id} style={{ padding: "8px 10px", marginBottom: 6, borderRadius: 6, background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.04)" }}>

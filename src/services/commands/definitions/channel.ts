@@ -25,6 +25,12 @@ export const createChannelCommand: CommandDefinition = {
             description: "Type of channel (data, control, financial)",
             required: false,
             defaultValue: "data",
+        },
+        label: {
+            name: "label",
+            type: "string",
+            description: "Label for the channel",
+            required: false
         }
     },
     output: "JSON object containing the created channel details.",
@@ -43,7 +49,7 @@ export const createChannelCommand: CommandDefinition = {
         }
     },
     execute: async (args, context) => {
-        const { from, to, type } = args;
+        const { from, to, type, label } = args;
         const { agents, channels, setChannels, addLog } = context.workspace;
 
         const fromAgent = agents.find((a: any) => a.id === from || a.name === from);
@@ -69,6 +75,7 @@ export const createChannelCommand: CommandDefinition = {
             from: fromAgent.id,
             to: toAgent.id,
             type: type || "data",
+            label,
             offset: Math.random() * 100,
             createdAt: new Date().toISOString(),
         };

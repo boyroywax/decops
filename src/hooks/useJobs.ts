@@ -119,18 +119,33 @@ export function useJobs() {
         });
     }, []);
 
-    // Re-implementing reorder correctly based on IDs is safer
+    // Re-implementing reorder correctly based on IDs
     const reorderQueue = useCallback((activeJobIds: string[]) => {
         setJobs(prev => {
-            const queueItems = activeJobIds.map(id => prev.find(j => j.id === id)).filter(Boolean) as Job[];
-            const nonQueueItems = prev.filter(j => !activeJobIds.includes(j.id));
-            // We want to keep the relative order of queue items as passed in `activeJobIds`
-            // But we also need to respect that "running" jobs might be in there. 
-            // Usually we only reorder "queued" status.
+            // Separate the ones we are reordering (the active/queued ones) from the history
+            const reorderedItems = activeJobIds.map(id => prev.find(j => j.id === id)).filter(Boolean) as Job[];
 
-            // Let's just assume `activeJobIds` represents the desired top of the list.
-            return [...queueItems, ...nonQueueItems];
+            // Should effectively be "all queued jobs". 
+            // Any job in 'prev' that IS NOT in 'activeJobIds' but IS 'queued' should probably be appended?
+            // Or we assume activeJobIds covers all "visible" queue items.
+            // Safe bet:
+            const historyItems = prev.filter(j => !activeJobIds.includes(j.id));
+
+            return [...reorderedItems, ...historyItems];
         });
+    }, []);
+
+    const updateJobStep = useCallback((jobId: string, stepId: string, stepUpdates: Record<string, any>) => {
+        setJobs((prev) => prev.map((job) => {
+            if (job.id === jobId && job.steps) {
+                return {
+                    ...job,
+                    steps: job.steps.map(s => s.id === stepId ? { ...s, ...stepUpdates } : s),
+                    updatedAt: Date.now()
+                };
+            }
+            return job;
+        }));
     }, []);
 
     return {
@@ -147,6 +162,7 @@ export function useJobs() {
         toggleQueuePause,
         stopJob,
         updateJob,
+        updateJobStep,
         reorderQueue
     };
 }

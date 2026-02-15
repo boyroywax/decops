@@ -19,6 +19,16 @@ export type ViewId =
   | "artifacts"
   | "activity";
 
+export interface Keystone {
+  id: string;
+  label: string;
+  description: string;
+  weight: number; // 0-100 impact on gravity
+  tags: string[]; // Agents with matching roles/tags are affected more
+  position?: { x: number; y: number }; // Optional fixed position
+  createdAt: number;
+}
+
 export type NotebookCategory = "action" | "output" | "navigation" | "system" | "narrative";
 
 export interface NotebookEntry {
@@ -128,6 +138,8 @@ export interface Agent {
   name: string;
   role: RoleId;
   prompt: string;
+  model?: string;
+  icon?: string;
   did: string;
   keys: KeyPair;
   createdAt: string;
@@ -139,6 +151,7 @@ export interface Channel {
   from: string;
   to: string;
   type: ChannelTypeId;
+  label?: string;
   offset: number;
   createdAt: string;
 }
@@ -151,6 +164,7 @@ export interface Group {
   threshold: number;
   did: string;
   color: string;
+  keystones?: Keystone[];
   createdAt: string;
 }
 
@@ -221,12 +235,15 @@ export interface MeshConfigAgent {
   name: string;
   role: string;
   prompt: string;
+  model?: string;
+  icon?: string;
 }
 
 export interface MeshConfigChannel {
   from: number;
   to: number;
   type: string;
+  label?: string;
 }
 
 export interface MeshConfigGroup {
@@ -380,10 +397,14 @@ export interface JobArtifact {
   name: string;
 }
 
+export type JobStepStatus = "pending" | "running" | "completed" | "failed";
+
 export interface JobStep {
   id: string;
   commandId: string;
   args: Record<string, any>;
+  status: JobStepStatus;
+  result?: any;
 }
 
 export interface JobDefinition {

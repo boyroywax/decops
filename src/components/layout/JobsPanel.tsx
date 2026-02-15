@@ -57,8 +57,9 @@ export function JobsPanel({ jobs, onClose, removeJob, clearJobs, addJob, isPause
     }, [isResizing]);
 
     // Split jobs
-    const queue = jobs.filter(j => j.status === "queued" || j.status === "running");
-    const history = jobs.filter(j => j.status === "completed" || j.status === "failed");
+    const activeJob = jobs.find(j => j.status === "running");
+    const queuedJobs = jobs.filter(j => j.status === "queued");
+    const historyJobs = jobs.filter(j => j.status === "completed" || j.status === "failed");
     const commands = registry.getAll();
 
     // Drag and Drop State
@@ -81,7 +82,8 @@ export function JobsPanel({ jobs, onClose, removeJob, clearJobs, addJob, isPause
             return;
         }
 
-        const currentOrder = queue.map(j => j.id);
+        // We only reorder queued jobs
+        const currentOrder = queuedJobs.map(j => j.id);
         const fromIndex = currentOrder.indexOf(draggingId);
         const toIndex = currentOrder.indexOf(targetId);
 
@@ -91,7 +93,18 @@ export function JobsPanel({ jobs, onClose, removeJob, clearJobs, addJob, isPause
         newOrder.splice(fromIndex, 1);
         newOrder.splice(toIndex, 0, draggingId);
 
-        reorderQueue(newOrder);
+        // Pass complete list including active job if we want, but reorderQueue handles "activeJobIds"
+        // Let's pass the new desired order of queued ids + active at top maybe?
+        // Or just reorderQueue logic needs to handle partials.
+        // My hook implementation expects "activeJobIds" to be the *new top of list*.
+        // So: [activeJob?.id, ...newOrder, ...history] basically.
+
+        const fullNewOrder = [
+            ...(activeJob ? [activeJob.id] : []),
+            ...newOrder
+        ].filter(Boolean) as string[];
+
+        reorderQueue(fullNewOrder);
         setDraggingId(null);
     };
 
@@ -101,7 +114,7 @@ export function JobsPanel({ jobs, onClose, removeJob, clearJobs, addJob, isPause
             type: jobDef.name, // Use definition name as type for display
             request: { description: jobDef.description },
             jobDefinitionId: jobDef.id,
-            steps: jobDef.steps,
+            steps: jobDef.steps.map(s => ({ ...s, status: "pending" })), // Reset steps to pending
             mode: jobDef.mode,
             status: "queued"
         });
@@ -137,52 +150,94 @@ export function JobsPanel({ jobs, onClose, removeJob, clearJobs, addJob, isPause
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                padding: "8px 16px",
-                borderBottom: "1px solid rgba(255,255,255,0.06)",
+                padding: "6px 14px",
+                borderBottom: "1px solid rgba(255,255,255,0.04)",
                 flexShrink: 0,
-                background: "rgba(0,0,0,0.2)"
             }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#e4e4e7", display: "flex", alignItems: "center", gap: 6 }}>
-                        <Play size={12} fill="#e4e4e7" /> JOB QUEUE
-                    </span>
-                    <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.04)", padding: 3, borderRadius: 6 }}>
-                        {(["queue", "history", "catalog", "commands"] as const).map(tab => (
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ fontSize: 9, color: "#52525b", letterSpacing: "0.1em", textTransform: "uppercase" }}>JOB QUEUE</span>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <span style={{ color: "#27272a", fontSize: 10 }}>│</span>
+                        {(["queue", "catalog", "commands"] as const).map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
                                 style={{
-                                    background: activeTab === tab ? "rgba(255,255,255,0.08)" : "none",
-                                    color: activeTab === tab ? "#fff" : "#71717a",
-                                    border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", transition: "all 0.15s",
-                                    fontWeight: activeTab === tab ? 600 : 400, textTransform: "capitalize"
+                                    background: activeTab === tab ? "rgba(255,255,255,0.06)" : "none",
+                                    color: activeTab === tab ? "#e4e4e7" : "#52525b",
+                                    border: "none",
+                                    borderRadius: 4,
+                                    padding: "2px 8px",
+                                    fontSize: 10,
+                                    cursor: "pointer",
+                                    transition: "all 0.15s",
+                                    fontFamily: "inherit",
+                                    textTransform: "capitalize",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 4
                                 }}
                             >
                                 {tab}
-                                {tab === "queue" && queue.length > 0 && <span style={{ marginLeft: 6, opacity: 0.6 }}>{queue.length}</span>}
+                                {tab === "queue" && (queuedJobs.length + (activeJob ? 1 : 0)) > 0 &&
+                                    <span style={{
+                                        fontSize: 9,
+                                        opacity: 0.8,
+                                        color: activeTab === tab ? "#00e5a0" : "#52525b"
+                                    }}>
+                                        {queuedJobs.length + (activeJob ? 1 : 0)}
+                                    </span>
+                                }
                             </button>
                         ))}
                     </div>
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {/* Pause/Resume Toggle */}
+                    <button
+                        onClick={toggleQueuePause}
+                        style={{
+                            background: "none",
+                            border: "none",
+                            color: isPaused ? "#fbbf24" : "#52525b",
+                            cursor: "pointer",
+                            fontSize: 10,
+                            fontFamily: "inherit",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "2px 6px"
+                        }}
+                        title={isPaused ? "Resume Queue" : "Pause Queue"}
+                    >
+                        {isPaused ? <Play size={10} fill="currentColor" /> : <div style={{ width: 6, height: 8, display: "flex", gap: 2 }}><div style={{ width: 2, height: 8, background: "currentColor" }} /><div style={{ width: 2, height: 8, background: "currentColor" }} /></div>}
+                        {isPaused && "Resume"}
+                    </button>
+
                     <button
                         onClick={() => { setEditingJob(null); setActiveTab("creator"); }}
                         style={{
-                            background: "rgba(0, 229, 160, 0.1)",
-                            color: "#00e5a0",
-                            border: "1px solid rgba(0, 229, 160, 0.2)",
-                            borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer",
-                            display: "flex", alignItems: "center", gap: 4, fontWeight: 500
+                            background: "none",
+                            border: "none",
+                            color: "#52525b",
+                            cursor: "pointer",
+                            fontSize: 10,
+                            fontFamily: "inherit",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "2px 6px"
                         }}
                     >
-                        <Plus size={12} /> New Job
+                        <Plus size={10} /> New
                     </button>
-                    <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.1)" }} />
+
                     <button
                         onClick={onClose}
-                        style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer", padding: 4 }}
-                    ><X size={16} /></button>
+                        style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer", padding: "0 4px", display: "flex", alignItems: "center" }}
+                    ><X size={14} /></button>
                 </div>
             </div>
 
@@ -208,43 +263,57 @@ export function JobsPanel({ jobs, onClose, removeJob, clearJobs, addJob, isPause
                     <div style={{ height: "100%", overflow: "auto", padding: 12 }}>
                         {activeTab === "queue" && (
                             <>
-                                {queue.length === 0 && (
-                                    <div style={{ textAlign: "center", padding: "60px 0", color: "#3f3f46" }}>
-                                        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16, opacity: 0.5 }}>
-                                            <div style={{ width: 48, height: 48, borderRadius: 24, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                <Play size={24} style={{ marginLeft: 4 }} />
-                                            </div>
+                                {/* Active Job Section */}
+                                {activeJob && (
+                                    <div style={{ marginBottom: 16 }}>
+                                        <div style={{ fontSize: 10, fontWeight: 600, color: "#fbbf24", marginBottom: 6, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                                            Running Now
                                         </div>
-                                        <div style={{ fontSize: 13, fontWeight: 500, color: "#71717a" }}>Queue is empty</div>
-                                        <button
-                                            onClick={() => setActiveTab("creator")}
-                                            style={{ marginTop: 12, background: "none", border: "none", color: "#00e5a0", fontSize: 11, cursor: "pointer", textDecoration: "underline" }}
-                                        > Create a new job</button>
+                                        <JobItem
+                                            job={activeJob}
+                                            removeJob={removeJob}
+                                            stopJob={stopJob}
+                                            expanded={true} /* Always show details for running job */
+                                        />
                                     </div>
                                 )}
-                                {queue.map(job => (
-                                    <JobItem
-                                        key={job.id}
-                                        job={job}
-                                        removeJob={removeJob}
-                                        stopJob={stopJob}
-                                        draggable={true}
-                                        onDragStart={(e) => handleDragStart(e, job.id)}
-                                        onDragOver={(e) => handleDragOver(e, job.id)}
-                                        onDrop={(e) => handleDrop(e, job.id)}
-                                        isDragging={draggingId === job.id}
-                                    />
-                                ))}
-                            </>
-                        )}
 
-                        {activeTab === "history" && (
-                            <>
-                                {history.map(job => (
-                                    <JobItem key={job.id} job={job} removeJob={removeJob} stopJob={stopJob} />
-                                ))}
-                                {history.length === 0 && (
-                                    <div style={{ textAlign: "center", padding: "60px 0", color: "#3f3f46", fontSize: 12 }}>No job history</div>
+                                {/* Queued Section */}
+                                <div style={{ fontSize: 10, fontWeight: 600, color: "#71717a", marginBottom: 6, letterSpacing: "0.05em", textTransform: "uppercase", display: "flex", justifyContent: "space-between" }}>
+                                    <span>Up Next</span>
+                                    <span>{queuedJobs.length}</span>
+                                </div>
+                                {queuedJobs.length === 0 && !activeJob && (
+                                    <div style={{ textAlign: "center", padding: "40px 0", color: "#3f3f46" }}>
+                                        <div style={{ fontSize: 13, fontWeight: 500, color: "#52525b" }}>Queue is empty</div>
+                                    </div>
+                                )}
+                                <div style={{ minHeight: 20 }}>
+                                    {queuedJobs.map(job => (
+                                        <JobItem
+                                            key={job.id}
+                                            job={job}
+                                            removeJob={removeJob}
+                                            stopJob={stopJob}
+                                            draggable={true}
+                                            onDragStart={(e) => handleDragStart(e, job.id)}
+                                            onDragOver={(e) => handleDragOver(e, job.id)}
+                                            onDrop={(e) => handleDrop(e, job.id)}
+                                            isDragging={draggingId === job.id}
+                                        />
+                                    ))}
+                                </div>
+
+                                {/* History Section (Merged) */}
+                                {historyJobs.length > 0 && (
+                                    <div style={{ marginTop: 24, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 16 }}>
+                                        <div style={{ fontSize: 10, fontWeight: 600, color: "#71717a", marginBottom: 12, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                                            Recent History
+                                        </div>
+                                        {historyJobs.slice(0, 10).map(job => (
+                                            <JobItem key={job.id} job={job} removeJob={removeJob} stopJob={stopJob} />
+                                        ))}
+                                    </div>
                                 )}
                             </>
                         )}
@@ -471,15 +540,19 @@ interface JobItemProps {
     onDragOver?: (e: React.DragEvent) => void;
     onDrop?: (e: React.DragEvent) => void;
     isDragging?: boolean;
+    expanded?: boolean;
 }
 
-function JobItem({ job, removeJob, stopJob, draggable, onDragStart, onDragOver, onDrop, isDragging }: JobItemProps) {
+function JobItem({ job, removeJob, stopJob, draggable, onDragStart, onDragOver, onDrop, isDragging, expanded }: JobItemProps) {
     const statusColors: Record<JobStatus, string> = {
         queued: "#a1a1aa",
         running: "#fbbf24",
         completed: "#00e5a0",
         failed: "#ef4444",
     };
+
+    const hasSteps = job.steps && job.steps.length > 0;
+    const currentStepIdx = job.currentStepIndex || 0;
 
     return (
         <div
@@ -488,29 +561,32 @@ function JobItem({ job, removeJob, stopJob, draggable, onDragStart, onDragOver, 
             onDragOver={onDragOver}
             onDrop={onDrop}
             style={{
-                background: isDragging ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.06)",
+                background: isDragging ? "rgba(255,255,255,0.06)" : expanded ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.03)",
+                border: expanded ? `1px solid ${statusColors[job.status]}40` : "1px solid rgba(255,255,255,0.06)",
                 borderRadius: 8,
-                padding: 12,
+                padding: expanded ? 16 : 12,
                 marginBottom: 8,
                 position: "relative",
                 cursor: draggable && job.status === "queued" ? "grab" : "default",
-                opacity: isDragging ? 0.5 : 1
+                opacity: isDragging ? 0.5 : 1,
+                transition: "all 0.2s"
             }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
                 <div>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: "#e4e4e7", display: "flex", alignItems: "center", gap: 6 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: "#e4e4e7", display: "flex", alignItems: "center", gap: 8 }}>
                         {draggable && job.status === "queued" && <span style={{ color: "#52525b" }}>⋮⋮</span>}
                         {job.type}
                         <span style={{
                             fontSize: 9, padding: "1px 6px", borderRadius: 4,
                             background: `${statusColors[job.status]}15`, color: statusColors[job.status],
-                            border: `1px solid ${statusColors[job.status]}30`
+                            border: `1px solid ${statusColors[job.status]}30`,
+                            fontWeight: 600
                         }}>
                             {job.status.toUpperCase()}
                         </span>
+                        {job.mode && <span style={{ fontSize: 9, color: "#52525b", border: "1px solid #3f3f46", borderRadius: 3, padding: "0 4px" }}>{job.mode}</span>}
                     </div>
-                    <div style={{ fontSize: 10, color: "#71717a", marginTop: 2 }}>
+                    <div style={{ fontSize: 10, color: "#71717a", marginTop: 4 }}>
                         ID: {job.id.split('-').pop()} · {new Date(job.createdAt).toLocaleTimeString()}
                     </div>
                 </div>
@@ -537,20 +613,52 @@ function JobItem({ job, removeJob, stopJob, draggable, onDragStart, onDragOver, 
             </div>
 
             {job.status === "running" && (
-                <div style={{ height: 2, background: "rgba(255,255,255,0.1)", borderRadius: 2, overflow: "hidden", marginTop: 8, marginBottom: 8 }}>
+                <div style={{ height: 2, background: "rgba(255,255,255,0.1)", borderRadius: 2, overflow: "hidden", marginTop: 12, marginBottom: 12 }}>
                     <div style={{ height: "100%", background: "#fbbf24", width: "100%", animation: "progress 2s infinite linear", transformOrigin: "0% 50%" }}>
                         <style>{`@keyframes progress { 0% { transform: scaleX(0); } 50% { transform: scaleX(0.7); } 100% { transform: scaleX(1); opacity: 0; } }`}</style>
                     </div>
                 </div>
             )}
 
-            {/* Request Details */}
-            <div style={{ marginTop: 8, fontSize: 11, color: "#a1a1aa", background: "rgba(0,0,0,0.2)", padding: 8, borderRadius: 6 }}>
-                <div style={{ fontSize: 9, color: "#52525b", marginBottom: 2, fontWeight: 600 }}>REQUEST</div>
-                <div style={{ whiteSpace: "pre-wrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {JSON.stringify(job.request, null, 2)}
+            {/* Steps Progress (For Running/Expanded Jobs) */}
+            {hasSteps && (expanded || job.status === "running") && (
+                <div style={{ marginTop: 12, background: "rgba(0,0,0,0.2)", borderRadius: 6, padding: 8 }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: "#71717a", marginBottom: 6, textTransform: "uppercase" }}>
+                        Steps {job.mode === "serial" ? `(${currentStepIdx}/${job.steps!.length})` : ""}
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {job.steps!.map((step, idx) => {
+                            // Status icon/color
+                            let color = "#52525b";
+                            let icon = <div style={{ width: 6, height: 6, borderRadius: 3, background: color }} />;
+
+                            if (step.status === "completed") { color = "#00e5a0"; icon = <Check size={10} strokeWidth={3} />; }
+                            else if (step.status === "running") { color = "#fbbf24"; icon = <Loader2 size={10} className="spin" />; }
+                            else if (step.status === "failed") { color = "#ef4444"; icon = <X size={10} />; }
+                            // Pending is default gray
+
+                            return (
+                                <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: step.status === "pending" ? "#52525b" : "#d4d4d8" }}>
+                                    <div style={{ width: 14, height: 14, borderRadius: 7, background: `${color}20`, border: `1px solid ${color}40`, display: "flex", alignItems: "center", justifyContent: "center", color: color }}>
+                                        {icon}
+                                    </div>
+                                    <span style={{ flex: 1, fontFamily: "monospace" }}>{step.commandId}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {/* Request Details (Collapsed only usually, but if simplified...) */}
+            {!expanded && (
+                <div style={{ marginTop: 8, fontSize: 11, color: "#a1a1aa", background: "rgba(0,0,0,0.2)", padding: 8, borderRadius: 6 }}>
+                    <div style={{ fontSize: 9, color: "#52525b", marginBottom: 2, fontWeight: 600 }}>REQUEST</div>
+                    <div style={{ whiteSpace: "pre-wrap", overflow: "hidden", textOverflow: "ellipsis", maxHeight: 40 }}>
+                        {job.request?.description || JSON.stringify(job.request, null, 2)}
+                    </div>
+                </div>
+            )}
 
             {/* Result/Artifacts */}
             {job.status === "completed" && (

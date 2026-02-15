@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Compass, Rocket, CheckCircle, XCircle } from "lucide-react";
+import { Compass, Rocket, CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { GradientIcon } from "./components/shared/GradientIcon";
 import type { ViewId } from "./types";
 import { useNotebook } from "./hooks/useNotebook";
@@ -24,6 +24,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { LoginView } from "./components/views/LoginView";
 import { ProfileView } from "./components/views/ProfileView";
 import { useJobs } from "./hooks/useJobs";
+import { useJobCatalog } from "./hooks/useJobCatalog";
 
 import { registry } from "./services/commands/registry";
 import { createAgentCommand } from "./services/commands/definitions/agent";
@@ -48,7 +49,9 @@ import {
   queueNewJobCommand, pauseQueueCommand, resumeQueueCommand, deleteQueuedJobCommand, listQueueCommand,
   listCatalogJobsCommand, saveJobDefinitionCommand, deleteJobDefinitionCommand
 } from "./services/commands/definitions/jobs";
-import { useJobCatalog } from "./hooks/useJobCatalog";
+
+
+import { createActivityEntryCommand } from "./services/commands/definitions/activity";
 
 // Register Commands
 registry.register(createAgentCommand);
@@ -56,6 +59,7 @@ registry.register(sendMessageCommand);
 registry.register(createChannelCommand);
 registry.register(createGroupCommand);
 registry.register(broadcastMessageCommand);
+registry.register(createActivityEntryCommand);
 
 // Modification
 registry.register(deleteAgentCommand);
@@ -140,7 +144,8 @@ function AuthenticatedApp() {
   const {
     jobs, addJob, updateJobStatus, addArtifact, removeJob, clearJobs,
     allArtifacts, importArtifact, removeArtifact,
-    isPaused, toggleQueuePause, stopJob, reorderQueue
+    isPaused, toggleQueuePause, stopJob, reorderQueue,
+    updateJob, updateJobStep
   } = useJobs();
 
   const { savedJobs, saveJob, deleteJob } = useJobCatalog();
@@ -176,19 +181,48 @@ function AuthenticatedApp() {
     const processJobs = async () => {
       if (processingRef.current || isPaused) return;
 
-      const queuedJob = jobs.find(j => j.status === "queued");
-      if (queuedJob) {
+      // Prioritize running jobs (resuming multi-step)
+      let activeJob = jobs.find(j => j.status === "running");
+
+      // If no running job, pick next queued one
+      if (!activeJob) {
+        activeJob = jobs.find(j => j.status === "queued");
+        if (activeJob) {
+          // Mark as running immediately
+          updateJobStatus(activeJob.id, "running");
+          // We need to fetch the updated job from 'jobs' in next render, 
+          // BUT we want to proceed now. 'activeJob' is the stalled object.
+          // Actually, if we update status, it triggers re-render. 
+          // But we can proceed with 'activeJob' as the reference.
+        }
+      }
+
+      if (activeJob) {
+        const currentJob = activeJob; // Alias for clarity
         processingRef.current = true;
+
+        // Log start if it was just queued (status was queued before we picked it? 
+        // We can't easily check previous state here without ref or complexity.
+        // Simplified: If currentStepIndex is 0 and status is running, maybe we log?
+        // Or just rely on the fact that we only log when we *start* it.
+        // Let's move the logging inside the "if queued" block effectively?
+        // Actually, simpler: Just check if it's the *first* step being processed?
+
+        // Log start only if we are at the beginning
         try {
-          updateJobStatus(queuedJob.id, "running");
-          addNotebookEntry({
-            category: "action",
-            icon: <GradientIcon icon={Rocket} size={16} gradient={["#fbbf24", "#f59e0b"]} />,
-            title: `Job Started: ${queuedJob.type}`,
-            description: `Running command "${queuedJob.type}" (Job ${queuedJob.id.slice(0, 8)}).`,
-            details: { jobId: queuedJob.id, command: queuedJob.type, request: queuedJob.request },
-            tags: ["job", queuedJob.type],
-          });
+          if (currentJob.status === "queued" || (currentJob.steps && (currentJob.currentStepIndex || 0) === 0 && !currentJob.stepResults)) {
+            // It might be "running" if we just set it, but effectively it's new.
+            if (activeJob.status === "queued") {
+              addNotebookEntry({
+                category: "action",
+                icon: <GradientIcon icon={Rocket} size={16} gradient={["#fbbf24", "#f59e0b"]} />,
+                title: `Job Started: ${currentJob.type}`,
+                description: `Running command "${currentJob.type}" (Job ${currentJob.id.slice(0, 8)}).`,
+                details: { jobId: currentJob.id, command: currentJob.type, request: currentJob.request },
+                tags: ["job", currentJob.type],
+              });
+            }
+          }
 
           const context: CommandContext = {
             workspace: {
@@ -199,6 +233,9 @@ function AuthenticatedApp() {
               setActiveChannels: workspace.setActiveChannels
             },
             auth: { user },
+            notebook: {
+              addEntry: addNotebookEntry
+            },
             jobs: {
               addArtifact,
               removeArtifact,
@@ -236,73 +273,138 @@ function AuthenticatedApp() {
             },
             architect: {
               generateNetwork: architect.generateNetwork,
+              execGenerateMesh: architect.execGenerateMesh,
               deployNetwork: architect.deployNetwork
             }
           };
 
           let finalResult;
 
-          if (queuedJob.steps && queuedJob.steps.length > 0) {
+          if (currentJob.steps && currentJob.steps.length > 0) {
             // Multi-step Job
-            if (queuedJob.mode === "parallel") {
-              const promises = queuedJob.steps.map(async (step) => {
-                const res = await registry.execute(step.commandId, step.args, context);
-                return { stepId: step.id, result: res };
+            if (currentJob.mode === "parallel") {
+              const promises = currentJob.steps.map(async (step) => {
+                if (step.status === "completed" || step.status === "running") return; // Already done/started
+
+                // Update step status to running
+                const newSteps = currentJob.steps!.map(s => s.id === step.id ? { ...s, status: "running" as const } : s);
+                updateJob(currentJob.id, { steps: newSteps });
+
+                try {
+                  // We use updateJobStep for granular updates
+                  updateJobStep(currentJob.id, step.id, { status: "running" });
+
+                  // Execute the command
+                  const resExec = await registry.execute(step.commandId, step.args, context);
+
+                  updateJobStep(currentJob.id, step.id, { status: "completed", result: resExec });
+                  return { stepId: step.id, status: "fulfilled", result: resExec };
+                } catch (err: any) {
+                  updateJobStep(currentJob.id, step.id, { status: "failed", result: err.message });
+                  // Don't throw, return rejected status so Promise.allSettled can handle it (or manual handling here)
+                  // Actually returning object with status 'rejected' makes it easy to process later if we manually wait.
+                  // But since we are inside the map, let's just throw and catch in Promise.allSettled or handle here.
+                  // Let's return error object.
+                  return { stepId: step.id, status: "rejected", reason: err.message };
+                }
               });
+
               const results = await Promise.all(promises);
-              finalResult = "All steps completed";
-              // Optionally store detailed results in job
-            } else {
-              // Serial
-              for (let i = 0; i < queuedJob.steps.length; i++) {
-                const step = queuedJob.steps[i];
-                // Update progress?
-                // updateJob(queuedJob.id, { currentStepIndex: i }); 
-                await registry.execute(step.commandId, step.args, context);
+
+              // Check if any failed
+              const failedSteps = results.filter((r: any) => r && r.status === "rejected");
+              if (failedSteps.length > 0) {
+                if (failedSteps.length === currentJob.steps.length) {
+                  throw new Error(`${failedSteps.length} steps failed.`);
+                }
+                finalResult = `Completed with ${failedSteps.length} errors.`;
+              } else {
+                finalResult = "All parallel steps completed successfully";
               }
-              finalResult = "Sequence completed";
+
+            } else {
+              // Serial Execution
+              const currentIndex = currentJob.currentStepIndex || 0;
+
+              if (currentIndex < currentJob.steps.length) {
+                const step = currentJob.steps[currentIndex];
+
+                if (step.status === "pending" || step.status === "running") {
+
+                  // Update step status
+                  updateJobStep(currentJob.id, step.id, { status: "running" });
+
+                  try {
+                    const res = await registry.execute(step.commandId, step.args, context);
+
+                    // Mark completed
+                    // Consolidate updates: Mark step completed AND increment index atomically
+                    const newSteps = currentJob.steps!.map(s => s.id === step.id ? { ...s, status: "completed" as const, result: res } : s);
+
+                    updateJob(currentJob.id, {
+                      steps: newSteps,
+                      currentStepIndex: currentIndex + 1
+                    });
+
+                    // If that was the last step, we are done.
+                    if (currentIndex + 1 >= currentJob.steps.length) {
+                      finalResult = "Sequence completed";
+                    } else {
+                      // Yield to next tick to allow Pause check and UI update
+                      processingRef.current = false; // Reset explicitly before returning
+                      return;
+                    }
+                  } catch (err: any) {
+                    updateJobStep(currentJob.id, step.id, { status: "failed", result: err.message });
+                    throw err;
+                  }
+                }
+              } else {
+                finalResult = "Sequence completed (recovered)";
+              }
             }
           } else {
             // Legacy / Single Command Job
-            finalResult = await registry.execute(queuedJob.type, queuedJob.request, context);
+            finalResult = await registry.execute(currentJob.type, currentJob.request, context);
           }
 
-          updateJobStatus(queuedJob.id, "completed", typeof finalResult === 'string' ? finalResult : "Done");
+          updateJobStatus(currentJob.id, "completed", typeof finalResult === 'string' ? finalResult : "Done");
           addNotebookEntry({
             category: "output",
             icon: <GradientIcon icon={CheckCircle} size={16} gradient={["#00e5a0", "#10b981"]} />,
-            title: `Job Completed: ${queuedJob.type}`,
-            description: `Job "${queuedJob.type}" finished successfully.`,
-            details: { jobId: queuedJob.id, command: queuedJob.type, result: finalResult },
-            tags: ["job", "success", queuedJob.type],
+            title: `Job Completed: ${currentJob.type}`,
+            description: `Job "${currentJob.type}" finished successfully.`,
+            details: { jobId: currentJob.id, command: currentJob.type, result: finalResult },
+            tags: ["job", "success", currentJob.type],
           });
 
           // Enriched Result Artifact
           const resultArtifact = {
-            jobId: queuedJob.id,
+            id: `art-${Date.now()}`,
+            type: "json" as const,
+            name: `Result: ${currentJob.type}`,
+            jobId: currentJob.id,
             timestamp: Date.now(),
             status: "success",
-            command: queuedJob.type,
+            command: currentJob.type,
             data: finalResult || {}
           };
-
-          addArtifact(queuedJob.id, {
-            id: `art-${Date.now()}`,
-            type: "json",
-            name: "result.json",
-            content: JSON.stringify(resultArtifact, null, 2)
-          });
-
+          if (currentJob.artifacts) {
+            currentJob.artifacts.forEach(artifact => addArtifact(currentJob.id, artifact));
+          }
+          addArtifact(currentJob.id, resultArtifact);
         } catch (err: any) {
-          console.error("Job Failed", err);
-          updateJobStatus(queuedJob.id, "failed", err.message || "Unknown error");
+          processingRef.current = false;
+          console.error("Job Error:", err);
+          updateJobStatus(currentJob.id, "failed", err.message || "Unknown error");
+
           addNotebookEntry({
             category: "system",
-            icon: <GradientIcon icon={XCircle} size={16} gradient={["#ef4444", "#dc2626"]} />,
-            title: `Job Failed: ${queuedJob.type}`,
-            description: `Job "${queuedJob.type}" failed: ${err.message || "Unknown error"}.`,
-            details: { jobId: queuedJob.id, command: queuedJob.type, error: err.message },
-            tags: ["job", "error", queuedJob.type],
+            icon: <GradientIcon icon={AlertTriangle} size={16} gradient={["#ef4444", "#b91c1c"]} />,
+            title: `Job Failed: ${currentJob.type}`,
+            description: `Job failed with error: ${err.message}`,
+            details: { jobId: currentJob.id, error: err.message },
+            tags: ["job", "failed", currentJob.type],
           });
         } finally {
           processingRef.current = false;
@@ -312,10 +414,28 @@ function AuthenticatedApp() {
 
     const interval = setInterval(processJobs, 1000); // Check every second (simple polling)
     return () => clearInterval(interval);
-  }, [jobs, updateJobStatus, workspace, addLog, user, addArtifact, ecosystem, architect]);
-
-
-  // Responsive state
+  }, [
+    jobs,
+    updateJobStatus,
+    workspace,
+    addLog,
+    user,
+    addArtifact,
+    ecosystem,
+    architect,
+    addNotebookEntry,
+    isPaused,
+    toggleQueuePause,
+    addJob,
+    removeJob,
+    savedJobs,
+    saveJob,
+    deleteJob,
+    importArtifact,
+    allArtifacts,
+    removeArtifact,
+    updateJob
+  ]);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
@@ -495,6 +615,7 @@ function AuthenticatedApp() {
               toggleGroupMember={workspace.toggleGroupMember}
               setBroadcastGroup={workspace.setBroadcastGroup}
               setView={setView}
+              updateGroup={workspace.updateGroup}
             />
           )}
 

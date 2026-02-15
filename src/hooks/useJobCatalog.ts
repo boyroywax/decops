@@ -5,22 +5,13 @@ import type { JobDefinition } from "../types";
 export function useJobCatalog() {
     const [savedJobs, setSavedJobs] = useLocalStorage<JobDefinition[]>("decops_job_catalog", []);
 
-    const saveJob = useCallback((job: Omit<JobDefinition, "createdAt" | "updatedAt"> & { createdAt?: number }) => {
+    const saveJob = useCallback((job: JobDefinition) => {
         setSavedJobs(prev => {
-            const existingIndex = prev.findIndex(j => j.id === job.id);
-            const now = Date.now();
-            const newJob: JobDefinition = {
-                ...job,
-                createdAt: job.createdAt || now,
-                updatedAt: now,
-            };
-
-            if (existingIndex >= 0) {
-                const newArr = [...prev];
-                newArr[existingIndex] = newJob;
-                return newArr;
+            const exists = prev.find(j => j.id === job.id);
+            if (exists) {
+                return prev.map(j => j.id === job.id ? { ...job, updatedAt: Date.now() } : j);
             }
-            return [...prev, newJob];
+            return [...prev, { ...job, createdAt: Date.now(), updatedAt: Date.now() }];
         });
     }, [setSavedJobs]);
 
@@ -28,14 +19,9 @@ export function useJobCatalog() {
         setSavedJobs(prev => prev.filter(j => j.id !== id));
     }, [setSavedJobs]);
 
-    const getJob = useCallback((id: string) => {
-        return savedJobs.find(j => j.id === id);
-    }, [savedJobs]);
-
     return {
         savedJobs,
         saveJob,
-        deleteJob,
-        getJob
+        deleteJob
     };
 }

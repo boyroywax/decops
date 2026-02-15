@@ -22,6 +22,8 @@ export interface CommandContext {
         setChannels: React.Dispatch<React.SetStateAction<any[]>>;
         setGroups: React.Dispatch<React.SetStateAction<any[]>>;
         setMessages: React.Dispatch<React.SetStateAction<any[]>>;
+        // setKeystones removed - now on group
+        updateGroup: (id: string, updates: any) => void;
         addLog: (msg: string) => void;
         activeChannel?: string | null;
         setActiveChannel?: React.Dispatch<React.SetStateAction<string | null>>;
@@ -29,6 +31,9 @@ export interface CommandContext {
     };
     auth: {
         user: any;
+    };
+    notebook: {
+        addEntry: (entry: any) => void;
     };
     jobs: {
         addArtifact: (jobId: string, artifact: any) => void;
@@ -67,6 +72,7 @@ export interface CommandContext {
     };
     architect: {
         generateNetwork: (prompt: string) => void;
+        execGenerateMesh: (prompt: string) => Promise<void>;
         deployNetwork: () => void;
     };
 }
