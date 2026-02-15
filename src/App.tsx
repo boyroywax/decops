@@ -150,14 +150,7 @@ function AuthenticatedApp() {
   // Actually, let's do the full switch.
   const workspace = useWorkspaceContext();
 
-  const architect = useArchitect({
-    addLog,
-    setAgents: workspace.setAgents,
-    setChannels: workspace.setChannels,
-    setGroups: workspace.setGroups,
-    setMessages: workspace.setMessages,
-    setActiveChannels: workspace.setActiveChannels,
-  }, addJob);
+  const architect = useArchitect(addLog, addJob);
 
   const ecosystem = useEcosystem({
     addLog,
@@ -390,10 +383,6 @@ function AuthenticatedApp() {
 
           {view === "architect" && (
             <ArchitectView
-              agents={workspace.agents}
-              channels={workspace.channels}
-              groups={workspace.groups}
-              messages={workspace.messages}
               archPrompt={architect.archPrompt}
               setArchPrompt={architect.setArchPrompt}
               archGenerating={architect.archGenerating}

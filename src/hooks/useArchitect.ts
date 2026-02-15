@@ -1,25 +1,12 @@
 import { useState } from "react";
-import type {
-  Agent, Channel, Group, Message, MeshConfig,
-  ArchPhase, DeployProgress,
-} from "../types";
 import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, GROUP_COLORS } from "../constants";
 import { generateDID, generateKeyPair, generateGroupDID } from "../utils/identity";
 import { generateMeshConfig } from "../services/ai";
 import { callAgentAI } from "../services/ai";
 
-interface UseArchitectDeps {
-  addLog: (msg: string) => void;
-  setAgents: React.Dispatch<React.SetStateAction<Agent[]>>;
-  setChannels: React.Dispatch<React.SetStateAction<Channel[]>>;
-  setGroups: React.Dispatch<React.SetStateAction<Group[]>>;
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
-  setActiveChannels: React.Dispatch<React.SetStateAction<Set<string>>>;
-}
 
-export function useArchitect({
-  addLog, setAgents, setChannels, setGroups, setMessages, setActiveChannels,
-}: UseArchitectDeps, addJob?: (job: any) => void) {
+
+export function useArchitect(addLog: (msg: string) => void, addJob: (job: any) => void) {
   const [archPrompt, setArchPrompt] = useState("");
   const [archGenerating, setArchGenerating] = useState(false);
   const [archPreview, setArchPreview] = useState<MeshConfig | null>(null);
