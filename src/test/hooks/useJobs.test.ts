@@ -76,4 +76,35 @@ describe('useJobs', () => {
         });
         expect(result.current.isPaused).toBe(false);
     });
+    it('manages artifacts', () => {
+        const { result } = renderHook(() => useJobs());
+        const artifact = { id: 'art-1', title: 'Test', type: 'text', content: 'content', createdAt: Date.now() };
+
+        // Add Job
+        act(() => {
+            result.current.addJob({ type: 'test', request: {} });
+        });
+        const jobId = result.current.jobs[0].id;
+
+        // Add Artifact to Job
+        act(() => {
+            result.current.addArtifact(jobId, artifact);
+        });
+        expect(result.current.jobs[0].artifacts).toHaveLength(1);
+        expect(result.current.allArtifacts).toHaveLength(1);
+
+        // Import Standalone Artifact
+        const artifact2 = { ...artifact, id: 'art-2' };
+        act(() => {
+            result.current.importArtifact(artifact2);
+        });
+        expect(result.current.allArtifacts).toHaveLength(2);
+
+        // Remove Artifact
+        act(() => {
+            result.current.removeArtifact('art-1');
+        });
+        expect(result.current.allArtifacts).toHaveLength(1);
+        expect(result.current.jobs[0].artifacts).toHaveLength(0);
+    });
 });
