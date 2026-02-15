@@ -3,7 +3,7 @@ import { Compass, Rocket, CheckCircle, XCircle } from "lucide-react";
 import { GradientIcon } from "./components/shared/GradientIcon";
 import type { ViewId } from "./types";
 import { useNotebook } from "./hooks/useNotebook";
-import { useWorkspace } from "./hooks/useWorkspace";
+import { WorkspaceProvider, useWorkspaceContext } from "./context/WorkspaceContext";
 import { useArchitect } from "./hooks/useArchitect";
 import { useEcosystem } from "./hooks/useEcosystem";
 import { Header } from "./components/layout/Header";
@@ -145,7 +145,10 @@ function AuthenticatedApp() {
 
   const { savedJobs, saveJob, deleteJob } = useJobCatalog();
 
-  const workspace = useWorkspace(addLog, addJob);
+  /* const workspace = useWorkspace(addLog, addJob); */
+  // We will switch to context soon. For now let's keep it to verify hooks compile.
+  // Actually, let's do the full switch.
+  const workspace = useWorkspaceContext();
 
   const architect = useArchitect({
     addLog,
@@ -757,7 +760,21 @@ function Main() {
     );
   }
 
-  return isAuthenticated ? <AuthenticatedApp /> : <LoginView />;
+  return isAuthenticated ? (
+    <WorkspaceProvider addJob={useJobs().addJob}>
+      {/* Wait, useJobs is inside AuthenticatedApp. We need to lift useJobs or pass addJob? 
+              useJobs is currently in AuthenticatedApp. 
+              Ideally WorkspaceProvider is inside AuthenticatedApp? 
+              Yes. because it needs addJob which comes from useJobs. 
+              So AuthenticatedApp renders WorkspaceProvider.
+              BUT AuthenticatedApp ALSO uses 'workspace' to pass to Architect/Ecosystem.
+              So we must split AuthenticatedApp into:
+              1. AuthenticatedAppShell (provides jobs, workspace)
+              2. AuthenticatedAppContent (consumes workspace)
+           */}
+      <AuthenticatedApp />
+    </WorkspaceProvider>
+  ) : <LoginView />;
 }
 
 export default function App() {
