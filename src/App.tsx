@@ -738,6 +738,7 @@ function AuthenticatedApp() {
 
 function Main() {
   const { isInitialized, isLoading, isAuthenticated } = useAuth();
+  const { addJob } = useJobs(); // Lifted hook call
   console.log('[App] Main render:', { isInitialized, isLoading, isAuthenticated });
 
 
@@ -750,16 +751,12 @@ function Main() {
   }
 
   return isAuthenticated ? (
-    <WorkspaceProvider addJob={useJobs().addJob}>
-      {/* Wait, useJobs is inside AuthenticatedApp. We need to lift useJobs or pass addJob? 
-              useJobs is currently in AuthenticatedApp. 
-              Ideally WorkspaceProvider is inside AuthenticatedApp? 
-              Yes. because it needs addJob which comes from useJobs. 
-              So AuthenticatedApp renders WorkspaceProvider.
-              BUT AuthenticatedApp ALSO uses 'workspace' to pass to Architect/Ecosystem.
-              So we must split AuthenticatedApp into:
-              1. AuthenticatedAppShell (provides jobs, workspace)
-              2. AuthenticatedAppContent (consumes workspace)
+    <WorkspaceProvider addJob={addJob}>
+      {/* 
+            AuthenticatedApp is now properly wrapped.
+            AuthenticatedAppShell vs Content split might be needed if AuthenticatedApp uses workspace context immediately.
+            Checked AuthenticatedApp: it uses useWorkspaceContext() on line 151.
+            Since it's a child of WorkspaceProvider here, it will work.
            */}
       <AuthenticatedApp />
     </WorkspaceProvider>

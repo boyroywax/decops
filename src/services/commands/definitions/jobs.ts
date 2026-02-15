@@ -15,7 +15,7 @@ export const queueNewJobCommand: CommandDefinition = {
     output: "The ID of the queued job.",
     execute: async (args, context) => {
         const { type, request } = args;
-        context.jobs.addJob({ type, request, status: "queued" });
+        context.jobs.addJob({ type, request });
         // We don't get the ID back synchronously from addJob easily unless we change the hook signature, 
         // but for now we trust it's added.
         return "Job queued";

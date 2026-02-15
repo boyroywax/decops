@@ -1,5 +1,5 @@
 
-import type { RoleId } from "../../types";
+import type { RoleId, JobRequest } from "../../types";
 
 export type CommandArgType = "string" | "number" | "boolean" | "object" | "array";
 
@@ -36,7 +36,7 @@ export interface CommandContext {
         importArtifact: (artifact: any) => void;
         allArtifacts: any[];
         // Queue Management
-        addJob: (job: any) => void;
+        addJob: (job: JobRequest) => void;
         removeJob: (id: string) => void;
         pauseQueue: () => void;
         resumeQueue: () => void;
@@ -71,7 +71,7 @@ export interface CommandContext {
     };
 }
 
-export interface CommandDefinition {
+export interface CommandDefinition<TArgs = any> {
     id: string;
     description: string;
     args: Record<string, CommandArg>;
@@ -79,5 +79,5 @@ export interface CommandDefinition {
     tags: string[];
     output: string; // Description of the output format/content
     outputSchema?: Record<string, any>; // Optional JSON schema of the output object
-    execute: (args: any, context: CommandContext) => Promise<any>;
+    execute: (args: TArgs, context: CommandContext) => Promise<any>;
 }

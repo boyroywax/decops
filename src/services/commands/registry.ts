@@ -19,7 +19,7 @@ export class CommandRegistry {
         return Array.from(this.commands.values());
     }
 
-    async execute(id: string, args: any, context: any): Promise<any> {
+    async execute<T extends Record<string, any> = any>(id: string, args: T, context: any): Promise<any> {
         const command = this.get(id);
         if (!command) {
             throw new Error(`Command ${id} not found`);
@@ -33,7 +33,7 @@ export class CommandRegistry {
             // Handle missing values
             if (value === undefined || value === null) {
                 if (argDef.defaultValue !== undefined) {
-                    args[argName] = argDef.defaultValue;
+                    (args as any)[argName] = argDef.defaultValue;
                 } else if (argDef.required !== false) {
                     throw new Error(`Missing required argument: ${argName}`);
                 }

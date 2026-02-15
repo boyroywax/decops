@@ -83,6 +83,7 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                     savedJobs={savedJobs}
                     saveJob={saveJob}
                     deleteJob={deleteJob}
+                    addJob={addJob}
                 />
             )}
 

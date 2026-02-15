@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import type { Channel, ChannelForm } from "../types";
+import type { Channel, ChannelForm, JobRequest } from "../types";
 
-export function useChannels(addJob: (job: any) => void) {
+export function useChannels(addJob: (job: JobRequest) => void) {
     const [channels, setChannels] = useLocalStorage<Channel[]>("decops_channels", []);
 
     // UI State

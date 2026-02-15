@@ -140,7 +140,9 @@ export const deployNetworkCommand: CommandDefinition = {
                     content: em.message, response: null, status: "sending", ts: Date.now(),
                 };
                 setMessages((prev: any[]) => [...prev, msg]);
-                setActiveChannels((prev: Set<string>) => new Set([...prev, ch.id]));
+                if (setActiveChannels) {
+                    setActiveChannels((prev: Set<string>) => new Set([...prev, ch.id]));
+                }
 
                 if (toAgent.prompt) {
                     const response = await callAgentAI(toAgent, fromAgent, em.message, ch.type, []);
@@ -154,7 +156,9 @@ export const deployNetworkCommand: CommandDefinition = {
                 // In job, we generally don't wait for UI effects like "highlight for 3s".
                 // We just set status.
                 // But setActiveChannels is state.
-                setTimeout(() => setActiveChannels((prev: Set<string>) => { const n = new Set(prev); n.delete(ch.id); return n; }), 3000);
+                if (setActiveChannels) {
+                    setTimeout(() => setActiveChannels((prev: Set<string>) => { const n = new Set(prev); n.delete(ch.id); return n; }), 3000);
+                }
             }
         }
 

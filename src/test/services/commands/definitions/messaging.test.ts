@@ -45,7 +45,7 @@ describe('sendMessageCommand', () => {
         // Mock AI response
         vi.mocked(aiService.callAgentAI).mockResolvedValue("AI Response");
 
-        const result = await sendMessageCommand.execute(args, mockContext);
+        const result = await sendMessageCommand.execute(args, mockContext as any);
 
         expect(result.status).toBe('delivered');
         expect(result.response).toBe('AI Response');
@@ -60,7 +60,7 @@ describe('sendMessageCommand', () => {
             message: 'Hello'
         };
 
-        const result = await sendMessageCommand.execute(args, mockContext);
+        const result = await sendMessageCommand.execute(args, mockContext as any);
 
         expect(result.status).toBe('no-prompt');
         expect(aiService.callAgentAI).not.toHaveBeenCalled();
@@ -74,7 +74,7 @@ describe('sendMessageCommand', () => {
             message: 'Hello'
         };
 
-        await expect(sendMessageCommand.execute(args, mockContext)).rejects.toThrow("Sender agent 'Unknown' not found");
+        await expect(sendMessageCommand.execute(args, mockContext as any)).rejects.toThrow("Sender agent 'Unknown' not found");
     });
 
     it('throws if channel does not exist', async () => {
@@ -95,6 +95,6 @@ describe('sendMessageCommand', () => {
 
         // The implementation throws "No channel exists..." if not found
         // Note: implementation might construct error string dynamically
-        await expect(sendMessageCommand.execute(args, contextNoChannel)).rejects.toThrow(/No channel exists/);
+        await expect(sendMessageCommand.execute(args, contextNoChannel as any)).rejects.toThrow(/No channel exists/);
     });
 });

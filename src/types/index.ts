@@ -396,11 +396,85 @@ export interface JobDefinition {
   updatedAt: number;
 }
 
+
+export interface CreateAgentRequest {
+  name: string;
+  role: RoleId;
+  prompt: string;
+}
+
+export interface UpdateAgentPromptRequest {
+  id: string;
+  prompt: string;
+}
+
+export interface CreateChannelRequest {
+  from: string;
+  to: string;
+  type: ChannelTypeId;
+}
+
+export interface CreateGroupRequest {
+  name: string;
+  members: string[]; // agent IDs
+  governance: GovernanceModelId;
+}
+
+export interface SendMessageRequest {
+  from_agent_name: string;
+  to_agent_name: string;
+  message: string;
+}
+
+export interface BroadcastMessageRequest {
+  group_id: string;
+  message: string;
+}
+
+export interface DeployNetworkRequest {
+  config: MeshConfig;
+}
+
+export interface DeleteRequest {
+  id?: string; // Single delete
+  type?: "agents" | "channels" | "groups" | "messages"; // Bulk delete
+  ids?: string[]; // Bulk delete
+}
+
+export interface CreateBridgeRequest {
+  from_network: string;
+  to_network: string;
+  from_agent: string;
+  to_agent: string;
+  type: ChannelTypeId;
+}
+
+export interface ResetWorkspaceRequest { }
+
+// Discriminated Union for all Job types
+export type JobRequest =
+  | { type: "create_agent"; request: CreateAgentRequest }
+  | { type: "update_agent_prompt"; request: UpdateAgentPromptRequest }
+  | { type: "create_channel"; request: CreateChannelRequest }
+  | { type: "create_group"; request: CreateGroupRequest }
+  | { type: "send_message"; request: SendMessageRequest }
+  | { type: "broadcast_message"; request: BroadcastMessageRequest }
+  | { type: "deploy_network"; request: DeployNetworkRequest }
+  | { type: "delete_agent"; request: DeleteRequest }
+  | { type: "delete_channel"; request: DeleteRequest }
+  | { type: "delete_group"; request: DeleteRequest }
+  | { type: "bulk_delete"; request: DeleteRequest }
+  | { type: "create_bridge"; request: CreateBridgeRequest }
+  | { type: "reset_workspace"; request: ResetWorkspaceRequest }
+  // Fallback for dynamic/other jobs
+  | { type: string; request: Record<string, any> };
+
 export interface Job {
   id: string;
-  type: string;
+  type: string; // We keep string here to match JobRequest.type easily, or we can stricter it to JobRequest['type']
   status: JobStatus;
-  request: Record<string, any>; // Flexible request parameters
+  request: Record<string, any>; // Keeping flexible for storage, but addJob enforces JobRequest
+
   result?: string;
   artifacts: JobArtifact[];
   createdAt: number;

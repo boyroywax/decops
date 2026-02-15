@@ -6,7 +6,7 @@ import { SCENARIO_PRESETS } from "../../../constants";
 
 interface ArchitectInputProps {
     archPrompt: string;
-    setArchPrompt: Dispatch<SetStateAction<string>>;
+    setArchPrompt: (v: string) => void;
     archGenerating: boolean;
     archError: string | null;
     generateNetwork: (desc: string) => void;

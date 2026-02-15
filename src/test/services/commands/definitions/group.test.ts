@@ -26,7 +26,7 @@ describe('createGroupCommand', () => {
             governance: 'majority'
         };
 
-        const result = await createGroupCommand.execute(args, mockContext);
+        const result = await createGroupCommand.execute(args, mockContext as any);
 
         expect(result.status).toBe('created');
         expect(result).toHaveProperty('groupId');
@@ -40,7 +40,7 @@ describe('createGroupCommand', () => {
             governance: 'majority'
         };
 
-        await expect(createGroupCommand.execute(args, mockContext)).rejects.toThrow("Agent 'unknown' not found");
+        await expect(createGroupCommand.execute(args, mockContext as any)).rejects.toThrow("Agent 'unknown' not found");
     });
 
     it('throws if fewer than 2 members', async () => {
@@ -50,7 +50,7 @@ describe('createGroupCommand', () => {
             governance: 'majority'
         };
 
-        await expect(createGroupCommand.execute(args, mockContext)).rejects.toThrow("Group must have at least 2 members");
+        await expect(createGroupCommand.execute(args, mockContext as any)).rejects.toThrow("Group must have at least 2 members");
     });
 
     it('creates consensus channels between members', async () => {
@@ -60,7 +60,7 @@ describe('createGroupCommand', () => {
             governance: 'majority'
         };
 
-        const result = await createGroupCommand.execute(args, mockContext);
+        const result = await createGroupCommand.execute(args, mockContext as any);
 
         // 3 members -> 3 connections (1-2, 1-3, 2-3)
         // Check log message or mock call

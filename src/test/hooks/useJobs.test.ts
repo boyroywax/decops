@@ -78,7 +78,7 @@ describe('useJobs', () => {
     });
     it('manages artifacts', () => {
         const { result } = renderHook(() => useJobs());
-        const artifact = { id: 'art-1', title: 'Test', type: 'text', content: 'content', createdAt: Date.now() };
+        const artifact = { id: 'art-1', name: 'Test', type: 'markdown', content: 'content', createdAt: Date.now() } as const;
 
         // Add Job
         act(() => {

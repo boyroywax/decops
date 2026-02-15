@@ -13,13 +13,16 @@ describe('CommandRegistry', () => {
         id: 'test_command',
         description: 'Test Command',
         args: {
-            requiredArg: { name: 'requiredArg', type: 'string', required: true },
-            optionalArg: { name: 'optionalArg', type: 'string', required: false, defaultValue: 'default' },
-            numberArg: { name: 'numberArg', type: 'number', required: false }
+            requiredArg: { name: 'requiredArg', type: 'string', required: true, description: 'Required arg' },
+            optionalArg: { name: 'optionalArg', type: 'string', required: false, defaultValue: 'default', description: 'Optional arg' },
+            numberArg: { name: 'numberArg', type: 'number', required: false, description: 'Number arg' }
         },
         execute: vi.fn(async (args, context) => {
             return { success: true, args };
-        })
+        }),
+        rbac: ['builder'],
+        tags: ['test'],
+        output: 'Test Output'
     };
 
     it('registers and retrieves commands', () => {

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ArchPhase, DeployProgress, MeshConfig, JobRequest } from "../types";
 import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, GROUP_COLORS } from "../constants";
 import { generateDID, generateKeyPair, generateGroupDID } from "../utils/identity";
 import { generateMeshConfig } from "../services/ai";
@@ -6,7 +7,7 @@ import { callAgentAI } from "../services/ai";
 
 
 
-export function useArchitect(addLog: (msg: string) => void, addJob: (job: any) => void) {
+export function useArchitect(addLog: (msg: string) => void, addJob: (job: JobRequest) => void) {
   const [archPrompt, setArchPrompt] = useState("");
   const [archGenerating, setArchGenerating] = useState(false);
   const [archPreview, setArchPreview] = useState<MeshConfig | null>(null);
