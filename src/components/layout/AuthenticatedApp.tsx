@@ -73,6 +73,8 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
         saveWorkspace({
           metadata: currentMeta,
           ...currentData,
+          networks: ecosystem.ecosystems || [],
+          bridges: ecosystem.bridges || [],
           jobs: jobsToSave,
           artifacts: allArtifacts,
           automations: automations.automations || [],
@@ -88,8 +90,12 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
       clearJobs();
       if (automations.setAutomations) automations.setAutomations([]);
       if (automations.setRuns) automations.setRuns([]);
+      if (ecosystem.setEcosystems) ecosystem.setEcosystems([]);
+      if (ecosystem.setBridges) ecosystem.setBridges([]);
 
       workspace.importWorkspace(newWorkspace);
+      if (newWorkspace.networks && ecosystem.setEcosystems) ecosystem.setEcosystems(newWorkspace.networks);
+      if (newWorkspace.bridges && ecosystem.setBridges) ecosystem.setBridges(newWorkspace.bridges);
       if (newWorkspace.jobs && setJobs) setJobs(newWorkspace.jobs);
       if (newWorkspace.artifacts && setStandaloneArtifacts) setStandaloneArtifacts(newWorkspace.artifacts);
       if (newWorkspace.automations && automations.setAutomations) automations.setAutomations(newWorkspace.automations);
@@ -110,6 +116,8 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
         saveWorkspace({
           metadata: currentMeta,
           ...currentData,
+          networks: ecosystem.ecosystems || [],
+          bridges: ecosystem.bridges || [],
           jobs: jobsToSave,
           artifacts: allArtifacts,
           automations: automations.automations || [],
@@ -247,6 +255,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
               clearNotebook={clearNotebook}
               exportNotebook={exportNotebook}
               addNotebookEntry={addNotebookEntry}
+              addJob={addJob}
             />
           </main>
         </div>

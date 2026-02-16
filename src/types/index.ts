@@ -4,11 +4,14 @@ export type RoleId = "researcher" | "builder" | "curator" | "validator" | "orche
 
 export type ChannelTypeId = "data" | "task" | "consensus";
 
+export type ChannelMode = "p2p" | "bridge" | "broadcast";
+
 export type GovernanceModelId = "majority" | "threshold" | "delegated" | "unanimous";
 
 export type ViewId =
   | "architect"
-  | "ecosystem"
+  | "networks"
+  | "ecosystem"  // Legacy alias
   | "agents"
   | "channels"
   | "groups"
@@ -140,8 +143,12 @@ export interface Channel {
   from: string;
   to: string;
   type: ChannelTypeId;
+  mode?: ChannelMode;  // p2p (default/local), bridge (cross-network), broadcast (group)
   offset: number;
   createdAt: string;
+  // Bridge-specific fields (present when mode === "bridge")
+  fromNetworkId?: string;
+  toNetworkId?: string;
 }
 
 export interface Group {
@@ -454,6 +461,12 @@ export interface CreateBridgeRequest {
   type: ChannelTypeId;
 }
 
+export interface CreateNetworkRequest {
+  name: string;
+  description?: string;
+  architectPrompt?: string;  // Optional: use Architect to generate the network
+}
+
 export interface ResetWorkspaceRequest { }
 
 // Discriminated Union for all Job types
@@ -470,6 +483,7 @@ export type JobRequest =
   | { type: "delete_group"; request: DeleteRequest }
   | { type: "bulk_delete"; request: DeleteRequest }
   | { type: "create_bridge"; request: CreateBridgeRequest }
+  | { type: "create_network"; request: CreateNetworkRequest }
   | { type: "reset_workspace"; request: ResetWorkspaceRequest }
   // Fallback for dynamic/other jobs
   | { type: string; request: Record<string, any>; steps?: JobStep[]; mode?: 'serial' | 'parallel' };
@@ -514,6 +528,8 @@ export interface Workspace {
   channels: Channel[];
   groups: Group[];
   messages: Message[];
+  networks?: Network[];
+  bridges?: Bridge[];
   jobs?: Job[];
   artifacts?: JobArtifact[];
   automations?: any[]; // AutomationDefinition

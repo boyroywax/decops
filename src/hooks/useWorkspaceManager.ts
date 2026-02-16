@@ -143,6 +143,6 @@ export function useWorkspaceManager() {
         saveWorkspace,
         loadWorkspace,
         deleteWorkspace,
-        duplicate: duplicateWorkspace
+        duplicateWorkspace
     };
 }

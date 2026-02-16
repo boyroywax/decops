@@ -1,6 +1,6 @@
 import type { ViewId } from "../../types";
 import { ArchitectView } from "../views/ArchitectView";
-import { EcosystemView } from "../views/EcosystemView";
+import { NetworksView } from "../views/NetworksView";
 import { AgentsView } from "../views/AgentsView";
 import { ChannelsView } from "../views/ChannelsView";
 import { GroupsView } from "../views/GroupsView";
@@ -25,6 +25,7 @@ interface ViewSwitcherProps {
     clearNotebook: () => void;
     exportNotebook: () => void;
     addNotebookEntry: (entry: any) => void;
+    addJob: (job: any) => void;
 }
 
 export function ViewSwitcher({
@@ -39,7 +40,8 @@ export function ViewSwitcher({
     notebookEntries,
     clearNotebook,
     exportNotebook,
-    addNotebookEntry
+    addNotebookEntry,
+    addJob
 }: ViewSwitcherProps) {
     if (view === "profile") {
         return (
@@ -78,9 +80,9 @@ export function ViewSwitcher({
         );
     }
 
-    if (view === "ecosystem") {
+    if (view === "networks" || view === "ecosystem") {
         return (
-            <EcosystemView
+            <NetworksView
                 agents={workspace.agents}
                 channels={workspace.channels}
                 groups={workspace.groups}
@@ -112,6 +114,7 @@ export function ViewSwitcher({
                 removeBridge={ecosystem.removeBridge}
                 sendBridgeMessage={ecosystem.sendBridgeMessage}
                 setView={setView}
+                addJob={addJob}
             />
         );
     }

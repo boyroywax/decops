@@ -24,7 +24,7 @@ interface SidebarProps {
 
 const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; gradient: [string, string] }[] = [
   { id: "architect", label: "Architect", icon: Sparkles, accent: "#fbbf24", gradient: ["#fbbf24", "#fb923c"] },
-  { id: "ecosystem", label: "Ecosystem", icon: Globe, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] },
+  { id: "networks", label: "Networks", icon: Globe, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] },
   { id: "agents", label: "Agents", icon: Bot, accent: "#00e5a0", gradient: ["#00e5a0", "#34d399"] },
   { id: "channels", label: "Channels", icon: ArrowLeftRight, accent: "#a78bfa", gradient: ["#a78bfa", "#c084fc"] },
   { id: "groups", label: "Groups", icon: Hexagon, accent: "#f472b6", gradient: ["#f472b6", "#fb7185"] },
@@ -128,7 +128,7 @@ export function Sidebar({ view, setView, ecosystems, messages, agents, channels,
           {(!collapsed || isMobile) && (
             <>
               {tab.label}
-              {tab.id === "ecosystem" && ecosystems.length > 0 && (
+              {tab.id === "networks" && ecosystems.length > 0 && (
                 <span style={{ marginLeft: "auto", fontSize: 9, background: "rgba(56,189,248,0.15)", color: "#38bdf8", padding: "1px 6px", borderRadius: 8 }}>{ecosystems.length}</span>
               )}
               {tab.id === "agents" && agents.length > 0 && (
