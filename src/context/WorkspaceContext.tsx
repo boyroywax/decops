@@ -74,6 +74,10 @@ export interface WorkspaceContextType {
     acCh: Channel | undefined;
     acFrom: Agent | undefined;
     acTo: Agent | undefined;
+
+    // Import/Export
+    exportWorkspace: () => Omit<import('../types').Workspace, 'metadata'>;
+    importWorkspace: (data: Omit<import('../types').Workspace, 'metadata'>) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
@@ -114,13 +118,31 @@ export function WorkspaceProvider({ children, addJob }: WorkspaceProviderProps) 
     const acFrom = acCh ? agentStore.agents.find((a) => a.id === acCh.from) : undefined;
     const acTo = acCh ? agentStore.agents.find((a) => a.id === acCh.to) : undefined;
 
+    const exportWorkspace = () => {
+        return {
+            agents: agentStore.agents,
+            channels: channelStore.channels,
+            groups: groupStore.groups,
+            messages: messageStore.messages
+        };
+    };
+
+    const importWorkspace = (data: Omit<import('../types').Workspace, 'metadata'>) => {
+        agentStore.setAgents(data.agents || []);
+        channelStore.setChannels(data.channels || []);
+        groupStore.setGroups(data.groups || []);
+        messageStore.setMessages(data.messages || []);
+    };
+
     const value: WorkspaceContextType = {
         ...agentStore,
         ...channelStore,
         ...groupStore,
         ...messageStore,
         clearWorkspace,
-        acCh, acFrom, acTo
+        acCh, acFrom, acTo,
+        exportWorkspace,
+        importWorkspace
     };
 
     return (

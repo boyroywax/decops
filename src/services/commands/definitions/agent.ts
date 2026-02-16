@@ -70,3 +70,46 @@ export const createAgentCommand: CommandDefinition = {
         return { agentId: newAgent.id, did: newAgent.did };
     },
 };
+
+export const pingAgentCommand: CommandDefinition = {
+    id: "ping_agent",
+    description: "Ping an agent to check if they are responsive.",
+    tags: ["agent", "system", "health"],
+    rbac: ["orchestrator"],
+    args: {
+        agentId: {
+            name: "agentId",
+            type: "string",
+            description: "Target Agent ID",
+            required: true
+        }
+    },
+    output: "Pong response with latency and status.",
+    execute: async (args, context) => {
+        const { agentId } = args;
+        const agent = context.workspace.agents.find(a => a.id === agentId);
+
+        if (!agent) {
+            throw new Error(`Agent ${agentId} not found`);
+        }
+
+        // Simulate network latency and response
+        const latency = Math.floor(Math.random() * 200) + 50; // 50-250ms
+        await new Promise(resolve => setTimeout(resolve, latency));
+
+        // Simulate occasional failure (5% chance)
+        const isHealthy = Math.random() > 0.05;
+
+        if (!isHealthy) {
+            throw new Error(`Agent ${agent.name} is unresponsive (timeout)`);
+        }
+
+        return {
+            agentId,
+            name: agent.name,
+            status: "online",
+            latency: `${latency}ms`,
+            timestamp: new Date().toISOString()
+        };
+    }
+};

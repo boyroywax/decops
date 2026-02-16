@@ -1,70 +1,103 @@
-import { useState } from "react";
-import type { ArchPhase, DeployProgress, MeshConfig, JobRequest } from "../types";
-import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, GROUP_COLORS } from "../constants";
-import { generateDID, generateKeyPair, generateGroupDID } from "../utils/identity";
-import { generateMeshConfig } from "../services/ai";
-import { callAgentAI } from "../services/ai";
+import { useState, useEffect } from "react";
+import type { ArchPhase, DeployProgress, MeshConfig, JobRequest, Job } from "../types";
 
-
-
-export function useArchitect(addLog: (msg: string) => void, addJob: (job: JobRequest) => void) {
+export function useArchitect(addLog: (msg: string) => void, addJob: (job: JobRequest) => Job | void, jobs?: Job[]) {
   const [archPrompt, setArchPrompt] = useState("");
   const [archGenerating, setArchGenerating] = useState(false);
   const [archPreview, setArchPreview] = useState<MeshConfig | null>(null);
   const [archError, setArchError] = useState<string | null>(null);
   const [archPhase, setArchPhase] = useState<ArchPhase>("input");
   const [deployProgress, setDeployProgress] = useState<DeployProgress>({ step: "", count: 0, total: 0 });
+  const [archJobId, setArchJobId] = useState<string | null>(null);
+
+  // Watch for job completion if we have an active architect job
+  useEffect(() => {
+    if (!archJobId || !jobs) return;
+
+    const job = jobs.find(j => j.id === archJobId);
+    if (!job) return;
+
+    if (job.status === "completed" && job.result) {
+      try {
+        // The result is the config object (or stringified? JobExecutor usually stores whatever is returned)
+        // If it's an object, great. If string, parse it.
+        // But wait, Job result type is usually string in previous code?
+        // Let's assume it might be an object if we returned it from execute.
+        // Check Job type definition? assuming generic or string/object.
+        // "result" in Job interface is string.
+        // So execute result is probably JSON.stringified?
+        // "JobExecutor" usually handles this.
+        // Let's assume it is stored as is or we need to handle parsing if string.
+
+        let config: MeshConfig;
+        if (typeof job.result === 'string') {
+          // Check if it looks like JSON or just a message
+          if (job.result.startsWith('{')) {
+            config = JSON.parse(job.result);
+          } else {
+            throw new Error("Invalid job result format");
+          }
+        } else {
+          config = job.result as unknown as MeshConfig;
+        }
+
+        if (!config.agents || !config.channels) {
+          throw new Error("Invalid mesh config structure");
+        }
+
+        setArchPreview(config);
+        setArchPhase("preview");
+        setArchGenerating(false);
+        setArchJobId(null);
+        addLog(`Architect: Job completed. Generated ${config.agents.length} agents.`);
+      } catch (e) {
+        setArchError("Failed to parse architect result");
+        setArchGenerating(false);
+        setArchJobId(null);
+        addLog(`Architect error: Failed to parse result`);
+      }
+    } else if (job.status === "failed") {
+      setArchError(job.result || "Job failed");
+      setArchGenerating(false);
+      setArchJobId(null);
+      addLog(`Architect job failed: ${job.result}`);
+    }
+  }, [jobs, archJobId, addLog]);
 
   const generateNetwork = async (description: string) => {
     setArchGenerating(true);
     setArchError(null);
     setArchPreview(null);
     setArchPhase("input");
-    addLog(`Architect: generating mesh for "${description.slice(0, 50)}…"`);
-    try {
-      const config = await generateMeshConfig(description);
-      if (!config.agents || !Array.isArray(config.agents) || config.agents.length === 0) {
-        throw new Error("No agents in config");
-      }
-      if (!config.channels || !Array.isArray(config.channels)) {
-        throw new Error("No channels in config");
-      }
-      setArchPreview(config);
-      setArchPhase("preview");
-      addLog(`Architect: generated ${config.agents.length} agents, ${config.channels.length} channels, ${config.groups?.length || 0} groups`);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setArchError(message);
-      addLog(`Architect error: ${message}`);
+    addLog(`Architect: Queuing generation job for "${description.slice(0, 50)}…"`);
+
+    // Create the job
+    const job = addJob({
+      type: "prompt_architect",
+      request: { prompt: description }
+    });
+
+    if (job && typeof job === 'object' && 'id' in job) {
+      setArchJobId(job.id);
+    } else {
+      // Fallback if addJob doesn't return ID (shouldn't happen with our fix)
+      setArchError("Failed to queue architect job");
+      setArchGenerating(false);
     }
-    setArchGenerating(false);
   };
 
   const deployNetwork = async () => {
     if (!archPreview) return;
     setArchPhase("deploying");
 
-    // Instead of executing logic here, queue a job!
     if (addJob) {
       addJob({
         type: "deploy_network",
         request: { config: archPreview }
       });
 
-      // Optimistic / UI updates
-      // We can mimic progress or just wait for job completion.
-      // For now, let's just set phase to done after a short delay or rely on logs?
-      // The original code had detailed progress updates (setDeployProgress).
-      // The Job execution (in App.tsx) doesn't update 'deployProgress' state in this hook.
-      // That's a trade-off. We lose granular client-side progress bars unless we wire job progress events.
-      // However, the logs from the job will stream in.
-
-      // Let's set a generic "Deploying via Job..." message.
       setDeployProgress({ step: "Queued for deployment...", count: 0, total: 100 });
 
-      // We can reset phase to "done" immediately or after a timeout?
-      // Ideally we reset when we see the job finish. But hooks are decoupled.
-      // Let's just set it to done to clear the UI blocking state, assuming job handles it.
       setTimeout(() => {
         setArchPhase("done");
         setDeployProgress({ step: "Deployment Job Started", count: 100, total: 100 });
@@ -81,6 +114,7 @@ export function useArchitect(addLog: (msg: string) => void, addJob: (job: JobReq
     setArchError(null);
     setArchPhase("input");
     setDeployProgress({ step: "", count: 0, total: 0 });
+    setArchJobId(null);
   };
 
   return {

@@ -241,5 +241,7 @@ export function ViewSwitcher({
         );
     }
 
+
+
     return null;
 }

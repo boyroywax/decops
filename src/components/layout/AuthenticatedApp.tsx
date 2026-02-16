@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Compass } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import type { ViewId } from "../../types";
@@ -15,9 +15,19 @@ import { useJobCatalog } from "../../hooks/useJobCatalog";
 import { ViewSwitcher } from "./ViewSwitcher";
 import { useJobExecutor } from "../../hooks/useJobExecutor";
 
-export function AuthenticatedApp() {
+import { useAutomations } from "../../context/AutomationsContext";
+import { EcosystemContext } from "../../context/EcosystemContext";
+import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
+
+
+
+interface AuthenticatedAppProps {
+  notebook: ReturnType<typeof useNotebook>;
+}
+
+export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   const [view, setViewRaw] = useState<ViewId>("architect");
-  const { entries: notebookEntries, addEntry: addNotebookEntry, addLog, clearNotebook, exportNotebook } = useNotebook();
+  const { entries: notebookEntries, addEntry: addNotebookEntry, addLog, clearNotebook, exportNotebook } = notebook;
 
   // Wrap setView to track navigation in Notebook
   const setView = useCallback((v: ViewId) => {
@@ -35,12 +45,102 @@ export function AuthenticatedApp() {
   const {
     jobs, addJob, updateJobStatus, addArtifact, removeJob, clearJobs,
     allArtifacts, importArtifact, removeArtifact,
-    isPaused, toggleQueuePause, stopJob, reorderQueue
+    isPaused, toggleQueuePause, stopJob, reorderQueue, updateJob,
+    setJobs, setStandaloneArtifacts
   } = useJobsContext();
 
   const { savedJobs, saveJob, deleteJob } = useJobCatalog();
   const workspace = useWorkspaceContext();
-  const architect = useArchitect(addLog, addJob);
+  const architect = useArchitect(addLog, addJob, jobs);
+  const automations = useAutomations();
+
+  // Workspace Management Logic
+  const {
+    workspaces, activeWorkspaceId, setActiveWorkspaceId, createWorkspace, saveWorkspace, loadWorkspace, deleteWorkspace, duplicateWorkspace
+  } = useWorkspaceManager();
+
+  const handleSwitchWorkspace = async (id: string) => {
+    if (id === activeWorkspaceId) return;
+
+    // Save Current
+    if (activeWorkspaceId) {
+      const currentData = workspace.exportWorkspace();
+      const currentMeta = workspaces.find(w => w.id === activeWorkspaceId);
+      if (currentMeta) {
+        // Filter out transition jobs to prevent loops on reload
+        const jobsToSave = jobs.filter(j => j.type !== 'switch_workspace' && j.type !== 'create_workspace');
+
+        saveWorkspace({
+          metadata: currentMeta,
+          ...currentData,
+          jobs: jobsToSave,
+          artifacts: allArtifacts,
+          automations: automations.automations || [],
+          automationRuns: automations.runs
+        });
+      }
+    }
+
+    // Load New
+    const newWorkspace = loadWorkspace(id);
+    if (newWorkspace) {
+      workspace.clearWorkspace();
+      clearJobs();
+      if (automations.setAutomations) automations.setAutomations([]);
+      if (automations.setRuns) automations.setRuns([]);
+
+      workspace.importWorkspace(newWorkspace);
+      if (newWorkspace.jobs && setJobs) setJobs(newWorkspace.jobs);
+      if (newWorkspace.artifacts && setStandaloneArtifacts) setStandaloneArtifacts(newWorkspace.artifacts);
+      if (newWorkspace.automations && automations.setAutomations) automations.setAutomations(newWorkspace.automations);
+      if (newWorkspace.automationRuns && automations.setRuns) automations.setRuns(newWorkspace.automationRuns);
+
+      setActiveWorkspaceId(id);
+    }
+  };
+
+  const handleCreateWorkspace = async (name: string, description?: string) => {
+    // Save Current
+    if (activeWorkspaceId) {
+      const currentData = workspace.exportWorkspace();
+      const currentMeta = workspaces.find(w => w.id === activeWorkspaceId);
+      if (currentMeta) {
+        // Filter out transition jobs to prevent loops on reload
+        const jobsToSave = jobs.filter(j => j.type !== 'switch_workspace' && j.type !== 'create_workspace');
+
+        saveWorkspace({
+          metadata: currentMeta,
+          ...currentData,
+          jobs: jobsToSave,
+          artifacts: allArtifacts,
+          automations: automations.automations || [],
+          automationRuns: automations.runs
+        });
+      }
+    }
+
+    const newWs = createWorkspace(name, description);
+
+    // Clear Current
+    workspace.clearWorkspace();
+    clearJobs();
+    if (automations.setAutomations) automations.setAutomations([]);
+    if (automations.setRuns) automations.setRuns([]);
+
+    return newWs.metadata.id;
+  };
+
+  const workspaceManager = useMemo(() => ({
+    list: () => workspaces,
+    create: handleCreateWorkspace,
+    switch: handleSwitchWorkspace,
+    delete: async (id: string) => deleteWorkspace(id),
+    duplicate: async (sourceId: string, name?: string) => {
+      const id = duplicateWorkspace(sourceId, name);
+      return id;
+    },
+    currentId: activeWorkspaceId
+  }), [workspaces, activeWorkspaceId, handleCreateWorkspace, handleSwitchWorkspace, duplicateWorkspace]);
 
   const ecosystem = useEcosystem({
     addLog,
@@ -60,6 +160,7 @@ export function AuthenticatedApp() {
     jobs,
     addJob,
     updateJobStatus,
+    updateJob,
     addArtifact,
     removeJob,
     clearJobs,
@@ -71,12 +172,16 @@ export function AuthenticatedApp() {
     savedJobs,
     saveJob,
     deleteJob,
+    setJobs,
+    setStandaloneArtifacts,
     workspace,
     user,
     architect,
     ecosystem,
     addLog,
-    addNotebookEntry
+    addNotebookEntry,
+    automations,
+    workspaceManager
   });
 
   // Responsive state
@@ -113,66 +218,73 @@ export function AuthenticatedApp() {
 
       <Header user={user} logout={logout} setView={setView} />
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative", flexDirection: isMobile ? "column" : "row" }}>
-        <div style={{
-          position: "relative",
-          zIndex: 20,
-          height: isMobile ? "auto" : "100%",
-          width: isMobile ? "100%" : "auto",
-        }}>
-          <Sidebar
-            view={view}
-            setView={setView}
-            ecosystems={ecosystem.ecosystems}
-            messages={workspace.messages}
-            collapsed={sidebarCollapsed}
-            setCollapsed={setSidebarCollapsed}
-            isMobile={isMobile}
-          />
+      <EcosystemContext.Provider value={ecosystem}>
+        <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative", flexDirection: isMobile ? "column" : "row" }}>
+          <div style={{
+            position: "relative",
+            zIndex: 20,
+            height: isMobile ? "auto" : "100%",
+            width: isMobile ? "100%" : "auto",
+          }}>
+            <Sidebar
+              view={view}
+              setView={setView}
+              ecosystems={ecosystem.ecosystems}
+              messages={workspace.messages}
+              agents={workspace.agents}
+              channels={workspace.channels}
+              groups={workspace.groups}
+              collapsed={sidebarCollapsed}
+              setCollapsed={setSidebarCollapsed}
+              isMobile={isMobile}
+            />
+          </div>
+
+          <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
+            <ViewSwitcher
+              view={view}
+              setView={setView}
+              workspace={workspace}
+              architect={architect}
+              ecosystem={ecosystem}
+              allArtifacts={allArtifacts}
+              importArtifact={importArtifact}
+              removeArtifact={removeArtifact}
+              notebookEntries={notebookEntries}
+              clearNotebook={clearNotebook}
+              exportNotebook={exportNotebook}
+              addNotebookEntry={addNotebookEntry}
+            />
+          </main>
         </div>
 
-        <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
-          <ViewSwitcher
-            view={view}
-            setView={setView}
-            workspace={workspace}
-            architect={architect}
-            ecosystem={ecosystem}
-            allArtifacts={allArtifacts}
-            importArtifact={importArtifact}
-            removeArtifact={removeArtifact}
-            notebookEntries={notebookEntries}
-            clearNotebook={clearNotebook}
-            exportNotebook={exportNotebook}
-            addNotebookEntry={addNotebookEntry}
-          />
-        </main>
-      </div>
+        <Footer
+          agents={workspace.agents}
+          channels={workspace.channels}
+          groups={workspace.groups}
+          messages={workspace.messages}
 
-      <Footer
-        agents={workspace.agents}
-        channels={workspace.channels}
-        groups={workspace.groups}
-        messages={workspace.messages}
-        ecosystems={ecosystem.ecosystems}
-        bridges={ecosystem.bridges}
-        addLog={addLog}
-        setView={setView}
-        jobs={jobs}
-        addJob={addJob}
-        isPaused={isPaused}
-        toggleQueuePause={toggleQueuePause}
-        stopJob={stopJob}
-        reorderQueue={reorderQueue}
-        removeJob={removeJob}
-        clearJobs={clearJobs}
-        activityPulse={activityPulse}
-        isMobile={isMobile}
-        savedJobs={savedJobs}
-        saveJob={saveJob}
-        deleteJob={deleteJob}
+          ecosystems={ecosystem.ecosystems}
+          bridges={ecosystem.bridges}
+          ecosystem={ecosystem}
+          addLog={addLog}
+          setView={setView}
+          jobs={jobs}
+          addJob={addJob}
+          isPaused={isPaused}
+          toggleQueuePause={toggleQueuePause}
+          stopJob={stopJob}
+          reorderQueue={reorderQueue}
+          removeJob={removeJob}
+          clearJobs={clearJobs}
+          activityPulse={activityPulse}
+          isMobile={isMobile}
+          savedJobs={savedJobs}
+          saveJob={saveJob}
+          deleteJob={deleteJob}
 
-      />
+        />
+      </EcosystemContext.Provider>
 
       <style>{`
         :root {

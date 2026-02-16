@@ -54,7 +54,7 @@ export const loadEcosystemCommand: CommandDefinition = {
     args: {
         id: {
             name: "id",
-            type: "string",
+            type: "network",
             description: "ID of the ecosystem to load",
             required: true
         }
@@ -103,7 +103,7 @@ export const deleteEcosystemCommand: CommandDefinition = {
     args: {
         id: {
             name: "id",
-            type: "string",
+            type: "network",
             description: "ID of the ecosystem to delete",
             required: true
         }

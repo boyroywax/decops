@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job } from "../../types";
-import { Bot, ArrowLeftRight, Hexagon, MessageSquare, Globe, Network as NetworkIcon, MessageCircle, ListTodo, Zap, WifiOff } from "lucide-react";
+import { Bot, ArrowLeftRight, Hexagon, MessageSquare, Globe, Network as NetworkIcon, MessageCircle, ListTodo, Zap, WifiOff, Terminal } from "lucide-react";
 import { ChatPanel } from "./ChatPanel";
-import { JobsPanel } from "./JobsPanel";
+import { ActionManager } from "../actions/ActionManager";
 
+// Update interface
 interface FooterProps {
     agents: Agent[];
     channels: Channel[];
@@ -11,6 +12,7 @@ interface FooterProps {
     messages: Message[];
     ecosystems: Network[];
     bridges: Bridge[];
+    ecosystem?: any; // Automated ecosystem object
     addLog?: (msg: string) => void;
     setView: (view: ViewId) => void;
     jobs: Job[];
@@ -30,7 +32,7 @@ interface FooterProps {
 
 type PanelMode = "none" | "chat" | "jobs";
 
-export function Footer({ agents, channels, groups, messages, ecosystems, bridges, addLog, setView, jobs, removeJob, clearJobs, addJob, savedJobs, saveJob, deleteJob, ...jobsProps }: FooterProps) {
+export function Footer({ agents, channels, groups, messages, ecosystems, bridges, ecosystem, addLog, setView, jobs, removeJob, clearJobs, addJob, savedJobs, saveJob, deleteJob, ...jobsProps }: FooterProps) {
     const [panel, setPanel] = useState<PanelMode>("none");
     const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -79,25 +81,19 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
             {panel === "chat" && (
                 <ChatPanel
                     context={workspaceContext}
+                    ecosystem={ecosystem}
                     onClose={() => setPanel("none")}
                     addLog={addLog}
                 />
             )}
 
             {panel === "jobs" && (
-                <JobsPanel
-                    jobs={jobs}
+                <ActionManager
                     onClose={() => setPanel("none")}
-                    removeJob={removeJob}
-                    clearJobs={clearJobs}
-                    isPaused={jobsProps.isPaused}
-                    toggleQueuePause={jobsProps.toggleQueuePause}
-                    stopJob={jobsProps.stopJob}
-                    reorderQueue={jobsProps.reorderQueue}
+                    isMobile={jobsProps.isMobile}
                     savedJobs={savedJobs}
                     saveJob={saveJob}
                     deleteJob={deleteJob}
-                    addJob={addJob}
                 />
             )}
 
@@ -180,8 +176,8 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                             transition: "all 0.15s",
                         }}
                     >
-                        <ListTodo size={10} />
-                        Jobs
+                        <Terminal size={10} />
+                        Actions
                         {jobs.filter(j => j.status === 'running' || j.status === 'queued').length > 0 && (
                             <span style={{
                                 fontSize: 9,

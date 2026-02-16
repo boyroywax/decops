@@ -1,5 +1,5 @@
 import { registry } from "./registry";
-import { createAgentCommand } from "./definitions/agent";
+import { createAgentCommand, pingAgentCommand } from "./definitions/agent";
 import { sendMessageCommand } from "./definitions/messaging";
 import { createChannelCommand } from "./definitions/channel";
 import { createGroupCommand } from "./definitions/group";
@@ -63,9 +63,17 @@ import {
     deleteJobDefinitionCommand
 } from "./definitions/jobs";
 
-export function registerCommands() {
+import { createWorkspaceCommand, switchWorkspaceCommand, deleteWorkspaceCommand, duplicateWorkspaceCommand } from "./definitions/workspace";
+
+export function initializeRegistry() {
+    // Workspace
+    registry.register(createWorkspaceCommand);
+    registry.register(switchWorkspaceCommand);
+    registry.register(deleteWorkspaceCommand);
+    registry.register(duplicateWorkspaceCommand);
     // Register Commands
     registry.register(createAgentCommand);
+    registry.register(pingAgentCommand);
     registry.register(sendMessageCommand);
     registry.register(createChannelCommand);
     registry.register(createGroupCommand);

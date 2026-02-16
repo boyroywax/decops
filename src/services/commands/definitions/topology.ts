@@ -7,10 +7,10 @@ export const createBridgeCommand: CommandDefinition = {
     tags: ["topology", "bridge", "create"],
     rbac: ["orchestrator", "builder"],
     args: {
-        from_network: { name: "from_network", type: "string", description: "Source Network ID", required: true },
-        to_network: { name: "to_network", type: "string", description: "Target Network ID", required: true },
-        from_agent: { name: "from_agent", type: "string", description: "Source Agent ID", required: true },
-        to_agent: { name: "to_agent", type: "string", description: "Target Agent ID", required: true },
+        from_network: { name: "from_network", type: "network", description: "Source Network ID", required: true },
+        to_network: { name: "to_network", type: "network", description: "Target Network ID", required: true },
+        from_agent: { name: "from_agent", type: "agent", description: "Source Agent ID", required: true },
+        to_agent: { name: "to_agent", type: "agent", description: "Target Agent ID", required: true },
         type: { name: "type", type: "string", description: "Type: data, task, consensus", required: false, defaultValue: "data" }
     },
     output: "Details of the created bridge.",

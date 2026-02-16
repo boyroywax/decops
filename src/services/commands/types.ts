@@ -1,7 +1,7 @@
 
 import type { RoleId, JobRequest } from "../../types";
 
-export type CommandArgType = "string" | "number" | "boolean" | "object" | "array";
+export type CommandArgType = "string" | "number" | "boolean" | "object" | "array" | "group" | "agent" | "channel" | "network";
 
 export interface CommandArg {
     name: string;
@@ -46,6 +46,10 @@ export interface CommandContext {
         getCatalog: () => any[];
         saveDefinition: (def: any) => void;
         deleteDefinition: (id: string) => void;
+        // Persistence
+        setJobs?: (jobs: any[]) => void;
+        setStandaloneArtifacts?: (artifacts: any[]) => void;
+        clearJobs?: () => void;
     };
     ecosystem: {
         ecosystems: any[];
@@ -68,6 +72,20 @@ export interface CommandContext {
     architect: {
         generateNetwork: (prompt: string) => void;
         deployNetwork: () => void;
+    };
+    automations: {
+        runAutomation: (id: string) => Promise<void>;
+        runs: any[];
+        setAutomations?: (automations: any[]) => void;
+        setRuns?: (runs: any[]) => void;
+    };
+    workspaceManager?: {
+        list: () => any[];
+        create: (name: string, description?: string) => Promise<string>;
+        switch: (id: string) => Promise<void>;
+        delete: (id: string) => Promise<void>;
+        duplicate: (sourceId: string, name?: string) => Promise<string>;
+        currentId: string | null;
     };
 }
 

@@ -7,14 +7,23 @@ import { ANTHROPIC_MODELS } from "../../constants";
 import MessageBubble from "../chat/MessageBubble";
 import { loadConversations, saveConversations, loadActiveId, saveActiveId, makeId, deriveTitle } from "../chat/utils";
 import type { Conversation } from "../chat/types";
+import { useCommandContext } from "../../hooks/useCommandContext";
+import { useJobsContext } from "../../context/JobsContext";
+import { useArchitect } from "../../hooks/useArchitect";
+import { useEcosystem } from "../../hooks/useEcosystem"; // This might not be needed if ecosystem is passed as prop
+import { useAuth } from "../../context/AuthContext";
+import { registry } from "../../services/commands/init"; // This import is not used directly here, but might be elsewhere
+import { registry as commandRegistry } from "../../services/commands/registry";
+import { useWorkspaceContext } from "../../context/WorkspaceContext";
 
 interface ChatPanelProps {
     context: WorkspaceContext;
+    ecosystem?: any; // Automated ecosystem object
     onClose: () => void;
     addLog?: (msg: string) => void;
 }
 
-export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
+export function ChatPanel({ context, ecosystem, onClose, addLog }: ChatPanelProps) {
     const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
     const [activeId, setActiveId] = useState<string | null>(loadActiveId);
     const [input, setInput] = useState("");
@@ -79,6 +88,32 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
         }
     }, [activeId, conversations]);
 
+    // Build Commmand Context for CLI
+    const { user } = useAuth();
+    const jobs = useJobsContext();
+    const architect = useArchitect(addLog, jobs.addJob, jobs.jobs);
+
+    // We only have access to React Context "workspace" via imported hook, NOT via prop.
+    // The prop `context` is `WorkspaceContext` interface (data only), not the Hook result.
+    // BUT `useCommandContext` expects `WorkspaceContextType` which has setters.
+    // We need to use the hook `useWorkspaceContext` here to get full context!
+    // The prop `context` passed from Footer is just a data snapshot used for AI context.
+
+    const workspaceCtx = useWorkspaceContext(); // This gives us setters too!
+
+    // Determine which ecosystem object to use. 
+    // If passed via props, use it. usage of useEcosystem inside ChatPanel would be wrong.
+    // If not passed, we can't run ecosystem commands safely.
+
+    const commandContext = useCommandContext({
+        workspace: workspaceCtx,
+        user,
+        jobs,
+        ecosystem: ecosystem || { ecosystems: [], bridges: [] }, // Fallback if missing, some cmds might fail
+        architect,
+        addLog: addLog || (() => { })
+    });
+
     const send = useCallback(async () => {
         const text = input.trim();
         if (!text || loading) return;
@@ -107,17 +142,58 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
         setLoading(true);
 
         try {
-            const response = await chatWithWorkspace(text, currentMessages, context);
-            const finalMsgs = [...updatedMsgs, { role: "assistant" as const, content: response }];
-            updateConversation(currentId, finalMsgs);
-            addLog?.(`Chat: "${text.slice(0, 40)}${text.length > 40 ? "…" : ""}"`);
+            // CLI INTERCEPTION
+            if (text.startsWith("/")) {
+                const part1 = text.split(" ")[0];
+                const commandId = part1.slice(1); // remove /
+                const argsString = text.slice(part1.length).trim();
+
+                let args: any = {};
+                if (argsString) {
+                    // 1. Try JSON
+                    if (argsString.startsWith("{")) {
+                        try {
+                            args = JSON.parse(argsString);
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
+                    // 2. Try Key=Value if empty (simple regex)
+                    if (Object.keys(args).length === 0 && argsString.includes("=")) {
+                        const regex = /(\w+)=(?:"([^"]*)"|(\S+))/g;
+                        let match;
+                        while ((match = regex.exec(argsString)) !== null) {
+                            const key = match[1];
+                            const value = match[2] || match[3];
+                            args[key] = value;
+                        }
+                    }
+                    // 3. If still empty and string exists, maybe it's a "query" or default arg?
+                    // Some commands might take a single string.
+                    // But our registry expects named args.
+                    // We'll leave it empty if parsing failed, or put raw string in "input"?
+                }
+
+                addLog?.(`CLI: Executing /${commandId}`);
+
+                // Execute
+                await commandRegistry.execute(commandId, args, commandContext);
+
+                const successMsg = [...updatedMsgs, { role: "assistant" as const, content: `✅ Command \`/${commandId}\` executed successfully.` }];
+                updateConversation(currentId, successMsg);
+            } else {
+                const response = await chatWithWorkspace(text, currentMessages, context);
+                const finalMsgs = [...updatedMsgs, { role: "assistant" as const, content: response }];
+                updateConversation(currentId, finalMsgs);
+                addLog?.(`Chat: "${text.slice(0, 40)}${text.length > 40 ? "…" : ""}"`);
+            }
         } catch (err) {
             const errMsg = [...updatedMsgs, { role: "assistant" as const, content: `Error: ${err instanceof Error ? err.message : String(err)}` }];
             updateConversation(currentId, errMsg);
         } finally {
             setLoading(false);
         }
-    }, [input, loading, activeId, conversations, context, addLog, updateConversation]);
+    }, [input, loading, activeId, conversations, context, addLog, updateConversation, commandContext]);
 
     const [height, setHeight] = useState(400);
     const [isResizing, setIsResizing] = useState(false);

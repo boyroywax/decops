@@ -1,7 +1,9 @@
-import { Hexagon, Zap, LogOut } from "lucide-react";
+import { useState } from "react";
+import { Hexagon, Zap, LogOut, Grid } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import type { ViewId } from "../../types";
 import { GemAvatar } from "../shared/GemAvatar";
+import { WorkspaceManagerModal } from "./WorkspaceManagerModal";
 
 interface HeaderProps {
   user?: any;
@@ -10,8 +12,10 @@ interface HeaderProps {
 }
 
 export function Header({ user, logout, setView }: HeaderProps) {
+  const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
+
   return (
-    <header style={{ padding: "10px 20px", borderBottom: "1px solid rgba(0,229,160,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,229,160,0.02)" }}>
+    <header style={{ padding: "10px 20px", borderBottom: "1px solid rgba(0,229,160,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,229,160,0.02)", position: 'relative' }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #00e5a0 0%, #0a0a0f 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Hexagon size={18} color="#0a0a0f" strokeWidth={2.5} />
@@ -24,6 +28,29 @@ export function Header({ user, logout, setView }: HeaderProps) {
 
       {user && (
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setShowWorkspaceModal(!showWorkspaceModal)}
+              style={{
+                background: showWorkspaceModal ? "rgba(0, 229, 160, 0.1)" : "none",
+                border: showWorkspaceModal ? "1px solid rgba(0, 229, 160, 0.3)" : "1px solid rgba(255,255,255,0.06)",
+                borderRadius: 8,
+                width: 38,
+                height: 38,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.15s",
+                color: showWorkspaceModal ? "#00e5a0" : "#71717a"
+              }}
+              title="Workspace Manager"
+            >
+              <Grid size={18} />
+            </button>
+            {showWorkspaceModal && <WorkspaceManagerModal onClose={() => setShowWorkspaceModal(false)} />}
+          </div>
+
           <button
             onClick={() => setView?.("profile")}
             style={{

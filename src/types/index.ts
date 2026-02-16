@@ -17,7 +17,8 @@ export type ViewId =
   | "data"
   | "profile"
   | "artifacts"
-  | "activity";
+  | "activity"
+  | "actions";
 
 export type NotebookCategory = "action" | "output" | "navigation" | "system" | "narrative";
 
@@ -384,6 +385,10 @@ export interface JobStep {
   id: string;
   commandId: string;
   args: Record<string, any>;
+  name?: string;
+  status?: "pending" | "running" | "completed" | "failed" | "skipped";
+  result?: string;
+  condition?: string; // JS expression string
 }
 
 export interface JobDefinition {
@@ -467,7 +472,7 @@ export type JobRequest =
   | { type: "create_bridge"; request: CreateBridgeRequest }
   | { type: "reset_workspace"; request: ResetWorkspaceRequest }
   // Fallback for dynamic/other jobs
-  | { type: string; request: Record<string, any> };
+  | { type: string; request: Record<string, any>; steps?: JobStep[]; mode?: 'serial' | 'parallel' };
 
 export interface Job {
   id: string;
@@ -488,3 +493,29 @@ export interface Job {
   mode?: 'serial' | 'parallel';
 }
 
+
+export interface WorkspaceMetadata {
+  id: string;
+  name: string;
+  created: number;
+  lastModified: number;
+  description?: string;
+  stats?: {
+    agentCount: number;
+    channelCount: number;
+    groupCount: number;
+    networkCount: number;
+  };
+}
+
+export interface Workspace {
+  metadata: WorkspaceMetadata;
+  agents: Agent[];
+  channels: Channel[];
+  groups: Group[];
+  messages: Message[];
+  jobs?: Job[];
+  artifacts?: JobArtifact[];
+  automations?: any[]; // AutomationDefinition
+  automationRuns?: any[]; // AutomationRun
+}

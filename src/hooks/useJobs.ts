@@ -17,7 +17,7 @@ export function useJobs() {
             ...jobData,
         };
         setJobs((prev) => [newJob, ...prev]);
-
+        return newJob;
     }, []);
 
     const updateJobStatus = useCallback((id: string, status: JobStatus, result?: string) => {
@@ -147,6 +147,9 @@ export function useJobs() {
         toggleQueuePause,
         stopJob,
         updateJob,
-        reorderQueue
+        reorderQueue,
+        setJobs,
+        setStandaloneArtifacts,
+        standaloneArtifacts
     };
 }

@@ -2,7 +2,7 @@
 import type { CommandDefinition, CommandContext } from "../types";
 import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, GROUP_COLORS } from "../../../constants";
 import { generateDID, generateKeyPair, generateGroupDID } from "../../../utils/identity";
-import { callAgentAI } from "../../ai";
+import { callAgentAI, generateMeshConfig } from "../../ai";
 
 export const promptArchitectCommand: CommandDefinition = {
     id: "prompt_architect",
@@ -17,12 +17,12 @@ export const promptArchitectCommand: CommandDefinition = {
             required: true
         }
     },
-    output: "Confirmation that generation has started.",
-    outputSchema: { type: "object", properties: { success: { type: "boolean" }, message: { type: "string" } } },
+    output: "The generated MeshConfig object.",
+    outputSchema: { type: "object", properties: { agents: { type: "array" }, channels: { type: "array" } } },
     execute: async (args, context: CommandContext) => {
         context.workspace.addLog(`Architect triggered with prompt: ${args.prompt}`);
-        await context.architect.generateNetwork(args.prompt);
-        return { success: true, message: "Architect generation started." };
+        const config = await generateMeshConfig(args.prompt);
+        return config;
     }
 };
 

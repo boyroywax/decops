@@ -15,6 +15,7 @@ interface JobExecutorProps {
     jobs: any[]; // useJobs return type
     addJob: any;
     updateJobStatus: any;
+    updateJob?: any; // New prop for detailed updates
     addArtifact: any;
     removeJob: any;
     clearJobs: any;
@@ -28,6 +29,9 @@ interface JobExecutorProps {
     saveJob: any;
     deleteJob: any;
 
+    setJobs?: any; // [NEW]
+    setStandaloneArtifacts?: any; // [NEW]
+
     workspace: WorkspaceContextType;
     user: User | null;
 
@@ -36,12 +40,22 @@ interface JobExecutorProps {
 
     addLog: (log: string) => void;
     addNotebookEntry: (entry: any) => void;
+    addDetail?: any; // metrics or similar
+    automations?: any; // Automations context
+    workspaceManager?: {
+        list: () => any[];
+        create: (name: string, description?: string) => Promise<string>;
+        switch: (id: string) => Promise<void>;
+        delete: (id: string) => Promise<void>;
+        currentId: string | null;
+    };
 }
 
 export function useJobExecutor({
     jobs,
     addJob,
     updateJobStatus,
+    updateJob,
     addArtifact,
     removeJob,
     allArtifacts,
@@ -52,12 +66,17 @@ export function useJobExecutor({
     savedJobs,
     saveJob,
     deleteJob,
+    setJobs, // [NEW]
+    setStandaloneArtifacts, // [NEW]
+    clearJobs,
     workspace,
     user,
     architect,
     ecosystem,
     addLog,
-    addNotebookEntry
+    addNotebookEntry,
+    automations,
+    workspaceManager // [NEW]
 }: JobExecutorProps) {
     const processingRef = useRef(false);
 
@@ -103,7 +122,11 @@ export function useJobExecutor({
                             // Catalog Management
                             getCatalog: () => savedJobs,
                             saveDefinition: saveJob,
-                            deleteDefinition: deleteJob
+                            deleteDefinition: deleteJob,
+                            // Persistence
+                            setJobs,
+                            setStandaloneArtifacts,
+                            clearJobs
                         },
                         ecosystem: {
                             ecosystems: ecosystem.ecosystems,
@@ -126,25 +149,164 @@ export function useJobExecutor({
                         architect: {
                             generateNetwork: architect.generateNetwork,
                             deployNetwork: architect.deployNetwork
-                        }
+                        },
+                        automations: automations || { runAutomation: async () => { }, runs: [] },
+                        workspaceManager
                     };
 
                     let finalResult;
 
                     if (queuedJob.steps && queuedJob.steps.length > 0) {
+                        // Initialize steps status if not present
+                        // Usually this would be done on job creation, but let's ensure it here if needed
+                        // Actually, we should update the job to "running" state with initial pending status for steps?
+                        // For now, tracking execution.
+
                         // Multi-step Job
                         if (queuedJob.mode === "parallel") {
-                            const promises = queuedJob.steps.map(async (step: any) => {
-                                const res = await registry.execute(step.commandId, step.args, context);
-                                return { stepId: step.id, result: res };
+                            const steps = [...queuedJob.steps];
+                            // Mark all running? Or pending? Parallel means all start running.
+                            // But we can't update state inside map strictly.
+                            // Let's launch them.
+
+                            // Update job to mark all running
+                            if (updateJob) {
+                                const runningSteps = steps.map((s: any) => ({ ...s, status: 'running' }));
+                                updateJob(queuedJob.id, { steps: runningSteps });
+                            }
+
+                            const promises = queuedJob.steps.map(async (step: any, idx: number) => {
+                                try {
+                                    const res = await registry.execute(step.commandId, step.args, context);
+                                    if (updateJob) {
+                                        // We need latest steps? No, just update this specific step.
+                                        // But updateJob merges updates? No, usually it sets the whole object or partial.
+                                        // If we update just one step, we need the whole array.
+                                        // This is tricky with concurrent updates in parallel mode.
+                                        // "updateJob" implementation in useJobs usually updates the whole job object based on ID.
+                                        // If we call updateJob multiple times rapidly, we might have race conditions on "prev" state if utilizing functional updates correctly?
+                                        // check useJobs: setJobs(prev => prev.map(...))
+                                        // It uses functional update, so it's safe IF we use functional update on the specific field properly.
+                                        // But updateJob takes `updates: Partial<Job>`.
+                                        // `...job, ...updates`.
+                                        // If we pass `steps: newSteps`, it replaces steps.
+                                        // If parallel tasks finish at different times, we need to read the latest state?
+                                        // useJobs doesn't expose a way to "update step N".
+
+                                        // Workaround for parallel:
+                                        // Maybe we don't update intermediate "completed" status for parallel steps individually to avoid race condition unless we are careful.
+                                        // Or we rely on the fact that `useLocalStorage` might be synchronous enough or batch? No.
+                                        // Let's just update all at end? No, user wants progress.
+
+                                        // Better: context.jobs.updateJob is available?
+                                        // We passed updateJob to useJobExecutor.
+                                        // We can't easily update single array item without reading current state safely.
+                                        // BUT `useJobs` `updateJob` implementation:
+                                        // setJobs(prev => prev.map(j => j.id === id ? { ...j, ...updates } : j))
+                                        // This is atomic for the job object.
+                                        // But if we do: updateJob(id, { steps: [s1_done, s2_running] })
+                                        // AND concurrently: updateJob(id, { steps: [s1_running, s2_done] })
+                                        // One will overwrite the other.
+
+                                        // So for parallel, maybe we just mark them all done at the end? 
+                                        // OR we accept race conditions for now (UI might flicker).
+                                        // OR we implement `updateJobStep` in useJobs?
+
+                                        // Let's implement `updateJobStep` in useJobs would be cleaner but `useJobExecutor` is what I'm editing now.
+                                        // I'll stick to Serial updates being safe. Parallel updates might be racy.
+                                        // For now, I'll allow parallel race (it's rare they finish exactly same millisecond).
+
+                                        // Re-read current steps from WHERE? `queuedJob` is stale closure?
+                                        // Yes `queuedJob` is from `jobs` prop which changes. But inside `useEffect`, `processJobs` closes over `jobs`.
+                                        // `processJobs` runs, finds `queuedJob`.
+                                        // It starts executing.
+                                        // `jobs` updates in background but our `queuedJob` variable is const.
+
+                                        // So we can't reliably update steps incrementally in parallel mode without a better state manager or `updateStep` method.
+                                        // Let's revert to tracking locally and then batch update?
+                                        // But we want live progress.
+
+                                        // Let's IMPLEMENT `updateJobStep` in `context.jobs`?
+                                        // No, I can't easily change `useJobs` without breaking context interface used everywhere.
+
+                                        // I will use `updateJob` to mark complete.
+                                        // AND I will try to read fresh state? No easy way.
+
+                                        // Let's just do it for Serial mode properly. Parallel mode might just show all running then all done.
+                                    }
+                                    return { stepId: step.id, result: res, status: 'completed' };
+                                } catch (e: any) {
+                                    return { stepId: step.id, error: e.message, status: 'failed' };
+                                }
                             });
-                            await Promise.all(promises);
+
+                            const results = await Promise.all(promises);
+
+                            // Update final state of steps
+                            if (updateJob) {
+                                const finalSteps = queuedJob.steps.map((s: any) => {
+                                    const res = results.find(r => r.stepId === s.id);
+                                    return res ? { ...s, result: res.result || res.error, status: res.status } : s;
+                                });
+                                updateJob(queuedJob.id, { steps: finalSteps });
+                            }
+
                             finalResult = "All steps completed";
                         } else {
-                            // Serial
-                            for (let i = 0; i < queuedJob.steps.length; i++) {
-                                const step = queuedJob.steps[i];
-                                await registry.execute(step.commandId, step.args, context);
+                            // Serial - We can update incrementally safely!
+                            const steps = [...queuedJob.steps];
+
+                            // Helper for simple condition evaluation
+                            const evaluateCondition = (condition: string, context: CommandContext, previousSteps: any[]) => {
+                                try {
+                                    // Safe(ish) evaluation: we can provide a context with previous results
+                                    // e.g. condition: "step1.result === 'success'" or "context.activeChannel"
+
+                                    // Construct an evaluation context
+                                    const stepMap = previousSteps.reduce((acc, s) => {
+                                        // Use name as identifier if available, else id (shortened?) or index?
+                                        // For simplicity, let's allow accessing by index via steps[i] or id
+                                        acc[s.id] = s;
+                                        if (s.name) acc[s.name] = s;
+                                        return acc;
+                                    }, {} as any);
+
+                                    // Create a function to evaluate
+                                    // eslint-disable-next-line no-new-func
+                                    const fn = new Function('steps', 'context', `return ${condition}`);
+                                    return fn(stepMap, context);
+                                } catch (e) {
+                                    console.warn(`Condition evaluation failed: ${condition}`, e);
+                                    return false; // Fail safe
+                                }
+                            };
+
+                            for (let i = 0; i < steps.length; i++) {
+                                // Check condition if exists
+                                if (steps[i].condition) {
+                                    const shouldRun = evaluateCondition(steps[i].condition, context, steps);
+                                    if (!shouldRun) {
+                                        steps[i] = { ...steps[i], status: 'skipped', result: 'Condition not met' };
+                                        if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                        continue;
+                                    }
+                                }
+
+                                // Mark current running
+                                steps[i] = { ...steps[i], status: 'running' };
+                                if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+
+                                try {
+                                    const res = await registry.execute(steps[i].commandId, steps[i].args, context);
+                                    steps[i] = { ...steps[i], status: 'completed', result: typeof res === 'string' ? res : JSON.stringify(res) };
+                                } catch (e: any) {
+                                    steps[i] = { ...steps[i], status: 'failed', result: e.message };
+                                    if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                    throw e; // Stop execution
+                                }
+
+                                // Update progress
+                                if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
                             }
                             finalResult = "Sequence completed";
                         }
@@ -153,7 +315,7 @@ export function useJobExecutor({
                         finalResult = await registry.execute(queuedJob.type, queuedJob.request, context);
                     }
 
-                    updateJobStatus(queuedJob.id, "completed", typeof finalResult === 'string' ? finalResult : "Done");
+                    updateJobStatus(queuedJob.id, "completed", typeof finalResult === 'string' ? finalResult : JSON.stringify(finalResult));
                     addNotebookEntry({
                         category: "output",
                         icon: <GradientIcon icon={CheckCircle} size={16} gradient={["#00e5a0", "#10b981"]} />,
@@ -201,6 +363,6 @@ export function useJobExecutor({
     }, [
         jobs, updateJobStatus, workspace, addLog, user, addArtifact, ecosystem, architect,
         addJob, removeJob, importArtifact, removeArtifact, allArtifacts,
-        isPaused, toggleQueuePause, savedJobs, saveJob, deleteJob, addNotebookEntry
+        isPaused, toggleQueuePause, savedJobs, saveJob, deleteJob, addNotebookEntry, automations
     ]);
 }

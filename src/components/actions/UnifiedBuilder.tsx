@@ -1,22 +1,41 @@
-import { useState, useCallback } from "react";
-import { Plus, X, Play, Save, Settings, ArrowUp, ArrowDown, Trash2, Search, Briefcase } from "lucide-react";
+import { useState } from "react";
+import { Plus, X, Play, Save, Settings, ArrowUp, ArrowDown, Trash2, Search, Briefcase, Clock, Zap } from "lucide-react";
 import { registry } from "../../services/commands/registry";
 import { CommandDefinition } from "../../services/commands/types";
-import { GradientIcon } from "../shared/GradientIcon";
+import { CommandArgInput } from "../automations/CommandArgInput";
 import type { JobDefinition, JobStep } from "../../types";
+import type { DeclarativeAutomationDefinition, AutomationStep } from "../../services/automations/types";
 
-interface JobCreatorProps {
-    onSave: (job: JobDefinition) => void;
-    onRun: (job: JobDefinition) => void;
+interface UnifiedBuilderProps {
+    onRunJob: (job: JobDefinition) => void;
+    onSaveAutomation: (automation: DeclarativeAutomationDefinition) => void;
     onCancel: () => void;
     initialJob?: JobDefinition | null;
+    initialAutomation?: DeclarativeAutomationDefinition | null;
 }
 
-export function JobCreator({ onSave, onRun, onCancel, initialJob }: JobCreatorProps) {
-    const [name, setName] = useState(initialJob?.name || "");
-    const [description, setDescription] = useState(initialJob?.description || "");
-    const [mode, setMode] = useState<"serial" | "parallel">(initialJob?.mode || "serial");
-    const [steps, setSteps] = useState<JobStep[]>(initialJob?.steps || []);
+type BuilderMode = "job" | "automation";
+
+export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJob, initialAutomation }: UnifiedBuilderProps) {
+    // General State
+    const [mode, setMode] = useState<BuilderMode>(initialAutomation ? "automation" : "job");
+    const [name, setName] = useState(initialJob?.name || initialAutomation?.name || "");
+    const [description, setDescription] = useState(initialJob?.description || initialAutomation?.description || "");
+
+    // Job Specific
+    const [jobMode, setJobMode] = useState<"serial" | "parallel">(initialJob?.mode || "serial");
+
+    // Automation Specific
+    const [schedule, setSchedule] = useState(initialAutomation?.schedule || "");
+
+    // Steps
+    const [steps, setSteps] = useState<any[]>((initialJob?.steps || initialAutomation?.steps || []).map(s => ({
+        ...s,
+        id: s.id || crypto.randomUUID(), // Ensure ID
+        args: s.args || {},
+        condition: (s as any).condition || ""
+    })));
+
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
@@ -40,10 +59,11 @@ export function JobCreator({ onSave, onRun, onCancel, initialJob }: JobCreatorPr
             else args[key] = null;
         });
 
-        const newStep: JobStep = {
+        const newStep = {
             id: `step-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
             commandId,
-            args
+            args,
+            condition: ""
         };
 
         setSteps(prev => [...prev, newStep]);
@@ -54,6 +74,15 @@ export function JobCreator({ onSave, onRun, onCancel, initialJob }: JobCreatorPr
         setSteps(prev => prev.map(s => {
             if (s.id === stepId) {
                 return { ...s, args: { ...s.args, [argName]: value } };
+            }
+            return s;
+        }));
+    };
+
+    const updateStepCondition = (stepId: string, condition: string) => {
+        setSteps(prev => prev.map(s => {
+            if (s.id === stepId) {
+                return { ...s, condition };
             }
             return s;
         }));
@@ -75,37 +104,36 @@ export function JobCreator({ onSave, onRun, onCancel, initialJob }: JobCreatorPr
         });
     };
 
-    const handleSave = () => {
-        if (!name.trim()) return alert("Job name is required");
+    const handleRun = () => {
+        if (!name.trim()) return alert("Name is required");
         if (steps.length === 0) return alert("Add at least one step");
 
         const job: JobDefinition = {
             id: initialJob?.id || `job-def-${Date.now()}`,
             name,
             description,
-            mode,
-            steps,
-            createdAt: initialJob?.createdAt || Date.now(),
-            updatedAt: Date.now()
-        };
-        onSave(job);
-    };
-
-    const handleRun = () => {
-        if (steps.length === 0) return alert("Add at least one step");
-        // Create a temporary definition if not saved? 
-        // Or just pass the logic. The parent expects a JobDefinition.
-        // We'll construct it on the fly.
-        const job: JobDefinition = {
-            id: initialJob?.id || `temp-job-${Date.now()}`,
-            name: name || "Untitled Job",
-            description,
-            mode,
-            steps,
+            mode: jobMode,
+            steps: steps as JobStep[],
             createdAt: Date.now(),
             updatedAt: Date.now()
         };
-        onRun(job);
+        onRunJob(job);
+    };
+
+    const handleSaveAutomation = () => {
+        if (!name.trim()) return alert("Name is required");
+        if (steps.length === 0) return alert("Add at least one step");
+
+        const automation: DeclarativeAutomationDefinition = {
+            id: initialAutomation?.id || crypto.randomUUID(),
+            type: "declarative",
+            name,
+            description,
+            schedule: schedule || undefined,
+            tags: ["custom"],
+            steps: steps as AutomationStep[]
+        };
+        onSaveAutomation(automation);
     };
 
     const selectedStep = steps.find(s => s.id === selectedStepId);
@@ -121,7 +149,7 @@ export function JobCreator({ onSave, onRun, onCancel, initialJob }: JobCreatorPr
                             type="text"
                             value={name}
                             onChange={e => setName(e.target.value)}
-                            placeholder="Job Name"
+                            placeholder={mode === "job" ? "Job Name" : "Automation Name"}
                             style={{
                                 background: "none", border: "none", borderBottom: "1px solid rgba(255,255,255,0.1)",
                                 color: "white", fontSize: 16, fontWeight: 600, width: "100%", padding: "4px 0",
@@ -131,32 +159,78 @@ export function JobCreator({ onSave, onRun, onCancel, initialJob }: JobCreatorPr
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
                         <button onClick={onCancel} className="btn btn-secondary">Cancel</button>
-                        <button onClick={handleRun} className="btn btn-secondary"><Play size={14} className="icon-mr" /> Run</button>
-                        <button onClick={handleSave} className="btn btn-primary"><Save size={14} className="icon-mr" /> Save</button>
+                        {mode === "job" ? (
+                            <button onClick={handleRun} className="btn btn-primary"><Play size={14} className="icon-mr" /> Run Job</button>
+                        ) : (
+                            <button onClick={handleSaveAutomation} className="btn btn-primary"><Save size={14} className="icon-mr" /> Save Automation</button>
+                        )}
                     </div>
                 </div>
-                <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <label style={{ fontSize: 12, color: "#a1a1aa" }}>Mode:</label>
-                        <div style={{ display: "flex", background: "rgba(255,255,255,0.05)", borderRadius: 4, padding: 2 }}>
-                            <button
-                                onClick={() => setMode("serial")}
-                                style={{
-                                    background: mode === "serial" ? "rgba(255,255,255,0.1)" : "none",
-                                    color: mode === "serial" ? "#fff" : "#71717a",
-                                    border: "none", borderRadius: 3, padding: "2px 8px", fontSize: 11, cursor: "pointer"
-                                }}
-                            >Serial</button>
-                            <button
-                                onClick={() => setMode("parallel")}
-                                style={{
-                                    background: mode === "parallel" ? "rgba(255,255,255,0.1)" : "none",
-                                    color: mode === "parallel" ? "#fff" : "#71717a",
-                                    border: "none", borderRadius: 3, padding: "2px 8px", fontSize: 11, cursor: "pointer"
-                                }}
-                            >Parallel</button>
-                        </div>
+
+                <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+                    {/* Mode Selector */}
+                    <div style={{ display: "flex", background: "rgba(255,255,255,0.05)", borderRadius: 6, padding: 2 }}>
+                        <button
+                            onClick={() => setMode("job")}
+                            style={{
+                                background: mode === "job" ? "rgba(255,255,255,0.1)" : "none",
+                                color: mode === "job" ? "#fff" : "#71717a",
+                                border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", display: "flex", gap: 6, alignItems: "center"
+                            }}
+                        >
+                            <Briefcase size={12} /> Run Once
+                        </button>
+                        <button
+                            onClick={() => setMode("automation")}
+                            style={{
+                                background: mode === "automation" ? "rgba(255,255,255,0.1)" : "none",
+                                color: mode === "automation" ? "#fff" : "#71717a",
+                                border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", display: "flex", gap: 6, alignItems: "center"
+                            }}
+                        >
+                            <Zap size={12} /> Automation
+                        </button>
                     </div>
+
+                    {mode === "job" && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <label style={{ fontSize: 12, color: "#a1a1aa" }}>Execution:</label>
+                            <div style={{ display: "flex", background: "rgba(255,255,255,0.05)", borderRadius: 4, padding: 2 }}>
+                                <button
+                                    onClick={() => setJobMode("serial")}
+                                    style={{
+                                        background: jobMode === "serial" ? "rgba(255,255,255,0.1)" : "none",
+                                        color: jobMode === "serial" ? "#fff" : "#71717a",
+                                        border: "none", borderRadius: 3, padding: "2px 8px", fontSize: 11, cursor: "pointer"
+                                    }}
+                                >Serial</button>
+                                <button
+                                    onClick={() => setJobMode("parallel")}
+                                    style={{
+                                        background: jobMode === "parallel" ? "rgba(255,255,255,0.1)" : "none",
+                                        color: jobMode === "parallel" ? "#fff" : "#71717a",
+                                        border: "none", borderRadius: 3, padding: "2px 8px", fontSize: 11, cursor: "pointer"
+                                    }}
+                                >Parallel</button>
+                            </div>
+                        </div>
+                    )}
+
+                    {mode === "automation" && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
+                            <Clock size={12} color="#a1a1aa" />
+                            <input
+                                value={schedule}
+                                onChange={e => setSchedule(e.target.value)}
+                                placeholder="Schedule (e.g. every 10m)"
+                                style={{
+                                    background: "rgba(255,255,255,0.03)", border: "none", borderRadius: 4,
+                                    color: "#d4d4d8", fontSize: 11, padding: "4px 8px", fontFamily: "inherit", width: 140
+                                }}
+                            />
+                        </div>
+                    )}
+
                     <input
                         type="text"
                         value={description}
@@ -164,7 +238,7 @@ export function JobCreator({ onSave, onRun, onCancel, initialJob }: JobCreatorPr
                         placeholder="Description (optional)"
                         style={{
                             background: "rgba(255,255,255,0.03)", border: "none", borderRadius: 4,
-                            color: "#d4d4d8", fontSize: 12, flex: 1, padding: "4px 8px", fontFamily: "inherit"
+                            color: "#d4d4d8", fontSize: 12, flex: 1, padding: "4px 8px", fontFamily: "inherit", minWidth: 200
                         }}
                     />
                 </div>
@@ -172,7 +246,7 @@ export function JobCreator({ onSave, onRun, onCancel, initialJob }: JobCreatorPr
 
             <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
                 {/* Available Commands (Left) */}
-                <div style={{ width: 200, borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column" }}>
+                <div style={{ width: 220, borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column" }}>
                     <div style={{ padding: 8 }}>
                         <div style={{ position: "relative" }}>
                             <Search size={12} style={{ position: "absolute", left: 8, top: 8, color: "#71717a" }} />
@@ -219,7 +293,7 @@ export function JobCreator({ onSave, onRun, onCancel, initialJob }: JobCreatorPr
                 {/* Steps List (Center) */}
                 <div style={{ flex: 1, borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", background: "rgba(0,0,0,0.1)" }}>
                     <div style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                        Job Steps ({steps.length})
+                        Workflow Steps ({steps.length})
                     </div>
                     <div style={{ flex: 1, overflow: "auto", padding: 12 }}>
                         {steps.length === 0 ? (
@@ -236,12 +310,20 @@ export function JobCreator({ onSave, onRun, onCancel, initialJob }: JobCreatorPr
                                         padding: "10px 12px", marginBottom: 8, borderRadius: 6,
                                         background: selectedStepId === step.id ? "rgba(0, 229, 160, 0.08)" : "rgba(255,255,255,0.03)",
                                         border: `1px solid ${selectedStepId === step.id ? "rgba(0, 229, 160, 0.3)" : "rgba(255,255,255,0.06)"}`,
-                                        cursor: "pointer"
+                                        cursor: "pointer",
+                                        position: "relative"
                                     }}
                                 >
                                     <div style={{ fontSize: 10, color: "#52525b", width: 16 }}>{idx + 1}</div>
                                     <div style={{ flex: 1 }}>
-                                        <div style={{ fontSize: 12, fontWeight: 500, color: selectedStepId === step.id ? "#00e5a0" : "#e4e4e7" }}>{step.commandId}</div>
+                                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                            <div style={{ fontSize: 12, fontWeight: 500, color: selectedStepId === step.id ? "#00e5a0" : "#e4e4e7" }}>{step.commandId}</div>
+                                            {step.condition && (
+                                                <div style={{ fontSize: 10, color: "#eab308", background: "rgba(234, 179, 8, 0.1)", padding: "0 4px", borderRadius: 2 }}>
+                                                    Conditional
+                                                </div>
+                                            )}
+                                        </div>
                                         <div style={{ fontSize: 10, color: "#71717a", marginTop: 2 }}>{Object.keys(step.args).length} args configured</div>
                                     </div>
                                     <div style={{ display: "flex", gap: 2 }}>
@@ -262,7 +344,7 @@ export function JobCreator({ onSave, onRun, onCancel, initialJob }: JobCreatorPr
                 </div>
 
                 {/* Config (Right) */}
-                <div style={{ width: 280, display: "flex", flexDirection: "column", background: "rgba(0,0,0,0.2)" }}>
+                <div style={{ width: 300, display: "flex", flexDirection: "column", background: "rgba(0,0,0,0.2)" }}>
                     <div style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
                         Configuration
                     </div>
@@ -275,41 +357,43 @@ export function JobCreator({ onSave, onRun, onCancel, initialJob }: JobCreatorPr
                                 </div>
                                 <div style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
 
-                                {Object.entries(selectedCommandDef.args).map(([argName, argDef]) => (
-                                    <div key={argName}>
-                                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                                            <label style={{ fontSize: 11, color: "#d4d4d8", fontWeight: 500 }}>{argName}</label>
-                                            {argDef.required !== false && <span style={{ fontSize: 10, color: "#ef4444" }}>Required</span>}
+                                {/* Arguments */}
+                                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                    {Object.entries(selectedCommandDef.args).map(([argName, argDef]) => (
+                                        <div key={argName}>
+                                            <div style={{ display: 'flex', justifyContent: "space-between", marginBottom: 4 }}>
+                                                <label style={{ display: "block", fontSize: 11, color: "#d4d4d8", fontWeight: 500 }}>
+                                                    {argDef.name} {argDef.required !== false && <span style={{ color: "#ef4444" }}>*</span>}
+                                                </label>
+                                                <span style={{ fontSize: 9, color: "#52525b" }}>{argDef.type}</span>
+                                            </div>
+                                            <CommandArgInput
+                                                arg={argDef}
+                                                value={selectedStep.args[argName]}
+                                                onChange={(val) => updateStepArg(selectedStep.id, argName, val)}
+                                            />
+                                            <div style={{ fontSize: 10, color: "#71717a", marginTop: 2 }}>{argDef.description}</div>
                                         </div>
-                                        <div style={{ fontSize: 10, color: "#71717a", marginBottom: 6 }}>{argDef.description}</div>
+                                    ))}
+                                </div>
 
-                                        {argDef.type === 'boolean' ? (
-                                            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, cursor: "pointer" }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={!!selectedStep.args[argName]}
-                                                    onChange={e => updateStepArg(selectedStep.id, argName, e.target.checked)}
-                                                />
-                                                {selectedStep.args[argName] ? "True" : "False"}
-                                            </label>
-                                        ) : argDef.type === "number" ? (
-                                            <input
-                                                type="number"
-                                                value={selectedStep.args[argName] || 0}
-                                                onChange={e => updateStepArg(selectedStep.id, argName, parseFloat(e.target.value))}
-                                                style={inputStyle}
-                                            />
-                                        ) : (
-                                            <input
-                                                type="text"
-                                                value={selectedStep.args[argName] || ""}
-                                                onChange={e => updateStepArg(selectedStep.id, argName, e.target.value)}
-                                                style={inputStyle}
-                                                placeholder={String(argDef.defaultValue || "")}
-                                            />
-                                        )}
+                                <div style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+
+                                {/* Condition */}
+                                <div>
+                                    <label style={{ display: "block", fontSize: 11, color: "#eab308", marginBottom: 4, fontWeight: 500 }}>Execution Condition (Optional)</label>
+                                    <input
+                                        type="text"
+                                        value={selectedStep.condition || ""}
+                                        onChange={e => updateStepCondition(selectedStep.id, e.target.value)}
+                                        placeholder="e.g. steps[0].result == 'success'"
+                                        style={inputStyle}
+                                    />
+                                    <div style={{ fontSize: 9, color: "#52525b", marginTop: 4 }}>
+                                        JS expression evaluated before step execution.
                                     </div>
-                                ))}
+                                </div>
+
                             </div>
                         ) : (
                             <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#52525b" }}>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CommandDefinition } from "../../services/commands/types";
+import { Play } from "lucide-react";
 
 const getCommandColor = (tags: string[]) => {
     if (tags.includes("architect")) return "#fb923c"; // Orange
@@ -16,7 +17,12 @@ const getCommandColor = (tags: string[]) => {
     return "#71717a"; // Default
 };
 
-export function CommandCard({ command }: { command: CommandDefinition }) {
+interface CommandCardProps {
+    command: CommandDefinition;
+    onRun?: () => void;
+}
+
+export function CommandCard({ command, onRun }: CommandCardProps) {
     const [isFlipped, setIsFlipped] = useState(false);
     const [animationState, setAnimationState] = useState<"idle" | "pressing" | "flipping">("idle");
     const color = getCommandColor(command.tags);
@@ -34,6 +40,11 @@ export function CommandCard({ command }: { command: CommandDefinition }) {
             setAnimationState("flipping");
             setTimeout(() => setAnimationState("idle"), 600);
         }, 200);
+    };
+
+    const handleRunClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onRun?.();
     };
 
     const getTransform = () => {
@@ -91,15 +102,36 @@ export function CommandCard({ command }: { command: CommandDefinition }) {
                                 <span style={{ fontSize: 10, opacity: 0.6 }}>/</span>
                                 {command.id}
                             </div>
-                            <div style={{
-                                fontSize: 10,
-                                color: color,
-                                border: `1px solid ${color}20`,
-                                borderRadius: 4,
-                                padding: "2px 6px",
-                                background: `${color}10`
-                            }}>
-                                CMD
+                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                                {onRun && (
+                                    <button
+                                        onClick={handleRunClick}
+                                        style={{
+                                            padding: "2px 6px",
+                                            background: `${color}20`,
+                                            border: `1px solid ${color}40`,
+                                            borderRadius: 4,
+                                            cursor: "pointer",
+                                            color: color,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center"
+                                        }}
+                                        title="Run Command"
+                                    >
+                                        <Play size={10} fill={color} />
+                                    </button>
+                                )}
+                                <div style={{
+                                    fontSize: 10,
+                                    color: color,
+                                    border: `1px solid ${color}20`,
+                                    borderRadius: 4,
+                                    padding: "2px 6px",
+                                    background: `${color}10`
+                                }}>
+                                    CMD
+                                </div>
                             </div>
                         </div>
                         <div style={{ fontSize: 11, color: "#a1a1aa", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
@@ -167,10 +199,37 @@ export function CommandCard({ command }: { command: CommandDefinition }) {
                     </div>
 
                     <div style={{ marginTop: 12, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                        <div style={{ fontSize: 9, color: "#52525b", marginBottom: 4 }}>Output</div>
-                        <div style={{ fontSize: 10, color: "#a1a1aa", lineHeight: 1.4 }}>
-                            {command.output}
-                        </div>
+                        {onRun && (
+                            <button
+                                onClick={handleRunClick}
+                                style={{
+                                    width: "100%",
+                                    padding: "6px",
+                                    background: `${color}20`,
+                                    border: `1px solid ${color}40`,
+                                    borderRadius: 4,
+                                    cursor: "pointer",
+                                    color: color,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: 6,
+                                    fontSize: 11,
+                                    fontWeight: 500,
+                                    marginTop: 4
+                                }}
+                            >
+                                <Play size={10} fill={color} /> Run Command
+                            </button>
+                        )}
+                        {!onRun && (
+                            <>
+                                <div style={{ fontSize: 9, color: "#52525b", marginBottom: 4 }}>Output</div>
+                                <div style={{ fontSize: 10, color: "#a1a1aa", lineHeight: 1.4 }}>
+                                    {command.output}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
