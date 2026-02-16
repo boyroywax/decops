@@ -7,11 +7,6 @@ const apiClient = axios.create({
     },
 });
 
-export const keycloakClient = axios.create({
-    baseURL: (import.meta.env.VITE_KEYCLOAK_URL as string) || '',
-    headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-    },
-});
+
 
 export default apiClient;
