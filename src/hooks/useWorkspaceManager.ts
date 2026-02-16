@@ -49,8 +49,7 @@ export function useWorkspaceManager() {
         };
 
         setWorkspaces(prev => [...prev, metadata]);
-        setActiveWorkspaceId(newId);
-        saveWorkspace(newWorkspace); // Save initial empty state
+        saveWorkspace(newWorkspace); // Save initial empty state (don't auto-switch)
         return newWorkspace;
     };
 

@@ -35,6 +35,10 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
                     // Sync to localStorage immediately with the resolved value
                     if (typeof window !== "undefined") {
                         window.localStorage.setItem(key, JSON.stringify(valueToStore));
+                        // Dispatch custom event for same-tab sync between hook instances
+                        window.dispatchEvent(new CustomEvent('local-storage-sync', {
+                            detail: { key, newValue: JSON.stringify(valueToStore) }
+                        }));
                     }
 
                     return valueToStore;
@@ -62,8 +66,24 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
             }
         };
 
+        // Listen for same-tab sync events from other hook instances
+        const handleLocalSync = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            if (detail.key === key && detail.newValue !== null) {
+                try {
+                    setStoredValue(JSON.parse(detail.newValue));
+                } catch (error) {
+                    console.warn(`Error parsing local sync for key "${key}":`, error);
+                }
+            }
+        };
+
         window.addEventListener("storage", handleStorageChange);
-        return () => window.removeEventListener("storage", handleStorageChange);
+        window.addEventListener("local-storage-sync", handleLocalSync);
+        return () => {
+            window.removeEventListener("storage", handleStorageChange);
+            window.removeEventListener("local-storage-sync", handleLocalSync);
+        };
     }, [key]);
 
     return [storedValue, setValue] as const;

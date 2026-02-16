@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
 import { useJobsContext } from "../../context/JobsContext";
-import { X, Plus, Terminal } from "lucide-react";
+import { X, Plus, Terminal, ArrowRight, Check } from "lucide-react";
 import { WorkspaceCard } from "./WorkspaceCard";
+import type { WorkspaceMetadata } from "../../types";
 
 interface WorkspaceManagerModalProps {
     onClose: () => void;
@@ -15,20 +16,54 @@ export function WorkspaceManagerModal({ onClose }: WorkspaceManagerModalProps) {
     const [newName, setNewName] = useState("");
     const [newDesc, setNewDesc] = useState("");
 
+    // Track pending creation for the "switch now?" prompt
+    const [pendingCreationName, setPendingCreationName] = useState<string | null>(null);
+    const [switchPrompt, setSwitchPrompt] = useState<WorkspaceMetadata | null>(null);
+    const prevWorkspaceIdsRef = useRef<Set<string>>(new Set(workspaces.map(w => w.id)));
+
+    // Detect when a newly created workspace appears in the list
+    useEffect(() => {
+        if (!pendingCreationName) {
+            prevWorkspaceIdsRef.current = new Set(workspaces.map(w => w.id));
+            return;
+        }
+        const newWs = workspaces.find(w =>
+            !prevWorkspaceIdsRef.current.has(w.id) && w.name === pendingCreationName
+        );
+        if (newWs) {
+            setSwitchPrompt(newWs);
+            setPendingCreationName(null);
+            prevWorkspaceIdsRef.current = new Set(workspaces.map(w => w.id));
+        }
+    }, [workspaces, pendingCreationName]);
+
     const handleCreate = () => {
         if (!newName.trim()) return;
 
+        const name = newName.trim();
         addJob({
             type: "create_workspace",
             request: {
-                name: newName,
+                name,
                 description: newDesc
             }
         });
 
+        setPendingCreationName(name);
         setIsCreating(false);
         setNewName("");
         setNewDesc("");
+    };
+
+    const handleSwitchToNew = () => {
+        if (switchPrompt) {
+            handleSwitch(switchPrompt.id);
+        }
+        setSwitchPrompt(null);
+    };
+
+    const handleStayHere = () => {
+        setSwitchPrompt(null);
     };
 
     const handleSwitch = (id: string) => {
@@ -296,6 +331,81 @@ export function WorkspaceManagerModal({ onClose }: WorkspaceManagerModalProps) {
                                         }}
                                     >Create Workspace</button>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
+                {/* Switch Prompt after workspace creation */}
+                {switchPrompt && (
+                    <div style={{
+                        position: "absolute",
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        background: "rgba(10,10,15,0.85)",
+                        backdropFilter: "blur(6px)",
+                        zIndex: 25,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        animation: "fadeIn 0.2s"
+                    }}>
+                        <div style={{
+                            width: 440,
+                            background: "#18181b",
+                            border: "1px solid rgba(0,229,160,0.15)",
+                            borderRadius: 16,
+                            padding: 32,
+                            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+                            textAlign: "center"
+                        }}>
+                            <div style={{
+                                width: 56, height: 56, borderRadius: "50%",
+                                background: "rgba(0,229,160,0.1)",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                margin: "0 auto 20px",
+                                color: "#00e5a0"
+                            }}>
+                                <Check size={28} strokeWidth={2.5} />
+                            </div>
+                            <h3 style={{ margin: "0 0 8px", color: "#e4e4e7", fontSize: 20, fontWeight: 600 }}>
+                                Workspace Created
+                            </h3>
+                            <p style={{ margin: "0 0 28px", fontSize: 14, color: "#a1a1aa", lineHeight: 1.5 }}>
+                                <strong style={{ color: "#e4e4e7" }}>{switchPrompt.name}</strong> is ready. Would you like to switch to it now or stay in your current workspace?
+                            </p>
+                            <div style={{ display: "flex", gap: 12 }}>
+                                <button
+                                    onClick={handleStayHere}
+                                    style={{
+                                        flex: 1, padding: "12px",
+                                        background: "transparent",
+                                        border: "1px solid rgba(255,255,255,0.1)",
+                                        color: "#e4e4e7",
+                                        borderRadius: 8,
+                                        cursor: "pointer",
+                                        fontWeight: 500,
+                                        fontSize: 14
+                                    }}
+                                >Stay Here</button>
+                                <button
+                                    onClick={handleSwitchToNew}
+                                    style={{
+                                        flex: 1, padding: "12px",
+                                        background: "#00e5a0",
+                                        border: "none",
+                                        color: "#09090b",
+                                        fontWeight: 600,
+                                        borderRadius: 8,
+                                        cursor: "pointer",
+                                        fontSize: 14,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        gap: 8
+                                    }}
+                                >
+                                    Switch Now <ArrowRight size={16} />
+                                </button>
                             </div>
                         </div>
                     </div>

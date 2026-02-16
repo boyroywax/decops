@@ -100,12 +100,11 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   };
 
   const handleCreateWorkspace = async (name: string, description?: string) => {
-    // Save Current
+    // Save current workspace state before creating new one
     if (activeWorkspaceId) {
       const currentData = workspace.exportWorkspace();
       const currentMeta = workspaces.find(w => w.id === activeWorkspaceId);
       if (currentMeta) {
-        // Filter out transition jobs to prevent loops on reload
         const jobsToSave = jobs.filter(j => j.type !== 'switch_workspace' && j.type !== 'create_workspace');
 
         saveWorkspace({
@@ -119,14 +118,8 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
       }
     }
 
+    // Create new workspace without switching — user stays in current workspace
     const newWs = createWorkspace(name, description);
-
-    // Clear Current
-    workspace.clearWorkspace();
-    clearJobs();
-    if (automations.setAutomations) automations.setAutomations([]);
-    if (automations.setRuns) automations.setRuns([]);
-
     return newWs.metadata.id;
   };
 

@@ -69,32 +69,33 @@ export const deleteWorkspaceCommand: CommandDefinition = {
         context.workspace.addLog(`Deleted workspace: ${args.id}`);
         return `Deleted workspace ${args.id}`;
     }
+};
 
 export const duplicateWorkspaceCommand: CommandDefinition = {
-        id: "duplicate_workspace",
-        description: "Duplicate an existing workspace",
-        tags: ["workspace", "system"],
-        rbac: ["orchestrator"],
-        args: {
-            sourceId: {
-                name: "sourceId",
-                type: "string",
-                description: "ID of the workspace to duplicate",
-                required: true
-            },
-            name: {
-                name: "name",
-                type: "string",
-                description: "Name for the new workspace (optional)",
-                required: false
-            }
+    id: "duplicate_workspace",
+    description: "Duplicate an existing workspace",
+    tags: ["workspace", "system"],
+    rbac: ["orchestrator"],
+    args: {
+        sourceId: {
+            name: "sourceId",
+            type: "string",
+            description: "ID of the workspace to duplicate",
+            required: true
         },
-        output: "The ID of the new workspace",
-        execute: async (args, context) => {
-            if (!context.workspaceManager) throw new Error("Workspace Manager not available");
-            // We need to cast or extend the type definition in next steps, for now assume duplicate exists
-            const id = await (context.workspaceManager as any).duplicate(args.sourceId, args.name);
-            context.workspace.addLog(`Duplicated workspace ${args.sourceId} to new workspace ${id}`);
-            return id;
+        name: {
+            name: "name",
+            type: "string",
+            description: "Name for the new workspace (optional)",
+            required: false
         }
-    };
+    },
+    output: "The ID of the new workspace",
+    execute: async (args, context) => {
+        if (!context.workspaceManager) throw new Error("Workspace Manager not available");
+        // We need to cast or extend the type definition in next steps, for now assume duplicate exists
+        const id = await (context.workspaceManager as any).duplicate(args.sourceId, args.name);
+        context.workspace.addLog(`Duplicated workspace ${args.sourceId} to new workspace ${id}`);
+        return id;
+    }
+};

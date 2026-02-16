@@ -110,7 +110,10 @@ export function WorkspaceProvider({ children, addJob }: WorkspaceProviderProps) 
     );
 
     const clearWorkspace = () => {
-        addJob({ type: "reset_workspace", request: {} });
+        agentStore.setAgents([]);
+        channelStore.setChannels([]);
+        groupStore.setGroups([]);
+        messageStore.setMessages([]);
     };
 
     // Computed values for active channel
