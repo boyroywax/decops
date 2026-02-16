@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { RefObject } from "react";
 import type {
   Agent, Channel, Group, Network, Bridge,
   BridgeMessage, BridgeForm, ViewId, ChannelTypeId,
@@ -8,7 +7,7 @@ import { ROLES, CHANNEL_TYPES } from "../../constants";
 import { inputStyle, SectionTitle, PillButton } from "../shared/ui";
 import {
   Globe, Plus, ArrowLeftRight, X, Sparkles,
-  Trash2, Download, Layers, Link2, MessageSquare,
+  Trash2, Download, Layers, Link2,
   ChevronDown, ChevronUp, Zap,
 } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
@@ -26,16 +25,6 @@ interface NetworksViewProps {
   setEcoSaveName: (v: string) => void;
   bridgeForm: BridgeForm;
   setBridgeForm: (v: BridgeForm) => void;
-  selectedBridge: string | null;
-  setSelectedBridge: (v: string | null) => void;
-  bridgeMsgInput: string;
-  setBridgeMsgInput: (v: string) => void;
-  bridgeSending: boolean;
-  msgEndRef: RefObject<HTMLDivElement | null>;
-  selBridgeFrom: Agent | undefined;
-  selBridgeTo: Agent | undefined;
-  selBridgeFromNet: Network | null | undefined;
-  selBridgeToNet: Network | null | undefined;
   bridgeFromNet: Network | null | undefined;
   bridgeToNet: Network | null | undefined;
   saveCurrentNetwork: () => void;
@@ -44,7 +33,6 @@ interface NetworksViewProps {
   clearWorkspace: () => void;
   createBridge: () => void;
   removeBridge: (id: string) => void;
-  sendBridgeMessage: () => void;
   setView: (v: ViewId) => void;
   addJob: (job: any) => void;
 }
@@ -55,12 +43,9 @@ export function NetworksView({
   agents, channels, groups,
   ecosystems, bridges, bridgeMessages, activeBridges,
   ecoSaveName, setEcoSaveName, bridgeForm, setBridgeForm,
-  selectedBridge, setSelectedBridge, bridgeMsgInput, setBridgeMsgInput,
-  bridgeSending, msgEndRef,
-  selBridgeFrom, selBridgeTo, selBridgeFromNet, selBridgeToNet,
   bridgeFromNet, bridgeToNet,
   saveCurrentNetwork, loadNetwork, dissolveNetwork, clearWorkspace,
-  createBridge, removeBridge, sendBridgeMessage, setView,
+  createBridge, removeBridge, setView,
   addJob,
 }: NetworksViewProps) {
   const [activeTab, setActiveTab] = useState<ManagerTab>("networks");
@@ -707,222 +692,74 @@ export function NetworksView({
             </div>
           )}
 
-          {/* Bridge List + Messaging */}
+          {/* Bridge List */}
           {bridges.length > 0 ? (
-            <div style={{ display: "flex", gap: 16 }}>
-              {/* Bridge list */}
-              <div style={{ width: 280, flexShrink: 0 }}>
-                {bridges.map((b) => {
-                  const fNet = ecosystems.find((n) => n.id === b.fromNetworkId);
-                  const tNet = ecosystems.find((n) => n.id === b.toNetworkId);
-                  const fA = fNet?.agents.find((a) => a.id === b.fromAgentId);
-                  const tA = tNet?.agents.find((a) => a.id === b.toAgentId);
-                  const bmCount = bridgeMessages.filter((m) => m.bridgeId === b.id).length;
-                  const isSel = selectedBridge === b.id;
-                  return (
-                    <div
-                      key={b.id}
-                      onClick={() => setSelectedBridge(isSel ? null : b.id)}
-                      style={{
-                        background: isSel ? "rgba(251,191,36,0.06)" : "rgba(255,255,255,0.02)",
-                        border: `1px solid ${isSel ? "rgba(251,191,36,0.2)" : "rgba(255,255,255,0.05)"}`,
-                        borderRadius: 10,
-                        padding: 14,
-                        marginBottom: 8,
-                        cursor: "pointer",
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <div style={{ fontSize: 12, color: isSel ? "#fbbf24" : "#a1a1aa", marginBottom: 4, fontWeight: 500 }}>
-                        {fA?.name || "?"} <ArrowLeftRight size={10} color="#fbbf24" style={{ margin: "0 4px" }} /> {tA?.name || "?"}
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: "#52525b" }}>
-                        <span style={{ color: fNet?.color }}>{fNet?.name}</span>
-                        <span>→</span>
-                        <span style={{ color: tNet?.color }}>{tNet?.name}</span>
-                        {bmCount > 0 && <span style={{ color: "#fbbf24", marginLeft: 6 }}>{bmCount} msgs</span>}
-                      </div>
-                      <div style={{ display: "flex", gap: 4, marginTop: 8, alignItems: "center" }}>
-                        <span style={{
-                          fontSize: 9, padding: "2px 8px", borderRadius: 4,
-                          background: "rgba(56,189,248,0.06)", color: "#38bdf8",
-                          border: "1px solid rgba(56,189,248,0.1)",
-                        }}>
-                          bridge
-                        </span>
-                        <span style={{
-                          fontSize: 9, padding: "2px 8px", borderRadius: 4,
-                          background: "rgba(251,191,36,0.06)", color: "#fbbf24",
-                        }}>
-                          {CHANNEL_TYPES.find((t) => t.id === b.type)?.label || "Data"}
-                        </span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); removeBridge(b.id); }}
-                          style={{
-                            background: "transparent",
-                            border: "1px solid rgba(239,68,68,0.12)",
-                            color: "#52525b",
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            fontFamily: "inherit",
-                            fontSize: 9,
-                            cursor: "pointer",
-                            marginLeft: "auto",
-                            display: "flex",
-                            alignItems: "center",
-                          }}
-                        >
-                          <X size={10} />
-                        </button>
-                      </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+              {bridges.map((b) => {
+                const fNet = ecosystems.find((n) => n.id === b.fromNetworkId);
+                const tNet = ecosystems.find((n) => n.id === b.toNetworkId);
+                const fA = fNet?.agents.find((a) => a.id === b.fromAgentId);
+                const tA = tNet?.agents.find((a) => a.id === b.toAgentId);
+                const bmCount = bridgeMessages.filter((m) => m.bridgeId === b.id).length;
+                return (
+                  <div
+                    key={b.id}
+                    style={{
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                      borderRadius: 10,
+                      padding: 14,
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <div style={{ fontSize: 12, color: "#a1a1aa", marginBottom: 4, fontWeight: 500 }}>
+                      {fA?.name || "?"} <ArrowLeftRight size={10} color="#fbbf24" style={{ margin: "0 4px" }} /> {tA?.name || "?"}
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Bridge message thread */}
-              <div style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                background: "rgba(0,0,0,0.2)",
-                borderRadius: 14,
-                border: "1px solid rgba(255,255,255,0.05)",
-                overflow: "hidden",
-                maxHeight: 500,
-              }}>
-                {selectedBridge && selBridgeFrom && selBridgeTo ? (
-                  <>
-                    <div style={{
-                      padding: "14px 18px",
-                      borderBottom: "1px solid rgba(255,255,255,0.05)",
-                      background: "rgba(0,0,0,0.15)",
-                    }}>
-                      <div style={{ fontSize: 12, fontWeight: 500 }}>
-                        <span style={{ color: ROLES.find((r) => r.id === selBridgeFrom.role)?.color }}>{selBridgeFrom.name}</span>
-                        <ArrowLeftRight size={10} color="#fbbf24" style={{ margin: "0 8px" }} />
-                        <span style={{ color: ROLES.find((r) => r.id === selBridgeTo.role)?.color }}>{selBridgeTo.name}</span>
-                      </div>
-                      <div style={{ fontSize: 9, color: "#52525b", marginTop: 3 }}>
-                        Cross-network bridge · {selBridgeFromNet?.name} → {selBridgeToNet?.name}
-                      </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: "#52525b" }}>
+                      <span style={{ color: fNet?.color }}>{fNet?.name}</span>
+                      <span>→</span>
+                      <span style={{ color: tNet?.color }}>{tNet?.name}</span>
+                      {bmCount > 0 && <span style={{ color: "#38bdf8", marginLeft: 6 }}>{bmCount} msgs</span>}
                     </div>
-                    <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
-                      {bridgeMessages.filter((m) => m.bridgeId === selectedBridge).length === 0 && (
-                        <div style={{ textAlign: "center", padding: 30, color: "#3f3f46", fontSize: 11 }}>
-                          <MessageSquare size={20} color="#3f3f46" style={{ marginBottom: 8 }} />
-                          <div>Send a message across the bridge.</div>
-                        </div>
-                      )}
-                      {bridgeMessages.filter((m) => m.bridgeId === selectedBridge).map((m) => {
-                        const sRole = ROLES.find((r) => r.id === selBridgeFrom.role);
-                        const rRole = ROLES.find((r) => r.id === selBridgeTo.role);
-                        return (
-                          <div key={m.id} style={{ marginBottom: 16 }}>
-                            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                              <div style={{
-                                width: 26, height: 26, borderRadius: 6,
-                                background: (sRole?.color || "#555") + "20",
-                                border: `1px solid ${sRole?.color || "#555"}30`,
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                fontSize: 12, flexShrink: 0,
-                              }}>
-                                {sRole?.icon}
-                              </div>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: 9, color: sRole?.color, marginBottom: 3 }}>
-                                  {selBridgeFrom.name} <span style={{ color: "#3f3f46", fontSize: 8 }}>({selBridgeFromNet?.name})</span>
-                                </div>
-                                <div style={{
-                                  background: "rgba(255,255,255,0.04)",
-                                  border: "1px solid rgba(255,255,255,0.06)",
-                                  borderRadius: "2px 10px 10px 10px",
-                                  padding: "10px 14px",
-                                  fontSize: 11, lineHeight: 1.6, color: "#d4d4d8",
-                                }}>
-                                  {m.content}
-                                </div>
-                              </div>
-                            </div>
-                            {m.status === "sending" && (
-                              <div style={{ paddingLeft: 34, fontSize: 10, color: "#fbbf24" }}>
-                                <span style={{ animation: "pulse 1.5s infinite" }}>●</span> {selBridgeTo.name} is thinking…
-                              </div>
-                            )}
-                            {m.response && (
-                              <div style={{ display: "flex", gap: 8, paddingLeft: 34 }}>
-                                <div style={{
-                                  width: 26, height: 26, borderRadius: 6,
-                                  background: (rRole?.color || "#555") + "20",
-                                  border: `1px solid ${rRole?.color || "#555"}30`,
-                                  display: "flex", alignItems: "center", justifyContent: "center",
-                                  fontSize: 12, flexShrink: 0,
-                                }}>
-                                  {rRole?.icon}
-                                </div>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ fontSize: 9, color: rRole?.color, marginBottom: 3 }}>
-                                    {selBridgeTo.name} <span style={{ color: "#3f3f46", fontSize: 8 }}>({selBridgeToNet?.name})</span>
-                                  </div>
-                                  <div style={{
-                                    background: m.status === "no-prompt" ? "rgba(239,68,68,0.05)" : (rRole?.color || "#555") + "08",
-                                    border: `1px solid ${m.status === "no-prompt" ? "rgba(239,68,68,0.15)" : (rRole?.color || "#555") + "15"}`,
-                                    borderRadius: "10px 2px 10px 10px",
-                                    padding: "10px 14px",
-                                    fontSize: 11, lineHeight: 1.6,
-                                    color: m.status === "no-prompt" ? "#71717a" : "#d4d4d8",
-                                    whiteSpace: "pre-wrap",
-                                  }}>
-                                    {m.response}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                      <div ref={msgEndRef} />
+                    <div style={{ display: "flex", gap: 4, marginTop: 8, alignItems: "center" }}>
+                      <span style={{
+                        fontSize: 9, padding: "2px 8px", borderRadius: 4,
+                        background: "rgba(56,189,248,0.06)", color: "#38bdf8",
+                        border: "1px solid rgba(56,189,248,0.1)",
+                      }}>
+                        bridge
+                      </span>
+                      <span style={{
+                        fontSize: 9, padding: "2px 8px", borderRadius: 4,
+                        background: "rgba(251,191,36,0.06)", color: "#fbbf24",
+                      }}>
+                        {CHANNEL_TYPES.find((t) => t.id === b.type)?.label || "Data"}
+                      </span>
+                      <button
+                        onClick={() => removeBridge(b.id)}
+                        style={{
+                          background: "transparent",
+                          border: "1px solid rgba(239,68,68,0.12)",
+                          color: "#52525b",
+                          padding: "2px 6px",
+                          borderRadius: 4,
+                          fontFamily: "inherit",
+                          fontSize: 9,
+                          cursor: "pointer",
+                          marginLeft: "auto",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        <X size={10} />
+                      </button>
                     </div>
-                    <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.05)", background: "rgba(0,0,0,0.1)" }}>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <input
-                          placeholder={`Message ${selBridgeTo.name} across bridge...`}
-                          value={bridgeMsgInput}
-                          onChange={(e) => setBridgeMsgInput(e.target.value)}
-                          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendBridgeMessage()}
-                          disabled={bridgeSending}
-                          style={{ ...inputStyle, border: "1px solid rgba(251,191,36,0.12)", opacity: bridgeSending ? 0.5 : 1 }}
-                        />
-                        <button
-                          onClick={sendBridgeMessage}
-                          disabled={bridgeSending || !bridgeMsgInput.trim()}
-                          style={{
-                            background: bridgeSending ? "#3f3f46" : "#fbbf24",
-                            color: "#0a0a0f",
-                            border: "none",
-                            padding: "10px 16px",
-                            borderRadius: 6,
-                            cursor: bridgeSending ? "not-allowed" : "pointer",
-                            fontFamily: "inherit",
-                            fontSize: 11,
-                            fontWeight: 500,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {bridgeSending ? "…" : "Send"}
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#3f3f46" }}>
-                    <div style={{ textAlign: "center" }}>
-                      <MessageSquare size={28} color="#3f3f46" style={{ marginBottom: 8 }} />
-                      <div style={{ fontSize: 11 }}>Select a bridge to send cross-network messages.</div>
+                    <div style={{ fontSize: 9, color: "#3f3f46", marginTop: 8, fontStyle: "italic" }}>
+                      Send messages via the Messages page
                     </div>
                   </div>
-                )}
-              </div>
+                );
+              })}
             </div>
           ) : (
             <div style={{

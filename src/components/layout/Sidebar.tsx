@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import type { ViewId, Network, Message } from "../../types";
+import type { ViewId, Network, Message, BridgeMessage } from "../../types";
 import type { LucideIcon } from "lucide-react";
 import {
   Sparkles, Globe, Bot, ArrowLeftRight,
@@ -14,6 +14,7 @@ interface SidebarProps {
   setView: (view: ViewId) => void;
   ecosystems: Network[];
   messages: Message[];
+  bridgeMessages: BridgeMessage[];
   agents: any[];
   channels: any[];
   groups: any[];
@@ -33,7 +34,7 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; 
   { id: "artifacts", label: "Artifacts", icon: Gem, accent: "#818cf8", gradient: ["#818cf8", "#a78bfa"] },
 ];
 
-export function Sidebar({ view, setView, ecosystems, messages, agents, channels, groups, collapsed, setCollapsed, isMobile }: SidebarProps) {
+export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, agents, channels, groups, collapsed, setCollapsed, isMobile }: SidebarProps) {
   const navRef = useRef<HTMLElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -60,7 +61,7 @@ export function Sidebar({ view, setView, ecosystems, messages, agents, channels,
         };
       }
     }
-  }, [isMobile, ecosystems.length, messages.length, agents.length, channels.length, groups.length]);
+  }, [isMobile, ecosystems.length, messages.length, bridgeMessages.length, agents.length, channels.length, groups.length]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (navRef.current) {
@@ -140,8 +141,8 @@ export function Sidebar({ view, setView, ecosystems, messages, agents, channels,
               {tab.id === "groups" && groups.length > 0 && (
                 <span style={{ marginLeft: "auto", fontSize: 9, background: "rgba(244,114,182,0.15)", color: "#f472b6", padding: "1px 6px", borderRadius: 8 }}>{groups.length}</span>
               )}
-              {tab.id === "messages" && messages.length > 0 && (
-                <span style={{ marginLeft: "auto", fontSize: 9, background: "rgba(251,191,36,0.15)", color: "#fbbf24", padding: "1px 6px", borderRadius: 8 }}>{messages.length}</span>
+              {tab.id === "messages" && (messages.length + bridgeMessages.length) > 0 && (
+                <span style={{ marginLeft: "auto", fontSize: 9, background: "rgba(251,191,36,0.15)", color: "#fbbf24", padding: "1px 6px", borderRadius: 8 }}>{messages.length + bridgeMessages.length}</span>
               )}
             </>
           )}

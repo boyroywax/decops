@@ -232,6 +232,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
               setView={setView}
               ecosystems={ecosystem.ecosystems}
               messages={workspace.messages}
+              bridgeMessages={ecosystem.bridgeMessages}
               agents={workspace.agents}
               channels={workspace.channels}
               groups={workspace.groups}

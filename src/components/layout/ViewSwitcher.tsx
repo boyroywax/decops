@@ -94,16 +94,6 @@ export function ViewSwitcher({
                 setEcoSaveName={ecosystem.setEcoSaveName}
                 bridgeForm={ecosystem.bridgeForm}
                 setBridgeForm={ecosystem.setBridgeForm}
-                selectedBridge={ecosystem.selectedBridge}
-                setSelectedBridge={ecosystem.setSelectedBridge}
-                bridgeMsgInput={ecosystem.bridgeMsgInput}
-                setBridgeMsgInput={ecosystem.setBridgeMsgInput}
-                bridgeSending={ecosystem.bridgeSending}
-                msgEndRef={ecosystem.msgEndRef}
-                selBridgeFrom={ecosystem.selBridgeFrom}
-                selBridgeTo={ecosystem.selBridgeTo}
-                selBridgeFromNet={ecosystem.selBridgeFromNet}
-                selBridgeToNet={ecosystem.selBridgeToNet}
                 bridgeFromNet={ecosystem.bridgeFromNet}
                 bridgeToNet={ecosystem.bridgeToNet}
                 saveCurrentNetwork={ecosystem.saveCurrentNetwork}
@@ -112,7 +102,6 @@ export function ViewSwitcher({
                 clearWorkspace={workspace.clearWorkspace}
                 createBridge={ecosystem.createBridge}
                 removeBridge={ecosystem.removeBridge}
-                sendBridgeMessage={ecosystem.sendBridgeMessage}
                 setView={setView}
                 addJob={addJob}
             />
@@ -206,6 +195,19 @@ export function ViewSwitcher({
                 sendMessage={workspace.sendMessage}
                 sendBroadcast={workspace.sendBroadcast}
                 removeMessages={workspace.removeMessages}
+                ecosystems={ecosystem.ecosystems}
+                bridges={ecosystem.bridges}
+                bridgeMessages={ecosystem.bridgeMessages}
+                selectedBridge={ecosystem.selectedBridge}
+                setSelectedBridge={ecosystem.setSelectedBridge}
+                bridgeMsgInput={ecosystem.bridgeMsgInput}
+                setBridgeMsgInput={ecosystem.setBridgeMsgInput}
+                bridgeSending={ecosystem.bridgeSending}
+                selBridgeFrom={ecosystem.selBridgeFrom}
+                selBridgeTo={ecosystem.selBridgeTo}
+                selBridgeFromNet={ecosystem.selBridgeFromNet}
+                selBridgeToNet={ecosystem.selBridgeToNet}
+                sendBridgeMessage={ecosystem.sendBridgeMessage}
             />
         );
     }
