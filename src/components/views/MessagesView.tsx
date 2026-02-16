@@ -33,6 +33,8 @@ interface MessagesViewProps {
 import { marked } from "marked";
 import { useMemo } from "react";
 
+import DOMPurify from "dompurify";
+
 // Configure marked
 marked.setOptions({
   breaks: true,
@@ -42,7 +44,8 @@ marked.setOptions({
 const FormattedMessage = ({ content, className, style }: { content: string, className?: string, style?: React.CSSProperties }) => {
   const html = useMemo(() => {
     try {
-      return marked.parse(content) as string;
+      const raw = marked.parse(content) as string;
+      return DOMPurify.sanitize(raw);
     } catch {
       return content;
     }

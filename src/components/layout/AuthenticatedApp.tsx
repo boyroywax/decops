@@ -10,171 +10,171 @@ import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { Footer } from "./Footer";
 import { useAuth } from "../../context/AuthContext";
-import { useJobs } from "../../hooks/useJobs";
+import { useJobsContext } from "../../context/JobsContext";
 import { useJobCatalog } from "../../hooks/useJobCatalog";
 import { ViewSwitcher } from "./ViewSwitcher";
 import { useJobExecutor } from "../../hooks/useJobExecutor";
 
 export function AuthenticatedApp() {
-    const [view, setViewRaw] = useState<ViewId>("architect");
-    const { entries: notebookEntries, addEntry: addNotebookEntry, addLog, clearNotebook, exportNotebook } = useNotebook();
+  const [view, setViewRaw] = useState<ViewId>("architect");
+  const { entries: notebookEntries, addEntry: addNotebookEntry, addLog, clearNotebook, exportNotebook } = useNotebook();
 
-    // Wrap setView to track navigation in Notebook
-    const setView = useCallback((v: ViewId) => {
-        setViewRaw(v);
-        addNotebookEntry({
-            category: "navigation",
-            icon: <GradientIcon icon={Compass} size={16} gradient={["#38bdf8", "#818cf8"]} />,
-            title: `Navigated to ${v.charAt(0).toUpperCase() + v.slice(1)}`,
-            description: `Opened the ${v} view.`,
-            tags: ["navigation", v],
-        });
-    }, [addNotebookEntry]);
-
-    const { user, logout } = useAuth();
-    const {
-        jobs, addJob, updateJobStatus, addArtifact, removeJob, clearJobs,
-        allArtifacts, importArtifact, removeArtifact,
-        isPaused, toggleQueuePause, stopJob, reorderQueue
-    } = useJobs();
-
-    const { savedJobs, saveJob, deleteJob } = useJobCatalog();
-    const workspace = useWorkspaceContext();
-    const architect = useArchitect(addLog, addJob);
-
-    const ecosystem = useEcosystem({
-        addLog,
-        agents: workspace.agents,
-        channels: workspace.channels,
-        groups: workspace.groups,
-        messages: workspace.messages,
-        setAgents: workspace.setAgents,
-        setChannels: workspace.setChannels,
-        setGroups: workspace.setGroups,
-        setMessages: workspace.setMessages,
-        setView,
-    }, addJob);
-
-    // Use the new hook for job execution
-    useJobExecutor({
-        jobs,
-        addJob,
-        updateJobStatus,
-        addArtifact,
-        removeJob,
-        clearJobs,
-        allArtifacts,
-        importArtifact,
-        removeArtifact,
-        isPaused,
-        toggleQueuePause,
-        savedJobs,
-        saveJob,
-        deleteJob,
-        workspace,
-        user,
-        architect,
-        ecosystem,
-        addLog,
-        addNotebookEntry
+  // Wrap setView to track navigation in Notebook
+  const setView = useCallback((v: ViewId) => {
+    setViewRaw(v);
+    addNotebookEntry({
+      category: "navigation",
+      icon: <GradientIcon icon={Compass} size={16} gradient={["#38bdf8", "#818cf8"]} />,
+      title: `Navigated to ${v.charAt(0).toUpperCase() + v.slice(1)}`,
+      description: `Opened the ${v} view.`,
+      tags: ["navigation", v],
     });
+  }, [addNotebookEntry]);
 
-    // Responsive state
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { user, logout } = useAuth();
+  const {
+    jobs, addJob, updateJobStatus, addArtifact, removeJob, clearJobs,
+    allArtifacts, importArtifact, removeArtifact,
+    isPaused, toggleQueuePause, stopJob, reorderQueue
+  } = useJobsContext();
 
-    useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(window.innerWidth < 768);
-            if (window.innerWidth < 768) {
-                setSidebarCollapsed(true);
-            }
-        };
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, []);
+  const { savedJobs, saveJob, deleteJob } = useJobCatalog();
+  const workspace = useWorkspaceContext();
+  const architect = useArchitect(addLog, addJob);
 
-    // Activity Pulse Logic
-    const [activityPulse, setActivityPulse] = useState(false);
-    const prevEntriesLengthRef = useRef(notebookEntries.length);
+  const ecosystem = useEcosystem({
+    addLog,
+    agents: workspace.agents,
+    channels: workspace.channels,
+    groups: workspace.groups,
+    messages: workspace.messages,
+    setAgents: workspace.setAgents,
+    setChannels: workspace.setChannels,
+    setGroups: workspace.setGroups,
+    setMessages: workspace.setMessages,
+    setView,
+  }, addJob);
 
-    useEffect(() => {
-        if (notebookEntries.length > prevEntriesLengthRef.current) {
-            setActivityPulse(true);
-            const timer = setTimeout(() => setActivityPulse(false), 3000);
-            return () => clearTimeout(timer);
-        }
-        prevEntriesLengthRef.current = notebookEntries.length;
-    }, [notebookEntries.length]);
+  // Use the new hook for job execution
+  useJobExecutor({
+    jobs,
+    addJob,
+    updateJobStatus,
+    addArtifact,
+    removeJob,
+    clearJobs,
+    allArtifacts,
+    importArtifact,
+    removeArtifact,
+    isPaused,
+    toggleQueuePause,
+    savedJobs,
+    saveJob,
+    deleteJob,
+    workspace,
+    user,
+    architect,
+    ecosystem,
+    addLog,
+    addNotebookEntry
+  });
 
-    return (
-        <div style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", background: "#0a0a0f", color: "#e4e4e7", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
+  // Responsive state
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-            <Header user={user} logout={logout} setView={setView} />
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth < 768) {
+        setSidebarCollapsed(true);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-            <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative", flexDirection: isMobile ? "column" : "row" }}>
-                <div style={{
-                    position: "relative",
-                    zIndex: 20,
-                    height: isMobile ? "auto" : "100%",
-                    width: isMobile ? "100%" : "auto",
-                }}>
-                    <Sidebar
-                        view={view}
-                        setView={setView}
-                        ecosystems={ecosystem.ecosystems}
-                        messages={workspace.messages}
-                        collapsed={sidebarCollapsed}
-                        setCollapsed={setSidebarCollapsed}
-                        isMobile={isMobile}
-                    />
-                </div>
+  // Activity Pulse Logic
+  const [activityPulse, setActivityPulse] = useState(false);
+  const prevEntriesLengthRef = useRef(notebookEntries.length);
 
-                <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
-                    <ViewSwitcher
-                        view={view}
-                        setView={setView}
-                        workspace={workspace}
-                        architect={architect}
-                        ecosystem={ecosystem}
-                        allArtifacts={allArtifacts}
-                        importArtifact={importArtifact}
-                        removeArtifact={removeArtifact}
-                        notebookEntries={notebookEntries}
-                        clearNotebook={clearNotebook}
-                        exportNotebook={exportNotebook}
-                        addNotebookEntry={addNotebookEntry}
-                    />
-                </main>
-            </div>
+  useEffect(() => {
+    if (notebookEntries.length > prevEntriesLengthRef.current) {
+      setActivityPulse(true);
+      const timer = setTimeout(() => setActivityPulse(false), 3000);
+      return () => clearTimeout(timer);
+    }
+    prevEntriesLengthRef.current = notebookEntries.length;
+  }, [notebookEntries.length]);
 
-            <Footer
-                agents={workspace.agents}
-                channels={workspace.channels}
-                groups={workspace.groups}
-                messages={workspace.messages}
-                ecosystems={ecosystem.ecosystems}
-                bridges={ecosystem.bridges}
-                addLog={addLog}
-                setView={setView}
-                jobs={jobs}
-                addJob={addJob}
-                isPaused={isPaused}
-                toggleQueuePause={toggleQueuePause}
-                stopJob={stopJob}
-                reorderQueue={reorderQueue}
-                removeJob={removeJob}
-                clearJobs={clearJobs}
-                activityPulse={activityPulse}
-                isMobile={isMobile}
-                savedJobs={savedJobs}
-                saveJob={saveJob}
-                deleteJob={deleteJob}
+  return (
+    <div style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", background: "#0a0a0f", color: "#e4e4e7", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
 
-            />
+      <Header user={user} logout={logout} setView={setView} />
 
-            <style>{`
+      <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative", flexDirection: isMobile ? "column" : "row" }}>
+        <div style={{
+          position: "relative",
+          zIndex: 20,
+          height: isMobile ? "auto" : "100%",
+          width: isMobile ? "100%" : "auto",
+        }}>
+          <Sidebar
+            view={view}
+            setView={setView}
+            ecosystems={ecosystem.ecosystems}
+            messages={workspace.messages}
+            collapsed={sidebarCollapsed}
+            setCollapsed={setSidebarCollapsed}
+            isMobile={isMobile}
+          />
+        </div>
+
+        <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
+          <ViewSwitcher
+            view={view}
+            setView={setView}
+            workspace={workspace}
+            architect={architect}
+            ecosystem={ecosystem}
+            allArtifacts={allArtifacts}
+            importArtifact={importArtifact}
+            removeArtifact={removeArtifact}
+            notebookEntries={notebookEntries}
+            clearNotebook={clearNotebook}
+            exportNotebook={exportNotebook}
+            addNotebookEntry={addNotebookEntry}
+          />
+        </main>
+      </div>
+
+      <Footer
+        agents={workspace.agents}
+        channels={workspace.channels}
+        groups={workspace.groups}
+        messages={workspace.messages}
+        ecosystems={ecosystem.ecosystems}
+        bridges={ecosystem.bridges}
+        addLog={addLog}
+        setView={setView}
+        jobs={jobs}
+        addJob={addJob}
+        isPaused={isPaused}
+        toggleQueuePause={toggleQueuePause}
+        stopJob={stopJob}
+        reorderQueue={reorderQueue}
+        removeJob={removeJob}
+        clearJobs={clearJobs}
+        activityPulse={activityPulse}
+        isMobile={isMobile}
+        savedJobs={savedJobs}
+        saveJob={saveJob}
+        deleteJob={deleteJob}
+
+      />
+
+      <style>{`
         :root {
           /* ─── Core Palette ─── */
           --bg-primary: #0a0a0f;
@@ -334,6 +334,6 @@ export function AuthenticatedApp() {
         ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
         select option { background: #18181b; color: #e4e4e7; }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 }

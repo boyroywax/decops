@@ -4,6 +4,8 @@ import type { ChatMessage, WorkspaceContext } from "../../services/ai";
 import { parseActions } from "./utils";
 import ActionCard from "./ActionCard";
 
+import DOMPurify from "dompurify";
+
 // Configure marked for safe, styled rendering
 marked.setOptions({
     breaks: true,
@@ -22,7 +24,8 @@ export default function MessageBubble({ msg, context }: MessageBubbleProps) {
     const renderedHtml = useMemo(() => {
         if (isUser) return null;
         try {
-            return marked.parse(cleanText) as string;
+            const raw = marked.parse(cleanText) as string;
+            return DOMPurify.sanitize(raw);
         } catch {
             return null;
         }

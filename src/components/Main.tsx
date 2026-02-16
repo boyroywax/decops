@@ -1,14 +1,22 @@
 import { useAuth } from "../context/AuthContext";
-import { useJobs } from "../hooks/useJobs";
+import { JobsProvider, useJobsContext } from "../context/JobsContext";
 import { WorkspaceProvider } from "../context/WorkspaceContext";
 import { AuthenticatedApp } from "./layout/AuthenticatedApp";
 import { LoginView } from "./views/LoginView";
 import { registerCommands } from "../services/commands/init";
 import { useEffect } from "react";
 
+function InternalApp() {
+    const { addJob } = useJobsContext();
+    return (
+        <WorkspaceProvider addJob={addJob}>
+            <AuthenticatedApp />
+        </WorkspaceProvider>
+    );
+}
+
 export function Main() {
     const { isInitialized, isLoading, isAuthenticated } = useAuth();
-    const { addJob } = useJobs();
     console.log('[App] Main render:', { isInitialized, isLoading, isAuthenticated });
 
     useEffect(() => {
@@ -24,8 +32,8 @@ export function Main() {
     }
 
     return isAuthenticated ? (
-        <WorkspaceProvider addJob={addJob}>
-            <AuthenticatedApp />
-        </WorkspaceProvider>
+        <JobsProvider>
+            <InternalApp />
+        </JobsProvider>
     ) : <LoginView />;
 }
