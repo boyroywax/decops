@@ -117,11 +117,17 @@ export function NetworkDetailView({
           <div className="network-detail__grid">
             {networkAgents.map(agent => {
               const role = ROLES.find(r => r.id === agent.role);
+              // Find the first group this agent belongs to (for breadcrumb context)
+              const agentGroup = networkGroups.find(g => g.members.includes(agent.id));
               return (
                 <div
                   key={agent.id}
                   className="nd-card"
-                  onClick={() => navigateTo("networks", { networkId, agentId: agent.id })}
+                  onClick={() => navigateTo("networks", {
+                    networkId,
+                    ...(agentGroup ? { groupId: agentGroup.id } : {}),
+                    agentId: agent.id,
+                  })}
                 >
                   <div className="nd-card__header">
                     <div

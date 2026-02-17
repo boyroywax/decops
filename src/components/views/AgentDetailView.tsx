@@ -219,7 +219,14 @@ export function AgentDetailView({
                 <div
                   key={peer.id}
                   className="agent-detail__connection"
-                  onClick={() => navigateTo("networks", { networkId, agentId: peer.id })}
+                  onClick={() => {
+                    const peerGroup = groups.find(g => g.networkId === networkId && g.members.includes(peer.id));
+                    navigateTo("networks", {
+                      networkId,
+                      ...(peerGroup ? { groupId: peerGroup.id } : {}),
+                      agentId: peer.id,
+                    });
+                  }}
                 >
                   <div
                     className="agent-detail__connection-icon"
