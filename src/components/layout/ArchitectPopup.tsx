@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Sparkles, ChevronLeft, ChevronRight, Hexagon, ArrowLeftRight, Globe, Bot } from "lucide-react";
+import { Sparkles, ChevronLeft, ChevronRight, Hexagon, ArrowLeftRight, Globe, Bot, GitBranch, Network } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
-import { SCENARIO_PRESETS, ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS } from "../../constants";
+import { SCENARIO_PRESETS, ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, NETWORK_COLORS } from "../../constants";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import type { MeshConfig, ArchPhase, DeployProgress, ViewId } from "../../types";
 
@@ -337,6 +337,9 @@ export function ArchitectPopup({
 
 /* ─── Preview sub-component (scrollable) ─── */
 function PreviewContent({ preview, deployNetwork, resetArchitect }: { preview: MeshConfig; deployNetwork: () => void; resetArchitect: () => void }) {
+  const networkCount = preview.networks?.length || 0;
+  const bridgeCount = preview.bridges?.length || 0;
+  
   return (
     <div style={{ flex: 1, overflow: "auto", padding: "16px 20px 20px" }}>
       <div style={{
@@ -348,23 +351,63 @@ function PreviewContent({ preview, deployNetwork, resetArchitect }: { preview: M
             <GradientIcon icon={Sparkles} size={14} gradient={["#fbbf24", "#fcd34d"]} /> Blueprint
           </div>
           <div style={{ fontSize: 10, color: "#52525b" }}>
-            {preview.agents.length} agents · {preview.channels.length} ch · {preview.groups?.length || 0} groups · {preview.exampleMessages?.length || 0} msgs
+            {networkCount > 0 && `${networkCount} network${networkCount !== 1 ? 's' : ''} · `}
+            {preview.agents.length} agents · {preview.channels.length} ch · {preview.groups?.length || 0} groups
+            {bridgeCount > 0 && ` · ${bridgeCount} bridge${bridgeCount !== 1 ? 's' : ''}`}
           </div>
         </div>
+
+        {/* Networks */}
+        {preview.networks && preview.networks.length > 0 && (
+          <>
+            <div style={{ fontSize: 9, fontWeight: 600, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Networks</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+              {preview.networks.map((n, i) => {
+                const color = NETWORK_COLORS[i % NETWORK_COLORS.length];
+                const agentCount = n.agents?.length || 0;
+                return (
+                  <div key={i} style={{ background: "rgba(0,0,0,0.3)", border: `1px solid ${color}30`, borderRadius: 8, padding: 10, minWidth: 180 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                      <Globe size={14} color={color} />
+                      <div style={{ fontSize: 11, fontWeight: 500, color }}>
+                        {n.name}
+                      </div>
+                    </div>
+                    {n.description && (
+                      <div style={{ fontSize: 9, color: "#71717a", marginBottom: 4 }}>{n.description}</div>
+                    )}
+                    <div style={{ fontSize: 9, color: "#52525b" }}>{agentCount} agent{agentCount !== 1 ? 's' : ''}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {/* Agents */}
         <div style={{ fontSize: 9, fontWeight: 600, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Agents</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8, marginBottom: 16 }}>
           {preview.agents.map((a, i) => {
             const role = ROLES.find(r => r.id === a.role) || ROLES[0];
+            // Find which network this agent belongs to
+            const networkIdx = preview.networks?.findIndex(n => n.agents?.includes(i)) ?? -1;
+            const networkColor = networkIdx >= 0 ? NETWORK_COLORS[networkIdx % NETWORK_COLORS.length] : undefined;
+            const networkName = networkIdx >= 0 ? preview.networks![networkIdx].name : undefined;
+            
             return (
               <div key={i} style={{ background: "rgba(0,0,0,0.3)", border: `1px solid ${role.color}20`, borderRadius: 8, padding: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
                   <span style={{ fontSize: 13 }}>{role.icon}</span>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontSize: 11, fontWeight: 500, color: "#e4e4e7" }}>{a.name}</div>
                     <div style={{ fontSize: 9, color: role.color }}>{role.label}</div>
                   </div>
+                  {networkName && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 3, padding: "2px 6px", background: `${networkColor}15`, borderRadius: 4 }}>
+                      <Globe size={9} color={networkColor} />
+                      <span style={{ fontSize: 8, color: networkColor }}>{networkName}</span>
+                    </div>
+                  )}
                 </div>
                 <div style={{ fontSize: 9, color: "#71717a", lineHeight: 1.4, maxHeight: 40, overflow: "hidden" }}>{a.prompt}</div>
               </div>
@@ -410,6 +453,45 @@ function PreviewContent({ preview, deployNetwork, resetArchitect }: { preview: M
                         if (!a) return null;
                         return <span key={idx} style={{ fontSize: 9, padding: "2px 5px", borderRadius: 4, background: "rgba(255,255,255,0.04)", color: "#a1a1aa" }}>{a.name}</span>;
                       })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Bridges */}
+        {preview.bridges && preview.bridges.length > 0 && (
+          <>
+            <div style={{ fontSize: 9, fontWeight: 600, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Bridges</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+              {preview.bridges.map((b, i) => {
+                const fromNet = preview.networks?.[b.fromNetwork];
+                const toNet = preview.networks?.[b.toNetwork];
+                const fromAgent = preview.agents[b.fromAgent];
+                const toAgent = preview.agents[b.toAgent];
+                const fromColor = NETWORK_COLORS[b.fromNetwork % NETWORK_COLORS.length];
+                const toColor = NETWORK_COLORS[b.toNetwork % NETWORK_COLORS.length];
+                const cType = CHANNEL_TYPES.find(t => t.id === b.type) || CHANNEL_TYPES[0];
+                
+                if (!fromNet || !toNet || !fromAgent || !toAgent) return null;
+                
+                return (
+                  <div key={i} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 8, padding: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 9, color: fromColor, marginBottom: 2 }}>{fromNet.name}</div>
+                        <div style={{ fontSize: 10, color: "#d4d4d8" }}>{fromAgent.name}</div>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <GitBranch size={12} color="#fbbf24" />
+                        <span style={{ fontSize: 8, color: "#a78bfa" }}>{cType.label}</span>
+                      </div>
+                      <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: 9, color: toColor, marginBottom: 2 }}>{toNet.name}</div>
+                        <div style={{ fontSize: 10, color: "#d4d4d8" }}>{toAgent.name}</div>
+                      </div>
                     </div>
                   </div>
                 );

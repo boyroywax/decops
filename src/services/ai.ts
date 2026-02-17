@@ -48,12 +48,19 @@ Rules:
 - roles must be one of: researcher, builder, curator, validator, orchestrator
 - channel types must be one of: data, task, consensus
 - governance must be one of: majority, threshold, delegated, unanimous
-- from/to in channels and members in groups are 0-based agent array indices
+- from/to in channels, members in groups, and agent references in networks/bridges are 0-based agent array indices
+- fromNetwork/toNetwork in bridges are 0-based network array indices
 - Keep ALL string values SHORT — max 30 words per string. No line breaks in strings.
-- Create 3-5 agents, 3-6 channels, 1-2 groups, 2-3 example messages
+- Create at least 1 network to contain the agents (most prompts need just 1 network)
+- For complex multi-domain prompts, create 2-3 networks with bridges connecting them
+- Create 3-5 agents per network, 3-6 channels, 1-2 groups, 2-3 example messages
+- Each agent belongs to exactly one network (via the networks.agents array)
 
-Example output format:
-{"agents":[{"name":"Scout","role":"researcher","prompt":"You research topics and report findings concisely."},{"name":"Forge","role":"builder","prompt":"You build solutions from research findings."}],"channels":[{"from":0,"to":1,"type":"data"}],"groups":[{"name":"Core Team","governance":"majority","members":[0,1],"threshold":2}],"exampleMessages":[{"channelIdx":0,"message":"Here are the latest findings on the target topic."}]}`;
+Example output format (single network):
+{"networks":[{"name":"Research Team","description":"Research and analysis network","agents":[0,1,2]}],"agents":[{"name":"Scout","role":"researcher","prompt":"You research topics and report findings concisely."},{"name":"Analyst","role":"curator","prompt":"You analyze and organize research data."},{"name":"Forge","role":"builder","prompt":"You build solutions from research findings."}],"channels":[{"from":0,"to":1,"type":"data"},{"from":1,"to":2,"type":"task"}],"groups":[{"name":"Core Team","governance":"majority","members":[0,1,2],"threshold":2}],"bridges":[],"exampleMessages":[{"channelIdx":0,"message":"Here are the latest findings on the target topic."}]}
+
+Example output format (multi-network with bridge):
+{"networks":[{"name":"Research Hub","description":"Data gathering network","agents":[0,1]},{"name":"Build Hub","description":"Development network","agents":[2,3]}],"agents":[{"name":"Scout","role":"researcher","prompt":"Gather data"},{"name":"Analyst","role":"curator","prompt":"Analyze data"},{"name":"Forge","role":"builder","prompt":"Build solutions"},{"name":"Lead","role":"orchestrator","prompt":"Coordinate builds"}],"channels":[{"from":0,"to":1,"type":"data"},{"from":2,"to":3,"type":"task"}],"groups":[],"bridges":[{"fromNetwork":0,"toNetwork":1,"fromAgent":1,"toAgent":2,"type":"data"}],"exampleMessages":[]}`;
 
   try {
     const response = await fetch(API_URL, {
@@ -81,6 +88,18 @@ Example output format:
     if (!config.channels) config.channels = [];
     if (!config.groups) config.groups = [];
     if (!config.exampleMessages) config.exampleMessages = [];
+    if (!config.networks) config.networks = [];
+    if (!config.bridges) config.bridges = [];
+    
+    // If no networks provided, create a default one containing all agents
+    if (config.networks.length === 0) {
+      config.networks = [{
+        name: "Default Network",
+        description: "Auto-generated network",
+        agents: config.agents.map((_: any, i: number) => i)
+      }];
+    }
+    
     return config;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

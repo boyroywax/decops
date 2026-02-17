@@ -234,16 +234,33 @@ export interface DeployProgress {
 }
 
 export interface MeshConfig {
+  networks?: MeshConfigNetwork[];
   agents: MeshConfigAgent[];
   channels: MeshConfigChannel[];
   groups: MeshConfigGroup[];
+  bridges?: MeshConfigBridge[];
   exampleMessages: MeshConfigMessage[];
+}
+
+export interface MeshConfigNetwork {
+  name: string;
+  description?: string;
+  agents: number[]; // indices into agents array
+}
+
+export interface MeshConfigBridge {
+  fromNetwork: number; // index into networks array
+  toNetwork: number;
+  fromAgent: number; // index into agents array
+  toAgent: number;
+  type: string; // channel type
 }
 
 export interface MeshConfigAgent {
   name: string;
   role: string;
   prompt: string;
+  network?: number; // index into networks array (alternative to MeshConfigNetwork.agents)
 }
 
 export interface MeshConfigChannel {
