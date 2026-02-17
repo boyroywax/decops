@@ -4,6 +4,7 @@ import { chatWithAgent } from "../../services/ai";
 import type { ChatMessage } from "../../services/ai";
 import { ROLES } from "../../constants";
 import { MessageSquare, Send, ChevronDown, ChevronUp } from "lucide-react";
+import { MarkdownContent } from "../shared/MarkdownContent";
 import "../../styles/components/agent-chat.css";
 
 interface AgentChatProps {
@@ -101,8 +102,11 @@ export function AgentChat({ agent }: AgentChatProps) {
                 <div className="agent-chat__sender">
                   {msg.role === "user" ? "You" : agent.name}
                 </div>
-                <div className="agent-chat__bubble chat-md">
-                  {msg.content}
+                <div className="agent-chat__bubble">
+                  {msg.role === "user"
+                    ? <span style={{ whiteSpace: "pre-wrap" }}>{msg.content}</span>
+                    : <MarkdownContent content={msg.content} />
+                  }
                 </div>
               </div>
             ))}

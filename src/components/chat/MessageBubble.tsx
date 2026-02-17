@@ -1,16 +1,8 @@
 import { useMemo } from "react";
-import { marked } from "marked";
 import type { ChatMessage, WorkspaceContext } from "../../services/ai";
 import { parseActions } from "./utils";
 import ActionCard from "./ActionCard";
-
-import DOMPurify from "dompurify";
-
-// Configure marked for safe, styled rendering
-marked.setOptions({
-    breaks: true,
-    gfm: true,
-});
+import { MarkdownContent } from "../shared/MarkdownContent";
 
 interface MessageBubbleProps {
     msg: ChatMessage;
@@ -21,16 +13,6 @@ export default function MessageBubble({ msg, context }: MessageBubbleProps) {
     const isUser = msg.role === "user";
     const { cleanText, actions } = parseActions(msg.content);
 
-    const renderedHtml = useMemo(() => {
-        if (isUser) return null;
-        try {
-            const raw = marked.parse(cleanText) as string;
-            return DOMPurify.sanitize(raw);
-        } catch {
-            return null;
-        }
-    }, [cleanText, isUser]);
-
     return (
         <div style={{
             display: "flex",
@@ -38,7 +20,6 @@ export default function MessageBubble({ msg, context }: MessageBubbleProps) {
             marginBottom: 8,
         }}>
             <div
-                className={isUser ? undefined : "chat-md"}
                 style={{
                     maxWidth: "85%",
                     background: isUser ? "rgba(0,229,160,0.1)" : "rgba(255,255,255,0.04)",
@@ -52,9 +33,9 @@ export default function MessageBubble({ msg, context }: MessageBubbleProps) {
                     ...(isUser ? { whiteSpace: "pre-wrap" as const } : {}),
                 }}
             >
-                {isUser || !renderedHtml
+                {isUser
                     ? cleanText
-                    : <div dangerouslySetInnerHTML={{ __html: renderedHtml }} />
+                    : <MarkdownContent content={cleanText} />
                 }
                 {actions.map((a, i) => <ActionCard key={i} action={a} context={context} />)}
             </div>

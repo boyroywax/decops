@@ -7,6 +7,7 @@ import { ROLES, CHANNEL_TYPES } from "../../constants";
 import { SectionTitle, PillButton } from "../shared/ui";
 import { Globe, ArrowLeftRight, X, Sparkles } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
+import { MarkdownContent } from "../shared/MarkdownContent";
 import { EcosystemCanvas } from "../canvas/EcosystemCanvas";
 import "../../styles/components/ecosystem.css";
 
@@ -213,7 +214,7 @@ export function EcosystemView({
                           <div className="eco-bridge-msg__avatar" style={{ background: (sRole?.color || "#555") + "20", borderColor: (sRole?.color || "#555") + "30" }}>{sRole?.icon}</div>
                           <div className="eco-bridge-msg__content">
                             <div className="eco-bridge-msg__sender" style={{ color: sRole?.color }}>{selBridgeFrom.name} <span className="eco-bridge-msg__net-label">({selBridgeFromNet?.name})</span></div>
-                            <div className="eco-bridge-msg__bubble">{m.content}</div>
+                            <MarkdownContent content={m.content} className="eco-bridge-msg__bubble" />
                           </div>
                         </div>
                         {m.status === "sending" && (
@@ -224,7 +225,7 @@ export function EcosystemView({
                             <div className="eco-bridge-msg__avatar" style={{ background: (rRole?.color || "#555") + "20", borderColor: (rRole?.color || "#555") + "30" }}>{rRole?.icon}</div>
                             <div className="eco-bridge-msg__content">
                               <div className="eco-bridge-msg__sender" style={{ color: rRole?.color }}>{selBridgeTo.name} <span className="eco-bridge-msg__net-label">({selBridgeToNet?.name})</span> <span className={`eco-bridge-msg__status${m.status === "no-prompt" ? " eco-bridge-msg__status--error" : ""}`}>{m.status === "no-prompt" ? "no prompt" : "response"}</span></div>
-                              <div className={`eco-bridge-msg__bubble eco-bridge-msg__bubble--response${m.status === "no-prompt" ? " eco-bridge-msg__bubble--error" : ""}`} style={m.status !== "no-prompt" ? { background: (rRole?.color || "#555") + "08", borderColor: (rRole?.color || "#555") + "15" } : undefined}>{m.response}</div>
+                              <MarkdownContent content={m.response} className={`eco-bridge-msg__bubble eco-bridge-msg__bubble--response${m.status === "no-prompt" ? " eco-bridge-msg__bubble--error" : ""}`} style={m.status !== "no-prompt" ? { background: (rRole?.color || "#555") + "08", borderColor: (rRole?.color || "#555") + "15" } : undefined} />
                             </div>
                           </div>
                         )}

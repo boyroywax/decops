@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Bot, ArrowLeftRight, Hexagon, MessageSquare, Sparkles, Settings, PlusCircle, Image, FileJson, FileText } from "lucide-react";
 import type { WorkspaceContext } from "../../services/ai";
 import type { ParsedAction } from "./types";
+import { MarkdownContent } from "../shared/MarkdownContent";
 import "../../styles/components/action-card.css";
 
 interface ActionCardProps {
@@ -108,7 +109,10 @@ export default function ActionCard({ action, context }: ActionCardProps) {
 
                         return (
                             <div className="action-card__artifact-content">
-                                {content || "No content available"}
+                                {content
+                                    ? <MarkdownContent content={content} />
+                                    : "No content available"
+                                }
                             </div>
                         );
                     })()}

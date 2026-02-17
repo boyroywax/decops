@@ -2,6 +2,7 @@ import type { RefObject } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, BridgeMessage } from "../../types";
 import { MessageSquare, ArrowLeftRight, Hexagon, X, Link2 } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
+import { MarkdownContent } from "../shared/MarkdownContent";
 import { ROLES, CHANNEL_TYPES } from "../../constants";
 import { SectionTitle, BulkCheckbox, BulkActionBar } from "../shared/ui";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
@@ -44,30 +45,6 @@ interface MessagesViewProps {
   selBridgeToNet: Network | null | undefined;
   sendBridgeMessage: () => void;
 }
-
-import { marked } from "marked";
-import { useMemo } from "react";
-
-import DOMPurify from "dompurify";
-
-// Configure marked
-marked.setOptions({
-  breaks: true,
-  gfm: true,
-});
-
-const FormattedMessage = ({ content, className, style }: { content: string, className?: string, style?: React.CSSProperties }) => {
-  const html = useMemo(() => {
-    try {
-      const raw = marked.parse(content) as string;
-      return DOMPurify.sanitize(raw);
-    } catch {
-      return content;
-    }
-  }, [content]);
-
-  return <div className={className} style={style} dangerouslySetInnerHTML={{ __html: html }} />;
-};
 
 export function MessagesView({
   agents, channels, groups, messages,
@@ -228,7 +205,7 @@ export function MessagesView({
                       <div className="msg-avatar" style={{ background: (sRole?.color || "#555") + "20", border: `1px solid ${sRole?.color || "#555"}30` }}>{sRole?.icon}</div>
                       <div className="msg-content">
                         <div className="msg-sender" style={{ color: sRole?.color }}>{sender?.name} <span className="msg-sender__timestamp">{new Date(m.ts).toLocaleTimeString()}</span></div>
-                        <FormattedMessage content={m.content} className="chat-md msg-bubble--sent" />
+                        <MarkdownContent content={m.content} className="msg-bubble--sent" />
                       </div>
                     </div>
                     {m.status === "sending" && <div className="msg-thinking"><span className="msg-thinking__dot">●</span> {receiver?.name} is thinking...</div>}
@@ -237,7 +214,7 @@ export function MessagesView({
                         <div className="msg-avatar" style={{ background: (rRole?.color || "#555") + "20", border: `1px solid ${rRole?.color || "#555"}30` }}>{rRole?.icon}</div>
                         <div className="msg-content">
                           <div className="msg-sender" style={{ color: rRole?.color }}>{receiver?.name} <span className={`msg-sender__status${m.status === "no-prompt" ? " msg-sender__status--no-prompt" : " msg-sender__status--response"}`}>{m.status === "no-prompt" ? "no prompt" : "response"}</span></div>
-                          <FormattedMessage content={m.response} className={`chat-md msg-bubble--received${m.status === "no-prompt" ? " msg-bubble--no-prompt" : ""}`} style={m.status !== "no-prompt" ? { background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15` } : undefined} />
+                          <MarkdownContent content={m.response} className={`msg-bubble--received${m.status === "no-prompt" ? " msg-bubble--no-prompt" : ""}`} style={m.status !== "no-prompt" ? { background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15` } : undefined} />
                         </div>
                       </div>
                     )}
@@ -265,7 +242,7 @@ export function MessagesView({
                       <div className="msg-avatar" style={{ background: (rRole?.color || "#555") + "20", border: `1px solid ${rRole?.color || "#555"}30` }}>{rRole?.icon}</div>
                       <div className="msg-content">
                         <div className="msg-sender" style={{ color: rRole?.color }}>{receiver?.name}</div>
-                        {m.response && <FormattedMessage content={m.response} className="chat-md msg-bubble--broadcast" style={{ background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15` }} />}
+                        {m.response && <MarkdownContent content={m.response} className="msg-bubble--broadcast" style={{ background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15` }} />}
                         {m.status === "sending" && <div className="msg-thinking--broadcast">● thinking...</div>}
                       </div>
                     </div>
@@ -290,7 +267,7 @@ export function MessagesView({
                         <div className="msg-avatar" style={{ background: (sRole?.color || "#555") + "20", border: `1px solid ${sRole?.color || "#555"}30` }}>{sRole?.icon}</div>
                         <div className="msg-content">
                           <div className="msg-sender" style={{ color: sRole?.color }}>{selBridgeFrom.name} <span className="msg-sender__net">({selBridgeFromNet?.name})</span> <span className="msg-sender__timestamp">{new Date(m.ts).toLocaleTimeString()}</span></div>
-                          <FormattedMessage content={m.content} className="chat-md msg-bubble--sent" />
+                          <MarkdownContent content={m.content} className="msg-bubble--sent" />
                         </div>
                       </div>
                       {m.status === "sending" && <div className="msg-thinking--bridge"><span className="msg-thinking__dot">●</span> {selBridgeTo.name} is thinking…</div>}
@@ -299,7 +276,7 @@ export function MessagesView({
                           <div className="msg-avatar" style={{ background: (rRole?.color || "#555") + "20", border: `1px solid ${rRole?.color || "#555"}30` }}>{rRole?.icon}</div>
                           <div className="msg-content">
                             <div className="msg-sender" style={{ color: rRole?.color }}>{selBridgeTo.name} <span className="msg-sender__net">({selBridgeToNet?.name})</span> <span className={`msg-sender__status${m.status === "no-prompt" ? " msg-sender__status--no-prompt" : " msg-sender__status--response"}`}>{m.status === "no-prompt" ? "no prompt" : "response"}</span></div>
-                            <FormattedMessage content={m.response} className={`chat-md msg-bubble--received msg-bubble--bridge-response${m.status === "no-prompt" ? " msg-bubble--no-prompt" : ""}`} style={m.status !== "no-prompt" ? { background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15` } : undefined} />
+                            <MarkdownContent content={m.response} className={`msg-bubble--received msg-bubble--bridge-response${m.status === "no-prompt" ? " msg-bubble--no-prompt" : ""}`} style={m.status !== "no-prompt" ? { background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15` } : undefined} />
                           </div>
                         </div>
                       )}

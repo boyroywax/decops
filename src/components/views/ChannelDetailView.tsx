@@ -2,6 +2,7 @@ import type { Agent, Channel, Message, Network, ViewId, NavContext } from "../..
 import { CHANNEL_TYPES, ROLES } from "../../constants";
 import { Radio, Calendar, ArrowLeftRight, MessageSquare, Globe, Zap, Users, Clock, Trash2 } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
+import { MarkdownContent } from "../shared/MarkdownContent";
 import "../../styles/components/channel-detail.css";
 
 interface ChannelDetailViewProps {
@@ -169,10 +170,11 @@ export function ChannelDetailView({
                       {msg.status}
                     </span>
                   </div>
-                  <div className="cd-message__content">{msg.content}</div>
+                  <MarkdownContent content={msg.content} className="cd-message__content" />
                   {msg.response && (
                     <div className="cd-message__response">
-                      <span className="cd-message__response-label">Response:</span> {msg.response}
+                      <span className="cd-message__response-label">Response:</span>
+                      <MarkdownContent content={msg.response} />
                     </div>
                   )}
                 </div>
