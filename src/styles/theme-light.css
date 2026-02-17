@@ -216,6 +216,161 @@
   border-color: rgba(0, 0, 0, 0.08);
 }
 
+[data-theme="light"] .chat-panel__header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .chat-panel__resize-indicator {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .chat-panel__model-badge {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-subtle);
+}
+
+[data-theme="light"] .chat-panel__convos-count {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .chat-panel__convos-list {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+[data-theme="light"] .chat-panel__loading-bubble {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .chat-panel__input-area {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .chat-panel__send-btn {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .chat-panel__messages {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+/* ─── Action Manager (Jobs panel) ─── */
+[data-theme="light"] .action-manager {
+  background: #ffffff;
+  border-top-color: rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="light"] .action-manager__resize-grip {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .action-manager__header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .action-manager__tab-count {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .action-manager__tab--active .action-manager__tab-count {
+  background: rgba(0, 180, 120, 0.12);
+}
+
+[data-theme="light"] .action-manager__tab-content {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+[data-theme="light"] .action-manager__library {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+/* Action library search in light mode */
+[data-theme="light"] .action-library__search {
+  background: var(--bg-input);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: var(--text-primary);
+}
+
+/* ─── Artifacts Panel ─── */
+[data-theme="light"] .artifacts-panel {
+  background: #ffffff;
+  border-top-color: rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="light"] .artifacts-panel__resize-grip {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .artifacts-panel__header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .artifacts-panel__toolbar {
+  border-bottom-color: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .artifacts-panel__search {
+  background: var(--bg-input);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .artifacts-panel__filter {
+  background: var(--bg-input);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .artifacts-panel__import-btn {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.18);
+}
+
+[data-theme="light"] .artifacts-panel__import-btn:hover {
+  background: rgba(99, 102, 241, 0.14);
+}
+
+[data-theme="light"] .artifacts-panel__grid {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+[data-theme="light"] .artifacts-panel__preview {
+  background: rgba(0, 0, 0, 0.02);
+  border-left-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .artifacts-panel__preview-header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .artifacts-panel__preview-body {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+[data-theme="light"] .artifacts-panel__preview-actions {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .artifacts-panel__btn--download {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .artifacts-panel__btn--download:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+[data-theme="light"] .artifacts-panel__btn--delete {
+  background: rgba(220, 38, 38, 0.06);
+  border-color: rgba(220, 38, 38, 0.14);
+}
+
+[data-theme="light"] .artifacts-panel__btn--delete:hover {
+  background: rgba(220, 38, 38, 0.12);
+}
+
 /* Modals */
 [data-theme="light"] .modal-overlay {
   background: rgba(0, 0, 0, 0.3);
