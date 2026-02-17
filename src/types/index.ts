@@ -23,6 +23,13 @@ export type ViewId =
   | "activity"
   | "actions";
 
+/** Navigation context for hierarchical drill-down: Ecosystem → Network → Group → Agent */
+export interface NavContext {
+  networkId?: string;
+  groupId?: string;
+  agentId?: string;
+}
+
 export type NotebookCategory = "action" | "output" | "navigation" | "system" | "narrative";
 
 export interface NotebookEntry {

@@ -1,5 +1,8 @@
-import type { ViewId } from "../../types";
+import type { ViewId, NavContext } from "../../types";
 import { NetworksView } from "../views/NetworksView";
+import { NetworkDetailView } from "../views/NetworkDetailView";
+import { GroupDetailView } from "../views/GroupDetailView";
+import { AgentDetailView } from "../views/AgentDetailView";
 import { AgentsView } from "../views/AgentsView";
 import { ChannelsView } from "../views/ChannelsView";
 import { GroupsView } from "../views/GroupsView";
@@ -8,11 +11,14 @@ import { NetworkView } from "../views/NetworkView";
 import { ArtifactsView } from "../views/ArtifactsView";
 import { ActivityView } from "../views/ActivityView";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
+import { Breadcrumb } from "./Breadcrumb";
 import type { WorkspaceContextType } from "../../context/WorkspaceContext";
 
 interface ViewSwitcherProps {
     view: ViewId;
     setView: (view: ViewId) => void;
+    navContext: NavContext;
+    navigateTo: (view: ViewId, ctx: NavContext) => void;
     workspace: WorkspaceContextType;
     architect: any;
     ecosystem: any;
@@ -29,6 +35,8 @@ interface ViewSwitcherProps {
 export function ViewSwitcher({
     view,
     setView,
+    navContext,
+    navigateTo,
     workspace,
     architect,
     ecosystem,
@@ -41,7 +49,76 @@ export function ViewSwitcher({
     addNotebookEntry,
     addJob
 }: ViewSwitcherProps) {
+    const breadcrumb = (navContext.networkId || navContext.groupId || navContext.agentId) ? (
+        <Breadcrumb
+            navContext={navContext}
+            navigateTo={navigateTo}
+            ecosystems={ecosystem.ecosystems}
+            agents={workspace.agents}
+            groups={workspace.groups}
+        />
+    ) : null;
+
     if (view === "networks" || view === "ecosystem") {
+        // Drill-down: Agent detail (deepest)
+        if (navContext.agentId && navContext.networkId) {
+            return (
+                <>
+                    {breadcrumb}
+                    <AgentDetailView
+                        agentId={navContext.agentId}
+                        networkId={navContext.networkId}
+                        groupId={navContext.groupId}
+                        agents={workspace.agents}
+                        channels={workspace.channels}
+                        groups={workspace.groups}
+                        messages={workspace.messages}
+                        ecosystems={ecosystem.ecosystems}
+                        navigateTo={navigateTo}
+                        updateAgentPrompt={workspace.updateAgentPrompt}
+                        removeAgent={workspace.removeAgent}
+                    />
+                </>
+            );
+        }
+        // Drill-down: Group detail
+        if (navContext.groupId && navContext.networkId) {
+            return (
+                <>
+                    {breadcrumb}
+                    <GroupDetailView
+                        groupId={navContext.groupId}
+                        networkId={navContext.networkId}
+                        agents={workspace.agents}
+                        groups={workspace.groups}
+                        ecosystems={ecosystem.ecosystems}
+                        navigateTo={navigateTo}
+                        removeGroup={workspace.removeGroup}
+                        setBroadcastGroup={workspace.setBroadcastGroup}
+                        setView={setView}
+                    />
+                </>
+            );
+        }
+        // Drill-down: Network detail
+        if (navContext.networkId) {
+            return (
+                <>
+                    {breadcrumb}
+                    <NetworkDetailView
+                        networkId={navContext.networkId}
+                        agents={workspace.agents}
+                        channels={workspace.channels}
+                        groups={workspace.groups}
+                        ecosystems={ecosystem.ecosystems}
+                        bridges={ecosystem.bridges}
+                        navigateTo={navigateTo}
+                        dissolveNetwork={ecosystem.dissolveNetwork}
+                    />
+                </>
+            );
+        }
+        // Top level: Network manager
         return (
             <NetworksView
                 agents={workspace.agents}
@@ -60,6 +137,7 @@ export function ViewSwitcher({
                 removeBridge={ecosystem.removeBridge}
                 setView={setView}
                 addJob={addJob}
+                navigateTo={navigateTo}
             />
         );
     }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Compass } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
-import type { ViewId } from "../../types";
+import type { ViewId, NavContext } from "../../types";
 import { useNotebook } from "../../hooks/useNotebook";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { useArchitect } from "../../hooks/useArchitect";
@@ -31,6 +31,7 @@ interface AuthenticatedAppProps {
 
 export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   const [view, setViewRaw] = useState<ViewId>("networks");
+  const [navContext, setNavContext] = useState<NavContext>({});
   const { entries: notebookEntries, addEntry: addNotebookEntry, addLog, clearNotebook, exportNotebook } = notebook;
 
   // Modal / popup state
@@ -44,12 +45,33 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     if (v === "architect") { setShowArchitectPopup(true); return; }
     if (v === "activity") { setShowActivityModal(true); return; }
     setViewRaw(v);
+    setNavContext({}); // Clear drill-down context on sidebar navigation
     addNotebookEntry({
       category: "navigation",
       icon: <GradientIcon icon={Compass} size={16} gradient={["#38bdf8", "#818cf8"]} />,
       title: `Navigated to ${v.charAt(0).toUpperCase() + v.slice(1)}`,
       description: `Opened the ${v} view.`,
       tags: ["navigation", v],
+    });
+  }, [addNotebookEntry]);
+
+  // Hierarchical navigation: navigate to a view with drill-down context
+  const navigateTo = useCallback((v: ViewId, ctx: NavContext) => {
+    if (v === "profile") { setShowProfileModal(true); return; }
+    if (v === "architect") { setShowArchitectPopup(true); return; }
+    if (v === "activity") { setShowActivityModal(true); return; }
+    setViewRaw(v);
+    setNavContext(ctx);
+    const parts: string[] = [v];
+    if (ctx.networkId) parts.push("network");
+    if (ctx.groupId) parts.push("group");
+    if (ctx.agentId) parts.push("agent");
+    addNotebookEntry({
+      category: "navigation",
+      icon: <GradientIcon icon={Compass} size={16} gradient={["#38bdf8", "#818cf8"]} />,
+      title: `Drilled into ${parts.join(" › ")}`,
+      description: `Navigated to ${v} detail view.`,
+      tags: ["navigation", v, "drill-down"],
     });
   }, [addNotebookEntry]);
 
@@ -281,6 +303,8 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
             <ViewSwitcher
               view={view}
               setView={setView}
+              navContext={navContext}
+              navigateTo={navigateTo}
               workspace={workspace}
               architect={architect}
               ecosystem={ecosystem}

@@ -24,8 +24,9 @@ interface SidebarProps {
   isMobile?: boolean;
 }
 
+const ARCHITECT_ITEM = { id: "architect" as ViewId, label: "Architect", icon: Sparkles, accent: "#fbbf24", gradient: ["#fbbf24", "#fb923c"] as [string, string] };
+
 const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; gradient: [string, string] }[] = [
-  { id: "architect", label: "Architect", icon: Sparkles, accent: "#fbbf24", gradient: ["#fbbf24", "#fb923c"] },
   { id: "networks", label: "Networks", icon: Globe, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] },
   { id: "agents", label: "Agents", icon: Bot, accent: "#00e5a0", gradient: ["#00e5a0", "#34d399"] },
   { id: "channels", label: "Channels", icon: ArrowLeftRight, accent: "#a78bfa", gradient: ["#a78bfa", "#c084fc"] },
@@ -95,7 +96,8 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
       ref={navRef}
       className={`app-sidebar ${isMobile ? 'mobile' : ''} ${collapsed && !isMobile ? 'collapsed' : ''}`}
     >
-      {NAV_ITEMS.map((tab) => (
+      <div className="sidebar-nav-top">
+        {NAV_ITEMS.map((tab) => (
         <button
           key={tab.id}
           onClick={() => setView(tab.id)}
@@ -111,9 +113,6 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
           {(!collapsed || isMobile) && (
             <>
               {tab.label}
-              {tab.id === "architect" && (
-                <span className="sidebar-shortcut">⌘K</span>
-              )}
               {tab.id === "networks" && ecosystems.length > 0 && (
                 <span className="sidebar-count info">{ecosystems.length}</span>
               )}
@@ -133,6 +132,27 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
           )}
         </button>
       ))}
+      </div>
+
+      <div className="sidebar-nav-bottom">
+      <button
+        onClick={() => setView(ARCHITECT_ITEM.id)}
+        title={collapsed && !isMobile ? ARCHITECT_ITEM.label : undefined}
+        className={`sidebar-nav-item sidebar-nav-item--architect ${view === ARCHITECT_ITEM.id ? 'active' : ''}`}
+        data-accent={getAccentType(ARCHITECT_ITEM.id)}
+        style={view === ARCHITECT_ITEM.id ? { color: ARCHITECT_ITEM.accent } : undefined}
+      >
+        {view === ARCHITECT_ITEM.id
+          ? <GradientIcon icon={ARCHITECT_ITEM.icon} size={14} gradient={ARCHITECT_ITEM.gradient} />
+          : <ARCHITECT_ITEM.icon size={14} />
+        }
+        {(!collapsed || isMobile) && (
+          <>
+            {ARCHITECT_ITEM.label}
+            <span className="sidebar-shortcut">⌘K</span>
+          </>
+        )}
+      </button>
 
       {!isMobile && (
         <div className="sidebar-collapse-btn">
@@ -144,6 +164,7 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
           </button>
         </div>
       )}
+      </div>
     </nav>
   );
 

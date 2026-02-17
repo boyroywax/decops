@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type {
   Agent, Channel, Group, Network, Bridge,
-  BridgeMessage, BridgeForm, ViewId,
+  BridgeMessage, BridgeForm, ViewId, NavContext,
 } from "../../types";
 import {
   Globe, Plus, Sparkles, Link2, Layers,
@@ -31,6 +31,7 @@ interface NetworksViewProps {
   removeBridge: (id: string) => void;
   setView: (v: ViewId) => void;
   addJob: (job: any) => void;
+  navigateTo?: (view: ViewId, ctx: NavContext) => void;
 }
 
 type ManagerTab = "networks" | "bridges" | "topology";
@@ -42,7 +43,7 @@ export function NetworksView({
   bridgeFromNet, bridgeToNet,
   dissolveNetwork,
   createBridge, removeBridge, setView,
-  addJob,
+  addJob, navigateTo,
 }: NetworksViewProps) {
   const [activeTab, setActiveTab] = useState<ManagerTab>("networks");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -113,6 +114,7 @@ export function NetworksView({
                   isExpanded={expandedNetwork === net.id}
                   onToggleExpand={() => setExpandedNetwork(expandedNetwork === net.id ? null : net.id)}
                   dissolveNetwork={dissolveNetwork}
+                  onNavigate={navigateTo}
                 />
               ))}
             </div>

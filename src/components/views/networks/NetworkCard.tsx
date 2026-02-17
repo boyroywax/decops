@@ -1,8 +1,8 @@
-import type { Network, Bridge, Agent, Channel, Group } from "../../../types";
+import type { Network, Bridge, Agent, Channel, Group, ViewId, NavContext } from "../../../types";
 import { ROLES, CHANNEL_TYPES } from "../../../constants";
 import {
   Globe, Trash2, Link2,
-  ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, ArrowRight,
 } from "lucide-react";
 
 interface NetworkCardProps {
@@ -15,13 +15,14 @@ interface NetworkCardProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   dissolveNetwork: (id: string) => void;
+  onNavigate?: (view: ViewId, ctx: NavContext) => void;
 }
 
 export function NetworkCard({
   net, bridges, ecosystems,
   workspaceAgents, workspaceChannels, workspaceGroups,
   isExpanded, onToggleExpand,
-  dissolveNetwork,
+  dissolveNetwork, onNavigate,
 }: NetworkCardProps) {
   // Filter workspace entities by networkId for live counts
   const networkAgents = workspaceAgents.filter(a => a.networkId === net.id);
@@ -42,7 +43,10 @@ export function NetworkCard({
       }}
     >
       {/* Card Header */}
-      <div style={{ padding: 18 }}>
+      <div
+        style={{ padding: 18, cursor: onNavigate ? "pointer" : "default" }}
+        onClick={() => onNavigate?.("networks", { networkId: net.id })}
+      >
         <div style={{
           display: "flex",
           justifyContent: "space-between",
@@ -89,6 +93,10 @@ export function NetworkCard({
             return (
               <span
                 key={a.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onNavigate?.("networks", { networkId: net.id, agentId: a.id });
+                }}
                 style={{
                   fontSize: 9,
                   padding: "3px 8px",
@@ -96,6 +104,8 @@ export function NetworkCard({
                   background: (r?.color || "#555") + "10",
                   color: r?.color || "#555",
                   border: `1px solid ${(r?.color || "#555")}15`,
+                  cursor: onNavigate ? "pointer" : "default",
+                  transition: "background 0.15s",
                 }}
               >
                 {r?.char} {a.name}
@@ -117,7 +127,7 @@ export function NetworkCard({
         {/* Actions */}
         <div style={{ display: "flex", gap: 6 }}>
           <button
-            onClick={onToggleExpand}
+            onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
             style={{
               background: "rgba(255,255,255,0.03)",
               border: "1px solid rgba(255,255,255,0.06)",
@@ -135,8 +145,29 @@ export function NetworkCard({
             {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
             Details
           </button>
+          {onNavigate && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onNavigate("networks", { networkId: net.id }); }}
+              style={{
+                background: `${net.color}10`,
+                border: `1px solid ${net.color}20`,
+                color: net.color,
+                padding: "6px 10px",
+                borderRadius: 6,
+                fontFamily: "inherit",
+                fontSize: 10,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 3,
+              }}
+            >
+              <ArrowRight size={11} />
+              Open
+            </button>
+          )}
           <button
-            onClick={() => dissolveNetwork(net.id)}
+            onClick={(e) => { e.stopPropagation(); dissolveNetwork(net.id); }}
             style={{
               background: "rgba(239,68,68,0.06)",
               border: "1px solid rgba(239,68,68,0.12)",
