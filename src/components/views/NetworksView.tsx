@@ -5,7 +5,7 @@ import type {
 } from "../../types";
 import { inputStyle } from "../shared/ui";
 import {
-  Globe, Plus, Sparkles, Link2, Layers, Download,
+  Globe, Plus, Sparkles, Link2, Layers,
 } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { NetworkCard } from "./networks/NetworkCard";
@@ -22,13 +22,10 @@ interface NetworksViewProps {
   bridges: Bridge[];
   bridgeMessages: BridgeMessage[];
   activeBridges: Set<string>;
-  ecoSaveName: string;
-  setEcoSaveName: (v: string) => void;
   bridgeForm: BridgeForm;
   setBridgeForm: (v: BridgeForm) => void;
   bridgeFromNet: Network | null | undefined;
   bridgeToNet: Network | null | undefined;
-  saveCurrentNetwork: () => void;
   dissolveNetwork: (id: string) => void;
   createBridge: () => void;
   removeBridge: (id: string) => void;
@@ -41,9 +38,9 @@ type ManagerTab = "networks" | "bridges" | "topology";
 export function NetworksView({
   agents, channels, groups,
   ecosystems, bridges, bridgeMessages, activeBridges,
-  ecoSaveName, setEcoSaveName, bridgeForm, setBridgeForm,
+  bridgeForm, setBridgeForm,
   bridgeFromNet, bridgeToNet,
-  saveCurrentNetwork, dissolveNetwork,
+  dissolveNetwork,
   createBridge, removeBridge, setView,
   addJob,
 }: NetworksViewProps) {
@@ -136,54 +133,6 @@ export function NetworksView({
       {/* ─── Networks Tab ─── */}
       {activeTab === "networks" && (
         <div style={{ flex: 1, overflow: "auto" }}>
-          {/* Save Current Workspace Bar */}
-          {agents.length > 0 && (
-            <div style={{
-              background: "rgba(56,189,248,0.03)",
-              border: "1px solid rgba(56,189,248,0.1)",
-              borderRadius: 12, padding: 16, marginBottom: 20,
-              display: "flex", alignItems: "center", gap: 12,
-            }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 10,
-                background: "rgba(56,189,248,0.08)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
-              }}>
-                <Download size={18} color="#38bdf8" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: "#e4e4e7", marginBottom: 2 }}>Save Active Workspace as Network</div>
-                <div style={{ fontSize: 10, color: "#52525b" }}>
-                  Snapshot {agents.length} agents, {channels.length} channels, {groups.length} groups
-                </div>
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <input
-                  placeholder="Network name..."
-                  value={ecoSaveName}
-                  onChange={(e) => setEcoSaveName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && saveCurrentNetwork()}
-                  style={{ ...inputStyle, border: "1px solid rgba(56,189,248,0.15)", width: 200 }}
-                />
-                <button
-                  onClick={saveCurrentNetwork}
-                  disabled={!ecoSaveName.trim()}
-                  style={{
-                    background: ecoSaveName.trim() ? "#38bdf8" : "#3f3f46",
-                    color: "#0a0a0f", border: "none",
-                    padding: "8px 16px", borderRadius: 6,
-                    cursor: ecoSaveName.trim() ? "pointer" : "not-allowed",
-                    fontFamily: "inherit", fontSize: 11, fontWeight: 500,
-                    flexShrink: 0,
-                  }}
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Network Cards Grid */}
           {ecosystems.length > 0 ? (
             <div style={{
@@ -197,6 +146,9 @@ export function NetworksView({
                   net={net}
                   bridges={bridges}
                   ecosystems={ecosystems}
+                  workspaceAgents={agents}
+                  workspaceChannels={channels}
+                  workspaceGroups={groups}
                   isExpanded={expandedNetwork === net.id}
                   onToggleExpand={() => setExpandedNetwork(expandedNetwork === net.id ? null : net.id)}
                   dissolveNetwork={dissolveNetwork}
@@ -216,7 +168,7 @@ export function NetworksView({
                 No networks yet
               </div>
               <div style={{ fontSize: 11, color: "#52525b", marginBottom: 20, maxWidth: 360, margin: "0 auto 20px" }}>
-                Create a network using the Architect, or save your current workspace agents as a network snapshot.
+                Create a network to organize your agents, channels, and groups. Use the Architect for AI-powered network generation.
               </div>
               <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
                 <button
@@ -330,11 +282,7 @@ export function NetworksView({
       {/* Create Network Modal */}
       {showCreateModal && (
         <CreateNetworkModal
-          agents={agents}
-          channels={channels}
-          groups={groups}
           addJob={addJob}
-          setEcoSaveName={setEcoSaveName}
           onClose={() => setShowCreateModal(false)}
         />
       )}

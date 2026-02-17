@@ -1,4 +1,4 @@
-import type { Network, Bridge } from "../../../types";
+import type { Network, Bridge, Agent, Channel, Group } from "../../../types";
 import { ROLES, CHANNEL_TYPES } from "../../../constants";
 import {
   Globe, Trash2, Link2,
@@ -9,6 +9,9 @@ interface NetworkCardProps {
   net: Network;
   bridges: Bridge[];
   ecosystems: Network[];
+  workspaceAgents: Agent[];
+  workspaceChannels: Channel[];
+  workspaceGroups: Group[];
   isExpanded: boolean;
   onToggleExpand: () => void;
   dissolveNetwork: (id: string) => void;
@@ -16,9 +19,14 @@ interface NetworkCardProps {
 
 export function NetworkCard({
   net, bridges, ecosystems,
+  workspaceAgents, workspaceChannels, workspaceGroups,
   isExpanded, onToggleExpand,
   dissolveNetwork,
 }: NetworkCardProps) {
+  // Filter workspace entities by networkId for live counts
+  const networkAgents = workspaceAgents.filter(a => a.networkId === net.id);
+  const networkChannels = workspaceChannels.filter(c => c.networkId === net.id);
+  const networkGroups = workspaceGroups.filter(g => g.networkId === net.id);
   const netBridges = bridges.filter(
     (b) => b.fromNetworkId === net.id || b.toNetworkId === net.id
   );
@@ -60,7 +68,7 @@ export function NetworkCard({
                 {net.name}
               </div>
               <div style={{ fontSize: 9, color: "#52525b", marginTop: 2 }}>
-                {net.agents.length} agents · {net.channels.length} ch · {net.groups.length} groups
+                {networkAgents.length} agents · {networkChannels.length} ch · {networkGroups.length} groups
                 {netBridges.length > 0 && <span style={{ color: "#fbbf24" }}> · {netBridges.length} bridges</span>}
               </div>
             </div>
@@ -76,7 +84,7 @@ export function NetworkCard({
 
         {/* Agent pills */}
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12 }}>
-          {net.agents.slice(0, 5).map((a) => {
+          {networkAgents.slice(0, 5).map((a) => {
             const r = ROLES.find((x) => x.id === a.role);
             return (
               <span
@@ -94,9 +102,9 @@ export function NetworkCard({
               </span>
             );
           })}
-          {net.agents.length > 5 && (
+          {networkAgents.length > 5 && (
             <span style={{ fontSize: 9, padding: "3px 8px", color: "#52525b" }}>
-              +{net.agents.length - 5}
+              +{networkAgents.length - 5}
             </span>
           )}
         </div>
@@ -157,7 +165,7 @@ export function NetworkCard({
         }}>
           <div style={{ fontSize: 10, color: "#71717a", marginBottom: 8, fontWeight: 500 }}>AGENTS</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
-            {net.agents.map((a) => {
+            {networkAgents.map((a) => {
               const r = ROLES.find((x) => x.id === a.role);
               return (
                 <div key={a.id} style={{
@@ -175,14 +183,14 @@ export function NetworkCard({
             })}
           </div>
 
-          {net.channels.length > 0 && (
+          {networkChannels.length > 0 && (
             <>
-              <div style={{ fontSize: 10, color: "#71717a", marginBottom: 8, fontWeight: 500 }}>CHANNELS ({net.channels.length})</div>
+              <div style={{ fontSize: 10, color: "#71717a", marginBottom: 8, fontWeight: 500 }}>CHANNELS ({networkChannels.length})</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 12 }}>
-                {net.channels.map((ch) => {
+                {networkChannels.map((ch) => {
                   const t = CHANNEL_TYPES.find((x) => x.id === ch.type);
-                  const fromA = net.agents.find((a) => a.id === ch.from);
-                  const toA = net.agents.find((a) => a.id === ch.to);
+                  const fromA = networkAgents.find((a) => a.id === ch.from);
+                  const toA = networkAgents.find((a) => a.id === ch.to);
                   return (
                     <span key={ch.id} style={{
                       fontSize: 9, padding: "3px 8px", borderRadius: 4,

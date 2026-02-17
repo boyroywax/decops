@@ -1,21 +1,15 @@
 import { useState } from "react";
-import type { Agent, Channel, Group } from "../../../types";
 import { inputStyle } from "../../shared/ui";
 import { Globe, Plus, X, Sparkles } from "lucide-react";
 import { GradientIcon } from "../../shared/GradientIcon";
 
 interface CreateNetworkModalProps {
-  agents: Agent[];
-  channels: Channel[];
-  groups: Group[];
   addJob: (job: any) => void;
-  setEcoSaveName: (v: string) => void;
   onClose: () => void;
 }
 
 export function CreateNetworkModal({
-  agents, channels, groups,
-  addJob, setEcoSaveName, onClose,
+  addJob, onClose,
 }: CreateNetworkModalProps) {
   const [createName, setCreateName] = useState("");
   const [createDesc, setCreateDesc] = useState("");
@@ -24,6 +18,7 @@ export function CreateNetworkModal({
 
   const handleCreate = () => {
     if (createWithArchitect && architectPrompt.trim()) {
+      // AI-generated network with agents
       addJob({
         type: "create_network",
         request: {
@@ -32,15 +27,20 @@ export function CreateNetworkModal({
           architectPrompt: architectPrompt.trim(),
         },
       });
-    } else if (agents.length > 0 && createName.trim()) {
-      setEcoSaveName(createName.trim());
+    } else if (createName.trim()) {
+      // Create empty network container
       addJob({
-        type: "save_ecosystem",
-        request: { name: createName.trim() },
+        type: "create_empty_network",
+        request: {
+          name: createName.trim(),
+          description: createDesc.trim(),
+        },
       });
     }
     onClose();
   };
+
+  const canCreate = createWithArchitect ? architectPrompt.trim() : createName.trim();
 
   return (
     <div style={{
@@ -222,8 +222,8 @@ export function CreateNetworkModal({
             </div>
           )}
 
-          {/* Save current notice */}
-          {!createWithArchitect && agents.length > 0 && (
+          {/* Info notice */}
+          {!createWithArchitect && (
             <div style={{
               fontSize: 10,
               color: "#52525b",
@@ -232,20 +232,7 @@ export function CreateNetworkModal({
               borderRadius: 6,
               border: "1px solid rgba(56,189,248,0.08)",
             }}>
-              This will save your current workspace ({agents.length} agents, {channels.length} channels, {groups.length} groups) as a new network.
-            </div>
-          )}
-
-          {!createWithArchitect && agents.length === 0 && (
-            <div style={{
-              fontSize: 10,
-              color: "#ef4444",
-              background: "rgba(239,68,68,0.04)",
-              padding: "8px 12px",
-              borderRadius: 6,
-              border: "1px solid rgba(239,68,68,0.08)",
-            }}>
-              No agents in workspace. Use the Architect toggle above to generate a network, or create agents first.
+              Creates an empty network. Agents, channels, and groups will be affiliated when you assign them to this network.
             </div>
           )}
 
@@ -269,29 +256,18 @@ export function CreateNetworkModal({
             </button>
             <button
               onClick={handleCreate}
-              disabled={
-                createWithArchitect
-                  ? !architectPrompt.trim()
-                  : (!createName.trim() || agents.length === 0)
-              }
+              disabled={!canCreate}
               style={{
                 flex: 1,
                 padding: "12px",
-                background:
-                  (createWithArchitect ? architectPrompt.trim() : (createName.trim() && agents.length > 0))
-                    ? "linear-gradient(135deg, #38bdf8 0%, #60a5fa 100%)"
-                    : "rgba(255,255,255,0.06)",
+                background: canCreate
+                  ? "linear-gradient(135deg, #38bdf8 0%, #60a5fa 100%)"
+                  : "rgba(255,255,255,0.06)",
                 border: "none",
-                color:
-                  (createWithArchitect ? architectPrompt.trim() : (createName.trim() && agents.length > 0))
-                    ? "#0a0a0f"
-                    : "rgba(255,255,255,0.2)",
+                color: canCreate ? "#0a0a0f" : "rgba(255,255,255,0.2)",
                 fontWeight: 600,
                 borderRadius: 8,
-                cursor:
-                  (createWithArchitect ? architectPrompt.trim() : (createName.trim() && agents.length > 0))
-                    ? "pointer"
-                    : "not-allowed",
+                cursor: canCreate ? "pointer" : "not-allowed",
                 fontSize: 13,
                 display: "flex",
                 alignItems: "center",

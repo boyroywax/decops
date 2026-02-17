@@ -51,13 +51,10 @@ export function ViewSwitcher({
                 bridges={ecosystem.bridges}
                 bridgeMessages={ecosystem.bridgeMessages}
                 activeBridges={ecosystem.activeBridges}
-                ecoSaveName={ecosystem.ecoSaveName}
-                setEcoSaveName={ecosystem.setEcoSaveName}
                 bridgeForm={ecosystem.bridgeForm}
                 setBridgeForm={ecosystem.setBridgeForm}
                 bridgeFromNet={ecosystem.bridgeFromNet}
                 bridgeToNet={ecosystem.bridgeToNet}
-                saveCurrentNetwork={ecosystem.saveCurrentNetwork}
                 dissolveNetwork={ecosystem.dissolveNetwork}
                 createBridge={ecosystem.createBridge}
                 removeBridge={ecosystem.removeBridge}
