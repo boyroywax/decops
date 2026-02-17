@@ -95,7 +95,12 @@ export function NetworkCard({
                 key={a.id}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onNavigate?.("networks", { networkId: net.id, agentId: a.id });
+                  const agentGroup = networkGroups.find(g => g.members.includes(a.id));
+                  onNavigate?.("networks", {
+                    networkId: net.id,
+                    ...(agentGroup ? { groupId: agentGroup.id } : {}),
+                    agentId: a.id,
+                  });
                 }}
                 style={{
                   fontSize: 9,
