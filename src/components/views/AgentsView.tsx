@@ -1,8 +1,8 @@
-import type { Agent, Channel, Group, Message, NewAgentForm } from "../../types";
+import type { Agent, Channel, Group, Message, NewAgentForm, Network } from "../../types";
 import { ROLES, PROMPT_TEMPLATES } from "../../constants";
 import { inputStyle, SectionTitle, PillButton, BulkCheckbox, BulkActionBar } from "../shared/ui";
 import { useState } from "react";
-import { Bot, Hexagon, X } from "lucide-react";
+import { Bot, Hexagon, X, Globe } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
 
@@ -11,6 +11,7 @@ interface AgentsViewProps {
   channels: Channel[];
   groups: Group[];
   messages: Message[];
+  ecosystems: Network[];
   showCreate: boolean;
   setShowCreate: (v: boolean) => void;
   newAgent: NewAgentForm;
@@ -28,13 +29,19 @@ interface AgentsViewProps {
 }
 
 export function AgentsView({
-  agents, channels, groups, messages,
+  agents, channels, groups, messages, ecosystems,
   showCreate, setShowCreate, newAgent, setNewAgent,
   selectedAgent, setSelectedAgent, editingPrompt, setEditingPrompt,
   editPromptText, setEditPromptText,
   createAgent, updateAgentPrompt, removeAgent, removeAgents,
 }: AgentsViewProps) {
   const bulk = useBulkSelect();
+
+  const getNetworkName = (networkId?: string) => {
+    if (!networkId) return null;
+    const net = ecosystems.find(n => n.id === networkId);
+    return net ? { name: net.name, color: net.color } : null;
+  };
 
   const handleBulkDelete = () => {
     removeAgents(bulk.selected);
@@ -102,6 +109,7 @@ export function AgentsView({
           const agentChannels = channels.filter((c) => c.from === a.id || c.to === a.id);
           const agentGroups = groups.filter((g) => g.members.includes(a.id));
           const agentMsgs = messages.filter((m) => m.fromId === a.id || m.toId === a.id);
+          const network = getNetworkName(a.networkId);
           const isSelected = selectedAgent === a.id;
           const isEditing = editingPrompt === a.id;
           const isChecked = bulk.has(a.id);
@@ -114,6 +122,7 @@ export function AgentsView({
                   <div><div style={{ fontWeight: 500, fontSize: 13 }}>{a.name}</div><div style={{ fontSize: 10, color: role.color }}>{role.label}</div></div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {network && <span style={{ fontSize: 9, color: network.color, background: network.color + "15", padding: "2px 6px", borderRadius: 3, display: "flex", alignItems: "center", gap: 3 }}><Globe size={9} /> {network.name}</span>}
                   {a.prompt && <span style={{ fontSize: 9, color: "#52525b", background: "rgba(0,229,160,0.08)", padding: "2px 6px", borderRadius: 3 }}>PROMPTED</span>}
                   <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#00e5a0", boxShadow: "0 0 8px #00e5a0" }} />
                 </div>

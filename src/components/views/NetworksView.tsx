@@ -29,9 +29,7 @@ interface NetworksViewProps {
   bridgeFromNet: Network | null | undefined;
   bridgeToNet: Network | null | undefined;
   saveCurrentNetwork: () => void;
-  loadNetwork: (id: string) => void;
   dissolveNetwork: (id: string) => void;
-  clearWorkspace: () => void;
   createBridge: () => void;
   removeBridge: (id: string) => void;
   setView: (v: ViewId) => void;
@@ -47,7 +45,7 @@ export function NetworksView({
   ecosystems, bridges, bridgeMessages, activeBridges,
   ecoSaveName, setEcoSaveName, bridgeForm, setBridgeForm,
   bridgeFromNet, bridgeToNet,
-  saveCurrentNetwork, loadNetwork, dissolveNetwork,
+  saveCurrentNetwork, dissolveNetwork,
   createBridge, removeBridge, setView,
   addJob, activeNetworkId, setActiveNetworkId,
 }: NetworksViewProps) {
@@ -203,7 +201,6 @@ export function NetworksView({
                   ecosystems={ecosystems}
                   isExpanded={expandedNetwork === net.id}
                   onToggleExpand={() => setExpandedNetwork(expandedNetwork === net.id ? null : net.id)}
-                  loadNetwork={loadNetwork}
                   dissolveNetwork={dissolveNetwork}
                   isActive={activeNetworkId === net.id}
                   onSetActive={() => setActiveNetworkId(activeNetworkId === net.id ? null : net.id)}

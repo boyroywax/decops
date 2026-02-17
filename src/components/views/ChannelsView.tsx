@@ -1,7 +1,7 @@
-import type { Agent, Channel, ChannelForm, ViewId, Message } from "../../types";
+import type { Agent, Channel, ChannelForm, ViewId, Message, Network } from "../../types";
 import { CHANNEL_TYPES, ROLES } from "../../constants";
 import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar, PillButton } from "../shared/ui";
-import { ArrowLeftRight, X } from "lucide-react";
+import { ArrowLeftRight, X, Globe } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
 
@@ -9,6 +9,7 @@ interface ChannelsViewProps {
   agents: Agent[];
   channels: Channel[];
   messages: Message[];
+  ecosystems: Network[];
   channelForm: ChannelForm;
   setChannelForm: (v: ChannelForm) => void;
   createChannel: () => void;
@@ -19,11 +20,17 @@ interface ChannelsViewProps {
 }
 
 export function ChannelsView({
-  agents, channels, messages,
+  agents, channels, messages, ecosystems,
   channelForm, setChannelForm,
   createChannel, removeChannel, removeChannels, setActiveChannel, setView,
 }: ChannelsViewProps) {
   const bulk = useBulkSelect();
+
+  const getNetworkName = (networkId?: string) => {
+    if (!networkId) return null;
+    const net = ecosystems.find(n => n.id === networkId);
+    return net ? { name: net.name, color: net.color } : null;
+  };
 
   const handleBulkDelete = () => {
     removeChannels(bulk.selected);
@@ -77,6 +84,7 @@ export function ChannelsView({
         const to = agents.find((a) => a.id === ch.to);
         const cType = CHANNEL_TYPES.find((t) => t.id === ch.type);
         const msgCount = messages.filter((m) => m.channelId === ch.id).length;
+        const network = getNetworkName(ch.networkId);
         const isChecked = bulk.has(ch.id);
         if (!from || !to) return null;
         return (
@@ -87,6 +95,7 @@ export function ChannelsView({
               <ArrowLeftRight size={10} color="#52525b" />
               <span style={{ color: ROLES.find(r => r.id === to.role)?.color }}>{to.name}</span>
               <span style={{ background: "rgba(167,139,250,0.1)", color: "#a78bfa", padding: "3px 8px", borderRadius: 4, fontSize: 10 }}>{cType?.icon} {cType?.label}</span>
+              {network && <span style={{ fontSize: 9, color: network.color, background: network.color + "15", padding: "2px 6px", borderRadius: 4, display: "flex", alignItems: "center", gap: 3 }}><Globe size={9} /> {network.name}</span>}
               {msgCount > 0 && <span style={{ fontSize: 9, color: "#fbbf24", background: "rgba(251,191,36,0.1)", padding: "2px 6px", borderRadius: 4 }}>{msgCount} msgs</span>}
             </div>
             <div style={{ display: "flex", gap: 6 }}>

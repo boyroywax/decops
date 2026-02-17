@@ -1,5 +1,5 @@
-import type { Agent, Group, GroupForm, GovernanceModelId, Channel, Message, ViewId } from "../../types";
-import { Hexagon, X, MessageSquare, Check, Plus } from "lucide-react";
+import type { Agent, Group, GroupForm, GovernanceModelId, Channel, Message, ViewId, Network } from "../../types";
+import { Hexagon, X, MessageSquare, Check, Plus, Globe } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { ROLES, GOVERNANCE_MODELS } from "../../constants";
 import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar } from "../shared/ui";
@@ -8,6 +8,7 @@ import { useBulkSelect } from "../../hooks/useBulkSelect";
 interface GroupsViewProps {
   agents: Agent[];
   groups: Group[];
+  ecosystems: Network[];
   showGroupCreate: boolean;
   setShowGroupCreate: (v: boolean) => void;
   groupForm: GroupForm;
@@ -23,13 +24,19 @@ interface GroupsViewProps {
 }
 
 export function GroupsView({
-  agents, groups,
+  agents, groups, ecosystems,
   showGroupCreate, setShowGroupCreate, groupForm, setGroupForm,
   selectedGroup, setSelectedGroup,
   createGroup, removeGroup, removeGroups, toggleGroupMember,
   setBroadcastGroup, setView,
 }: GroupsViewProps) {
   const bulk = useBulkSelect();
+
+  const getNetworkName = (networkId?: string) => {
+    if (!networkId) return null;
+    const net = ecosystems.find(n => n.id === networkId);
+    return net ? { name: net.name, color: net.color } : null;
+  };
 
   const handleBulkDelete = () => {
     removeGroups(bulk.selected);
@@ -118,6 +125,7 @@ export function GroupsView({
         {groups.map((g) => {
           const gov = GOVERNANCE_MODELS.find((m) => m.id === g.governance);
           const memberAgents = g.members.map((mid) => agents.find((a) => a.id === mid)).filter(Boolean) as Agent[];
+          const network = getNetworkName(g.networkId);
           const isSelected = selectedGroup === g.id;
           const isChecked = bulk.has(g.id);
           return (
@@ -130,7 +138,10 @@ export function GroupsView({
                     <div style={{ fontSize: 10, color: "#71717a", marginTop: 2 }}>{gov?.icon} {gov?.label}</div>
                   </div>
                 </div>
-                <span style={{ fontSize: 10, color: "#52525b", background: "rgba(255,255,255,0.04)", padding: "3px 8px", borderRadius: 4 }}>{memberAgents.length} members</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {network && <span style={{ fontSize: 9, color: network.color, background: network.color + "15", padding: "2px 6px", borderRadius: 4, display: "flex", alignItems: "center", gap: 3 }}><Globe size={9} /> {network.name}</span>}
+                  <span style={{ fontSize: 10, color: "#52525b", background: "rgba(255,255,255,0.04)", padding: "3px 8px", borderRadius: 4 }}>{memberAgents.length} members</span>
+                </div>
               </div>
               <div style={{ marginTop: 12, fontSize: 10 }}><div style={{ color: "#52525b", marginBottom: 4, letterSpacing: "0.05em" }}>GROUP DID</div><div style={{ color: "#a1a1aa", wordBreak: "break-all" }}>{g.did}</div></div>
               {g.governance === "threshold" && <div style={{ marginTop: 10, fontSize: 10, color: "#71717a" }}>Threshold: <span style={{ color: g.color }}>{g.threshold}</span> of {memberAgents.length}</div>}

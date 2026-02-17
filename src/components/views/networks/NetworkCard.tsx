@@ -1,7 +1,7 @@
 import type { Network, Bridge } from "../../../types";
 import { ROLES, CHANNEL_TYPES } from "../../../constants";
 import {
-  Globe, Download, Trash2, Link2,
+  Globe, Trash2, Link2,
   ChevronDown, ChevronUp, Star,
 } from "lucide-react";
 
@@ -11,7 +11,6 @@ interface NetworkCardProps {
   ecosystems: Network[];
   isExpanded: boolean;
   onToggleExpand: () => void;
-  loadNetwork: (id: string) => void;
   dissolveNetwork: (id: string) => void;
   isActive?: boolean;
   onSetActive?: () => void;
@@ -20,7 +19,7 @@ interface NetworkCardProps {
 export function NetworkCard({
   net, bridges, ecosystems,
   isExpanded, onToggleExpand,
-  loadNetwork, dissolveNetwork,
+  dissolveNetwork,
   isActive, onSetActive,
 }: NetworkCardProps) {
   const netBridges = bridges.filter(
@@ -147,25 +146,6 @@ export function NetworkCard({
               <Star size={11} fill={isActive ? net.color : "none"} /> {isActive ? "Active" : "Set Active"}
             </button>
           )}
-          <button
-            onClick={() => loadNetwork(net.id)}
-            style={{
-              background: `${net.color}10`,
-              border: `1px solid ${net.color}25`,
-              color: net.color,
-              padding: "6px 14px",
-              borderRadius: 6,
-              fontFamily: "inherit",
-              fontSize: 10,
-              cursor: "pointer",
-              fontWeight: 500,
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-            }}
-          >
-            <Download size={11} /> Load
-          </button>
           <button
             onClick={onToggleExpand}
             style={{

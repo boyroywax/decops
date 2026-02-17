@@ -58,9 +58,7 @@ export function ViewSwitcher({
                 bridgeFromNet={ecosystem.bridgeFromNet}
                 bridgeToNet={ecosystem.bridgeToNet}
                 saveCurrentNetwork={ecosystem.saveCurrentNetwork}
-                loadNetwork={ecosystem.loadNetwork}
                 dissolveNetwork={ecosystem.dissolveNetwork}
-                clearWorkspace={workspace.clearWorkspace}
                 createBridge={ecosystem.createBridge}
                 removeBridge={ecosystem.removeBridge}
                 setView={setView}
@@ -78,6 +76,7 @@ export function ViewSwitcher({
                 channels={workspace.channels}
                 groups={workspace.groups}
                 messages={workspace.messages}
+                ecosystems={ecosystem.ecosystems}
                 showCreate={workspace.showCreate}
                 setShowCreate={workspace.setShowCreate}
                 newAgent={workspace.newAgent}
@@ -102,6 +101,7 @@ export function ViewSwitcher({
                 agents={workspace.agents}
                 channels={workspace.channels}
                 messages={workspace.messages}
+                ecosystems={ecosystem.ecosystems}
                 channelForm={workspace.channelForm}
                 setChannelForm={workspace.setChannelForm}
                 createChannel={workspace.createChannel}
@@ -118,6 +118,7 @@ export function ViewSwitcher({
             <GroupsView
                 agents={workspace.agents}
                 groups={workspace.groups}
+                ecosystems={ecosystem.ecosystems}
                 showGroupCreate={workspace.showGroupCreate}
                 setShowGroupCreate={workspace.setShowGroupCreate}
                 groupForm={workspace.groupForm}
