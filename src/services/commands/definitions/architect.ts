@@ -47,6 +47,8 @@ export const deployNetworkCommand: CommandDefinition = {
         let count = 0;
         const { addLog, setAgents, setChannels, setGroups, setMessages, setActiveChannels } = context.workspace;
 
+        const activeNetId = context.ecosystem?.activeNetworkId || undefined;
+
         // 1. Create agents
         const newAgents: any[] = [];
         for (const a of config.agents) {
@@ -56,6 +58,7 @@ export const deployNetworkCommand: CommandDefinition = {
                 id: crypto.randomUUID(), name: a.name, role: validRole,
                 prompt: a.prompt || "", did: generateDID(), keys: generateKeyPair(),
                 createdAt: new Date().toISOString(), status: "active",
+                networkId: activeNetId,
             };
             newAgents.push(agent);
             count++;
@@ -75,6 +78,7 @@ export const deployNetworkCommand: CommandDefinition = {
             const ch = {
                 id: crypto.randomUUID(), from: fromAgent.id, to: toAgent.id,
                 type: validType, offset: Math.random() * 120, createdAt: new Date().toISOString(),
+                networkId: activeNetId,
             };
             newChannels.push(ch);
             count++;
@@ -95,6 +99,7 @@ export const deployNetworkCommand: CommandDefinition = {
                     members: memberIds, threshold: g.threshold || 2,
                     did: generateGroupDID(), color: GROUP_COLORS[newGroups.length % GROUP_COLORS.length],
                     createdAt: new Date().toISOString(),
+                    networkId: activeNetId,
                 };
                 newGroups.push(group);
                 count++;
@@ -111,6 +116,7 @@ export const deployNetworkCommand: CommandDefinition = {
                             const ch = {
                                 id: crypto.randomUUID(), from: memberIds[i], to: memberIds[j],
                                 type: "consensus", offset: Math.random() * 120, createdAt: new Date().toISOString(),
+                                networkId: activeNetId,
                             };
                             newChannels.push(ch);
                             setChannels((prev: any[]) => [...prev, ch]);

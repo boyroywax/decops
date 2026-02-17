@@ -544,6 +544,8 @@ export interface Workspace {
   ecosystem?: Ecosystem;
   /** Which network is currently focused/active in the UI */
   activeNetworkId?: string;
+  /** Which user was last associated with this workspace */
+  userId?: string;
 
   // ─── Legacy top-level arrays (kept for backward compat during migration) ───
   /** @deprecated Agents should live inside Network. Will be removed once migration completes. */

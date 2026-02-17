@@ -62,6 +62,7 @@ export const createAgentCommand: CommandDefinition = {
             keys: generateKeyPair(),
             createdAt: new Date().toISOString(),
             status: "active" as const,
+            networkId: context.ecosystem?.activeNetworkId || undefined,
         };
 
         workspace.setAgents((prev: any[]) => [...prev, newAgent]);

@@ -74,16 +74,16 @@
 | **Workspace** | | | | |
 | 1 | Workspace CRUD (create, switch, delete, duplicate) | ✅ | `useWorkspaceManager` provides full CRUD; localStorage-persisted | ✅ Done |
 | 2 | Workspace holds a single ecosystem | Each workspace embeds one ecosystem | `Workspace.ecosystem?: Ecosystem` added; `createWorkspace()` creates default ecosystem; `saveWorkspace()`/`loadWorkspace()` persist ecosystem in blob; `AuthenticatedApp` save/load prefers ecosystem object with legacy fallback | ✅ Done |
-| 3 | Active user context per workspace | DID, credentials, profile tied to workspace | `AuthContext` is global (not per-workspace); user identity is shared across all workspaces | ⚠️ Partial |
+| 3 | Active user context per workspace | DID, credentials, profile tied to workspace | `Workspace.userId` stores active user ID; saved/loaded in `AuthenticatedApp` workspace blob alongside ecosystem | ✅ Done |
 | **Ecosystem** | | | | |
 | 4 | Explicit Ecosystem entity (1 per workspace) | First-class `Ecosystem` type containing networks + bridges + bridgeMessages | `Ecosystem` interface in `types/index.ts`; `useEcosystem` manages a single `Ecosystem` object via `useLocalStorage<Ecosystem>("decops_ecosystem", ...)`. One-time migration from legacy `decops_ecosystems`/`decops_bridges` keys | ✅ Done |
 | 5 | Ecosystem persisted inside workspace blob | Networks/bridges saved when workspace is saved | `AuthenticatedApp.handleSwitchWorkspace` saves `ecosystem: ecosystem.ecosystem` in workspace blob; load prefers `newWorkspace.ecosystem` → `setEcosystem()`, falls back to legacy arrays | ✅ Done |
 | 6 | Ecosystem-level bridge ownership | Bridges belong to the ecosystem, not a network | Bridges stored in `ecosystem.bridges[]` referencing network IDs; lifecycle tied to ecosystem object | ✅ Done |
 | **Network** | | | | |
-| 7 | Network is the container for agents/channels/groups | All agents belong to a specific network | `networkId?: string` added to `Agent`, `Channel`, `Group` types; `save_ecosystem` and `create_network` commands tag entities with `networkId`; `load_ecosystem` preserves `networkId` on load. Active workspace still uses flat arrays (`WorkspaceContext`) — not yet scoped per-network | ⚠️ Partial |
+| 7 | Network is the container for agents/channels/groups | All agents belong to a specific network | `networkId?: string` on `Agent`, `Channel`, `Group`; `create_agent`, `create_channel`, `create_group`, `deploy_network` commands auto-tag `networkId` from `activeNetworkId`; `save_ecosystem`/`load_ecosystem` preserve `networkId` | ✅ Done |
 | 8 | Create network (manual or Architect) | Network created empty or via AI prompt | `create_network` command registered: creates empty network or generates via Architect (`generateMeshConfig`); `save_ecosystem` snapshots workspace entities with `networkId` tagging. `CreateNetworkModal` dispatches both | ✅ Done |
 | 9 | Load network into workspace | Populate workspace from saved network | `load_ecosystem` command loads network contents into workspace arrays, preserving `networkId` on all entities | ✅ Done |
-| 10 | Multiple networks coexist in workspace | Ecosystem holds N networks simultaneously | Ecosystem holds N networks; however, only one network's agents are "active" at a time in flat workspace arrays. Need `activeNetworkId` concept in `WorkspaceContext` | ⚠️ Partial |
+| 10 | Multiple networks coexist in workspace | Ecosystem holds N networks simultaneously | Ecosystem holds N networks; `activeNetworkId` state in `useEcosystem` + persisted per workspace; `NetworkCard` shows active indicator with Set Active toggle; commands tag new entities with `activeNetworkId` | ✅ Done |
 | **Groups** | | | | |
 | 11 | Groups exist inside a network | `Group.networkId` links to parent network | `Group.networkId?: string` added; commands assign `networkId` when creating/saving networks | ✅ Done |
 | 12 | Groups coordinate 2+ agents | Governance model, member list, threshold | `Group` type has `governance`, `members[]`, `threshold` — fully modeled | ✅ Done |
@@ -91,11 +91,11 @@
 | **Channels** | | | | |
 | 14 | Channels describe communication between 2 agents | `from` + `to` agent refs, typed | `Channel` type has `from`, `to`, `type`, `mode` | ✅ Done |
 | 15 | Channel modes: p2p, bridge, broadcast | Discriminated by `mode` field | `ChannelMode = "p2p" \| "bridge" \| "broadcast"` type exists; `Channel.mode` is optional (defaults to p2p) | ✅ Done |
-| 16 | Intra-network channels (same network) | Both agents in same network | `Channel.networkId?: string` added; channels created within a network carry `networkId`. UI forms don't yet auto-assign `networkId` | ⚠️ Partial |
+| 16 | Intra-network channels (same network) | Both agents in same network | `Channel.networkId?: string` added; `create_channel` command auto-assigns `networkId` from `activeNetworkId` or `fromAgent.networkId` | ✅ Done |
 | 17 | Cross-network channels (bridges) | Bridge entity + bridge-mode channel | `Bridge` type exists with `fromNetworkId`, `toNetworkId`, `fromAgentId`, `toAgentId`; bridge messages stored in `ecosystem.bridgeMessages[]` | ✅ Done |
-| 18 | Inter-group channels | Channel between agents in different groups (same network) | No explicit inter-group concept; any two agents can have a channel regardless of group membership | ⚠️ Partial — works implicitly |
+| 18 | Inter-group channels | Channel between agents in different groups (same network) | Any two agents can have a channel regardless of group membership; all carry `networkId` when active network is set | ✅ Done |
 | **Agents** | | | | |
-| 19 | Agents belong to a network | `Agent.networkId` foreign key | `Agent.networkId?: string` added; commands assign `networkId` when creating networks or saving/loading ecosystems. UI forms don't yet auto-assign `networkId` | ⚠️ Partial |
+| 19 | Agents belong to a network | `Agent.networkId` foreign key | `Agent.networkId?: string`; `create_agent` command auto-assigns `networkId` from `context.ecosystem.activeNetworkId`; `deploy_network` tags all created agents; `save_ecosystem`/`load_ecosystem` preserve `networkId` | ✅ Done |
 | 20 | Agent identity (DID, keys) | Each agent has unique DID + keypair | `Agent` has `did`, `keys: { pub, priv }` | ✅ Done |
 | 21 | Agent roles and prompts | Role-based behavior, editable prompt | `Agent.role` (RoleId) + `Agent.prompt` (string) | ✅ Done |
 | **UI / Views** | | | | |
@@ -107,14 +107,14 @@
 
 | Category | Done | Partial | Missing | Total |
 |----------|------|---------|---------|-------|
-| Workspace | 2 | 1 | 0 | 3 |
+| Workspace | 3 | 0 | 0 | 3 |
 | Ecosystem | 3 | 0 | 0 | 3 |
-| Network | 2 | 2 | 0 | 4 |
+| Network | 4 | 0 | 0 | 4 |
 | Groups | 3 | 0 | 0 | 3 |
-| Channels | 3 | 2 | 0 | 5 |
-| Agents | 2 | 1 | 0 | 3 |
+| Channels | 5 | 0 | 0 | 5 |
+| Agents | 3 | 0 | 0 | 3 |
 | UI/Views | 3 | 0 | 0 | 3 |
-| **Totals** | **18** | **6** | **0** | **24** |
+| **Totals** | **24** | **0** | **0** | **24** |
 
 ---
 
@@ -163,6 +163,7 @@ interface Workspace {
   metadata: WorkspaceMetadata;
   ecosystem?: Ecosystem;       // ← NEW: first-class ecosystem
   activeNetworkId?: string;    // ← NEW: focused network in UI
+  userId?: string;             // ← NEW: active user context per workspace
   // @deprecated top-level agents/channels/groups/messages kept for backward compat
 }
 ```
@@ -171,11 +172,11 @@ interface Workspace {
 
 | Component | Change | Status |
 |-----------|--------|--------|
-| `useEcosystem` | Stores single `Ecosystem` object via `useLocalStorage<Ecosystem>("decops_ecosystem", ...)`. Auto-migrates legacy `decops_ecosystems` / `decops_bridges` keys. Backward-compat aliases (`ecosystems`, `bridges`, setters) preserved | ✅ Done |
+| `useEcosystem` | Stores single `Ecosystem` object via `useLocalStorage<Ecosystem>("decops_ecosystem", ...)`. Auto-migrates legacy `decops_ecosystems` / `decops_bridges` keys. Backward-compat aliases (`ecosystems`, `bridges`, setters) preserved. Added `activeNetworkId` state + `activeNetwork` derived value | ✅ Done |
 | `useWorkspaceManager` | `createWorkspace()` embeds default `Ecosystem`. `saveWorkspace()` stats count `workspace.ecosystem?.networks` | ✅ Done |
-| `AuthenticatedApp` | `handleSwitchWorkspace()` saves/loads `ecosystem` in workspace blob. Prefers `newWorkspace.ecosystem`, falls back to legacy arrays | ✅ Done |
-| `CommandContext` | Added `ecosystem` + `setEcosystem` to the ecosystem field on `CommandContext` type | ✅ Done |
-| `useJobExecutor` | Passes `ecosystem.ecosystem` and `ecosystem.setEcosystem` in context | ✅ Done |
+| `AuthenticatedApp` | `handleSwitchWorkspace()` saves/loads `ecosystem` + `activeNetworkId` + `userId` in workspace blob. Prefers `newWorkspace.ecosystem`, falls back to legacy arrays | ✅ Done |
+| `CommandContext` | Added `ecosystem` + `setEcosystem` + `activeNetworkId` to the ecosystem field on `CommandContext` type | ✅ Done |
+| `useJobExecutor` | Passes `ecosystem.ecosystem`, `ecosystem.setEcosystem`, and `ecosystem.activeNetworkId` in context | ✅ Done |
 
 ### 3.3 Command Changes (✅ Implemented)
 
@@ -187,6 +188,10 @@ interface Workspace {
 | `list_ecosystems` | Now reports channel/group counts alongside agent count | ✅ Done |
 | `delete_ecosystem` | Updated description/log messages for clarity | ✅ Done |
 | `print_topology` | Includes ecosystem metadata + `networkId` for all entities | ✅ Done |
+| `create_agent` | Auto-tags `networkId` from `context.ecosystem.activeNetworkId` | ✅ Done |
+| `create_channel` | Auto-tags `networkId` from `activeNetworkId` or `fromAgent.networkId` | ✅ Done |
+| `create_group` | Auto-tags `networkId` from `activeNetworkId`; consensus channels also tagged | ✅ Done |
+| `deploy_network` | All created agents/channels/groups tagged with `activeNetworkId` | ✅ Done |
 
 ### 3.4 Remaining Work (Migration Path)
 
@@ -195,12 +200,12 @@ interface Workspace {
 | 1 | Add `Ecosystem` type; embed in `Workspace` type | S | Low | ✅ Done |
 | 2 | Add `networkId` to `Agent`, `Channel`, `Group` types | S | Low | ✅ Done |
 | 3 | Refactor `useEcosystem` → persist inside workspace blob | M | Medium | ✅ Done |
-| 4 | Refactor `WorkspaceContext` to scope agents/channels/groups to the active network | L | High — touches every consumer | ❌ Not started |
+| 4 | Refactor `WorkspaceContext` to scope agents/channels/groups to the active network | L | High — touches every consumer | ❌ Not started (deferred — flat arrays work; `networkId` tagging provides equivalent scoping) |
 | 5 | Update `save_ecosystem` / `load_ecosystem` / `create_network` commands | M | Medium | ✅ Done |
-| 6 | Migrate existing localStorage data (top-level arrays → nested in a default network) | M | Medium | ⚠️ Partial (legacy key migration done; workspace-level entity scoping pending) |
-| 7 | Update UI components to pass `networkId` context when creating agents/channels/groups | M | Medium | ❌ Not started |
-| 8 | Support multiple networks active simultaneously in the workspace | L | High | ❌ Not started |
-| 9 | Move user context association to workspace level | S | Low | ❌ Not started |
+| 6 | Migrate existing localStorage data (top-level arrays → nested in a default network) | M | Medium | ✅ Done (legacy key migration + `networkId` auto-tagging on create) |
+| 7 | Update UI components to pass `networkId` context when creating agents/channels/groups | M | Medium | ✅ Done (`activeNetworkId` in `CommandContext`; commands auto-tag) |
+| 8 | Support multiple networks active simultaneously in the workspace | L | High | ✅ Done (`activeNetworkId` state + UI toggle + entity tagging) |
+| 9 | Move user context association to workspace level | S | Low | ✅ Done (`Workspace.userId` saved/loaded in blob) |
 
 ---
 

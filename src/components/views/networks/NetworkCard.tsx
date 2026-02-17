@@ -2,7 +2,7 @@ import type { Network, Bridge } from "../../../types";
 import { ROLES, CHANNEL_TYPES } from "../../../constants";
 import {
   Globe, Download, Trash2, Link2,
-  ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, Star,
 } from "lucide-react";
 
 interface NetworkCardProps {
@@ -13,12 +13,15 @@ interface NetworkCardProps {
   onToggleExpand: () => void;
   loadNetwork: (id: string) => void;
   dissolveNetwork: (id: string) => void;
+  isActive?: boolean;
+  onSetActive?: () => void;
 }
 
 export function NetworkCard({
   net, bridges, ecosystems,
   isExpanded, onToggleExpand,
   loadNetwork, dissolveNetwork,
+  isActive, onSetActive,
 }: NetworkCardProps) {
   const netBridges = bridges.filter(
     (b) => b.fromNetworkId === net.id || b.toNetworkId === net.id
@@ -27,8 +30,8 @@ export function NetworkCard({
   return (
     <div
       style={{
-        background: "rgba(255,255,255,0.02)",
-        border: `1px solid ${net.color}20`,
+        background: isActive ? `${net.color}08` : "rgba(255,255,255,0.02)",
+        border: `1px solid ${isActive ? net.color + '40' : net.color + '20'}`,
         borderRadius: 14,
         overflow: "hidden",
         transition: "all 0.2s",
@@ -66,11 +69,27 @@ export function NetworkCard({
               </div>
             </div>
           </div>
-          <div style={{
-            width: 10, height: 10, borderRadius: "50%",
-            background: net.color,
-            boxShadow: `0 0 10px ${net.color}60`,
-          }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {isActive && (
+              <span style={{
+                fontSize: 8,
+                padding: "2px 6px",
+                borderRadius: 4,
+                background: `${net.color}18`,
+                color: net.color,
+                fontWeight: 600,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+              }}>
+                Active
+              </span>
+            )}
+            <div style={{
+              width: 10, height: 10, borderRadius: "50%",
+              background: net.color,
+              boxShadow: `0 0 10px ${net.color}60`,
+            }} />
+          </div>
         </div>
 
         {/* Agent pills */}
@@ -107,6 +126,27 @@ export function NetworkCard({
 
         {/* Actions */}
         <div style={{ display: "flex", gap: 6 }}>
+          {onSetActive && (
+            <button
+              onClick={onSetActive}
+              style={{
+                background: isActive ? `${net.color}18` : "rgba(255,255,255,0.03)",
+                border: `1px solid ${isActive ? net.color + '35' : 'rgba(255,255,255,0.06)'}`,
+                color: isActive ? net.color : "#71717a",
+                padding: "6px 14px",
+                borderRadius: 6,
+                fontFamily: "inherit",
+                fontSize: 10,
+                cursor: "pointer",
+                fontWeight: isActive ? 600 : 500,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Star size={11} fill={isActive ? net.color : "none"} /> {isActive ? "Active" : "Set Active"}
+            </button>
+          )}
           <button
             onClick={() => loadNetwork(net.id)}
             style={{

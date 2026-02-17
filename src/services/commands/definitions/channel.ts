@@ -71,6 +71,7 @@ export const createChannelCommand: CommandDefinition = {
             type: type || "data",
             offset: Math.random() * 100,
             createdAt: new Date().toISOString(),
+            networkId: context.ecosystem?.activeNetworkId || fromAgent.networkId || undefined,
         };
 
         setChannels((prev: any[]) => [...prev, newChannel]);

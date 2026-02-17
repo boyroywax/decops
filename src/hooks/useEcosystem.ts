@@ -96,6 +96,12 @@ export function useEcosystem({
     }));
   };
 
+  // ─── Active network (which network the user is "focused" on) ───
+  const [activeNetworkId, setActiveNetworkId] = useState<string | null>(null);
+  const activeNetwork = activeNetworkId
+    ? ecosystem.networks.find((n) => n.id === activeNetworkId) ?? null
+    : null;
+
   // ─── Transient UI state (not persisted in ecosystem) ───
   const [activeBridges, setActiveBridges] = useState<Set<string>>(new Set());
   const [ecoSaveName, setEcoSaveName] = useState("");
@@ -200,6 +206,8 @@ export function useEcosystem({
   return {
     // Ecosystem object
     ecosystem, setEcosystem,
+    // Active network
+    activeNetworkId, setActiveNetworkId, activeNetwork,
     // Backward-compat derived arrays
     ecosystems, bridges, bridgeMessages, activeBridges,
     ecoSaveName, setEcoSaveName,

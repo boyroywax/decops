@@ -74,6 +74,8 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           metadata: currentMeta,
           ...currentData,
           ecosystem: ecosystem.ecosystem,
+          activeNetworkId: ecosystem.activeNetworkId || undefined,
+          userId: user?.id,
           // Legacy fields kept for backward compat
           networks: ecosystem.ecosystems || [],
           bridges: ecosystem.bridges || [],
@@ -101,6 +103,11 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
         if (ecosystem.setBridges) ecosystem.setBridges(newWorkspace.bridges || []);
       }
 
+      // Restore active network
+      if (ecosystem.setActiveNetworkId) {
+        ecosystem.setActiveNetworkId(newWorkspace.activeNetworkId || null);
+      }
+
       workspace.importWorkspace(newWorkspace);
       if (newWorkspace.jobs && setJobs) setJobs(newWorkspace.jobs);
       if (newWorkspace.artifacts && setStandaloneArtifacts) setStandaloneArtifacts(newWorkspace.artifacts);
@@ -123,6 +130,8 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           metadata: currentMeta,
           ...currentData,
           ecosystem: ecosystem.ecosystem,
+          activeNetworkId: ecosystem.activeNetworkId || undefined,
+          userId: user?.id,
           networks: ecosystem.ecosystems || [],
           bridges: ecosystem.bridges || [],
           jobs: jobsToSave,

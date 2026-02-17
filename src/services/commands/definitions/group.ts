@@ -69,6 +69,7 @@ export const createGroupCommand: CommandDefinition = {
             did: generateGroupDID(),
             color: GROUP_COLORS[groups.length % GROUP_COLORS.length],
             createdAt: new Date().toISOString(),
+            networkId: context.ecosystem?.activeNetworkId || undefined,
         };
 
         setGroups((prev: any[]) => [...prev, newGroup]);
@@ -92,7 +93,8 @@ export const createGroupCommand: CommandDefinition = {
                         to: uniqueMembers[j],
                         type: "consensus",
                         offset: Math.random() * 100,
-                        createdAt: new Date().toISOString()
+                        createdAt: new Date().toISOString(),
+                        networkId: context.ecosystem?.activeNetworkId || undefined,
                     });
                 }
             }

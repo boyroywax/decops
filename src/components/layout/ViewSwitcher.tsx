@@ -104,6 +104,8 @@ export function ViewSwitcher({
                 removeBridge={ecosystem.removeBridge}
                 setView={setView}
                 addJob={addJob}
+                activeNetworkId={ecosystem.activeNetworkId}
+                setActiveNetworkId={ecosystem.setActiveNetworkId}
             />
         );
     }

@@ -131,6 +131,7 @@ export function useJobExecutor({
                         ecosystem: {
                             ecosystem: ecosystem.ecosystem,
                             setEcosystem: ecosystem.setEcosystem,
+                            activeNetworkId: ecosystem.activeNetworkId ?? null,
                             ecosystems: ecosystem.ecosystems,
                             bridges: ecosystem.bridges,
                             bridgeMessages: ecosystem.bridgeMessages,

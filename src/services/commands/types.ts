@@ -55,6 +55,8 @@ export interface CommandContext {
         // First-class ecosystem object
         ecosystem: any; // Ecosystem object
         setEcosystem: (updater: any) => void;
+        // Active network
+        activeNetworkId: string | null;
         // Backward-compat derived arrays
         ecosystems: any[];
         bridges: any[];
