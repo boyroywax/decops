@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { ANTHROPIC_MODELS } from "../../constants";
 import { getSelectedModel, setSelectedModel } from "../../services/ai";
 import { GemAvatar } from "../shared/GemAvatar";
+import { useDataManagement } from "../../hooks/useDataManagement";
 import type { Agent, Channel, Group, Message, Network, Bridge } from "../../types";
 
 interface ProfileViewProps {
@@ -34,6 +35,17 @@ export function ProfileView({
     const [hasKey, setHasKey] = useState(false);
     const [importStatus, setImportStatus] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const {
+        exportWorkspace: handleExportWorkspace,
+        exportEcosystem: handleExportEcosystem,
+        fullBackup: handleFullBackup,
+        processImport,
+        resetAllData: handleReset,
+    } = useDataManagement({
+        agents, channels, groups, messages, ecosystems, bridges,
+        setAgents, setChannels, setGroups, setMessages, setEcosystems, setBridges,
+    });
 
     useEffect(() => {
         const storedKey = localStorage.getItem("anthropic_api_key");
@@ -72,40 +84,6 @@ export function ProfileView({
         }
     };
 
-    // --- Data Management ---
-    const downloadJSON = (data: any, filename: string) => {
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
-
-    const handleExportWorkspace = () => {
-        downloadJSON({
-            version: "1.0", type: "workspace", exportedAt: new Date().toISOString(),
-            data: { agents, channels, groups, messages },
-        }, `decops-workspace-${Date.now()}.json`);
-    };
-
-    const handleExportEcosystem = () => {
-        downloadJSON({
-            version: "1.0", type: "ecosystem", exportedAt: new Date().toISOString(),
-            data: { ecosystems, bridges },
-        }, `decops-ecosystem-${Date.now()}.json`);
-    };
-
-    const handleFullBackup = () => {
-        downloadJSON({
-            version: "1.0", type: "full-backup", exportedAt: new Date().toISOString(),
-            data: { workspace: { agents, channels, groups, messages }, ecosystem: { ecosystems, bridges } },
-        }, `decops-full-backup-${Date.now()}.json`);
-    };
-
     const handleImportClick = () => fileInputRef.current?.click();
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,7 +93,9 @@ export function ProfileView({
         reader.onload = (event) => {
             try {
                 const json = JSON.parse(event.target?.result as string);
-                processImport(json);
+                const result = processImport(json);
+                setImportStatus(result.success ? `Success! ${result.message}` : `Error: ${result.message}`);
+                setTimeout(() => setImportStatus(""), 5000);
             } catch (err) {
                 setImportStatus("Error: Invalid JSON file");
                 console.error(err);
@@ -123,41 +103,6 @@ export function ProfileView({
         };
         reader.readAsText(file);
         e.target.value = "";
-    };
-
-    const processImport = (json: any) => {
-        if (!json.data) { setImportStatus("Error: Invalid file format (missing data field)"); return; }
-        let count = 0;
-        if (json.type === "full-backup") {
-            if (json.data.workspace) {
-                setAgents(json.data.workspace.agents || []);
-                setChannels(json.data.workspace.channels || []);
-                setGroups(json.data.workspace.groups || []);
-                setMessages(json.data.workspace.messages || []);
-                count++;
-            }
-            if (json.data.ecosystem && setEcosystems && setBridges) {
-                setEcosystems(json.data.ecosystem.ecosystems || []);
-                setBridges(json.data.ecosystem.bridges || []);
-                count++;
-            }
-        } else if (json.type === "workspace") {
-            setAgents(json.data.agents || []); setChannels(json.data.channels || []);
-            setGroups(json.data.groups || []); setMessages(json.data.messages || []);
-            count++;
-        } else if (json.type === "ecosystem" && setEcosystems && setBridges) {
-            setEcosystems(json.data.ecosystems || []); setBridges(json.data.bridges || []);
-            count++;
-        } else { setImportStatus("Error: Unknown or unsupported file type"); return; }
-        setImportStatus(`Success! Loaded data from ${json.type || "file"}.`);
-        setTimeout(() => setImportStatus(""), 5000);
-    };
-
-    const handleReset = () => {
-        if (confirm("Are you sure? This will WIPE ALL DATA from LocalStorage. This action cannot be undone.")) {
-            localStorage.clear();
-            window.location.reload();
-        }
     };
 
     const tierColors: Record<string, string> = {

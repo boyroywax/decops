@@ -159,6 +159,53 @@ export interface ChatMessage {
   content: string;
 }
 
+/**
+ * Direct user-to-agent chat. The user is a human operator, not another agent.
+ * Uses the agent's system prompt and role to respond in-character.
+ */
+export async function chatWithAgent(
+  agent: Agent,
+  userMessage: string,
+  history: ChatMessage[],
+): Promise<string> {
+  const apiKey = getApiKey();
+  const model = getSelectedModel();
+
+  const role = ROLES.find(r => r.id === agent.role);
+  const systemPrompt = [
+    `You are "${agent.name}", a ${role?.label || agent.role} agent in a decentralized mesh workspace.`,
+    `Your DID: ${agent.did}`,
+    agent.prompt ? `\nYour core directive:\n${agent.prompt}` : "",
+    `\nYou are chatting directly with a human operator who manages this workspace.`,
+    `Respond concisely and in-character. Keep responses under 200 words. Use markdown formatting when appropriate.`,
+  ].filter(Boolean).join("\n");
+
+  const messages = [
+    ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
+    { role: "user" as const, content: userMessage },
+  ];
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: buildHeaders(apiKey),
+      body: JSON.stringify({ model, max_tokens: 1000, system: systemPrompt, messages }),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
+    }
+    const data = await response.json();
+    return data.content?.map((b: { text?: string }) => b.text || "").join("\n") || "[No response]";
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("No Anthropic API key")) {
+      return "⚠️ No API key configured. Go to **Profile & Settings** to add your Anthropic API key.";
+    }
+    return `[Agent error: ${msg}]`;
+  }
+}
+
 
 export interface WorkspaceContext {
   agents: Agent[];

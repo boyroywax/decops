@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "../../types";
-import { Bot, ArrowLeftRight, Hexagon, MessageSquare, Globe, Network as NetworkIcon, MessageCircle, ListTodo, Zap, WifiOff, Terminal, Gem } from "lucide-react";
+import { Bot, ArrowLeftRight, Hexagon, MessageSquare, Globe, Network as NetworkIcon, MessageCircle, ListTodo, Zap, WifiOff, Terminal, Gem, Sun, Moon } from "lucide-react";
 import { ChatPanel } from "./ChatPanel";
 import { ActionManager } from "../actions/ActionManager";
 import { ArtifactsPanel } from "./ArtifactsPanel";
+import { useTheme } from "../../context/ThemeContext";
 import "../../styles/components/footer.css";
 
 // Update interface
@@ -40,6 +41,7 @@ type PanelMode = "none" | "chat" | "jobs" | "artifacts";
 export function Footer({ agents, channels, groups, messages, ecosystems, bridges, ecosystem, addLog, setView, jobs, removeJob, clearJobs, addJob, allArtifacts, importArtifact, removeArtifact, savedJobs, saveJob, deleteJob, ...jobsProps }: FooterProps) {
     const [panel, setPanel] = useState<PanelMode>("none");
     const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const { theme, toggleTheme } = useTheme();
 
     useEffect(() => {
         const handleOnline = () => setIsOnline(true);
@@ -160,6 +162,16 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                             </div>
                         </>
                     )}
+
+                    <span className="footer__separator">│</span>
+                    <button
+                        onClick={toggleTheme}
+                        className="footer__toggle"
+                        title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                    >
+                        {theme === "dark" ? <Sun size={10} /> : <Moon size={10} />}
+                        {!jobsProps.isMobile && (theme === "dark" ? "Light" : "Dark")}
+                    </button>
                 </div>
             </footer >
         </>

@@ -5,6 +5,7 @@ import {
   Users, Calendar, Trash2, Radio,
   MessageSquare, Key, FileText, Edit3, Check, X,
 } from "lucide-react";
+import { AgentChat } from "../chat/AgentChat";
 import "../../styles/components/agent-detail.css";
 
 interface AgentDetailViewProps {
@@ -274,6 +275,14 @@ export function AgentDetailView({
         ) : (
           <div className="agent-detail__empty">Not a member of any group</div>
         )}
+      </div>
+
+      {/* Direct Chat */}
+      <div className="agent-detail__section">
+        <div className="agent-detail__section-title">
+          <MessageSquare size={11} style={{ display: "inline", verticalAlign: "middle" }} /> Direct Chat
+        </div>
+        <AgentChat agent={agent} />
       </div>
 
       {/* Actions */}

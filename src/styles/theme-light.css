@@ -1,0 +1,271 @@
+/**
+ * Light Mode Theme Override
+ * Applied via [data-theme="light"] on <html>
+ * Dark theme is the default (defined in design-tokens.css :root)
+ */
+
+[data-theme="light"] {
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * CORE PALETTE - Background & Surface Layers
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --bg-primary: #f8f9fb;
+  --bg-elevated: rgba(255, 255, 255, 0.8);
+  --bg-surface: rgba(0, 0, 0, 0.02);
+  --bg-surface-hover: rgba(0, 0, 0, 0.04);
+  --bg-input: rgba(0, 0, 0, 0.03);
+  --bg-modal: #ffffff;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * BORDERS
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-default: rgba(0, 0, 0, 0.08);
+  --border-medium: rgba(0, 0, 0, 0.12);
+  --border-accent: rgba(0, 180, 120, 0.15);
+  --border-accent-strong: rgba(0, 180, 120, 0.30);
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * TEXT HIERARCHY
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --text-primary: #1a1a2e;
+  --text-secondary: #2d2d44;
+  --text-muted: #555570;
+  --text-subtle: #71718a;
+  --text-ghost: #9999aa;
+  --text-invisible: #b0b0bb;
+  --text-void: #ccccdd;
+  --text-faint: #9999aa;
+  --text-accent: #0a8a5e;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * SEMANTIC COLORS - Slightly desaturated for light backgrounds
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --color-accent: #00b874;
+  --color-warning: #d9960a;
+  --color-danger: #dc2626;
+  --color-info: #0284c7;
+  --color-channel: #7c3aed;
+  --color-group: #db2777;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * ROLE COLORS - Deeper for light backgrounds
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --color-researcher: #059669;
+  --color-builder: #b45309;
+  --color-curator: #6d28d9;
+  --color-validator: #0369a1;
+  --color-orchestrator: #be185d;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * SHADOWS - Lighter for light theme
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
+  --shadow-xl: 0 25px 60px rgba(0, 0, 0, 0.12);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * LIGHT MODE COMPONENT OVERRIDES
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] body {
+  background: #f8f9fb;
+  color: #1a1a2e;
+}
+
+/* Scrollbar */
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Select options */
+[data-theme="light"] select option {
+  background: #ffffff;
+  color: #1a1a2e;
+}
+
+/* Canvas & topology backgrounds */
+[data-theme="light"] .network-detail__topology {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Cards in detail views */
+[data-theme="light"] .nd-card,
+[data-theme="light"] .group-detail__member,
+[data-theme="light"] .agent-detail__connection,
+[data-theme="light"] .agent-detail__group-chip {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .nd-card:hover,
+[data-theme="light"] .group-detail__member:hover,
+[data-theme="light"] .agent-detail__connection:hover,
+[data-theme="light"] .agent-detail__group-chip:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.10);
+}
+
+/* Breadcrumb hover */
+[data-theme="light"] .breadcrumb__item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* Identity / prompt cards */
+[data-theme="light"] .agent-detail__identity,
+[data-theme="light"] .agent-detail__prompt,
+[data-theme="light"] .group-detail__governance,
+[data-theme="light"] .network-detail__description {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .agent-detail__identity-value {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* Stats */
+[data-theme="light"] .network-detail__stat,
+[data-theme="light"] .agent-detail__stat {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+/* Empty states */
+[data-theme="light"] .network-detail__empty,
+[data-theme="light"] .group-detail__empty,
+[data-theme="light"] .agent-detail__empty {
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #9999aa;
+}
+
+/* Action buttons */
+[data-theme="light"] .agent-detail__action-btn,
+[data-theme="light"] .group-detail__action-btn {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #555570;
+}
+
+[data-theme="light"] .agent-detail__action-btn:hover,
+[data-theme="light"] .group-detail__action-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #2d2d44;
+}
+
+[data-theme="light"] .agent-detail__action-btn--danger,
+[data-theme="light"] .group-detail__action-btn--danger {
+  background: rgba(220, 38, 38, 0.06);
+  border-color: rgba(220, 38, 38, 0.12);
+}
+
+[data-theme="light"] .agent-detail__action-btn--danger:hover,
+[data-theme="light"] .group-detail__action-btn--danger:hover {
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
+}
+
+/* Sidebar */
+[data-theme="light"] .app-sidebar {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .sidebar-nav-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .sidebar-nav-item.active {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* Header */
+[data-theme="light"] .app-header {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(12px);
+}
+
+/* Footer */
+[data-theme="light"] .app-footer {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .footer__stat-btn {
+  color: #555570;
+}
+
+[data-theme="light"] .footer__toggle {
+  color: #555570;
+}
+
+[data-theme="light"] .footer__toggle:hover {
+  color: #2d2d44;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* Chat panel */
+[data-theme="light"] .chat-panel {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Modals */
+[data-theme="light"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* Networks view */
+[data-theme="light"] .networks-create-btn {
+  color: #ffffff;
+}
+
+[data-theme="light"] .networks-tab {
+  color: #71718a;
+}
+
+[data-theme="light"] .networks-tab--active {
+  color: #0284c7;
+  border-color: #0284c7;
+}
+
+/* Chat markdown in light mode */
+[data-theme="light"] .chat-md pre {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .chat-md :not(pre) > code {
+  background: rgba(0, 180, 120, 0.08);
+  color: #059669;
+}
+
+[data-theme="light"] .chat-md blockquote {
+  border-left-color: rgba(0, 180, 120, 0.3);
+  background: rgba(0, 180, 120, 0.03);
+  color: #555570;
+}
+
+[data-theme="light"] .chat-md strong {
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .chat-md a {
+  color: #0284c7;
+}
+
+[data-theme="light"] .chat-md th {
+  background: rgba(0, 0, 0, 0.04);
+  color: #555570;
+}
+
+[data-theme="light"] .chat-md th,
+[data-theme="light"] .chat-md td {
+  border-color: rgba(0, 0, 0, 0.08);
+}

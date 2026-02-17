@@ -18,10 +18,12 @@ import { useJobExecutor } from "../../hooks/useJobExecutor";
 import { useAutomations } from "../../context/AutomationsContext";
 import { EcosystemContext } from "../../context/EcosystemContext";
 import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
+import { useRouteSync } from "../../hooks/useRouteSync";
 import { ProfileModal } from "./ProfileModal";
 import { ArchitectPopup } from "./ArchitectPopup";
 import { ActivityModal } from "./ActivityModal";
 import "../../styles/components/authenticated-app.css";
+import "../../styles/components/global.css";
 
 
 
@@ -33,6 +35,9 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   const [view, setViewRaw] = useState<ViewId>("networks");
   const [navContext, setNavContext] = useState<NavContext>({});
   const { entries: notebookEntries, addEntry: addNotebookEntry, addLog, clearNotebook, exportNotebook } = notebook;
+
+  // Sync URL ↔ view/navContext
+  useRouteSync(view, navContext, setViewRaw, setNavContext);
 
   // Modal / popup state
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -380,167 +385,6 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           setView={setView}
         />
       </EcosystemContext.Provider>
-
-      <style>{`
-        :root {
-          /* ─── Core Palette ─── */
-          --bg-primary: #0a0a0f;
-          --bg-elevated: rgba(0,0,0,0.3);
-          --bg-surface: rgba(255,255,255,0.02);
-          --bg-surface-hover: rgba(255,255,255,0.04);
-          --bg-input: rgba(0,0,0,0.4);
-
-          --border-subtle: rgba(255,255,255,0.05);
-          --border-default: rgba(255,255,255,0.06);
-          --border-medium: rgba(255,255,255,0.08);
-
-          --text-primary: #e4e4e7;
-          --text-secondary: #d4d4d8;
-          --text-muted: #a1a1aa;
-          --text-subtle: #71717a;
-          --text-ghost: #52525b;
-
-          --color-accent: #00e5a0;
-          --color-warning: #fbbf24;
-          --color-danger: #ef4444;
-          --color-info: #38bdf8;
-          --color-channel: #a78bfa;
-          --color-group: #f472b6;
-
-          --font-mono: 'DM Mono', 'JetBrains Mono', monospace;
-          --font-display: 'Space Grotesk', sans-serif;
-
-          --radius-sm: 3px;
-          --radius-md: 4px;
-          --radius-lg: 6px;
-          --radius-xl: 8px;
-          --radius-2xl: 10px;
-        }
-        
-        html, body { margin: 0; padding: 0; height: 100%; background: #0a0a0f; color: #e4e4e7; overflow: hidden; }
-        #root { height: 100%; display: flex; flex-direction: column; }
-
-        .settings-container { max-width: 800px; margin: 0 auto; }
-        .settings-header { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); letter-spacing: -0.01em; }
-        
-        .settings-section { 
-          background: var(--bg-surface); 
-          padding: 24px; 
-          border-radius: var(--radius-2xl); 
-          border: 1px solid var(--border-subtle);
-          margin-bottom: 24px;
-        }
-
-        .section-title {
-          font-family: var(--font-display);
-          font-size: 14px;
-          font-weight: 600;
-          margin-bottom: 8px;
-          display: flex; 
-          align-items: center; 
-          gap: 8px;
-        }
-
-        .section-desc { font-size: 12px; color: var(--text-subtle); margin-bottom: 20px; line-height: 1.5; font-family: var(--font-mono); }
-
-        .btn {
-          font-family: var(--font-mono); font-size: 11px; padding: 8px 16px;
-          border-radius: var(--radius-lg); cursor: pointer; transition: all 0.15s;
-          border: 1px solid transparent;
-          display: inline-flex; align-items: center; gap: 6px;
-        }
-        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn:active { transform: translateY(0); }
-
-        .btn-primary { background: var(--color-accent); color: var(--bg-primary); font-weight: 500; }
-        .btn-surface { background: #27272a; border: 1px solid #3f3f46; color: var(--text-primary); } /* Fallback for existing */
-        .btn-secondary { background: rgba(255,255,255,0.04); border: 1px solid var(--border-medium); color: var(--text-primary); }
-        .btn-danger { background: rgba(239,68,68,0.1); color: var(--color-danger); border-color: rgba(239,68,68,0.2); }
-        .btn-danger-solid { background: var(--color-danger); color: white; border: none; font-weight: 600; }
-
-        .btn-icon { font-size: 14px; }
-
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        /* Chat markdown styles */
-        .chat-md p { margin: 0 0 8px 0; }
-        .chat-md p:last-child { margin-bottom: 0; }
-        .chat-md h1, .chat-md h2, .chat-md h3, .chat-md h4 {
-          font-family: 'Space Grotesk', sans-serif;
-          margin: 12px 0 6px 0;
-          color: #f4f4f5;
-        }
-        .chat-md h1 { font-size: 16px; }
-        .chat-md h2 { font-size: 14px; }
-        .chat-md h3 { font-size: 13px; color: #a1a1aa; }
-        .chat-md h4 { font-size: 12px; color: #71717a; }
-        .chat-md pre {
-          background: rgba(0,0,0,0.5);
-          border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 6px;
-          padding: 10px 12px;
-          overflow-x: auto;
-          margin: 6px 0;
-          font-size: 11px;
-          line-height: 1.5;
-        }
-        .chat-md code {
-          font-family: 'DM Mono', 'JetBrains Mono', monospace;
-          font-size: 11px;
-        }
-        .chat-md :not(pre) > code {
-          background: rgba(0,229,160,0.08);
-          color: #00e5a0;
-          padding: 1px 5px;
-          border-radius: 3px;
-          font-size: 11px;
-        }
-        .chat-md ul, .chat-md ol {
-          margin: 4px 0 8px 0;
-          padding-left: 20px;
-        }
-        .chat-md li { margin-bottom: 3px; }
-        .chat-md li::marker { color: #52525b; }
-        .chat-md blockquote {
-          border-left: 2px solid rgba(0,229,160,0.3);
-          margin: 6px 0;
-          padding: 4px 12px;
-          color: #a1a1aa;
-          background: rgba(0,229,160,0.03);
-          border-radius: 0 4px 4px 0;
-        }
-        .chat-md a { color: #38bdf8; text-decoration: none; }
-        .chat-md a:hover { text-decoration: underline; }
-        .chat-md strong { color: #f4f4f5; font-weight: 600; }
-        .chat-md em { color: #a1a1aa; }
-        .chat-md hr {
-          border: none;
-          border-top: 1px solid rgba(255,255,255,0.06);
-          margin: 10px 0;
-        }
-        .chat-md table {
-          border-collapse: collapse;
-          width: 100%;
-          margin: 6px 0;
-          font-size: 11px;
-        }
-        .chat-md th, .chat-md td {
-          border: 1px solid rgba(255,255,255,0.08);
-          padding: 4px 8px;
-          text-align: left;
-        }
-        .chat-md th {
-          background: rgba(255,255,255,0.04);
-          color: #a1a1aa;
-          font-weight: 600;
-        }
-
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
-        select option { background: #18181b; color: #e4e4e7; }
-      `}</style>
     </div>
   );
 }
