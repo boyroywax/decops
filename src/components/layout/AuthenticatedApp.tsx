@@ -21,6 +21,7 @@ import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
 import { ProfileModal } from "./ProfileModal";
 import { ArchitectPopup } from "./ArchitectPopup";
 import { ActivityModal } from "./ActivityModal";
+import "../../styles/components/authenticated-app.css";
 
 
 
@@ -253,19 +254,14 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   }, []);
 
   return (
-    <div style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", background: "#0a0a0f", color: "#e4e4e7", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className="app-shell">
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
 
       <Header user={user} logout={logout} setView={setView} onProfileClick={() => setShowProfileModal(true)} activityPulse={activityPulse} onActivityClick={() => setShowActivityModal(true)} />
 
       <EcosystemContext.Provider value={ecosystem}>
-        <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative", flexDirection: isMobile ? "column" : "row" }}>
-          <div style={{
-            position: "relative",
-            zIndex: 20,
-            height: isMobile ? "auto" : "100%",
-            width: isMobile ? "100%" : "auto",
-          }}>
+        <div className={`app-content ${isMobile ? "app-content--mobile" : ""}`}>
+          <div className={`app-sidebar-wrapper ${isMobile ? "app-sidebar-wrapper--mobile" : ""}`}>
             <Sidebar
               view={view}
               setView={setView}
@@ -281,7 +277,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
             />
           </div>
 
-          <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
+          <main className="app-main">
             <ViewSwitcher
               view={view}
               setView={setView}
@@ -313,6 +309,9 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           setView={setView}
           jobs={jobs}
           addJob={addJob}
+          allArtifacts={allArtifacts}
+          importArtifact={importArtifact}
+          removeArtifact={removeArtifact}
           isPaused={isPaused}
           toggleQueuePause={toggleQueuePause}
           stopJob={stopJob}
@@ -512,10 +511,10 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           font-weight: 600;
         }
 
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
         select option { background: #18181b; color: #e4e4e7; }
       `}</style>
     </div>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FileText } from "lucide-react";
 import type { NotebookCategory, NotebookEntry } from "../../types";
 import { CATEGORY_META } from "./utils";
+import "../../styles/components/compose-panel.css";
 
 interface ComposePanelProps {
     onAddEntry: (entry: Omit<NotebookEntry, "id" | "timestamp">) => void;
@@ -29,18 +30,13 @@ export function ComposePanel({ onAddEntry, onCancel }: ComposePanelProps) {
     };
 
     return (
-        <div style={{
-            marginBottom: 20, padding: 16,
-            background: "rgba(251,191,36,0.04)",
-            border: "1px solid rgba(251,191,36,0.2)",
-            borderRadius: "var(--radius-xl)",
-        }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <div className="compose-panel">
+            <div className="compose-panel__header">
                 <FileText size={16} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", fontFamily: "var(--font-display)" }}>
+                <span className="compose-panel__title">
                     New Entry
                 </span>
-                <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
+                <span className="compose-panel__categories">
                     {(["narrative", "action", "system"] as NotebookCategory[]).map(cat => {
                         const meta = CATEGORY_META[cat];
                         const sel = category === cat;
@@ -48,13 +44,11 @@ export function ComposePanel({ onAddEntry, onCancel }: ComposePanelProps) {
                             <button
                                 key={cat}
                                 onClick={() => setCategory(cat)}
+                                className="compose-panel__cat-btn"
                                 style={{
-                                    padding: "2px 8px", borderRadius: 8,
-                                    border: `1px solid ${sel ? meta.color + "60" : "var(--border-subtle)"}`,
-                                    background: sel ? meta.color + "15" : "transparent",
-                                    color: sel ? meta.color : "var(--text-ghost)",
-                                    fontSize: 10, fontWeight: 600, cursor: "pointer",
-                                    fontFamily: "var(--font-mono)",
+                                    borderColor: sel ? meta.color + "60" : undefined,
+                                    background: sel ? meta.color + "15" : undefined,
+                                    color: sel ? meta.color : undefined,
                                 }}
                             >
                                 {meta.icon} {meta.label}
@@ -64,48 +58,33 @@ export function ComposePanel({ onAddEntry, onCancel }: ComposePanelProps) {
                 </span>
             </div>
             <input
+                className="compose-panel__input"
                 type="text"
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="Title (e.g., Design Decision, TODO, Observation...)"
-                style={{
-                    width: "100%", padding: "8px 12px", marginBottom: 8,
-                    background: "var(--bg-input)", border: "1px solid var(--border-default)",
-                    borderRadius: "var(--radius-lg)", color: "var(--text-primary)",
-                    fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600,
-                    boxSizing: "border-box",
-                }}
             />
             <textarea
+                className="compose-panel__textarea"
                 value={body}
                 onChange={e => setBody(e.target.value)}
                 placeholder="Write your note here... (supports **Markdown**)"
                 rows={4}
-                style={{
-                    width: "100%", padding: "10px 12px", marginBottom: 10,
-                    background: "var(--bg-input)", border: "1px solid var(--border-default)",
-                    borderRadius: "var(--radius-lg)", color: "var(--text-primary)",
-                    fontFamily: "var(--font-mono)", fontSize: 12,
-                    resize: "vertical", boxSizing: "border-box",
-                    lineHeight: 1.6,
-                }}
             />
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <div className="compose-panel__actions">
                 <button
                     onClick={() => {
                         setTitle("");
                         setBody("");
                         onCancel();
                     }}
-                    className="btn btn-surface"
-                    style={{ fontSize: 11, padding: "6px 14px" }}
+                    className="btn btn-surface compose-panel__btn"
                 >
                     Cancel
                 </button>
                 <button
                     onClick={handleSubmit}
-                    className="btn btn-primary"
-                    style={{ fontSize: 11, padding: "6px 18px", color: "#000", fontWeight: 700 }}
+                    className="btn btn-primary compose-panel__btn compose-panel__btn--submit"
                     disabled={!title.trim() && !body.trim()}
                 >
                     Add Entry

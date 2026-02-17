@@ -1,0 +1,245 @@
+/**
+ * Sidebar Component Styles
+ * Navigation sidebar for the application
+ */
+
+/* Sidebar Structure */
+.app-sidebar {
+  width: var(--sidebar-width);
+  height: 100%;
+  border-right: 1px solid rgba(0, 229, 160, 0.08);
+  padding: var(--space-lg) 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+  transition: width var(--transition-base);
+  overflow-x: hidden;
+}
+
+.app-sidebar.collapsed {
+  width: var(--sidebar-width-collapsed);
+}
+
+/* Navigation Item */
+.sidebar-nav-item {
+  background: transparent;
+  border: none;
+  border-left: 2px solid transparent;
+  color: var(--text-subtle);
+  padding: var(--space-lg) var(--space-xl);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-md);
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: var(--space-md);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.sidebar-nav-item:hover {
+  background: var(--bg-surface-hover);
+}
+
+/* Collapsed state */
+.app-sidebar.collapsed .sidebar-nav-item {
+  padding: var(--space-lg) 0;
+  justify-content: center;
+}
+
+/* Active state - different colors per nav item */
+.sidebar-nav-item.active {
+  background: rgba(0, 229, 160, 0.10);
+}
+
+.sidebar-nav-item.active[data-accent="accent"] {
+  color: var(--color-accent);
+  border-left-color: var(--color-accent);
+  background: rgba(0, 229, 160, 0.10);
+}
+
+.sidebar-nav-item.active[data-accent="warning"] {
+  color: var(--color-warning);
+  border-left-color: var(--color-warning);
+  background: rgba(251, 191, 36, 0.10);
+}
+
+.sidebar-nav-item.active[data-accent="info"] {
+  color: var(--color-info);
+  border-left-color: var(--color-info);
+  background: rgba(56, 189, 248, 0.10);
+}
+
+.sidebar-nav-item.active[data-accent="channel"] {
+  color: var(--color-channel);
+  border-left-color: var(--color-channel);
+  background: rgba(167, 139, 250, 0.10);
+}
+
+.sidebar-nav-item.active[data-accent="group"] {
+  color: var(--color-group);
+  border-left-color: var(--color-group);
+  background: rgba(244, 114, 182, 0.10);
+}
+
+/* Shortcut hint */
+.sidebar-shortcut {
+  margin-left: auto;
+  font-size: 8px;
+  color: var(--text-ghost);
+  font-family: var(--font-mono);
+}
+
+/* Count badge */
+.sidebar-count {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  padding: 1px var(--space-sm);
+  border-radius: var(--radius-xl);
+}
+
+.sidebar-count.accent {
+  background: rgba(0, 229, 160, 0.15);
+  color: var(--color-accent);
+}
+
+.sidebar-count.warning {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--color-warning);
+}
+
+.sidebar-count.info {
+  background: rgba(56, 189, 248, 0.15);
+  color: var(--color-info);
+}
+
+.sidebar-count.channel {
+  background: rgba(167, 139, 250, 0.15);
+  color: var(--color-channel);
+}
+
+.sidebar-count.group {
+  background: rgba(244, 114, 182, 0.15);
+  color: var(--color-group);
+}
+
+/* Collapse Button */
+.sidebar-collapse-btn {
+  background: none;
+  border: none;
+  color: var(--text-ghost);
+  cursor: pointer;
+  padding: var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: auto;
+  transition: color var(--transition-fast);
+}
+
+.sidebar-collapse-btn .btn-ghost {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.app-sidebar.collapsed .sidebar-collapse-btn .btn-ghost {
+  justify-content: center;
+}
+
+/* Mobile container */
+.sidebar-mobile-container {
+  position: relative;
+  width: 100%;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid rgba(0, 229, 160, 0.08);
+}
+
+.sidebar-collapse-btn:hover {
+  color: var(--text-muted);
+}
+
+/* Mobile Sidebar */
+.app-sidebar.mobile {
+  width: 100%;
+  height: auto;
+  border-right: none;
+  border-bottom: none;
+  padding: var(--space-xs) var(--space-4xl) var(--space-xs) var(--space-xs);
+  display: flex;
+  flex-direction: row;
+  gap: 2px;
+  background: transparent;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+.app-sidebar.mobile::-webkit-scrollbar {
+  display: none;
+}
+
+.app-sidebar.mobile .sidebar-nav-item {
+  padding: var(--space-md) var(--space-lg);
+  justify-content: center;
+  border-left: none;
+  border-bottom: 2px solid transparent;
+  flex-shrink: 0;
+}
+
+.app-sidebar.mobile .sidebar-nav-item.active {
+  border-left: none;
+}
+
+.app-sidebar.mobile .sidebar-nav-item.active[data-accent="accent"] {
+  border-bottom-color: var(--color-accent);
+}
+
+.app-sidebar.mobile .sidebar-nav-item.active[data-accent="warning"] {
+  border-bottom-color: var(--color-warning);
+}
+
+.app-sidebar.mobile .sidebar-nav-item.active[data-accent="info"] {
+  border-bottom-color: var(--color-info);
+}
+
+.app-sidebar.mobile .sidebar-nav-item.active[data-accent="channel"] {
+  border-bottom-color: var(--color-channel);
+}
+
+.app-sidebar.mobile .sidebar-nav-item.active[data-accent="group"] {
+  border-bottom-color: var(--color-group);
+}
+
+/* Mobile scroll buttons — full-height gradient overlays */
+.sidebar-scroll-btn {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  z-index: var(--z-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-scroll-btn:hover {
+  background: var(--bg-surface-hover);
+}
+
+.sidebar-scroll-btn.left {
+  left: 0;
+  background: linear-gradient(to right, var(--bg-primary) 40%, transparent);
+}
+
+.sidebar-scroll-btn.right {
+  right: 0;
+  background: linear-gradient(to left, var(--bg-primary) 40%, transparent);
+}

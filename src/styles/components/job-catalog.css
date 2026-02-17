@@ -1,0 +1,140 @@
+/**
+ * JobCatalog Component Styles
+ * Grid of saved job cards with run/edit/delete actions
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * EMPTY STATE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.job-catalog__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: var(--text-ghost);
+}
+
+.job-catalog__empty-icon {
+  margin-bottom: var(--space-xl);
+  opacity: 0.5;
+}
+
+.job-catalog__empty-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  color: var(--text-subtle);
+}
+
+.job-catalog__empty-desc {
+  font-size: var(--text-base);
+  margin-top: var(--space-xs);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GRID
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.job-catalog__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-xl);
+  padding: var(--space-3xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CARD
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.job-catalog__card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-base);
+}
+
+.job-catalog__card:hover {
+  border-color: var(--border-medium);
+  background: var(--bg-surface-hover);
+}
+
+.job-catalog__card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: var(--space-md);
+}
+
+.job-catalog__card-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.job-catalog__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-lg);
+  background: rgba(0, 229, 160, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent);
+}
+
+.job-catalog__name {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.job-catalog__meta {
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.job-catalog__mode {
+  text-transform: capitalize;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * DESCRIPTION
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.job-catalog__description {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  flex: 1;
+  margin-bottom: var(--space-xl);
+  line-height: 1.5;
+  min-height: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ACTIONS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.job-catalog__actions {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: auto;
+}
+
+.job-catalog__run-btn {
+  flex: 1;
+  justify-content: center;
+}
+
+.job-catalog__action-btn {
+  padding: var(--space-sm) 10px;
+}
+
+.job-catalog__action-btn--danger {
+  color: var(--color-danger);
+}

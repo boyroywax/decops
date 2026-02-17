@@ -1,4 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
+import "../../styles/components/error-boundary.css";
 
 interface Props {
     children?: ReactNode;
@@ -30,9 +31,9 @@ export class ErrorBoundary extends Component<Props, State> {
                 return this.props.fallback;
             }
             return (
-                <div style={{ padding: 20, color: "#ef4444", background: "rgba(239,68,68,0.1)", borderRadius: 8, margin: 20 }}>
-                    <h3 style={{ marginTop: 0 }}>Something went wrong.</h3>
-                    <details style={{ whiteSpace: "pre-wrap", fontSize: 11, fontFamily: "monospace" }}>
+                <div className="error-boundary">
+                    <h3 className="error-boundary__title">Something went wrong.</h3>
+                    <details className="error-boundary__details">
                         {this.state.error?.toString()}
                     </details>
                 </div>

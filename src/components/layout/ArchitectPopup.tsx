@@ -4,6 +4,7 @@ import { GradientIcon } from "../shared/GradientIcon";
 import { SCENARIO_PRESETS, ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, NETWORK_COLORS } from "../../constants";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import type { MeshConfig, ArchPhase, DeployProgress, ViewId } from "../../types";
+import "../../styles/components/architect-popup.css";
 
 interface ArchitectPopupProps {
   isOpen: boolean;
@@ -102,50 +103,22 @@ export function ArchitectPopup({
       onClick={(e) => {
         if (e.target === backdropRef.current && archPhase !== "deploying") onClose();
       }}
-      style={{
-        position: "fixed", inset: 0, zIndex: 9500,
-        background: "rgba(0,0,0,0.55)",
-        backdropFilter: "blur(6px)",
-        display: "flex",
-        alignItems: isExpanded ? "center" : "flex-start",
-        justifyContent: "center",
-        paddingTop: isExpanded ? 0 : "min(15vh, 120px)",
-        animation: "archFadeIn 0.12s ease-out",
-      }}
+      className={`architect-popup-backdrop${isExpanded ? " architect-popup-backdrop--expanded" : ""}`}
     >
-      <div style={{
-        background: "#0f0f14",
-        border: "1px solid rgba(251,191,36,0.15)",
-        borderRadius: 16,
-        width: isExpanded ? "min(780px, calc(100vw - 48px))" : "min(680px, calc(100vw - 48px))",
-        maxHeight: isExpanded ? "calc(100vh - 64px)" : "auto",
-        overflow: "hidden",
-        display: "flex", flexDirection: "column",
-        boxShadow: "0 25px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(251,191,36,0.06)",
-        transition: "width 0.2s ease, max-height 0.2s ease",
-      }}>
+      <div className={`architect-popup${isExpanded ? " architect-popup--expanded" : ""}`}>
         {/* Header bar */}
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "14px 20px 10px",
-          borderBottom: archPhase === "input" ? "none" : "1px solid rgba(255,255,255,0.06)",
-          flexShrink: 0,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className={`architect-popup__header${archPhase !== "input" ? " architect-popup__header--bordered" : ""}`}>
+          <div className="architect-popup__header-left">
             <GradientIcon icon={Sparkles} size={16} gradient={["#fbbf24", "#fcd34d"]} />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 13, color: "#fbbf24" }}>
+            <span className="architect-popup__title">
               Architect
             </span>
-            <span style={{ fontSize: 9, color: "#52525b", fontFamily: "'DM Mono', monospace" }}>
+            <span className="architect-popup__phase-label">
               {archPhase === "input" ? "⌘K" : archPhase === "preview" ? "Blueprint" : archPhase === "deploying" ? "Deploying…" : "Complete"}
             </span>
           </div>
           {(archPhase === "preview" || archPhase === "done") && (
-            <button onClick={() => { resetArchitect(); }} style={{
-              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-              color: "#71717a", padding: "4px 12px", borderRadius: 6,
-              fontFamily: "inherit", fontSize: 10, cursor: "pointer",
-            }}>
+            <button onClick={() => { resetArchitect(); }} className="architect-popup__new-btn">
               New Design
             </button>
           )}
@@ -153,54 +126,33 @@ export function ArchitectPopup({
 
         {/* ─── INPUT PHASE ─── */}
         {archPhase === "input" && (
-          <div style={{ padding: "4px 20px 20px" }}>
+          <div className="architect-popup__input-phase">
             {/* Template Card Deck */}
-            <div style={{ position: "relative", marginBottom: 16 }}>
+            <div className="architect-popup__deck-wrap">
               {canScrollLeft && (
-                <button onClick={() => scroll(-1)} style={arrowBtnStyle("left")}>
+                <button onClick={() => scroll(-1)} className="architect-popup__deck-arrow architect-popup__deck-arrow--left">
                   <ChevronLeft size={14} />
                 </button>
               )}
               <div
                 ref={scrollRef}
                 onScroll={updateScrollState}
-                style={{
-                  display: "flex", gap: 10, overflowX: "auto", padding: "4px 0 8px",
-                  scrollbarWidth: "none", msOverflowStyle: "none",
-                  WebkitOverflowScrolling: "touch",
-                }}
+                className="architect-popup__deck"
               >
-                {/* Hide scrollbar */}
-                <style>{`.arch-deck::-webkit-scrollbar { display: none; }`}</style>
                 {SCENARIO_PRESETS.map((s) => {
                   const isSelected = archPrompt === s.desc;
                   return (
                     <button
                       key={s.id}
                       onClick={() => setArchPrompt(s.desc)}
-                      style={{
-                        flex: "0 0 auto",
-                        width: 180,
-                        background: isSelected ? `${s.color}10` : "rgba(255,255,255,0.02)",
-                        border: `1px solid ${isSelected ? `${s.color}35` : "rgba(255,255,255,0.05)"}`,
-                        borderRadius: 10,
-                        padding: "12px 14px",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        textAlign: "left",
-                        transition: "all 0.15s",
-                      }}
+                      className="architect-popup__preset"
+                      style={isSelected ? { background: `${s.color}10`, borderColor: `${s.color}35` } : undefined}
                     >
-                      <div style={{ fontSize: 18, marginBottom: 6 }}>{s.icon}</div>
-                      <div style={{
-                        fontSize: 11, fontWeight: 500,
-                        color: isSelected ? s.color : "#d4d4d8",
-                        marginBottom: 4,
-                        fontFamily: "'Space Grotesk', sans-serif",
-                      }}>
+                      <div className="architect-popup__preset-icon">{s.icon}</div>
+                      <div className="architect-popup__preset-label" style={isSelected ? { color: s.color } : undefined}>
                         {s.label}
                       </div>
-                      <div style={{ fontSize: 9, color: "#52525b", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                      <div className="architect-popup__preset-desc">
                         {s.desc}
                       </div>
                     </button>
@@ -208,21 +160,15 @@ export function ArchitectPopup({
                 })}
               </div>
               {canScrollRight && (
-                <button onClick={() => scroll(1)} style={arrowBtnStyle("right")}>
+                <button onClick={() => scroll(1)} className="architect-popup__deck-arrow architect-popup__deck-arrow--right">
                   <ChevronRight size={14} />
                 </button>
               )}
             </div>
 
             {/* Command Input Bar */}
-            <div style={{
-              display: "flex", gap: 8, alignItems: "flex-start",
-              background: "rgba(0,0,0,0.3)",
-              border: "1px solid rgba(251,191,36,0.15)",
-              borderRadius: 10,
-              padding: "4px 4px 4px 14px",
-            }}>
-              <Sparkles size={14} color="#fbbf24" style={{ flexShrink: 0, opacity: archGenerating ? 0.5 : 1, marginTop: 11 }} />
+            <div className="architect-popup__input-bar">
+              <Sparkles size={14} color="#fbbf24" className={`architect-popup__input-icon${archGenerating ? " architect-popup__input-icon--generating" : ""}`} />
               <textarea
                 ref={inputRef}
                 value={archPrompt}
@@ -236,42 +182,15 @@ export function ArchitectPopup({
                 placeholder="Describe a network to build…"
                 disabled={archGenerating}
                 rows={1}
-                style={{
-                  flex: 1,
-                  background: "transparent",
-                  border: "none",
-                  outline: "none",
-                  color: "#e4e4e7",
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 13,
-                  padding: "10px 0",
-                  resize: "none",
-                  lineHeight: 1.5,
-                  minHeight: 36,
-                  maxHeight: 120,
-                  overflow: "auto",
-                }}
+                className="architect-popup__textarea"
               />
               <button
                 onClick={handleSubmit}
                 disabled={archGenerating || !archPrompt.trim()}
-                style={{
-                  background: archGenerating ? "rgba(251,191,36,0.15)" : archPrompt.trim() ? "#fbbf24" : "#3f3f46",
-                  color: archGenerating ? "#fbbf24" : "#0a0a0f",
-                  border: archGenerating ? "1px solid rgba(251,191,36,0.3)" : "none",
-                  padding: "8px 18px",
-                  borderRadius: 8,
-                  cursor: archGenerating || !archPrompt.trim() ? "not-allowed" : "pointer",
-                  fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-                  display: "flex", alignItems: "center", gap: 6,
-                  flexShrink: 0,
-                  transition: "all 0.15s",
-                  alignSelf: "flex-start",
-                  marginTop: 4,
-                }}
+                className={`architect-popup__submit-btn ${archGenerating ? "architect-popup__submit-btn--generating" : archPrompt.trim() ? "architect-popup__submit-btn--ready" : "architect-popup__submit-btn--disabled"}`}
               >
                 {archGenerating ? (
-                  <span style={{ animation: "pulse 1.5s infinite", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span className="architect-popup__generating-text">
                     <GradientIcon icon={Sparkles} size={13} gradient={["#fbbf24", "#fcd34d"]} /> Generating…
                   </span>
                 ) : (
@@ -281,17 +200,14 @@ export function ArchitectPopup({
             </div>
 
             {archError && (
-              <div style={{
-                background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)",
-                borderRadius: 8, padding: "8px 12px", fontSize: 11, color: "#ef4444", marginTop: 10,
-              }}>
+              <div className="architect-popup__error">
                 {archError}
               </div>
             )}
 
             {/* Keyboard hint */}
-            <div style={{ textAlign: "center", marginTop: 12, fontSize: 10, color: "#3f3f46" }}>
-              <kbd style={kbdStyle}>Enter</kbd> generate · <kbd style={kbdStyle}>Shift+Enter</kbd> newline · <kbd style={kbdStyle}>Esc</kbd> close
+            <div className="architect-popup__kbd-hints">
+              <kbd className="architect-popup__kbd">Enter</kbd> generate · <kbd className="architect-popup__kbd">Shift+Enter</kbd> newline · <kbd className="architect-popup__kbd">Esc</kbd> close
             </div>
           </div>
         )}
@@ -303,22 +219,20 @@ export function ArchitectPopup({
 
         {/* ─── DEPLOYING PHASE ─── */}
         {archPhase === "deploying" && (
-          <div style={{ padding: "40px 24px", textAlign: "center" }}>
-            <div style={{ fontSize: 36, marginBottom: 14, animation: "pulse 1.5s infinite" }}>
+          <div className="architect-popup__deploying">
+            <div className="architect-popup__deploying-icon">
               <GradientIcon icon={Hexagon} size={36} gradient={["#f472b6", "#ec4899"]} />
             </div>
-            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 600, color: "#fbbf24", marginBottom: 8 }}>
+            <div className="architect-popup__deploying-title">
               Deploying Network
             </div>
-            <div style={{ fontSize: 11, color: "#71717a", marginBottom: 18 }}>{deployProgress.step}</div>
-            <div style={{ maxWidth: 280, margin: "0 auto", background: "rgba(255,255,255,0.04)", borderRadius: 6, height: 5, overflow: "hidden" }}>
-              <div style={{
-                height: "100%", background: "#fbbf24", borderRadius: 6,
+            <div className="architect-popup__deploying-step">{deployProgress.step}</div>
+            <div className="architect-popup__progress-track">
+              <div className="architect-popup__progress-bar" style={{
                 width: `${deployProgress.total > 0 ? (deployProgress.count / deployProgress.total) * 100 : 0}%`,
-                transition: "width 0.3s",
               }} />
             </div>
-            <div style={{ fontSize: 10, color: "#52525b", marginTop: 6 }}>{deployProgress.count} / {deployProgress.total}</div>
+            <div className="architect-popup__progress-count">{deployProgress.count} / {deployProgress.total}</div>
           </div>
         )}
 
@@ -328,9 +242,6 @@ export function ArchitectPopup({
         )}
       </div>
 
-      <style>{`
-        @keyframes archFadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-      `}</style>
     </div>
   );
 }
@@ -341,16 +252,13 @@ function PreviewContent({ preview, deployNetwork, resetArchitect }: { preview: M
   const bridgeCount = preview.bridges?.length || 0;
   
   return (
-    <div style={{ flex: 1, overflow: "auto", padding: "16px 20px 20px" }}>
-      <div style={{
-        background: "rgba(251,191,36,0.04)", border: "1px solid rgba(251,191,36,0.12)",
-        borderRadius: 10, padding: 18, marginBottom: 16,
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <div style={{ fontSize: 12, fontWeight: 500, color: "#fbbf24" }}>
+    <div className="architect-review">
+      <div className="architect-review__blueprint">
+        <div className="architect-review__blueprint-header">
+          <div className="architect-review__blueprint-title">
             <GradientIcon icon={Sparkles} size={14} gradient={["#fbbf24", "#fcd34d"]} /> Blueprint
           </div>
-          <div style={{ fontSize: 10, color: "#52525b" }}>
+          <div className="architect-review__blueprint-stats">
             {networkCount > 0 && `${networkCount} network${networkCount !== 1 ? 's' : ''} · `}
             {preview.agents.length} agents · {preview.channels.length} ch · {preview.groups?.length || 0} groups
             {bridgeCount > 0 && ` · ${bridgeCount} bridge${bridgeCount !== 1 ? 's' : ''}`}
@@ -360,23 +268,23 @@ function PreviewContent({ preview, deployNetwork, resetArchitect }: { preview: M
         {/* Networks */}
         {preview.networks && preview.networks.length > 0 && (
           <>
-            <div style={{ fontSize: 9, fontWeight: 600, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Networks</div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+            <div className="architect-review__section-label">Networks</div>
+            <div className="architect-review__networks-grid">
               {preview.networks.map((n, i) => {
                 const color = NETWORK_COLORS[i % NETWORK_COLORS.length];
                 const agentCount = n.agents?.length || 0;
                 return (
-                  <div key={i} style={{ background: "rgba(0,0,0,0.3)", border: `1px solid ${color}30`, borderRadius: 8, padding: 10, minWidth: 180 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                  <div key={i} className="architect-review__network-card" style={{ borderColor: `${color}30` }}>
+                    <div className="architect-review__network-header">
                       <Globe size={14} color={color} />
-                      <div style={{ fontSize: 11, fontWeight: 500, color }}>
+                      <div className="architect-review__network-name" style={{ color }}>
                         {n.name}
                       </div>
                     </div>
                     {n.description && (
-                      <div style={{ fontSize: 9, color: "#71717a", marginBottom: 4 }}>{n.description}</div>
+                      <div className="architect-review__network-desc">{n.description}</div>
                     )}
-                    <div style={{ fontSize: 9, color: "#52525b" }}>{agentCount} agent{agentCount !== 1 ? 's' : ''}</div>
+                    <div className="architect-review__network-count">{agentCount} agent{agentCount !== 1 ? 's' : ''}</div>
                   </div>
                 );
               })}
@@ -385,8 +293,8 @@ function PreviewContent({ preview, deployNetwork, resetArchitect }: { preview: M
         )}
 
         {/* Agents */}
-        <div style={{ fontSize: 9, fontWeight: 600, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Agents</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 8, marginBottom: 16 }}>
+        <div className="architect-review__section-label">Agents</div>
+        <div className="architect-review__agents-grid">
           {preview.agents.map((a, i) => {
             const role = ROLES.find(r => r.id === a.role) || ROLES[0];
             // Find which network this agent belongs to
@@ -395,40 +303,40 @@ function PreviewContent({ preview, deployNetwork, resetArchitect }: { preview: M
             const networkName = networkIdx >= 0 ? preview.networks![networkIdx].name : undefined;
             
             return (
-              <div key={i} style={{ background: "rgba(0,0,0,0.3)", border: `1px solid ${role.color}20`, borderRadius: 8, padding: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                  <span style={{ fontSize: 13 }}>{role.icon}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 500, color: "#e4e4e7" }}>{a.name}</div>
-                    <div style={{ fontSize: 9, color: role.color }}>{role.label}</div>
+              <div key={i} className="architect-review__agent-card" style={{ borderColor: `${role.color}20` }}>
+                <div className="architect-review__agent-header">
+                  <span className="architect-review__agent-icon">{role.icon}</span>
+                  <div className="architect-review__agent-info">
+                    <div className="architect-review__agent-name">{a.name}</div>
+                    <div className="architect-review__agent-role" style={{ color: role.color }}>{role.label}</div>
                   </div>
                   {networkName && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 3, padding: "2px 6px", background: `${networkColor}15`, borderRadius: 4 }}>
+                    <div className="architect-review__agent-network-badge" style={{ background: `${networkColor}15`, color: networkColor }}>
                       <Globe size={9} color={networkColor} />
-                      <span style={{ fontSize: 8, color: networkColor }}>{networkName}</span>
+                      <span className="architect-review__agent-network-label">{networkName}</span>
                     </div>
                   )}
                 </div>
-                <div style={{ fontSize: 9, color: "#71717a", lineHeight: 1.4, maxHeight: 40, overflow: "hidden" }}>{a.prompt}</div>
+                <div className="architect-review__agent-prompt">{a.prompt}</div>
               </div>
             );
           })}
         </div>
 
         {/* Channels */}
-        <div style={{ fontSize: 9, fontWeight: 600, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Channels</div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 16 }}>
+        <div className="architect-review__section-label">Channels</div>
+        <div className="architect-review__channels-grid">
           {preview.channels.map((c, i) => {
             const from = preview.agents[c.from];
             const to = preview.agents[c.to];
             const cType = CHANNEL_TYPES.find(t => t.id === c.type) || CHANNEL_TYPES[0];
             if (!from || !to) return null;
             return (
-              <div key={i} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(167,139,250,0.15)", borderRadius: 6, padding: "6px 10px", fontSize: 10 }}>
-                <span style={{ color: "#d4d4d8" }}>{from.name}</span>
-                <ArrowLeftRight size={10} color="#52525b" style={{ margin: "0 4px", verticalAlign: "middle" }} />
-                <span style={{ color: "#d4d4d8" }}>{to.name}</span>
-                <span style={{ color: "#a78bfa", marginLeft: 6 }}>{cType.icon} {cType.label}</span>
+              <div key={i} className="architect-review__channel-card">
+                <span className="architect-review__channel-agent">{from.name}</span>
+                <ArrowLeftRight size={10} color="#52525b" className="architect-review__channel-arrow" />
+                <span className="architect-review__channel-agent">{to.name}</span>
+                <span className="architect-review__channel-type">{cType.icon} {cType.label}</span>
               </div>
             );
           })}
@@ -437,21 +345,21 @@ function PreviewContent({ preview, deployNetwork, resetArchitect }: { preview: M
         {/* Groups */}
         {preview.groups && preview.groups.length > 0 && (
           <>
-            <div style={{ fontSize: 9, fontWeight: 600, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Groups</div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+            <div className="architect-review__section-label">Groups</div>
+            <div className="architect-review__groups-grid">
               {preview.groups.map((g, i) => {
                 const gov = GOVERNANCE_MODELS.find(m => m.id === g.governance) || GOVERNANCE_MODELS[0];
                 return (
-                  <div key={i} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(244,114,182,0.15)", borderRadius: 8, padding: 10, minWidth: 160 }}>
-                    <div style={{ fontSize: 11, fontWeight: 500, color: "#f472b6", marginBottom: 4 }}>
+                  <div key={i} className="architect-review__group-card">
+                    <div className="architect-review__group-name">
                       <GradientIcon icon={Hexagon} size={12} gradient={["#f472b6", "#ec4899"]} /> {g.name}
                     </div>
-                    <div style={{ fontSize: 9, color: "#71717a", marginBottom: 4 }}>{gov.icon} {gov.label}</div>
-                    <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                    <div className="architect-review__group-gov">{gov.icon} {gov.label}</div>
+                    <div className="architect-review__group-members">
                       {g.members.map((idx) => {
                         const a = preview.agents[idx];
                         if (!a) return null;
-                        return <span key={idx} style={{ fontSize: 9, padding: "2px 5px", borderRadius: 4, background: "rgba(255,255,255,0.04)", color: "#a1a1aa" }}>{a.name}</span>;
+                        return <span key={idx} className="architect-review__member-badge">{a.name}</span>;
                       })}
                     </div>
                   </div>
@@ -464,8 +372,8 @@ function PreviewContent({ preview, deployNetwork, resetArchitect }: { preview: M
         {/* Bridges */}
         {preview.bridges && preview.bridges.length > 0 && (
           <>
-            <div style={{ fontSize: 9, fontWeight: 600, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Bridges</div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+            <div className="architect-review__section-label">Bridges</div>
+            <div className="architect-review__bridges-grid">
               {preview.bridges.map((b, i) => {
                 const fromNet = preview.networks?.[b.fromNetwork];
                 const toNet = preview.networks?.[b.toNetwork];
@@ -478,19 +386,19 @@ function PreviewContent({ preview, deployNetwork, resetArchitect }: { preview: M
                 if (!fromNet || !toNet || !fromAgent || !toAgent) return null;
                 
                 return (
-                  <div key={i} style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 8, padding: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 9, color: fromColor, marginBottom: 2 }}>{fromNet.name}</div>
-                        <div style={{ fontSize: 10, color: "#d4d4d8" }}>{fromAgent.name}</div>
+                  <div key={i} className="architect-review__bridge-card">
+                    <div className="architect-review__bridge-layout">
+                      <div className="architect-review__bridge-endpoint">
+                        <div className="architect-review__bridge-net-name" style={{ color: fromColor }}>{fromNet.name}</div>
+                        <div className="architect-review__bridge-agent-name">{fromAgent.name}</div>
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                      <div className="architect-review__bridge-icon">
                         <GitBranch size={12} color="#fbbf24" />
-                        <span style={{ fontSize: 8, color: "#a78bfa" }}>{cType.label}</span>
+                        <span className="architect-review__bridge-type">{cType.label}</span>
                       </div>
-                      <div style={{ textAlign: "center" }}>
-                        <div style={{ fontSize: 9, color: toColor, marginBottom: 2 }}>{toNet.name}</div>
-                        <div style={{ fontSize: 10, color: "#d4d4d8" }}>{toAgent.name}</div>
+                      <div className="architect-review__bridge-endpoint">
+                        <div className="architect-review__bridge-net-name" style={{ color: toColor }}>{toNet.name}</div>
+                        <div className="architect-review__bridge-agent-name">{toAgent.name}</div>
                       </div>
                     </div>
                   </div>
@@ -503,16 +411,16 @@ function PreviewContent({ preview, deployNetwork, resetArchitect }: { preview: M
         {/* Example Messages */}
         {preview.exampleMessages && preview.exampleMessages.length > 0 && (
           <>
-            <div style={{ fontSize: 9, fontWeight: 600, color: "#52525b", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Example Messages</div>
+            <div className="architect-review__section-label">Example Messages</div>
             {preview.exampleMessages.map((em, i) => {
               const ch = preview.channels[em.channelIdx];
               const from = ch ? preview.agents[ch.from] : null;
               const to = ch ? preview.agents[ch.to] : null;
               if (!from || !to) return null;
               return (
-                <div key={i} style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 6, padding: "8px 10px", marginBottom: 6 }}>
-                  <div style={{ fontSize: 9, color: "#52525b", marginBottom: 3 }}>{from.name} → {to.name}</div>
-                  <div style={{ fontSize: 11, color: "#d4d4d8", lineHeight: 1.4 }}>{em.message}</div>
+                <div key={i} className="architect-review__message-card">
+                  <div className="architect-review__message-route">{from.name} → {to.name}</div>
+                  <div className="architect-review__message-text">{em.message}</div>
                 </div>
               );
             })}
@@ -521,20 +429,11 @@ function PreviewContent({ preview, deployNetwork, resetArchitect }: { preview: M
       </div>
 
       {/* Action buttons */}
-      <div style={{ display: "flex", gap: 10 }}>
-        <button onClick={deployNetwork} style={{
-          background: "#fbbf24", color: "#0a0a0f", border: "none",
-          padding: "10px 24px", borderRadius: 8, cursor: "pointer",
-          fontFamily: "inherit", fontSize: 12, fontWeight: 600,
-          display: "flex", alignItems: "center", gap: 6,
-        }}>
+      <div className="architect-review__actions">
+        <button onClick={deployNetwork} className="architect-review__deploy-btn">
           <GradientIcon icon={Hexagon} size={14} gradient={["#f472b6", "#ec4899"]} /> Deploy Network
         </button>
-        <button onClick={resetArchitect} style={{
-          background: "transparent", border: "1px solid rgba(255,255,255,0.08)",
-          color: "#71717a", padding: "10px 18px", borderRadius: 8, cursor: "pointer",
-          fontFamily: "inherit", fontSize: 11,
-        }}>
+        <button onClick={resetArchitect} className="architect-review__discard-btn">
           Discard
         </button>
       </div>
@@ -547,28 +446,23 @@ function DoneContent({ onNavigate, resetArchitect }: { onNavigate: (v: ViewId) =
   const { agents, channels, groups, messages } = useWorkspaceContext();
 
   return (
-    <div style={{ padding: "36px 24px", textAlign: "center" }}>
-      <div style={{ fontSize: 36, marginBottom: 14 }}>✓</div>
-      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, fontWeight: 600, color: "#00e5a0", marginBottom: 8 }}>Network Deployed</div>
-      <div style={{ fontSize: 11, color: "#71717a", marginBottom: 22 }}>
+    <div className="architect-popup__done">
+      <div className="architect-popup__done-check">✓</div>
+      <div className="architect-popup__done-title">Network Deployed</div>
+      <div className="architect-popup__done-summary">
         {agents.length} agents · {channels.length} channels · {groups.length} groups · {messages.length} messages
       </div>
-      <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-        <button onClick={() => onNavigate("network")} style={doneBtnStyle("#00e5a0")}>
+      <div className="architect-popup__done-actions">
+        <button onClick={() => onNavigate("network")} className="architect-popup__done-btn" style={{ background: "#00e5a012", border: "1px solid #00e5a025", color: "#00e5a0" }}>
           ◈ View Topology
         </button>
-        <button onClick={() => onNavigate("networks")} style={doneBtnStyle("#38bdf8")}>
+        <button onClick={() => onNavigate("networks")} className="architect-popup__done-btn" style={{ background: "#38bdf812", border: "1px solid #38bdf825", color: "#38bdf8" }}>
           <Globe size={13} /> Save to Ecosystem
         </button>
-        <button onClick={() => onNavigate("agents")} style={doneBtnStyle("#00e5a0")}>
+        <button onClick={() => onNavigate("agents")} className="architect-popup__done-btn" style={{ background: "#00e5a012", border: "1px solid #00e5a025", color: "#00e5a0" }}>
           <Bot size={13} /> Browse Agents
         </button>
-        <button onClick={() => { resetArchitect(); }} style={{
-          background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-          color: "#71717a", padding: "8px 16px", borderRadius: 8,
-          fontFamily: "inherit", fontSize: 11, cursor: "pointer",
-          display: "flex", alignItems: "center", gap: 5,
-        }}>
+        <button onClick={() => { resetArchitect(); }} className="architect-popup__build-another-btn">
           <Sparkles size={13} /> Build Another
         </button>
       </div>
@@ -576,45 +470,4 @@ function DoneContent({ onNavigate, resetArchitect }: { onNavigate: (v: ViewId) =
   );
 }
 
-/* ─── Shared styles ─── */
-const arrowBtnStyle = (side: "left" | "right"): React.CSSProperties => ({
-  position: "absolute",
-  top: "50%",
-  transform: "translateY(-50%)",
-  [side]: -2,
-  zIndex: 2,
-  width: 28,
-  height: 28,
-  borderRadius: "50%",
-  background: "rgba(15,15,20,0.9)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  color: "#a1a1aa",
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-});
 
-const kbdStyle: React.CSSProperties = {
-  display: "inline-block",
-  padding: "1px 5px",
-  borderRadius: 3,
-  background: "rgba(255,255,255,0.06)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  fontFamily: "'DM Mono', monospace",
-  fontSize: 9,
-};
-
-const doneBtnStyle = (color: string): React.CSSProperties => ({
-  background: `${color}12`,
-  border: `1px solid ${color}25`,
-  color,
-  padding: "8px 16px",
-  borderRadius: 8,
-  fontFamily: "inherit",
-  fontSize: 11,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  gap: 5,
-});

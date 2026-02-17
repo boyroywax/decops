@@ -1,5 +1,6 @@
 import { Play, Edit, Trash2, Briefcase } from "lucide-react";
 import type { JobDefinition } from "../../types";
+import "../../styles/components/job-catalog.css";
 
 interface JobCatalogProps {
     jobs: JobDefinition[];
@@ -11,62 +12,48 @@ interface JobCatalogProps {
 export function JobCatalog({ jobs, onRun, onEdit, onDelete }: JobCatalogProps) {
     if (jobs.length === 0) {
         return (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 300, color: "#52525b" }}>
-                <Briefcase size={32} style={{ marginBottom: 16, opacity: 0.5 }} />
-                <div style={{ fontSize: 13, fontWeight: 500, color: "#71717a" }}>No Saved Jobs</div>
-                <div style={{ fontSize: 11, marginTop: 4 }}>Create a job to save it here for reuse.</div>
+            <div className="job-catalog__empty">
+                <Briefcase size={32} className="job-catalog__empty-icon" />
+                <div className="job-catalog__empty-title">No Saved Jobs</div>
+                <div className="job-catalog__empty-desc">Create a job to save it here for reuse.</div>
             </div>
         );
     }
 
     return (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16, padding: 24 }}>
+        <div className="job-catalog__grid">
             {jobs.map(job => (
-                <div key={job.id} style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.06)",
-                    borderRadius: 8,
-                    padding: 16,
-                    display: "flex",
-                    flexDirection: "column",
-                    transition: "all 0.2s"
-                }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 8 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{
-                                width: 32, height: 32, borderRadius: 6, background: "rgba(0, 229, 160, 0.1)",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                color: "#00e5a0"
-                            }}>
+                <div key={job.id} className="job-catalog__card">
+                    <div className="job-catalog__card-header">
+                        <div className="job-catalog__card-info">
+                            <div className="job-catalog__icon">
                                 <Briefcase size={16} />
                             </div>
                             <div>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: "#e4e4e7" }}>{job.name}</div>
-                                <div style={{ fontSize: 10, color: "#71717a", display: "flex", gap: 6 }}>
+                                <div className="job-catalog__name">{job.name}</div>
+                                <div className="job-catalog__meta">
                                     <span>{job.steps.length} steps</span>
                                     <span>•</span>
-                                    <span style={{ textTransform: "capitalize" }}>{job.mode}</span>
+                                    <span className="job-catalog__mode">{job.mode}</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ fontSize: 11, color: "#a1a1aa", flex: 1, marginBottom: 16, lineHeight: 1.5, minHeight: 16 }}>
+                    <div className="job-catalog__description">
                         {job.description || "No description provided."}
                     </div>
 
-                    <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
+                    <div className="job-catalog__actions">
                         <button
                             onClick={() => onRun(job)}
-                            className="btn btn-primary"
-                            style={{ flex: 1, justifyContent: "center" }}
+                            className="btn btn-primary job-catalog__run-btn"
                         >
-                            <Play size={12} style={{ marginRight: 6 }} /> Run
+                            <Play size={12} /> Run
                         </button>
                         <button
                             onClick={() => onEdit(job)}
-                            className="btn btn-secondary"
-                            style={{ padding: "6px 10px" }}
+                            className="btn btn-secondary job-catalog__action-btn"
                             title="Edit"
                         >
                             <Edit size={12} />
@@ -77,8 +64,7 @@ export function JobCatalog({ jobs, onRun, onEdit, onDelete }: JobCatalogProps) {
                                     onDelete(job.id);
                                 }
                             }}
-                            className="btn btn-secondary"
-                            style={{ padding: "6px 10px", color: "#ef4444" }}
+                            className="btn btn-secondary job-catalog__action-btn job-catalog__action-btn--danger"
                             title="Delete"
                         >
                             <Trash2 size={12} />

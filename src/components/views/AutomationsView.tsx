@@ -4,6 +4,7 @@ import { useAutomations } from "../../context/AutomationsContext";
 import { AutomationCard } from "../automations/AutomationCard";
 import { AutomationLogViewer } from "../automations/AutomationLogViewer";
 import type { AutomationRun } from "../../services/automations/types";
+import "../../styles/components/automations.css";
 
 import { AutomationBuilder } from "../automations/AutomationBuilder";
 
@@ -44,33 +45,21 @@ export function AutomationsView() {
     }
 
     return (
-        <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="automations">
+            <div className="automations__header">
                 <div>
-                    <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0, fontFamily: "var(--font-display)" }}>Automations</h1>
-                    <p style={{ color: "#a1a1aa", marginTop: 8 }}>Manage and monitor automated workflows.</p>
+                    <h1 className="automations__title">Automations</h1>
+                    <p className="automations__subtitle">Manage and monitor automated workflows.</p>
                 </div>
                 <button
                     onClick={() => setIsCreating(true)}
-                    style={{
-                        padding: "8px 16px",
-                        background: "#2563eb",
-                        color: "white",
-                        border: "none",
-                        borderRadius: 6,
-                        fontWeight: 500,
-                        cursor: "pointer"
-                    }}
+                    className="btn btn-primary"
                 >
                     + New Automation
                 </button>
             </div>
 
-            <div style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-                gap: 20
-            }}>
+            <div className="automations__grid">
                 {automations.map(def => (
                     <AutomationCard
                         key={def.id}

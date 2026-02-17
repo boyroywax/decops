@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import type { JobArtifact } from "../../types";
 import { SectionTitle } from "../shared/ui";
 import { FileText, Image, Code, File, X, Plus } from "lucide-react";
+import "../../styles/components/artifacts.css";
 
 interface ArtifactsViewProps {
     artifacts: JobArtifact[];
@@ -95,71 +96,41 @@ export function ArtifactsView({ artifacts, importArtifact, removeArtifact }: Art
     };
 
     return (
-        <div style={{ height: "100%", display: "flex", flexDirection: "column", gap: 24 }}>
+        <div className="artifacts">
             <input
                 type="file"
                 ref={fileInputRef}
                 style={{ display: "none" }}
                 onChange={handleFileChange}
             />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div className="artifacts__header">
                 <div>
                     <SectionTitle text="Artifacts Library" />
-                    <div style={{ fontSize: 13, color: "#a1a1aa" }}>
+                    <div className="artifacts__subtitle">
                         Manage generated and imported project files.
                     </div>
                 </div>
                 <button
                     onClick={handleImportClick}
-                    style={{
-                        background: "#00e5a0",
-                        color: "#0a0a0f",
-                        border: "none",
-                        borderRadius: 4,
-                        padding: "8px 16px",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6
-                    }}
+                    className="btn btn-primary"
                 >
                     <Plus size={14} /> Import Artifact
                 </button>
             </div>
 
             {/* Toolbar */}
-            <div style={{ display: "flex", gap: 12, background: "rgba(255,255,255,0.02)", padding: 12, borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)" }}>
+            <div className="artifacts__toolbar">
                 <input
                     type="text"
                     placeholder="Search artifacts..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    style={{
-                        background: "rgba(0,0,0,0.3)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        color: "#e4e4e7",
-                        padding: "6px 12px",
-                        borderRadius: 4,
-                        fontSize: 12,
-                        width: 200,
-                        outline: "none"
-                    }}
+                    className="artifacts__search"
                 />
                 <select
                     value={filter}
                     onChange={e => setFilter(e.target.value)}
-                    style={{
-                        background: "rgba(0,0,0,0.3)",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        color: "#e4e4e7",
-                        padding: "6px 12px",
-                        borderRadius: 4,
-                        fontSize: 12,
-                        outline: "none",
-                        cursor: "pointer"
-                    }}
+                    className="artifacts__filter"
                 >
                     <option value="all">All Types</option>
                     <option value="markdown">Markdown</option>
@@ -170,11 +141,11 @@ export function ArtifactsView({ artifacts, importArtifact, removeArtifact }: Art
             </div>
 
             {/* Main Content Area */}
-            <div style={{ display: "flex", flex: 1, gap: 24, overflow: "hidden" }}>
+            <div className="artifacts__content">
                 {/* List */}
-                <div style={{ flex: 1, overflow: "auto", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", alignContent: "start", gap: 16 }}>
+                <div className="artifacts__grid">
                     {filteredArtifacts.length === 0 && (
-                        <div style={{ gridColumn: "1/-1", textAlign: "center", padding: 40, color: "#52525b", fontSize: 13 }}>
+                        <div className="artifacts__empty">
                             No artifacts found.
                         </div>
                     )}
@@ -182,31 +153,21 @@ export function ArtifactsView({ artifacts, importArtifact, removeArtifact }: Art
                         <div
                             key={art.id}
                             onClick={() => setSelectedArtifact(art)}
-                            style={{
-                                background: selectedArtifact?.id === art.id ? "rgba(0,229,160,0.08)" : "rgba(255,255,255,0.02)",
-                                border: `1px solid ${selectedArtifact?.id === art.id ? "rgba(0,229,160,0.3)" : "rgba(255,255,255,0.06)"}`,
-                                borderRadius: 8,
-                                padding: 16,
-                                cursor: "pointer",
-                                transition: "all 0.15s",
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: 12
-                            }}
+                            className={`artifact-card${selectedArtifact?.id === art.id ? ' artifact-card--selected' : ''}`}
                         >
-                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                <div style={{
-                                    width: 32, height: 32, borderRadius: 6,
-                                    background: getIconColor(art.type) + "20",
-                                    color: getIconColor(art.type),
-                                    display: "flex", alignItems: "center", justifyContent: "center",
-                                    fontSize: 16
-                                }}>
+                            <div className="artifact-card__header">
+                                <div
+                                    className="artifact-card__icon"
+                                    style={{
+                                        background: getIconColor(art.type) + "20",
+                                        color: getIconColor(art.type),
+                                    }}
+                                >
                                     {getIcon(art.type)}
                                 </div>
-                                <div style={{ overflow: "hidden" }}>
-                                    <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#e4e4e7" }}>{art.name}</div>
-                                    <div style={{ fontSize: 10, color: "#71717a", marginTop: 2 }}>{art.type.toUpperCase()}</div>
+                                <div className="artifact-card__info">
+                                    <div className="artifact-card__name">{art.name}</div>
+                                    <div className="artifact-card__type">{art.type.toUpperCase()}</div>
                                 </div>
                             </div>
                         </div>
@@ -215,30 +176,30 @@ export function ArtifactsView({ artifacts, importArtifact, removeArtifact }: Art
 
                 {/* Preview */}
                 {selectedArtifact && (
-                    <div style={{ width: 400, background: "rgba(0,0,0,0.2)", borderLeft: "1px solid rgba(255,255,255,0.06)", padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <div style={{ fontSize: 16, fontWeight: 600, color: "#e4e4e7" }}>{selectedArtifact.name}</div>
-                            <button onClick={() => setSelectedArtifact(null)} style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer" }}><X size={16} /></button>
+                    <div className="artifacts__preview">
+                        <div className="artifacts__preview-header">
+                            <div className="artifacts__preview-title">{selectedArtifact.name}</div>
+                            <button onClick={() => setSelectedArtifact(null)} className="artifacts__preview-close"><X size={16} /></button>
                         </div>
 
-                        <div style={{ flex: 1, background: "rgba(0,0,0,0.3)", borderRadius: 8, padding: 16, overflow: "auto", border: "1px solid rgba(255,255,255,0.06)" }}>
+                        <div className="artifacts__preview-body">
                             {selectedArtifact.type === "image" ? (
-                                <img src={selectedArtifact.url} alt={selectedArtifact.name} style={{ maxWidth: "100%", borderRadius: 4 }} />
+                                <img src={selectedArtifact.url} alt={selectedArtifact.name} className="artifacts__preview-img" />
                             ) : (
-                                <pre style={{ fontSize: 11, fontFamily: "monospace", color: "#d4d4d8", whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0 }}>
+                                <pre className="artifacts__preview-code">
                                     {typeof selectedArtifact.content === 'string' ? selectedArtifact.content.slice(0, 5000) : JSON.stringify(selectedArtifact.content, null, 2)}
                                 </pre>
                             )}
                         </div>
 
-                        <div style={{ display: "flex", gap: 12 }}>
+                        <div className="artifacts__preview-actions">
                             <button
                                 onClick={handleDownload}
-                                style={{ flex: 1, padding: "8px 0", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4, color: "#e4e4e7", cursor: "pointer", fontSize: 12 }}
+                                className="artifacts__btn-download"
                             >Download</button>
                             <button
                                 onClick={handleDelete}
-                                style={{ flex: 1, padding: "8px 0", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 4, color: "#ef4444", cursor: "pointer", fontSize: 12 }}
+                                className="artifacts__btn-delete"
                             >Delete</button>
                         </div>
                     </div>

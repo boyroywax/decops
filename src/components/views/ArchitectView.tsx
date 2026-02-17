@@ -35,18 +35,18 @@ export function ArchitectView({
   setView,
 }: ArchitectViewProps) {
   return (
-    <div style={{ width: "100%", boxSizing: "border-box" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}>
+    <div className="architect">
+      <div className="architect__header">
+        <h2 className="architect__title">
           <GradientIcon icon={Sparkles} size={16} gradient={["#fbbf24", "#fcd34d"]} /> Workspace Architect
         </h2>
         {(archPhase === "preview" || archPhase === "done") && (
-          <button onClick={resetArchitect} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#71717a", padding: "6px 14px", borderRadius: 6, fontFamily: "inherit", fontSize: 10, cursor: "pointer" }}>
+          <button onClick={resetArchitect} className="btn btn-sm btn-ghost">
             New Design
           </button>
         )}
       </div>
-      <div style={{ fontSize: 11, color: "#71717a", marginBottom: 24, lineHeight: 1.6 }}>
+      <div className="architect__desc">
         Describe a network and the AI architect will generate agents, channels, groups, and example conversations.
       </div>
 

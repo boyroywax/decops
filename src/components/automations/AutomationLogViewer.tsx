@@ -2,6 +2,7 @@
 import { useState, useMemo } from "react";
 import { X, Clock, Terminal, ChevronRight, ChevronDown } from "lucide-react";
 import type { AutomationRun } from "../../services/automations/types";
+import "../../styles/components/automation-log-viewer.css";
 
 interface AutomationLogViewerProps {
     run: AutomationRun | null;
@@ -26,100 +27,57 @@ export function AutomationLogViewer({ run, onClose }: AutomationLogViewerProps) 
         ? ((run.endTime - run.startTime) / 1000).toFixed(2) + "s"
         : "Running...";
 
+    const getMessageClass = (level: string) => {
+        switch (level) {
+            case "error": return "log-viewer__message log-viewer__message--error";
+            case "warn": return "log-viewer__message log-viewer__message--warn";
+            default: return "log-viewer__message log-viewer__message--info";
+        }
+    };
+
     return (
-        <div style={{
-            position: "fixed",
-            top: 0, left: 0, right: 0, bottom: 0,
-            background: "rgba(0,0,0,0.8)",
-            backdropFilter: "blur(4px)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000
-        }} onClick={onClose}>
-            <div style={{
-                background: "#0a0a0f",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 12,
-                width: "90%",
-                maxWidth: 800,
-                height: "80%",
-                display: "flex",
-                flexDirection: "column",
-                boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
-                overflow: "hidden"
-            }} onClick={e => e.stopPropagation()}>
+        <div className="log-viewer__backdrop" onClick={onClose}>
+            <div className="log-viewer__panel" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
-                <div style={{
-                    padding: "16px 24px",
-                    borderBottom: "1px solid rgba(255,255,255,0.06)",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    background: "rgba(255,255,255,0.02)"
-                }}>
+                <div className="log-viewer__header">
                     <div>
-                        <div style={{ fontSize: 16, fontWeight: 600, color: "#e4e4e7" }}>Execution Log</div>
-                        <div style={{ fontSize: 12, color: "#a1a1aa", marginTop: 4, display: "flex", gap: 12 }}>
+                        <div className="log-viewer__title">Execution Log</div>
+                        <div className="log-viewer__meta">
                             <span>Run ID: {run.id.slice(0, 8)}</span>
                             <span>•</span>
-                            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <span className="log-viewer__meta-duration">
                                 <Clock size={12} /> {duration}
                             </span>
                         </div>
                     </div>
-                    <button onClick={onClose} style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer" }}>
+                    <button onClick={onClose} className="log-viewer__close-btn">
                         <X size={20} />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div style={{ flex: 1, overflow: "auto", padding: 24 }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div className="log-viewer__content">
+                    <div className="log-viewer__entries">
                         {run.logs.map((log) => (
-                            <div key={log.id} style={{
-                                background: "rgba(255,255,255,0.02)",
-                                borderRadius: 6,
-                                overflow: "hidden"
-                            }}>
+                            <div key={log.id} className="log-viewer__entry">
                                 <div
                                     onClick={() => toggleStep(log.id)}
-                                    style={{
-                                        padding: "10px 12px",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 12,
-                                        cursor: "pointer",
-                                        fontSize: 13
-                                    }}
+                                    className="log-viewer__entry-header"
                                 >
-                                    <div style={{ color: "#71717a" }}>
+                                    <div className="log-viewer__chevron">
                                         {expandedSteps.has(log.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                     </div>
-                                    <div style={{
-                                        color: log.level === "error" ? "#ef4444" : log.level === "warn" ? "#fbbf24" : "#e4e4e7",
-                                        flex: 1,
-                                        fontFamily: "'DM Mono', monospace"
-                                    }}>
+                                    <div className={getMessageClass(log.level)}>
                                         {log.message}
                                     </div>
-                                    <div style={{ fontSize: 11, color: "#52525b" }}>
+                                    <div className="log-viewer__timestamp">
                                         {new Date(log.timestamp).toLocaleTimeString()}
                                     </div>
                                 </div>
 
                                 {expandedSteps.has(log.id) && log.details && (
-                                    <div style={{
-                                        padding: "12px",
-                                        background: "#000",
-                                        borderTop: "1px solid rgba(255,255,255,0.06)",
-                                        fontSize: 12,
-                                        fontFamily: "'DM Mono', monospace",
-                                        color: "#a1a1aa",
-                                        whiteSpace: "pre-wrap",
-                                        overflowX: "auto"
-                                    }}>
+                                    <div className="log-viewer__details">
                                         {typeof log.details === "string"
                                             ? log.details
                                             : JSON.stringify(log.details, null, 2)}
@@ -129,7 +87,7 @@ export function AutomationLogViewer({ run, onClose }: AutomationLogViewerProps) 
                         ))}
 
                         {run.logs.length === 0 && (
-                            <div style={{ textAlign: "center", padding: 40, color: "#52525b" }}>
+                            <div className="log-viewer__empty">
                                 No logs available for this run.
                             </div>
                         )}
@@ -138,14 +96,7 @@ export function AutomationLogViewer({ run, onClose }: AutomationLogViewerProps) 
 
                 {/* Footer */}
                 {run.status === "failed" && run.error && (
-                    <div style={{
-                        padding: 16,
-                        background: "rgba(239, 68, 68, 0.1)",
-                        borderTop: "1px solid rgba(239, 68, 68, 0.2)",
-                        color: "#ef4444",
-                        fontSize: 13,
-                        fontFamily: "'DM Mono', monospace"
-                    }}>
+                    <div className="log-viewer__error">
                         <strong>Error:</strong> {run.error}
                     </div>
                 )}

@@ -2,6 +2,7 @@ import React from "react";
 import { CommandArg, CommandArgType } from "../../services/commands/types";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { useEcosystemContext } from "../../context/EcosystemContext";
+import "../../styles/components/command-arg-input.css";
 
 interface CommandArgInputProps {
     arg: CommandArg;
@@ -25,14 +26,14 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
 
     if (arg.type === "boolean") {
         return (
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="command-arg__boolean">
                 <input
                     type="checkbox"
                     checked={!!value}
                     onChange={(e) => onChange(e.target.checked)}
                     id={`arg-${arg.name}`}
                 />
-                <label htmlFor={`arg-${arg.name}`} style={{ fontSize: 14 }}>{arg.description}</label>
+                <label htmlFor={`arg-${arg.name}`} className="command-arg__label">{arg.description}</label>
             </div>
         );
     }
@@ -42,14 +43,7 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
             <select
                 value={value || ""}
                 onChange={handleChange}
-                style={{
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    border: "1px solid #27272a",
-                    background: "#18181b",
-                    color: "white",
-                    width: "100%"
-                }}
+                className="command-arg__select"
             >
                 <option value="">Select an Agent</option>
                 {agents.map(a => (
@@ -64,14 +58,7 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
             <select
                 value={value || ""}
                 onChange={handleChange}
-                style={{
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    border: "1px solid #27272a",
-                    background: "#18181b",
-                    color: "white",
-                    width: "100%"
-                }}
+                className="command-arg__select"
             >
                 <option value="">Select a Channel</option>
                 {channels.map(c => (
@@ -86,14 +73,7 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
             <select
                 value={value || ""}
                 onChange={handleChange}
-                style={{
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    border: "1px solid #27272a",
-                    background: "#18181b",
-                    color: "white",
-                    width: "100%"
-                }}
+                className="command-arg__select"
             >
                 <option value="">Select a Group</option>
                 {groups.map(g => (
@@ -108,14 +88,7 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
             <select
                 value={value || ""}
                 onChange={handleChange}
-                style={{
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    border: "1px solid #27272a",
-                    background: "#18181b",
-                    color: "white",
-                    width: "100%"
-                }}
+                className="command-arg__select"
             >
                 <option value="">Select a Network</option>
                 {ecosystems.map(n => (
@@ -127,23 +100,16 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
 
     // Default to text input for string, number, array, object (as JSON string for now maybe?)
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div className="command-arg__field">
             <input
                 type={arg.type === "number" ? "number" : "text"}
                 value={value || ""}
                 onChange={handleChange}
                 placeholder={arg.description}
-                style={{
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    border: "1px solid #27272a",
-                    background: "#18181b",
-                    color: "white",
-                    width: "100%"
-                }}
+                className="command-arg__input"
             />
-            {arg.type === "array" && <span style={{ fontSize: 10, color: '#71717a' }}>Comma separated values</span>}
-            {arg.type === "object" && <span style={{ fontSize: 10, color: '#71717a' }}>JSON string</span>}
+            {arg.type === "array" && <span className="command-arg__hint">Comma separated values</span>}
+            {arg.type === "object" && <span className="command-arg__hint">JSON string</span>}
         </div>
     );
 }

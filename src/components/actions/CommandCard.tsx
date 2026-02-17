@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CommandDefinition } from "../../services/commands/types";
 import { Play } from "lucide-react";
+import "../../styles/components/command-card.css";
 
 const getCommandColor = (tags: string[]) => {
     if (tags.includes("architect")) return "#fb923c"; // Orange
@@ -29,8 +30,9 @@ export function CommandCard({ command, onRun }: CommandCardProps) {
 
     const handleClick = () => {
         if (isFlipped) {
+            setAnimationState("flipping");
             setIsFlipped(false);
-            setAnimationState("idle");
+            setTimeout(() => setAnimationState("idle"), 600);
             return;
         }
         if (animationState !== "idle") return;
@@ -53,170 +55,101 @@ export function CommandCard({ command, onRun }: CommandCardProps) {
         return "scale(1) rotateY(0deg)";
     };
 
+    const getTransitionClass = () => {
+        if (animationState === "pressing") return "cmd-card__inner--pressing";
+        if (animationState === "flipping" || isFlipped) return "cmd-card__inner--flipping";
+        return "";
+    };
+
     return (
         <div
             onClick={handleClick}
-            style={{
-                perspective: "1200px",
-                height: 180,
-                cursor: "pointer",
-                zIndex: isFlipped || animationState !== "idle" ? 10 : 1,
-                position: "relative",
-                boxSizing: "border-box",
-            }}
+            className={`cmd-card${(isFlipped || animationState !== "idle") ? " cmd-card--elevated" : ""}`}
         >
-            <div style={{
-                position: "relative",
-                width: "100%",
-                height: "100%",
-                transition: animationState === "pressing" ? "transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)" : "transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                transformStyle: "preserve-3d",
-                transform: getTransform(),
-                boxSizing: "border-box",
-            }}>
+            <div className={`cmd-card__inner ${getTransitionClass()}`} style={{ transform: getTransform() }}>
                 {/* Front */}
-                <div style={{
-                    position: "absolute",
-                    width: "100%",
-                    height: "100%",
-                    backfaceVisibility: "hidden",
+                <div className="cmd-card__front" style={{
                     background: `linear-gradient(145deg, rgba(255,255,255,0.03) 0%, ${color}05 100%)`,
                     border: `1px solid ${color}30`,
-                    borderRadius: 12,
-                    padding: 16,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-                    boxSizing: "border-box",
                 }}>
                     <div>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 12 }}>
-                            <div style={{
-                                fontFamily: "'Space Grotesk', sans-serif",
-                                fontWeight: 600,
-                                fontSize: 13,
-                                color: color,
-                                display: "flex", alignItems: "center", gap: 6
-                            }}>
-                                <span style={{ fontSize: 10, opacity: 0.6 }}>/</span>
+                        <div className="cmd-card__front-header">
+                            <div className="cmd-card__name" style={{ color }}>
+                                <span className="cmd-card__slash">/</span>
                                 {command.id}
                             </div>
-                            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <div className="cmd-card__header-right">
                                 {onRun && (
                                     <button
                                         onClick={handleRunClick}
+                                        className="cmd-card__run-btn"
                                         style={{
-                                            padding: "2px 6px",
                                             background: `${color}20`,
                                             border: `1px solid ${color}40`,
-                                            borderRadius: 4,
-                                            cursor: "pointer",
-                                            color: color,
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center"
+                                            color,
                                         }}
                                         title="Run Command"
                                     >
                                         <Play size={10} fill={color} />
                                     </button>
                                 )}
-                                <div style={{
-                                    fontSize: 10,
-                                    color: color,
+                                <div className="cmd-card__type-badge" style={{
+                                    color,
                                     border: `1px solid ${color}20`,
-                                    borderRadius: 4,
-                                    padding: "2px 6px",
-                                    background: `${color}10`
+                                    background: `${color}10`,
                                 }}>
                                     CMD
                                 </div>
                             </div>
                         </div>
-                        <div style={{ fontSize: 11, color: "#a1a1aa", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                        <div className="cmd-card__description">
                             {command.description}
                         </div>
                     </div>
-                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 8 }}>
+                    <div className="cmd-card__tags">
                         {command.tags.map(tag => (
-                            <span key={tag} style={{
-                                fontSize: 9,
+                            <span key={tag} className="cmd-card__tag" style={{
                                 background: `${color}10`,
                                 border: `1px solid ${color}10`,
-                                borderRadius: 4,
-                                padding: "2px 6px",
-                                color: color
+                                color,
                             }}>
                                 #{tag}
                             </span>
-
                         ))}
                     </div>
                 </div>
 
                 {/* Back */}
-                <div style={{
-                    position: "absolute",
-                    width: "100%",
-                    height: "100%",
-                    backfaceVisibility: "hidden",
-                    background: "#09090b",
+                <div className="cmd-card__back" style={{
                     border: `1px solid ${color}50`,
-                    borderRadius: 12,
-                    padding: 16,
-                    transform: "rotateY(180deg)",
-                    overflow: "hidden",
-                    display: "flex",
-                    flexDirection: "column",
                     boxShadow: `0 0 15px ${color}10`,
-                    boxSizing: "border-box",
                 }}>
-                    <div style={{
-                        fontSize: 9,
-                        color: "#71717a",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                        marginBottom: 10,
-                        borderBottom: "1px solid rgba(255,255,255,0.06)",
-                        paddingBottom: 6,
-                        display: "flex", justifyContent: "space-between"
-                    }}>
+                    <div className="cmd-card__config-header">
                         <span>Configuration</span>
-                        <span style={{ color: color }}>●</span>
+                        <span style={{ color }}>●</span>
                     </div>
 
-                    <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column", gap: 6, paddingRight: 4 }}>
+                    <div className="cmd-card__args-list">
                         {Object.values(command.args).map(arg => (
-                            <div key={arg.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 10 }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                                    <span style={{ color: "#e4e4e7" }}>{arg.name}</span>
-                                    {arg.required !== false && <span style={{ color: "#ef4444", fontSize: 12, lineHeight: 0.5 }}>*</span>}
+                            <div key={arg.name} className="cmd-card__arg-row">
+                                <div className="cmd-card__arg-name-group">
+                                    <span className="cmd-card__arg-name">{arg.name}</span>
+                                    {arg.required !== false && <span className="cmd-card__arg-required">*</span>}
                                 </div>
-                                <code style={{ color: "#52525b", fontSize: 9, background: "rgba(255,255,255,0.03)", padding: "1px 4px", borderRadius: 3 }}>{arg.type}</code>
+                                <code className="cmd-card__arg-type">{arg.type}</code>
                             </div>
                         ))}
                     </div>
 
-                    <div style={{ marginTop: 12, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                    <div className="cmd-card__footer">
                         {onRun && (
                             <button
                                 onClick={handleRunClick}
+                                className="cmd-card__back-run-btn"
                                 style={{
-                                    width: "100%",
-                                    padding: "6px",
                                     background: `${color}20`,
                                     border: `1px solid ${color}40`,
-                                    borderRadius: 4,
-                                    cursor: "pointer",
-                                    color: color,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    gap: 6,
-                                    fontSize: 11,
-                                    fontWeight: 500,
-                                    marginTop: 4
+                                    color,
                                 }}
                             >
                                 <Play size={10} fill={color} /> Run Command
@@ -224,8 +157,8 @@ export function CommandCard({ command, onRun }: CommandCardProps) {
                         )}
                         {!onRun && (
                             <>
-                                <div style={{ fontSize: 9, color: "#52525b", marginBottom: 4 }}>Output</div>
-                                <div style={{ fontSize: 10, color: "#a1a1aa", lineHeight: 1.4 }}>
+                                <div className="cmd-card__output-label">Output</div>
+                                <div className="cmd-card__output-text">
                                     {command.output}
                                 </div>
                             </>

@@ -6,6 +6,7 @@ import { useEcosystemContext } from "../../context/EcosystemContext";
 import { ANTHROPIC_MODELS } from "../../constants";
 import { getSelectedModel, setSelectedModel } from "../../services/ai";
 import { GemAvatar } from "../shared/GemAvatar";
+import "../../styles/components/profile-modal.css";
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -162,67 +163,36 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     <div
       ref={backdropRef}
       onClick={(e) => { if (e.target === backdropRef.current) onClose(); }}
-      style={{
-        position: "fixed", inset: 0, zIndex: 9000,
-        background: "rgba(0,0,0,0.6)",
-        backdropFilter: "blur(8px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        animation: "fadeIn 0.15s ease-out",
-      }}
+      className="profile-modal-backdrop"
     >
-      <div style={{
-        background: "#0f0f14",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: 16,
-        width: "min(640px, calc(100vw - 48px))",
-        maxHeight: "calc(100vh - 64px)",
-        overflow: "hidden",
-        display: "flex", flexDirection: "column",
-        boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
-      }}>
+      <div className="profile-modal">
         {/* Header */}
-        <div style={{
-          padding: "20px 24px 16px",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          flexShrink: 0,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div className="profile-modal-header">
+          <div className="profile-modal-user">
             <GemAvatar seed={user.email || "user"} size={36} />
             <div>
-              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 16 }}>
+              <div className="profile-modal-user-name">
                 {user.profile?.name || user.email}
               </div>
-              <div style={{ fontSize: 11, color: "#71717a" }}>{user.email}</div>
+              <div className="profile-modal-user-email">{user.email}</div>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 8, width: 32, height: 32, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", color: "#71717a",
-            }}
-          >
+          <button onClick={onClose} className="btn-icon">
             <X size={16} />
           </button>
         </div>
 
         {/* Scrollable Content */}
-        <div style={{ flex: 1, overflow: "auto", padding: "20px 24px 24px" }}>
-          <div style={{ display: "grid", gap: 20 }}>
+        <div className="profile-modal-body">
+          <div className="profile-modal-sections">
 
             {/* API Key Warning */}
             {!hasKey && (
-              <div style={{
-                display: "flex", alignItems: "center", gap: 12, padding: "12px 16px",
-                background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)",
-                borderRadius: 10, color: "#fbbf24", fontSize: 12,
-              }}>
+              <div className="profile-api-warning">
                 <AlertTriangle size={16} />
                 <div>
-                  <div style={{ fontWeight: 600, marginBottom: 2 }}>No API Key</div>
-                  <div style={{ fontSize: 10, color: "rgba(251,191,36,0.7)" }}>
+                  <div className="profile-api-warning-title">No API Key</div>
+                  <div className="profile-api-warning-description">
                     Agent AI features require an Anthropic API key.
                   </div>
                 </div>
@@ -230,29 +200,22 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             )}
 
             {/* Identity */}
-            <section style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, padding: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif" }}>
+            <section className="profile-section">
+              <div className="profile-section-header">
                 <Clipboard size={14} color="#00e5a0" /> Identity
               </div>
               {user.hasEmailRegistrationCredential && (
-                <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginBottom: 12, background: "rgba(0,229,160,0.1)", color: "#00e5a0", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 500 }}>
+                <div className="profile-verified-badge">
                   <Check size={10} /> Verified Email
                 </div>
               )}
               <div>
-                <label style={{ display: "block", fontSize: 10, color: "#71717a", marginBottom: 4, fontFamily: "'DM Mono', monospace" }}>DID</label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <div style={{
-                    flex: 1, padding: "8px 10px", background: "rgba(0,0,0,0.3)", borderRadius: 6,
-                    fontFamily: "'DM Mono', monospace", fontSize: 11, color: "#a1a1aa",
-                    border: "1px solid rgba(255,255,255,0.06)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  }}>
+                <label className="label">DID</label>
+                <div className="profile-form-row">
+                  <div className="did-display">
                     {user.did || "No DID issued"}
                   </div>
-                  <button onClick={copyDid} style={{
-                    background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: 6, padding: "6px 10px", cursor: "pointer", color: "#71717a",
-                  }}>
+                  <button onClick={copyDid} className="btn-icon">
                     <Clipboard size={12} />
                   </button>
                 </div>
@@ -260,60 +223,49 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </section>
 
             {/* API Key */}
-            <section style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, padding: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif" }}>
+            <section className="profile-section">
+              <div className="profile-section-header">
                 <Key size={14} color="#00e5a0" /> API Configuration
               </div>
-              <p style={{ fontSize: 10, color: "#71717a", marginBottom: 14, lineHeight: 1.5 }}>
+              <p className="profile-section-description">
                 Anthropic API key for agent capabilities. Stored locally.
               </p>
-              <div style={{ display: "flex", gap: 8 }}>
-                <div style={{ flex: 1, position: "relative" }}>
+              <div className="profile-form-row">
+                <div className="profile-form-input-wrapper">
                   <input
                     type={showKey ? "text" : "password"}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="sk-ant-..."
-                    style={{
-                      width: "100%", padding: "8px 10px",
-                      background: "rgba(0,0,0,0.3)", border: `1px solid ${hasKey ? "rgba(0,229,160,0.3)" : "rgba(255,255,255,0.06)"}`,
-                      borderRadius: 6, color: "white", fontFamily: "'DM Mono', monospace", fontSize: 12, boxSizing: "border-box",
-                    }}
+                    className={`input ${hasKey ? 'input-success' : ''}`}
                   />
-                  <button onClick={() => setShowKey(!showKey)} style={{
-                    position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
-                    background: "none", border: "none", color: "#52525b", cursor: "pointer", fontSize: 10,
-                  }}>
+                  <button onClick={() => setShowKey(!showKey)} className="profile-form-toggle">
                     {showKey ? "Hide" : "Show"}
                   </button>
                 </div>
-                <button onClick={handleSaveKey} style={{
-                  background: "#00e5a0", color: "#0a0a0f", border: "none",
-                  padding: "8px 16px", borderRadius: 6, cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 11, fontWeight: 500, minWidth: 60,
-                }}>
+                <button onClick={handleSaveKey} className="btn btn-primary">
                   Save
                 </button>
               </div>
-              {status && <div style={{ marginTop: 6, fontSize: 11, color: status.includes("removed") ? "#fbbf24" : "#00e5a0" }}>{status}</div>}
-              {hasKey && <div style={{ marginTop: 6, fontSize: 10, color: "#00e5a0" }}>● Key configured</div>}
+              {status && <div className={`profile-status ${status.includes("removed") ? "warning" : "success"}`}>{status}</div>}
+              {hasKey && <div className="profile-key-status">● Key configured</div>}
               {!hasKey && (
-                <p style={{ marginTop: 6, fontSize: 10, color: "#52525b" }}>
+                <p className="profile-hint">
                   Get yours at{" "}
-                  <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" style={{ color: "#38bdf8", textDecoration: "none" }}>console.anthropic.com</a>
+                  <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">console.anthropic.com</a>
                 </p>
               )}
             </section>
 
             {/* Model Selection */}
-            <section style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, padding: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif" }}>
+            <section className="profile-section">
+              <div className="profile-section-header">
                 <Bot size={14} color="#a78bfa" /> Model Selection
               </div>
-              <p style={{ fontSize: 10, color: "#71717a", marginBottom: 14, lineHeight: 1.5 }}>
+              <p className="profile-section-description">
                 Claude model for agent conversations and mesh generation.
               </p>
-              <div style={{ display: "grid", gap: 8 }}>
+              <div className="profile-model-grid">
                 {ANTHROPIC_MODELS.map((model) => {
                   const isSelected = selectedModelId === model.id;
                   const tierColor = tierColors[model.tier] || "#71717a";
@@ -321,37 +273,27 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                     <button
                       key={model.id}
                       onClick={() => handleSelectModel(model.id)}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 12,
-                        padding: "10px 14px",
-                        background: isSelected ? `${tierColor}08` : "rgba(255,255,255,0.015)",
-                        border: `1px solid ${isSelected ? `${tierColor}40` : "rgba(255,255,255,0.05)"}`,
-                        borderRadius: 8, cursor: "pointer", textAlign: "left", transition: "all 0.15s",
-                      }}
+                      className={`profile-model-btn ${isSelected ? 'selected' : ''}`}
+                      style={isSelected ? { background: `${tierColor}08` } : undefined}
                     >
-                      <div style={{
-                        width: 16, height: 16, borderRadius: "50%",
-                        border: `2px solid ${isSelected ? tierColor : "#52525b"}`,
-                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                      }}>
-                        {isSelected && <div style={{ width: 6, height: 6, borderRadius: "50%", background: tierColor }} />}
+                      <div className={`profile-model-radio ${isSelected ? 'selected' : ''}`} style={isSelected ? { borderColor: tierColor } : undefined}>
+                        {isSelected && <div className="profile-model-radio-inner" style={{ background: tierColor }} />}
                       </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: isSelected ? "#e4e4e7" : "#a1a1aa", fontFamily: "'Space Grotesk', sans-serif" }}>
+                      <div className="profile-model-info">
+                        <div className="profile-model-header">
+                          <span className={`profile-model-name ${isSelected ? 'selected' : ''}`}>
                             {model.label}
                           </span>
-                          <span style={{
-                            fontSize: 8, fontWeight: 600, letterSpacing: "0.05em",
-                            padding: "1px 5px", borderRadius: 3,
-                            background: `${tierColor}18`, color: tierColor,
-                          }}>
+                          <span 
+                            className="profile-model-tier"
+                            style={{ background: `${tierColor}18`, color: tierColor }}
+                          >
                             {tierLabels[model.tier]}
                           </span>
                         </div>
-                        <div style={{ fontSize: 10, color: "#52525b" }}>{model.desc}</div>
+                        <div className="profile-model-desc">{model.desc}</div>
                       </div>
-                      <div style={{ fontSize: 9, color: "#3f3f46", fontFamily: "'DM Mono', monospace", flexShrink: 0 }}>
+                      <div className="profile-model-id">
                         {model.id.length > 20 ? model.id.slice(0, 18) + "…" : model.id}
                       </div>
                     </button>
@@ -361,45 +303,41 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </section>
 
             {/* Export */}
-            <section style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, padding: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif", color: "#fbbf24" }}>
+            <section className="profile-section">
+              <div className="profile-section-header warning">
                 <Download size={14} /> Export Data
               </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
-                <button onClick={handleExportWorkspace} style={btnStyle}>Export Workspace</button>
-                <button onClick={handleExportEcosystem} style={btnStyle}>Export Ecosystem</button>
-                <button onClick={handleFullBackup} style={{ ...btnStyle, background: "#00e5a0", color: "#0a0a0f", borderColor: "transparent", fontWeight: 500 }}>Full Backup</button>
+              <div className="profile-actions-row">
+                <button onClick={handleExportWorkspace} className="btn btn-ghost">Export Workspace</button>
+                <button onClick={handleExportEcosystem} className="btn btn-ghost">Export Ecosystem</button>
+                <button onClick={handleFullBackup} className="btn btn-primary">Full Backup</button>
               </div>
             </section>
 
             {/* Import */}
-            <section style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, padding: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif", color: "#38bdf8" }}>
+            <section className="profile-section">
+              <div className="profile-section-header info">
                 <Upload size={14} /> Import Data
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
-                <button onClick={handleImportClick} style={btnStyle}>Select JSON File...</button>
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" style={{ display: "none" }} />
+              <div className="flex items-center gap-lg mt-xl">
+                <button onClick={handleImportClick} className="btn btn-ghost">Select JSON File...</button>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
                 {importStatus && (
-                  <span style={{ fontSize: 11, color: importStatus.startsWith("Error") ? "#ef4444" : "#00e5a0" }}>{importStatus}</span>
+                  <span className={`profile-status ${importStatus.startsWith("Error") ? "error" : "success"}`}>{importStatus}</span>
                 )}
               </div>
             </section>
 
             {/* Danger Zone */}
-            <section style={{ background: "rgba(239,68,68,0.04)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: 10, padding: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, fontSize: 13, fontWeight: 600, fontFamily: "'Space Grotesk', sans-serif", color: "#ef4444" }}>
+            <section className="profile-section profile-section-danger">
+              <div className="profile-section-header danger">
                 <AlertTriangle size={14} /> Danger Zone
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <p style={{ fontSize: 10, color: "rgba(239,68,68,0.7)", margin: 0 }}>
+              <div className="profile-danger-content">
+                <p className="profile-danger-description">
                   Wipe all LocalStorage and reset.
                 </p>
-                <button onClick={handleReset} style={{
-                  background: "#ef4444", color: "white", border: "none",
-                  padding: "8px 16px", borderRadius: 6, cursor: "pointer",
-                  fontFamily: "inherit", fontSize: 11, fontWeight: 600,
-                }}>
+                <button onClick={handleReset} className="btn btn-danger-solid">
                   Reset All
                 </button>
               </div>
@@ -407,21 +345,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-      `}</style>
     </div>
   );
 }
-
-const btnStyle: React.CSSProperties = {
-  background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.08)",
-  color: "#e4e4e7",
-  padding: "8px 14px",
-  borderRadius: 6,
-  cursor: "pointer",
-  fontFamily: "'DM Mono', monospace",
-  fontSize: 11,
-};

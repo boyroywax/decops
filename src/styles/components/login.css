@@ -1,0 +1,211 @@
+/**
+ * LoginView Component Styles
+ * Full-page centered layout, password input, spinner, gradient button
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ANIMATIONS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes login-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PAGE LAYOUT
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.login {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  margin: 0;
+  padding: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CARD
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.login__card {
+  background: var(--bg-surface);
+  padding: var(--space-5xl);
+  border-radius: var(--radius-3xl);
+  border: 1px solid var(--border-medium);
+  width: 420px;
+  box-shadow: var(--shadow-lg);
+}
+
+.login__title {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login__subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: var(--space-3xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * FORM FIELD
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.login__field {
+  margin-bottom: var(--space-3xl);
+}
+
+.login__label {
+  display: block;
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+  margin-bottom: var(--space-md);
+}
+
+.login__input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg) var(--space-xl);
+  color: var(--text-primary);
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition-base);
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+.login__input::placeholder {
+  color: var(--text-invisible);
+}
+
+.login__input:focus {
+  border-color: rgba(0, 229, 160, 0.5);
+}
+
+.login__hint {
+  font-size: var(--text-md);
+  color: var(--text-subtle);
+  margin-top: var(--space-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ERROR
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.login__error {
+  color: var(--color-danger);
+  font-size: var(--text-md);
+  background: rgba(239, 68, 68, 0.1);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * STATUS PANELS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.login__status {
+  margin-bottom: var(--space-3xl);
+  padding: var(--space-xl);
+  background: rgba(0, 229, 160, 0.05);
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(0, 229, 160, 0.1);
+}
+
+.login__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-accent);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: login-spin 1s linear infinite;
+  margin: 0 auto var(--space-lg);
+}
+
+.login__status-text {
+  text-align: center;
+  font-size: var(--text-lg);
+  color: var(--color-accent);
+  margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SUBMIT BUTTON
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.login__submit {
+  width: 100%;
+  background: linear-gradient(135deg, #00e5a0, #00c7e5);
+  color: var(--bg-primary);
+  border: none;
+  padding: 14px 20px;
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: var(--font-bold);
+  transition: opacity var(--transition-base), transform var(--transition-fast);
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.login__submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.login__submit:not(:disabled):hover {
+  opacity: 0.9;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * INFO PANEL
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.login__info {
+  margin-top: var(--space-4xl);
+  padding: var(--space-xl);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-xl);
+  font-size: var(--text-md);
+}
+
+.login__info-title {
+  margin: 0 0 var(--space-lg) 0;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.login__info-steps {
+  padding-left: 20px;
+  margin: 0 0 var(--space-xl) 0;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+
+.login__info-steps code {
+  color: var(--color-accent);
+}
+
+.login__info-note {
+  margin: 0;
+  color: var(--text-subtle);
+  line-height: 1.5;
+}

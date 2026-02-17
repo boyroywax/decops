@@ -1,0 +1,194 @@
+/**
+ * Mesh Workspace Design System - Design Tokens
+ * Based on mesh-style-guide.html v1.0
+ * 
+ * Usage: These CSS custom properties define the visual language of the application.
+ * Import this file first, then layer-specific styles on top.
+ */
+
+:root {
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * CORE PALETTE - Background & Surface Layers
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --bg-primary: #0a0a0f;
+  --bg-elevated: rgba(0, 0, 0, 0.3);
+  --bg-surface: rgba(255, 255, 255, 0.02);
+  --bg-surface-hover: rgba(255, 255, 255, 0.04);
+  --bg-input: rgba(0, 0, 0, 0.4);
+  --bg-modal: #0f0f14;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * BORDERS
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --border-subtle: rgba(255, 255, 255, 0.05);
+  --border-default: rgba(255, 255, 255, 0.06);
+  --border-medium: rgba(255, 255, 255, 0.08);
+  --border-accent: rgba(0, 229, 160, 0.12);
+  --border-accent-strong: rgba(0, 229, 160, 0.25);
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * TEXT HIERARCHY
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --text-primary: #e4e4e7;       /* Agent names, headings, user content */
+  --text-secondary: #d4d4d8;     /* Network labels, canvas text */
+  --text-muted: #a1a1aa;         /* DID strings, prompt previews, code */
+  --text-subtle: #71717a;        /* Metadata labels, inactive nav, log text */
+  --text-ghost: #52525b;         /* Section titles, field labels, stat counters */
+  --text-invisible: #3f3f46;     /* Empty states, disabled, placeholder hints */
+  --text-void: #27272a;          /* Deepest muted hint text */
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * ROLE COLORS - Each role has a distinct color identity
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --color-researcher: #00e5a0;
+  --color-builder: #fbbf24;
+  --color-curator: #a78bfa;
+  --color-validator: #38bdf8;
+  --color-orchestrator: #f472b6;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * SEMANTIC COLORS
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --color-accent: #00e5a0;       /* Primary accent, active states, success */
+  --color-warning: #fbbf24;      /* Message activity, warnings, counts */
+  --color-danger: #ef4444;       /* Revoke, dissolve, cancel, no-prompt states */
+  --color-info: #38bdf8;         /* Informational callouts */
+  --color-channel: #a78bfa;      /* Channel system, P2P connections */
+  --color-group: #f472b6;        /* Group governance system */
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * GROUP ROTATION COLORS
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --group-1: #f472b6;
+  --group-2: #fb923c;
+  --group-3: #34d399;
+  --group-4: #60a5fa;
+  --group-5: #c084fc;
+  --group-6: #fbbf24;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * TYPOGRAPHY
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --font-mono: 'DM Mono', 'JetBrains Mono', monospace;
+  --font-display: 'Space Grotesk', sans-serif;
+
+  /* Font sizes */
+  --text-xs: 9px;
+  --text-sm: 10px;
+  --text-base: 11px;
+  --text-md: 12px;
+  --text-lg: 13px;
+  --text-xl: 15px;
+  --text-2xl: 18px;
+  --text-3xl: 28px;
+
+  /* Font weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * SPACING - Compact scale for data-dense interfaces
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --space-xs: 4px;
+  --space-sm: 6px;
+  --space-md: 8px;
+  --space-lg: 12px;
+  --space-xl: 16px;
+  --space-2xl: 20px;
+  --space-3xl: 24px;
+  --space-4xl: 32px;
+  --space-5xl: 40px;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * BORDER RADII
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --radius-sm: 3px;    /* badges */
+  --radius-md: 4px;    /* small buttons */
+  --radius-lg: 6px;    /* buttons, inputs */
+  --radius-xl: 8px;    /* role icons, selectors */
+  --radius-2xl: 10px;  /* cards, forms */
+  --radius-3xl: 12px;  /* panels, canvas */
+  --radius-4xl: 16px;  /* modals */
+  --radius-full: 9999px;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * SHADOWS
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 25px 60px rgba(0, 0, 0, 0.5);
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * TRANSITIONS
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
+  --transition-slow: 0.3s ease;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * Z-INDEX SCALE
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --z-base: 1;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal-backdrop: 8000;
+  --z-modal: 9000;
+  --z-toast: 10000;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * LAYOUT
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --header-height: 56px;
+  --sidebar-width: 200px;
+  --sidebar-width-collapsed: 60px;
+  --channel-list-width: 240px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * OPACITY PATTERNS FOR COLORED ELEMENTS
+ * Each role/semantic color follows this layering pattern:
+ * - background: {color}08 — {color}15 (Card/surface fill)
+ * - border: {color}25 — {color}45 (Container borders)
+ * - text/icon: {color}80 — {color}ff (Readable content)
+ * - glow/shadow: {color}30 — {color}40 (Canvas radial gradients)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Color opacity utility classes */
+.bg-accent-subtle { background: rgba(0, 229, 160, 0.08); }
+.bg-accent-light { background: rgba(0, 229, 160, 0.12); }
+.bg-accent-medium { background: rgba(0, 229, 160, 0.18); }
+
+.bg-warning-subtle { background: rgba(251, 191, 36, 0.08); }
+.bg-warning-light { background: rgba(251, 191, 36, 0.15); }
+
+.bg-danger-subtle { background: rgba(239, 68, 68, 0.04); }
+.bg-danger-light { background: rgba(239, 68, 68, 0.10); }
+
+.bg-channel-subtle { background: rgba(167, 139, 250, 0.08); }
+.bg-channel-light { background: rgba(167, 139, 250, 0.15); }
+
+.bg-group-subtle { background: rgba(244, 114, 182, 0.08); }
+.bg-group-light { background: rgba(244, 114, 182, 0.15); }
+
+.bg-info-subtle { background: rgba(56, 189, 248, 0.08); }
+.bg-info-light { background: rgba(56, 189, 248, 0.15); }
+
+/* Border color utilities */
+.border-accent-subtle { border-color: rgba(0, 229, 160, 0.12); }
+.border-accent { border-color: rgba(0, 229, 160, 0.25); }
+.border-accent-strong { border-color: rgba(0, 229, 160, 0.45); }
+
+.border-warning-subtle { border-color: rgba(251, 191, 36, 0.15); }
+.border-warning { border-color: rgba(251, 191, 36, 0.25); }
+
+.border-danger-subtle { border-color: rgba(239, 68, 68, 0.15); }
+.border-danger { border-color: rgba(239, 68, 68, 0.25); }
+
+.border-channel-subtle { border-color: rgba(167, 139, 250, 0.15); }
+.border-channel { border-color: rgba(167, 139, 250, 0.30); }
+
+.border-group-subtle { border-color: rgba(244, 114, 182, 0.15); }
+.border-group { border-color: rgba(244, 114, 182, 0.30); }

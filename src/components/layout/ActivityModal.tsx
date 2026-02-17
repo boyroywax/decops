@@ -5,6 +5,7 @@ import { GradientIcon } from "../shared/GradientIcon";
 import { ComposePanel } from "../activity/ComposePanel";
 import { ActivityFilter } from "../activity/ActivityFilter";
 import { ActivityList } from "../activity/ActivityList";
+import "../../styles/components/activity-modal.css";
 
 interface ActivityModalProps {
   isOpen: boolean;
@@ -65,59 +66,30 @@ export function ActivityModal({
     <div
       ref={backdropRef}
       onClick={(e) => { if (e.target === backdropRef.current) onClose(); }}
-      style={{
-        position: "fixed", inset: 0, zIndex: 9000,
-        background: "rgba(0,0,0,0.6)",
-        backdropFilter: "blur(8px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        animation: "actFadeIn 0.15s ease-out",
-      }}
+      className="activity-modal__backdrop"
     >
-      <div style={{
-        background: "#0f0f14",
-        border: "1px solid rgba(0,229,160,0.15)",
-        borderRadius: 16,
-        width: "min(720px, calc(100vw - 48px))",
-        maxHeight: "calc(100vh - 64px)",
-        overflow: "hidden",
-        display: "flex", flexDirection: "column",
-        boxShadow: "0 25px 60px rgba(0,0,0,0.5)",
-      }}>
+      <div className="activity-modal__panel">
         {/* Header */}
-        <div style={{
-          padding: "16px 20px 12px",
-          borderBottom: "1px solid rgba(255,255,255,0.06)",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          flexShrink: 0,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="activity-modal__header">
+          <div className="activity-modal__header-left">
             <GradientIcon icon={Zap} size={18} gradient={["#00e5a0", "#38bdf8"]} />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: 15  }}>
+            <span className="activity-modal__header-title">
               Activity
             </span>
-            <span style={{ fontSize: 10, color: "#52525b", fontFamily: "'DM Mono', monospace" }}>
+            <span className="activity-modal__header-count">
               {safeEntries.length} {safeEntries.length === 1 ? "entry" : "entries"}
             </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="activity-modal__header-actions">
             <button
               onClick={() => setShowCompose(!showCompose)}
-              style={{
-                background: "#00e5a0", color: "#0a0a0f", border: "none",
-                padding: "6px 12px", borderRadius: 6, cursor: "pointer",
-                fontFamily: "inherit", fontSize: 10, fontWeight: 600,
-                display: "flex", alignItems: "center", gap: 4,
-              }}
+              className="activity-modal__new-btn"
             >
               <Edit size={11} /> New
             </button>
             <button
               onClick={exportNotebook}
-              style={{
-                background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-                color: "#a1a1aa", padding: "6px 10px", borderRadius: 6, cursor: "pointer",
-                fontFamily: "inherit", fontSize: 10, display: "flex", alignItems: "center", gap: 4,
-              }}
+              className="activity-modal__export-btn"
             >
               <Download size={11} />
             </button>
@@ -125,22 +97,13 @@ export function ActivityModal({
               onClick={() => {
                 if (window.confirm("Clear all activity entries?")) clearNotebook();
               }}
-              style={{
-                background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.15)",
-                color: "#ef4444", padding: "6px 10px", borderRadius: 6, cursor: "pointer",
-                fontFamily: "inherit", fontSize: 10, display: "flex", alignItems: "center", gap: 4,
-              }}
+              className="activity-modal__clear-btn"
             >
               <Trash2 size={11} />
             </button>
             <button
               onClick={onClose}
-              style={{
-                background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 8, width: 28, height: 28, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center", color: "#71717a",
-                marginLeft: 4,
-              }}
+              className="activity-modal__close-btn"
             >
               <X size={14} />
             </button>
@@ -148,10 +111,10 @@ export function ActivityModal({
         </div>
 
         {/* Scrollable Content */}
-        <div style={{ flex: 1, overflow: "auto", padding: "16px 20px 20px" }}>
+        <div className="activity-modal__content">
           {/* Compose Panel */}
           {showCompose && (
-            <div style={{ marginBottom: 16 }}>
+            <div className="activity-modal__compose">
               <ComposePanel
                 onAddEntry={(entry) => { addEntry(entry); setShowCompose(false); }}
                 onCancel={() => setShowCompose(false)}
@@ -169,10 +132,7 @@ export function ActivityModal({
 
           {/* No results */}
           {safeEntries.length > 0 && filtered.length === 0 && (
-            <div style={{
-              textAlign: "center", padding: "30px 20px",
-              color: "#71717a", fontSize: 12, fontFamily: "'DM Mono', monospace",
-            }}>
+            <div className="activity-modal__no-results">
               No entries match your filters.
             </div>
           )}
@@ -187,13 +147,7 @@ export function ActivityModal({
 
           {/* Footer stats */}
           {safeEntries.length > 0 && (
-            <div style={{
-              marginTop: 20, paddingTop: 12,
-              textAlign: "center",
-              fontSize: 10, color: "#3f3f46",
-              fontFamily: "'DM Mono', monospace",
-              borderTop: "1px solid rgba(255,255,255,0.05)",
-            }}>
+            <div className="activity-modal__footer">
               Showing {filtered.length} of {safeEntries.length} · ~{(JSON.stringify(safeEntries).length / 1024).toFixed(1)} KB
             </div>
           )}

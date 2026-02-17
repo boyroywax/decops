@@ -9,6 +9,7 @@ import { useAutomations } from "../../context/AutomationsContext";
 import { useEcosystemContext } from "../../context/EcosystemContext";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { JobDefinition } from "../../types";
+import "../../styles/components/action-manager.css";
 
 interface ActionManagerProps {
     onClose: () => void;
@@ -74,102 +75,61 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
     }, [isResizing]);
 
     return (
-        <div style={{
-            height,
-            background: "rgba(0,0,0,0.85)",
-            borderTop: "1px solid rgba(0,229,160,0.12)",
-            display: "flex",
-            flexDirection: "column",
-            fontFamily: "inherit",
-            backdropFilter: "blur(16px)",
-            position: "relative",
-            transition: isResizing ? "none" : "height 0.1s ease-out",
-            boxShadow: "0 -10px 40px rgba(0,0,0,0.5)"
-        }}>
+        <div className={`action-manager${isResizing ? " action-manager--resizing" : ""}`} style={{ height }}>
             {/* Resize Handle */}
-            <div
-                onMouseDown={startResizing}
-                style={{
-                    position: "absolute", top: -6, left: 0, right: 0, height: 12, cursor: "ns-resize", zIndex: 10,
-                    display: "flex", justifyContent: "center", alignItems: "center",
-                }}
-            >
-                <div style={{ width: 40, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.2)" }} />
+            <div onMouseDown={startResizing} className="action-manager__resize-handle">
+                <div className="action-manager__resize-grip" />
             </div>
 
             {/* Header */}
-            <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "8px 16px",
-                borderBottom: "1px solid rgba(255,255,255,0.06)",
-                flexShrink: 0,
-                background: "rgba(0,0,0,0.2)"
-            }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: "#e4e4e7", display: "flex", alignItems: "center", gap: 6 }}>
-                        <Terminal size={12} color="#00e5a0" /> ACTION MANAGER
+            <div className="action-manager__header">
+                <div className="action-manager__header-left">
+                    <span className="action-manager__title">
+                        <Terminal size={10} color="#00e5a0" /> ACTIONS
                     </span>
-                    <div style={{ display: "flex", gap: 4, background: "rgba(255,255,255,0.04)", padding: 3, borderRadius: 6 }}>
+                    <span className="action-manager__separator">│</span>
+                    <div className="action-manager__tabs">
                         <button
                             onClick={() => setActiveTab("monitor")}
-                            style={{
-                                background: activeTab === "monitor" ? "rgba(255,255,255,0.08)" : "none",
-                                color: activeTab === "monitor" ? "#fff" : "#71717a",
-                                border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", transition: "all 0.15s",
-                                fontWeight: activeTab === "monitor" ? 600 : 400,
-                                display: "flex", alignItems: "center", gap: 6
-                            }}
+                            className={`action-manager__tab${activeTab === "monitor" ? " action-manager__tab--active" : ""}`}
                         >
-                            <Activity size={12} /> Monitor
+                            <Activity size={9} /> Monitor
                         </button>
                         <button
                             onClick={() => setActiveTab("library")}
-                            style={{
-                                background: activeTab === "library" ? "rgba(255,255,255,0.08)" : "none",
-                                color: activeTab === "library" ? "#fff" : "#71717a",
-                                border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", transition: "all 0.15s",
-                                fontWeight: activeTab === "library" ? 600 : 400,
-                                display: "flex", alignItems: "center", gap: 6
-                            }}
+                            className={`action-manager__tab${activeTab === "library" ? " action-manager__tab--active" : ""}`}
                         >
-                            <BookOpen size={12} /> Library
+                            <BookOpen size={9} /> Library
                         </button>
                         <button
                             onClick={() => setActiveTab("builder")}
-                            style={{
-                                background: activeTab === "builder" ? "rgba(255,255,255,0.08)" : "none",
-                                color: activeTab === "builder" ? "#fff" : "#71717a",
-                                border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", transition: "all 0.15s",
-                                fontWeight: activeTab === "builder" ? 600 : 400,
-                                display: "flex", alignItems: "center", gap: 6
-                            }}
+                            className={`action-manager__tab${activeTab === "builder" ? " action-manager__tab--active" : ""}`}
                         >
-                            <Zap size={12} /> Builder
+                            <Zap size={9} /> Builder
                         </button>
                     </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div className="action-manager__header-actions">
                     <button
                         onClick={onClose}
-                        style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer", padding: 4 }}
-                    ><X size={16} /></button>
+                        className="action-manager__close-btn"
+                        title="Close actions"
+                    ><X size={14} /></button>
                 </div>
             </div>
 
             {/* Content Area */}
-            <div style={{ flex: 1, overflow: "hidden", position: "relative", display: "flex", flexDirection: "column" }}>
+            <div className="action-manager__content">
                 {activeTab === "monitor" && (
-                    <div style={{ flex: 1, overflow: "auto", padding: 20 }}>
+                    <div className="action-manager__tab-content">
                         <ActionsMonitor />
                     </div>
                 )}
                 {activeTab === "library" && (
-                    <div style={{ flex: 1, overflow: "auto", padding: 20, display: "flex", flexDirection: "column", gap: 32 }}>
+                    <div className="action-manager__library">
                         <div>
-                            <h3 style={{ fontSize: 16, fontWeight: 600, color: "#e4e4e7", marginBottom: 16 }}>Saved Jobs</h3>
+                            <h3 className="action-manager__section-title">Saved Jobs</h3>
                             <JobCatalog
                                 jobs={savedJobs}
                                 onRun={handleRunJob}
@@ -181,8 +141,27 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
                             />
                         </div>
                         <div>
-                            <h3 style={{ fontSize: 16, fontWeight: 600, color: "#e4e4e7", marginBottom: 16 }}>Command Library</h3>
-                            <ActionLibrary onRunCommand={() => { /* maybe open builder with this command? */ }} />
+                            <h3 className="action-manager__section-title">Command Library</h3>
+                            <ActionLibrary onRunCommand={(commandId, command) => {
+                                const step: import("../../types").JobStep = {
+                                    id: `step-${Date.now()}`,
+                                    commandId,
+                                    args: Object.fromEntries(
+                                        Object.values(command.args)
+                                            .filter(a => a.defaultValue !== undefined)
+                                            .map(a => [a.name, a.defaultValue])
+                                    ),
+                                    name: command.description,
+                                    status: "pending",
+                                };
+                                addJob({
+                                    type: commandId,
+                                    request: { description: command.description },
+                                    steps: [step],
+                                    mode: "serial",
+                                });
+                                setActiveTab("monitor");
+                            }} />
                         </div>
                     </div>
                 )}

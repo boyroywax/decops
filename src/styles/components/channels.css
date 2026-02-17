@@ -1,0 +1,172 @@
+/**
+ * Channels View Component Styles
+ */
+
+/* Channels Header */
+.channels-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-2xl);
+}
+
+.channels-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* Channels Empty State */
+.channels-empty-state {
+  text-align: center;
+  padding: var(--space-4xl);
+  color: var(--border-default);
+  border: 1px dashed rgba(167, 139, 250, 0.15);
+  border-radius: var(--radius-2xl);
+}
+
+.channels-empty-icon {
+  margin-bottom: var(--space-md);
+  opacity: 0.5;
+}
+
+.channels-empty-title {
+  font-size: var(--text-md);
+  margin-bottom: var(--space-xs);
+}
+
+.channels-empty-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+}
+
+/* Channel Form */
+.channel-form {
+  background: rgba(167, 139, 250, 0.04);
+  border: 1px solid rgba(167, 139, 250, 0.12);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-2xl);
+  margin-bottom: var(--space-2xl);
+}
+
+.channel-form-row {
+  display: flex;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.channel-form-select {
+  width: auto;
+  min-width: 160px;
+}
+
+.channel-form-agent-select {
+  width: auto;
+  min-width: 140px;
+}
+
+.channel-form-notice {
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+  padding: var(--space-xl);
+  text-align: center;
+}
+
+.channel-form-agents-row {
+  display: flex;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.channel-type-pills {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.channel-submit-btn {
+  padding: var(--space-lg) var(--space-2xl);
+  border-radius: var(--radius-lg);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.channel-submit-btn--enabled {
+  background: var(--color-channel);
+  color: var(--bg-primary);
+  border: none;
+  cursor: pointer;
+}
+
+.channel-submit-btn--disabled {
+  background: var(--border-default);
+  color: var(--bg-primary);
+  border: none;
+  cursor: not-allowed;
+}
+
+/* Channel List Item */
+.channel-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all var(--transition-fast);
+}
+
+.channel-item--checked {
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.channel-item-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  font-size: var(--text-md);
+}
+
+.channel-item-type-badge {
+  background: rgba(167, 139, 250, 0.1);
+  color: var(--color-channel);
+  padding: 3px var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.channel-item-network-badge {
+  font-size: var(--text-xs);
+  padding: 2px var(--space-md);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.channel-item-msg-badge {
+  font-size: var(--text-xs);
+  color: var(--color-warning);
+  background: rgba(251, 191, 36, 0.1);
+  padding: 2px var(--space-md);
+  border-radius: var(--radius-md);
+}
+
+.channel-item-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.channel-arrow-icon {
+  color: var(--text-ghost);
+}

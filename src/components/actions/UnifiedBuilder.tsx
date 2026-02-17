@@ -140,93 +140,70 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
     const selectedCommandDef = selectedStep ? registry.get(selectedStep.commandId) : null;
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", height: "100%", color: "#e4e4e7", fontFamily: "inherit" }}>
+        <div className="builder">
             {/* Header / Meta */}
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "rgba(0,0,0,0.2)" }}>
-                <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-                    <div style={{ flex: 1 }}>
+            <div className="builder__header">
+                <div className="builder__header-row">
+                    <div className="builder__name-wrap">
                         <input
                             type="text"
                             value={name}
                             onChange={e => setName(e.target.value)}
                             placeholder={mode === "job" ? "Job Name" : "Automation Name"}
-                            style={{
-                                background: "none", border: "none", borderBottom: "1px solid rgba(255,255,255,0.1)",
-                                color: "white", fontSize: 16, fontWeight: 600, width: "100%", padding: "4px 0",
-                                fontFamily: "inherit"
-                            }}
+                            className="builder__name-input"
                         />
                     </div>
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div className="builder__actions">
                         <button onClick={onCancel} className="btn btn-secondary">Cancel</button>
                         {mode === "job" ? (
-                            <button onClick={handleRun} className="btn btn-primary"><Play size={14} className="icon-mr" /> Run Job</button>
+                            <button onClick={handleRun} className="btn btn-primary"><Play size={14} /> Run Job</button>
                         ) : (
-                            <button onClick={handleSaveAutomation} className="btn btn-primary"><Save size={14} className="icon-mr" /> Save Automation</button>
+                            <button onClick={handleSaveAutomation} className="btn btn-primary"><Save size={14} /> Save Automation</button>
                         )}
                     </div>
                 </div>
 
-                <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+                <div className="builder__controls">
                     {/* Mode Selector */}
-                    <div style={{ display: "flex", background: "rgba(255,255,255,0.05)", borderRadius: 6, padding: 2 }}>
+                    <div className="builder__toggle-group">
                         <button
                             onClick={() => setMode("job")}
-                            style={{
-                                background: mode === "job" ? "rgba(255,255,255,0.1)" : "none",
-                                color: mode === "job" ? "#fff" : "#71717a",
-                                border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", display: "flex", gap: 6, alignItems: "center"
-                            }}
+                            className={`builder__toggle-btn ${mode === "job" ? "builder__toggle-btn--active" : ""}`}
                         >
                             <Briefcase size={12} /> Run Once
                         </button>
                         <button
                             onClick={() => setMode("automation")}
-                            style={{
-                                background: mode === "automation" ? "rgba(255,255,255,0.1)" : "none",
-                                color: mode === "automation" ? "#fff" : "#71717a",
-                                border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, cursor: "pointer", display: "flex", gap: 6, alignItems: "center"
-                            }}
+                            className={`builder__toggle-btn ${mode === "automation" ? "builder__toggle-btn--active" : ""}`}
                         >
                             <Zap size={12} /> Automation
                         </button>
                     </div>
 
                     {mode === "job" && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <label style={{ fontSize: 12, color: "#a1a1aa" }}>Execution:</label>
-                            <div style={{ display: "flex", background: "rgba(255,255,255,0.05)", borderRadius: 4, padding: 2 }}>
+                        <div className="builder__exec-group">
+                            <label className="builder__exec-label">Execution:</label>
+                            <div className="builder__exec-toggle">
                                 <button
                                     onClick={() => setJobMode("serial")}
-                                    style={{
-                                        background: jobMode === "serial" ? "rgba(255,255,255,0.1)" : "none",
-                                        color: jobMode === "serial" ? "#fff" : "#71717a",
-                                        border: "none", borderRadius: 3, padding: "2px 8px", fontSize: 11, cursor: "pointer"
-                                    }}
+                                    className={`builder__exec-btn ${jobMode === "serial" ? "builder__exec-btn--active" : ""}`}
                                 >Serial</button>
                                 <button
                                     onClick={() => setJobMode("parallel")}
-                                    style={{
-                                        background: jobMode === "parallel" ? "rgba(255,255,255,0.1)" : "none",
-                                        color: jobMode === "parallel" ? "#fff" : "#71717a",
-                                        border: "none", borderRadius: 3, padding: "2px 8px", fontSize: 11, cursor: "pointer"
-                                    }}
+                                    className={`builder__exec-btn ${jobMode === "parallel" ? "builder__exec-btn--active" : ""}`}
                                 >Parallel</button>
                             </div>
                         </div>
                     )}
 
                     {mode === "automation" && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
-                            <Clock size={12} color="#a1a1aa" />
+                        <div className="builder__schedule-group">
+                            <Clock size={12} className="builder__schedule-icon" />
                             <input
                                 value={schedule}
                                 onChange={e => setSchedule(e.target.value)}
                                 placeholder="Schedule (e.g. every 10m)"
-                                style={{
-                                    background: "rgba(255,255,255,0.03)", border: "none", borderRadius: 4,
-                                    color: "#d4d4d8", fontSize: 11, padding: "4px 8px", fontFamily: "inherit", width: 140
-                                }}
+                                className="builder__schedule-input"
                             />
                         </div>
                     )}
@@ -236,53 +213,35 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
                         value={description}
                         onChange={e => setDescription(e.target.value)}
                         placeholder="Description (optional)"
-                        style={{
-                            background: "rgba(255,255,255,0.03)", border: "none", borderRadius: 4,
-                            color: "#d4d4d8", fontSize: 12, flex: 1, padding: "4px 8px", fontFamily: "inherit", minWidth: 200
-                        }}
+                        className="builder__desc-input"
                     />
                 </div>
             </div>
 
-            <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+            <div className="builder__body">
                 {/* Available Commands (Left) */}
-                <div style={{ width: 220, borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column" }}>
-                    <div style={{ padding: 8 }}>
-                        <div style={{ position: "relative" }}>
-                            <Search size={12} style={{ position: "absolute", left: 8, top: 8, color: "#71717a" }} />
+                <div className="builder__sidebar">
+                    <div className="builder__search">
+                        <div className="builder__search-box">
+                            <Search size={12} className="builder__search-icon" />
                             <input
                                 type="text"
                                 placeholder="Search commands..."
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
-                                style={{
-                                    width: "100%", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
-                                    borderRadius: 4, padding: "6px 8px 6px 26px", fontSize: 11, color: "#e4e4e7", boxSizing: "border-box"
-                                }}
+                                className="builder__search-input"
                             />
                         </div>
                     </div>
-                    <div style={{ flex: 1, overflow: "auto", padding: "0 8px 8px" }}>
+                    <div className="builder__command-list">
                         {filteredCommands.map(cmd => (
                             <div
                                 key={cmd.id}
                                 onClick={() => addStep(cmd.id)}
-                                style={{
-                                    padding: "8px", marginBottom: 4, borderRadius: 4, cursor: "pointer",
-                                    background: "rgba(255,255,255,0.02)", border: "1px solid transparent",
-                                    transition: "all 0.1s"
-                                }}
-                                onMouseEnter={e => {
-                                    e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-                                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
-                                }}
-                                onMouseLeave={e => {
-                                    e.currentTarget.style.background = "rgba(255,255,255,0.02)";
-                                    e.currentTarget.style.borderColor = "transparent";
-                                }}
+                                className="builder__command"
                             >
-                                <div style={{ fontSize: 11, fontWeight: 500 }}>{cmd.id}</div>
-                                <div style={{ fontSize: 10, color: "#71717a", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                <div className="builder__command-name">{cmd.id}</div>
+                                <div className="builder__command-desc">
                                     {cmd.description}
                                 </div>
                             </div>
@@ -291,13 +250,13 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
                 </div>
 
                 {/* Steps List (Center) */}
-                <div style={{ flex: 1, borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", background: "rgba(0,0,0,0.1)" }}>
-                    <div style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                <div className="builder__steps">
+                    <div className="builder__panel-header">
                         Workflow Steps ({steps.length})
                     </div>
-                    <div style={{ flex: 1, overflow: "auto", padding: 12 }}>
+                    <div className="builder__step-list">
                         {steps.length === 0 ? (
-                            <div style={{ textAlign: "center", color: "#52525b", marginTop: 40, fontSize: 12 }}>
+                            <div className="builder__empty">
                                 No steps added.<br />Select commands from the left.
                             </div>
                         ) : (
@@ -305,35 +264,28 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
                                 <div
                                     key={step.id}
                                     onClick={() => setSelectedStepId(step.id)}
-                                    style={{
-                                        display: "flex", alignItems: "center", gap: 8,
-                                        padding: "10px 12px", marginBottom: 8, borderRadius: 6,
-                                        background: selectedStepId === step.id ? "rgba(0, 229, 160, 0.08)" : "rgba(255,255,255,0.03)",
-                                        border: `1px solid ${selectedStepId === step.id ? "rgba(0, 229, 160, 0.3)" : "rgba(255,255,255,0.06)"}`,
-                                        cursor: "pointer",
-                                        position: "relative"
-                                    }}
+                                    className={`builder__step ${selectedStepId === step.id ? "builder__step--selected" : ""}`}
                                 >
-                                    <div style={{ fontSize: 10, color: "#52525b", width: 16 }}>{idx + 1}</div>
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ display: "flex", justifyContent: "space-between" }}>
-                                            <div style={{ fontSize: 12, fontWeight: 500, color: selectedStepId === step.id ? "#00e5a0" : "#e4e4e7" }}>{step.commandId}</div>
+                                    <div className="builder__step-index">{idx + 1}</div>
+                                    <div className="builder__step-content">
+                                        <div className="builder__step-header">
+                                            <div className="builder__step-name">{step.commandId}</div>
                                             {step.condition && (
-                                                <div style={{ fontSize: 10, color: "#eab308", background: "rgba(234, 179, 8, 0.1)", padding: "0 4px", borderRadius: 2 }}>
+                                                <div className="builder__step-badge">
                                                     Conditional
                                                 </div>
                                             )}
                                         </div>
-                                        <div style={{ fontSize: 10, color: "#71717a", marginTop: 2 }}>{Object.keys(step.args).length} args configured</div>
+                                        <div className="builder__step-meta">{Object.keys(step.args).length} args configured</div>
                                     </div>
-                                    <div style={{ display: "flex", gap: 2 }}>
-                                        <button onClick={(e) => { e.stopPropagation(); moveStep(idx, -1); }} disabled={idx === 0} className="icon-btn">
+                                    <div className="builder__step-actions">
+                                        <button onClick={(e) => { e.stopPropagation(); moveStep(idx, -1); }} disabled={idx === 0} className="builder__icon-btn">
                                             <ArrowUp size={12} />
                                         </button>
-                                        <button onClick={(e) => { e.stopPropagation(); moveStep(idx, 1); }} disabled={idx === steps.length - 1} className="icon-btn">
+                                        <button onClick={(e) => { e.stopPropagation(); moveStep(idx, 1); }} disabled={idx === steps.length - 1} className="builder__icon-btn">
                                             <ArrowDown size={12} />
                                         </button>
-                                        <button onClick={(e) => { e.stopPropagation(); removeStep(step.id); }} className="icon-btn-danger">
+                                        <button onClick={(e) => { e.stopPropagation(); removeStep(step.id); }} className="builder__icon-btn builder__icon-btn--danger">
                                             <Trash2 size={12} />
                                         </button>
                                     </div>
@@ -344,93 +296,66 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
                 </div>
 
                 {/* Config (Right) */}
-                <div style={{ width: 300, display: "flex", flexDirection: "column", background: "rgba(0,0,0,0.2)" }}>
-                    <div style={{ padding: "8px 12px", fontSize: 11, fontWeight: 600, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.05em", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                <div className="builder__config">
+                    <div className="builder__config-header">
                         Configuration
                     </div>
-                    <div style={{ flex: 1, overflow: "auto", padding: 16 }}>
+                    <div className="builder__config-body">
                         {selectedStep && selectedCommandDef ? (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                            <div className="builder__config-form">
                                 <div>
-                                    <div style={{ fontSize: 13, fontWeight: 600, color: "#e4e4e7", marginBottom: 4 }}>{selectedCommandDef.id}</div>
-                                    <div style={{ fontSize: 11, color: "#a1a1aa", lineHeight: 1.4 }}>{selectedCommandDef.description}</div>
+                                    <div className="builder__config-title">{selectedCommandDef.id}</div>
+                                    <div className="builder__config-desc">{selectedCommandDef.description}</div>
                                 </div>
-                                <div style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+                                <div className="builder__divider" />
 
                                 {/* Arguments */}
-                                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                <div className="builder__arg-list">
                                     {Object.entries(selectedCommandDef.args).map(([argName, argDef]) => (
                                         <div key={argName}>
-                                            <div style={{ display: 'flex', justifyContent: "space-between", marginBottom: 4 }}>
-                                                <label style={{ display: "block", fontSize: 11, color: "#d4d4d8", fontWeight: 500 }}>
-                                                    {argDef.name} {argDef.required !== false && <span style={{ color: "#ef4444" }}>*</span>}
+                                            <div className="builder__arg-header">
+                                                <label className="builder__arg-label">
+                                                    {argDef.name} {argDef.required !== false && <span className="builder__arg-required">*</span>}
                                                 </label>
-                                                <span style={{ fontSize: 9, color: "#52525b" }}>{argDef.type}</span>
+                                                <span className="builder__arg-type">{argDef.type}</span>
                                             </div>
                                             <CommandArgInput
                                                 arg={argDef}
                                                 value={selectedStep.args[argName]}
                                                 onChange={(val) => updateStepArg(selectedStep.id, argName, val)}
                                             />
-                                            <div style={{ fontSize: 10, color: "#71717a", marginTop: 2 }}>{argDef.description}</div>
+                                            <div className="builder__arg-desc">{argDef.description}</div>
                                         </div>
                                     ))}
                                 </div>
 
-                                <div style={{ height: 1, background: "rgba(255,255,255,0.06)" }} />
+                                <div className="builder__divider" />
 
                                 {/* Condition */}
                                 <div>
-                                    <label style={{ display: "block", fontSize: 11, color: "#eab308", marginBottom: 4, fontWeight: 500 }}>Execution Condition (Optional)</label>
+                                    <label className="builder__condition-label">Execution Condition (Optional)</label>
                                     <input
                                         type="text"
                                         value={selectedStep.condition || ""}
                                         onChange={e => updateStepCondition(selectedStep.id, e.target.value)}
                                         placeholder="e.g. steps[0].result == 'success'"
-                                        style={inputStyle}
+                                        className="builder__condition-input"
                                     />
-                                    <div style={{ fontSize: 9, color: "#52525b", marginTop: 4 }}>
+                                    <div className="builder__condition-hint">
                                         JS expression evaluated before step execution.
                                     </div>
                                 </div>
 
                             </div>
                         ) : (
-                            <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#52525b" }}>
-                                <Settings size={24} style={{ marginBottom: 12, opacity: 0.5 }} />
-                                <div style={{ fontSize: 12 }}>Select a step to configure</div>
+                            <div className="builder__config-empty">
+                                <Settings size={24} className="builder__config-empty-icon" />
+                                <div className="builder__config-empty-text">Select a step to configure</div>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
-
-            <style>{`
-                .btn {
-                    border: none; border-radius: 4px; padding: 6px 12px; fontSize: 11px; font-weight: 500; cursor: pointer; display: flex; alignItems: center;
-                }
-                .btn-primary { background: #00e5a0; color: #000; }
-                .btn-secondary { background: rgba(255,255,255,0.1); color: #e4e4e7; }
-                .btn:hover { opacity: 0.9; }
-                .icon-mr { margin-right: 6px; }
-                
-                .icon-btn {
-                    background: transparent; border: none; color: #71717a; cursor: pointer; padding: 4px; border-radius: 4px;
-                }
-                .icon-btn:hover:not(:disabled) { background: rgba(255,255,255,0.1); color: #e4e4e7; }
-                .icon-btn:disabled { opacity: 0.3; cursor: default; }
-                
-                .icon-btn-danger {
-                    background: transparent; border: none; color: #71717a; cursor: pointer; padding: 4px; border-radius: 4px;
-                }
-                .icon-btn-danger:hover { background: rgba(239,68,68,0.1); color: #ef4444; }
-            `}</style>
         </div>
     );
 }
-
-const inputStyle = {
-    width: "100%", padding: "6px 8px", background: "rgba(0,0,0,0.3)",
-    border: "1px solid rgba(255,255,255,0.1)", borderRadius: 4,
-    color: "#e4e4e7", fontSize: 12, boxSizing: "border-box" as const, fontFamily: "inherit"
-};

@@ -1,0 +1,24 @@
+/**
+ * ErrorBoundary Component Styles
+ * Error fallback display
+ */
+
+.error-boundary {
+  padding: var(--space-2xl);
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius-xl);
+  margin: var(--space-2xl);
+}
+
+.error-boundary__title {
+  margin-top: 0;
+  font-family: var(--font-display);
+}
+
+.error-boundary__details {
+  white-space: pre-wrap;
+  font-size: var(--text-base);
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}

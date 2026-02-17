@@ -5,6 +5,7 @@ import { GradientIcon } from "../shared/GradientIcon";
 import { ComposePanel } from "../activity/ComposePanel";
 import { ActivityFilter } from "../activity/ActivityFilter";
 import { ActivityList } from "../activity/ActivityList";
+import "../../styles/components/activity.css";
 
 interface ActivityViewProps {
     entries: NotebookEntry[];
@@ -43,22 +44,20 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
     }, [safeEntries, activeFilters, search]);
 
     return (
-        <div style={{ maxWidth: 800 }}>
-            <h2 className="settings-header" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div className="activity">
+            <h2 className="activity__header">
                 <GradientIcon icon={Zap} size={22} gradient={["#00e5a0", "#38bdf8"]} />
                 Activity
-                <span style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+                <span className="activity__actions">
                     <button
                         onClick={() => setShowCompose(!showCompose)}
-                        className="btn btn-primary"
-                        style={{ fontSize: 11, padding: "6px 14px", color: "#000", fontWeight: 700 }}
+                        className="btn btn-primary activity__btn activity__btn--primary"
                     >
                         <Edit size={12} /> New Entry
                     </button>
                     <button
                         onClick={exportNotebook}
-                        className="btn btn-surface"
-                        style={{ fontSize: 11, padding: "6px 12px" }}
+                        className="btn btn-surface activity__btn"
                     >
                         <Download size={12} /> Export
                     </button>
@@ -72,8 +71,7 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
                                 }
                             }, 0);
                         }}
-                        className="btn btn-surface"
-                        style={{ fontSize: 11, padding: "6px 12px", color: "#ef4444" }}
+                        className="btn btn-surface activity__btn activity__btn--danger"
                     >
                         <Trash2 size={12} /> Clear
                     </button>
@@ -101,10 +99,7 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
 
             {/* No results after filter */}
             {safeEntries.length > 0 && filtered.length === 0 && (
-                <div style={{
-                    textAlign: "center", padding: "40px 24px",
-                    color: "var(--text-subtle)", fontSize: 13, fontFamily: "var(--font-mono)",
-                }}>
+                <div className="activity__empty">
                     No entries match your filters.
                 </div>
             )}
@@ -119,13 +114,7 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
 
             {/* Footer stats */}
             {safeEntries.length > 0 && (
-                <div style={{
-                    marginTop: 24, padding: 12,
-                    textAlign: "center",
-                    fontSize: 11, color: "var(--text-ghost)",
-                    fontFamily: "var(--font-mono)",
-                    borderTop: "1px solid var(--border-subtle)",
-                }}>
+                <div className="activity__footer">
                     {safeEntries.length} total {safeEntries.length === 1 ? "entry" : "entries"} · Showing {filtered.length} · Storage: ~{(JSON.stringify(safeEntries).length / 1024).toFixed(1)} KB
                 </div>
             )}

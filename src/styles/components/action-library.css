@@ -1,0 +1,32 @@
+/**
+ * ActionLibrary Component Styles
+ * Command search and grid layout
+ */
+
+.action-library {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.action-library__search-row {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.action-library__search {
+  flex: 1;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-primary);
+  border: 1px solid var(--text-void);
+  border-radius: var(--radius-lg);
+  color: white;
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+}
+
+.action-library__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-2xl);
+}

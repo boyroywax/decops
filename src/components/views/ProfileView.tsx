@@ -174,32 +174,23 @@ export function ProfileView({
         standard: "STANDARD",
     };
 
-    if (!user) return <div style={{ padding: 24 }}>Loading profile...</div>;
+    if (!user) return <div className="profile__loading">Loading profile...</div>;
 
     return (
-        <div style={{ maxWidth: 800 }}>
-            <h2 className="settings-header" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div className="profile">
+            <h2 className="settings-header">
                 <GemAvatar seed={user.email || "user"} size={36} />
                 Profile & Settings
             </h2>
 
-            <div style={{ display: "grid", gap: 24 }}>
+            <div className="profile__grid">
                 {/* Missing API Key Warning */}
                 {!hasKey && (
-                    <div style={{
-                        display: "flex", alignItems: "center", gap: 12,
-                        padding: "14px 18px",
-                        background: "rgba(251,191,36,0.08)",
-                        border: "1px solid rgba(251,191,36,0.25)",
-                        borderRadius: "var(--radius-xl)",
-                        color: "#fbbf24",
-                        fontSize: 13,
-                        fontFamily: "var(--font-mono)",
-                    }}>
+                    <div className="profile__api-warning">
                         <AlertTriangle size={18} />
                         <div>
-                            <div style={{ fontWeight: 600, marginBottom: 2 }}>No API Key Configured</div>
-                            <div style={{ fontSize: 11, color: "rgba(251,191,36,0.7)" }}>
+                            <div className="profile__api-warning-title">No API Key Configured</div>
+                            <div className="profile__api-warning-desc">
                                 Agent AI features require an Anthropic API key. Add one below to enable mesh generation and agent messaging.
                             </div>
                         </div>
@@ -208,24 +199,24 @@ export function ProfileView({
 
                 {/* User Info Card */}
                 <section className="settings-section">
-                    <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 24 }}>
+                    <div className="profile__user-row">
                         <GemAvatar seed={user.email || "user"} size={80} />
                         <div>
-                            <h3 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 4px 0" }}>{user.profile?.name || user.email}</h3>
-                            <div style={{ color: "var(--text-subtle)", fontFamily: "var(--font-mono)", fontSize: 13 }}>{user.email}</div>
+                            <h3 className="profile__user-name">{user.profile?.name || user.email}</h3>
+                            <div className="profile__user-email">{user.email}</div>
                             {user.hasEmailRegistrationCredential && (
-                                <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 8, background: "rgba(0,229,160,0.1)", color: "#00e5a0", padding: "2px 8px", borderRadius: 4, fontSize: 11, fontWeight: 500 }}>
+                                <div className="profile__verified-badge">
                                     <Check size={10} /> Verified Email Credential
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <div style={{ display: "grid", gap: 16 }}>
+                    <div className="profile__did-grid">
                         <div>
-                            <label style={{ display: "block", fontSize: 12, color: "var(--text-subtle)", marginBottom: 6, fontFamily: "var(--font-mono)" }}>Decentralized ID (DID)</label>
-                            <div style={{ display: "flex", gap: 8 }}>
-                                <div style={{ flex: 1, padding: "10px 12px", background: "var(--bg-input)", borderRadius: "var(--radius-lg)", fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-secondary)", border: "1px solid var(--border-default)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            <label className="profile__did-label">Decentralized ID (DID)</label>
+                            <div className="profile__did-row">
+                                <div className="profile__did-value">
                                     {user.did || "No DID issued yet"}
                                 </div>
                                 <button onClick={copyDid} className="btn btn-secondary" title="Copy DID">
@@ -238,67 +229,47 @@ export function ProfileView({
 
                 {/* API Keys Configuration */}
                 <section className="settings-section">
-                    <h3 className="section-title" style={{ color: "var(--text-primary)" }}>
+                    <h3 className="section-title section-title--primary">
                         <span className="btn-icon"><Key size={18} color="#00e5a0" /></span> API Configuration
                     </h3>
                     <p className="section-desc">
                         Provide your Anthropic API key to power agent capabilities. Stored locally in your browser — never sent to any server except Anthropic.
                     </p>
 
-                    <div style={{ marginBottom: 16 }}>
-                        <label style={{ display: "block", fontSize: 12, color: "var(--text-primary)", marginBottom: 6, fontWeight: 500 }}>
+                    <div className="profile__api-field">
+                        <label className="profile__api-label">
                             Anthropic API Key
                         </label>
-                        <div style={{ display: "flex", gap: 8 }}>
-                            <div style={{ flex: 1, position: "relative" }}>
+                        <div className="profile__api-input-row">
+                            <div className="profile__api-input-wrapper">
                                 <input
                                     type={showKey ? "text" : "password"}
                                     value={apiKey}
                                     onChange={(e) => setApiKey(e.target.value)}
                                     placeholder="sk-ant-..."
-                                    style={{
-                                        width: "100%",
-                                        padding: "10px 12px",
-                                        background: "var(--bg-input)",
-                                        border: `1px solid ${hasKey ? "rgba(0,229,160,0.3)" : "var(--border-default)"}`,
-                                        borderRadius: "var(--radius-lg)",
-                                        color: "white",
-                                        fontFamily: "var(--font-mono)",
-                                        fontSize: 13,
-                                        boxSizing: "border-box"
-                                    }}
+                                    className={`profile__api-input${hasKey ? " profile__api-input--active" : ""}`}
                                 />
                                 <button
                                     onClick={() => setShowKey(!showKey)}
-                                    style={{
-                                        position: "absolute",
-                                        right: 8,
-                                        top: "50%",
-                                        transform: "translateY(-50%)",
-                                        background: "none",
-                                        border: "none",
-                                        color: "var(--text-subtle)",
-                                        cursor: "pointer",
-                                        fontSize: 12
-                                    }}
+                                    className="profile__api-toggle"
                                 >
                                     {showKey ? "Hide" : "Show"}
                                 </button>
                             </div>
-                            <button onClick={handleSaveKey} className="btn btn-primary" style={{ minWidth: 80 }}>
+                            <button onClick={handleSaveKey} className="btn btn-primary profile__api-save">
                                 Save
                             </button>
                         </div>
-                        {status && <div style={{ marginTop: 8, fontSize: 12, color: status.includes("removed") ? "var(--color-warning)" : "var(--color-accent)" }}>{status}</div>}
+                        {status && <div className={`profile__api-status ${status.includes("removed") ? "profile__api-status--warning" : "profile__api-status--success"}`}>{status}</div>}
                         {hasKey && (
-                            <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, color: "#00e5a0" }}>
+                            <div className="profile__key-active">
                                 <span>●</span> Key configured — AI features active
                             </div>
                         )}
                         {!hasKey && (
-                            <p style={{ marginTop: 8, fontSize: 11, color: "var(--text-subtle)" }}>
+                            <p className="profile__key-hint">
                                 Required for agents using Claude models. Get yours at{" "}
-                                <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-info)", textDecoration: "none" }}>
+                                <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">
                                     console.anthropic.com
                                 </a>
                             </p>
@@ -308,14 +279,14 @@ export function ProfileView({
 
                 {/* Model Selection */}
                 <section className="settings-section">
-                    <h3 className="section-title" style={{ color: "var(--text-primary)" }}>
+                    <h3 className="section-title section-title--primary">
                         <span className="btn-icon"><Bot size={18} color="#a78bfa" /></span> Model Selection
                     </h3>
                     <p className="section-desc">
                         Choose the Claude model for agent conversations and mesh generation. Models differ in speed, cost, and capability.
                     </p>
 
-                    <div style={{ display: "grid", gap: 10 }}>
+                    <div className="profile__model-grid">
                         {ANTHROPIC_MODELS.map((model) => {
                             const isSelected = selectedModelId === model.id;
                             const tierColor = tierColors[model.tier] || "#71717a";
@@ -323,78 +294,50 @@ export function ProfileView({
                                 <button
                                     key={model.id}
                                     onClick={() => handleSelectModel(model.id)}
+                                    className="profile__model-card"
                                     style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 14,
-                                        padding: "14px 16px",
                                         background: isSelected
                                             ? `linear-gradient(135deg, ${tierColor}08 0%, ${tierColor}04 100%)`
-                                            : "rgba(255,255,255,0.015)",
-                                        border: `1px solid ${isSelected ? `${tierColor}40` : "var(--border-subtle)"}`,
-                                        borderRadius: "var(--radius-xl)",
-                                        cursor: "pointer",
-                                        textAlign: "left",
-                                        transition: "all 0.2s ease",
-                                        position: "relative",
-                                        overflow: "hidden",
+                                            : undefined,
+                                        borderColor: isSelected ? `${tierColor}40` : undefined,
                                     }}
                                     onMouseEnter={(e) => {
                                         if (!isSelected) e.currentTarget.style.borderColor = "var(--border-medium)";
                                     }}
                                     onMouseLeave={(e) => {
-                                        if (!isSelected) e.currentTarget.style.borderColor = "var(--border-subtle)";
+                                        if (!isSelected) e.currentTarget.style.borderColor = isSelected ? `${tierColor}40` : "";
                                     }}
                                 >
                                     {/* Radio indicator */}
-                                    <div style={{
-                                        width: 18, height: 18, borderRadius: "50%",
-                                        border: `2px solid ${isSelected ? tierColor : "var(--text-ghost)"}`,
-                                        display: "flex", alignItems: "center", justifyContent: "center",
-                                        flexShrink: 0,
-                                        transition: "all 0.2s ease",
-                                    }}>
+                                    <div
+                                        className="profile__model-radio"
+                                        style={{ borderColor: isSelected ? tierColor : undefined }}
+                                    >
                                         {isSelected && (
-                                            <div style={{
-                                                width: 8, height: 8, borderRadius: "50%",
-                                                background: tierColor,
-                                            }} />
+                                            <div className="profile__model-radio-dot" style={{ background: tierColor }} />
                                         )}
                                     </div>
 
                                     {/* Model info */}
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                                            <span style={{
-                                                fontSize: 13, fontWeight: 600, color: isSelected ? "var(--text-primary)" : "var(--text-secondary)",
-                                                fontFamily: "var(--font-display)",
-                                            }}>
+                                    <div className="profile__model-info">
+                                        <div className="profile__model-label-row">
+                                            <span className={`profile__model-name${isSelected ? " profile__model-name--selected" : ""}`}>
                                                 {model.label}
                                             </span>
-                                            <span style={{
-                                                fontSize: 9, fontWeight: 600, letterSpacing: "0.05em",
-                                                padding: "2px 6px", borderRadius: 3,
-                                                background: `${tierColor}18`,
-                                                color: tierColor,
-                                                fontFamily: "var(--font-mono)",
-                                            }}>
+                                            <span
+                                                className="profile__model-tier"
+                                                style={{ background: `${tierColor}18`, color: tierColor }}
+                                            >
                                                 {tierLabels[model.tier]}
                                             </span>
                                         </div>
-                                        <div style={{
-                                            fontSize: 11, color: "var(--text-subtle)",
-                                            fontFamily: "var(--font-mono)",
-                                        }}>
+                                        <div className="profile__model-desc">
                                             {model.desc}
                                         </div>
                                     </div>
 
                                     {/* Model ID */}
-                                    <div style={{
-                                        fontSize: 10, color: "var(--text-ghost)",
-                                        fontFamily: "var(--font-mono)",
-                                        flexShrink: 0,
-                                    }}>
+                                    <div className="profile__model-id">
                                         {model.id.length > 24 ? model.id.slice(0, 22) + "…" : model.id}
                                     </div>
                                 </button>
@@ -405,35 +348,32 @@ export function ProfileView({
 
                 {/* Export Data */}
                 <section className="settings-section">
-                    <h3 className="section-title" style={{ color: "var(--color-warning)" }}>
+                    <h3 className="section-title section-title--warning">
                         <span className="btn-icon"><Download size={18} color="#fbbf24" /></span> Export Data
                     </h3>
                     <p className="section-desc">
                         Download your current workspace or full ecosystem state as a JSON file.
                     </p>
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <div className="profile__export-row">
                         <button onClick={handleExportWorkspace} className="btn btn-surface">Export Workspace</button>
                         <button onClick={handleExportEcosystem} className="btn btn-surface">Export Ecosystem</button>
-                        <button onClick={handleFullBackup} className="btn btn-primary" style={{ color: "#000" }}>Full Backup (.json)</button>
+                        <button onClick={handleFullBackup} className="btn btn-primary profile__backup-btn--dark">Full Backup (.json)</button>
                     </div>
                 </section>
 
                 {/* Import Data */}
                 <section className="settings-section">
-                    <h3 className="section-title" style={{ color: "var(--color-info)" }}>
+                    <h3 className="section-title section-title--info">
                         <span className="btn-icon"><Upload size={18} color="#38bdf8" /></span> Import Data
                     </h3>
                     <p className="section-desc">
                         Restore a previous state from a JSON file. This will overwrite current data.
                     </p>
-                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                    <div className="profile__import-row">
                         <button onClick={handleImportClick} className="btn btn-secondary">Select JSON File...</button>
-                        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" style={{ display: "none" }} />
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" className="hidden" />
                         {importStatus && (
-                            <span style={{
-                                fontSize: 12, fontFamily: "var(--font-mono)",
-                                color: importStatus.startsWith("Error") ? "var(--color-danger)" : "var(--color-accent)",
-                            }}>
+                            <span className={`profile__import-status ${importStatus.startsWith("Error") ? "profile__import-status--error" : "profile__import-status--success"}`}>
                                 {importStatus}
                             </span>
                         )}
@@ -441,12 +381,12 @@ export function ProfileView({
                 </section>
 
                 {/* Danger Zone */}
-                <section className="settings-section" style={{ borderColor: "rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.05)" }}>
-                    <h3 className="section-title" style={{ color: "var(--color-danger)" }}>
+                <section className="settings-section settings-section--danger">
+                    <h3 className="section-title section-title--danger">
                         <span className="btn-icon"><AlertTriangle size={18} color="#ef4444" /></span> Danger Zone
                     </h3>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <p className="section-desc" style={{ margin: 0, color: "rgba(239,68,68,0.8)" }}>
+                    <div className="profile__danger-row">
+                        <p className="section-desc section-desc--danger">
                             Clear all data from LocalStorage and reset application to default state.
                         </p>
                         <button onClick={handleReset} className="btn btn-danger-solid">Reset All Data</button>

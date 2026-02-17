@@ -1,0 +1,125 @@
+/**
+ * Footer Component Styles
+ * Bottom bar with workspace stats, chat toggle, and actions toggle
+ */
+
+.app-footer {
+  background: rgba(0, 229, 160, 0.04);
+  border-top: 1px solid rgba(0, 229, 160, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-xs) var(--space-lg);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  flex-shrink: 0;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+/* Left group: stat buttons */
+.footer__stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.footer__stat-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  color: var(--text-subtle);
+  padding: 2px var(--space-xs);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.footer__stat-btn:hover {
+  color: var(--text-muted);
+  background: var(--bg-surface-hover);
+}
+
+/* Right group: toggle controls */
+.footer__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.footer__toggle {
+  background: none;
+  border: none;
+  color: var(--text-ghost);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.footer__toggle:hover {
+  color: var(--text-muted);
+}
+
+.footer__toggle--active {
+  background: rgba(0, 229, 160, 0.1);
+  color: var(--color-accent);
+}
+
+.footer__badge {
+  font-size: var(--text-xs);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0 5px;
+  border-radius: var(--radius-lg);
+  color: var(--text-subtle);
+}
+
+.footer__badge--active {
+  background: rgba(0, 229, 160, 0.15);
+  color: var(--color-accent);
+}
+
+/* Artifacts-specific toggle & badge */
+.footer__toggle--artifacts {
+  background: rgba(129, 140, 248, 0.1);
+  color: #818cf8;
+}
+
+.footer__badge--artifacts {
+  background: rgba(129, 140, 248, 0.12);
+  color: #818cf8;
+}
+
+.footer__badge--artifacts-active {
+  background: rgba(129, 140, 248, 0.2);
+  color: #a78bfa;
+}
+
+.footer__separator {
+  color: var(--text-void);
+  font-size: var(--text-sm);
+}
+
+.footer__offline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+}
+
+@keyframes softPulse {
+  0% { box-shadow: 0 0 0 0 rgba(0, 229, 160, 0.4); opacity: 1; }
+  70% { box-shadow: 0 0 0 6px rgba(0, 229, 160, 0); opacity: 1; }
+  100% { box-shadow: 0 0 0 0 rgba(0, 229, 160, 0); opacity: 1; }
+}

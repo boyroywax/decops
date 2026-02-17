@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import { registry } from "../../services/commands/registry";
 import { CommandDefinition } from "../../services/commands/types";
 import { CommandCard } from "./CommandCard";
+import "../../styles/components/action-library.css";
 
 interface ActionLibraryProps {
-    onRunCommand: (commandId: string) => void;
+    onRunCommand: (commandId: string, command: CommandDefinition) => void;
 }
 
 export function ActionLibrary({ onRunCommand }: ActionLibraryProps) {
@@ -17,29 +18,22 @@ export function ActionLibrary({ onRunCommand }: ActionLibraryProps) {
     );
 
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "flex", gap: 12 }}>
+        <div className="action-library">
+            <div className="action-library__search-row">
                 <input
+                    className="action-library__search"
                     placeholder="Search commands..."
                     value={filter}
                     onChange={e => setFilter(e.target.value)}
-                    style={{
-                        flex: 1,
-                        padding: "8px 12px",
-                        background: "#09090b",
-                        border: "1px solid #27272a",
-                        borderRadius: 6,
-                        color: "white"
-                    }}
                 />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 20 }}>
+            <div className="action-library__grid">
                 {filteredCommands.map(cmd => (
                     <CommandCard
                         key={cmd.id}
                         command={cmd}
-                        onRun={() => onRunCommand(cmd.id)}
+                        onRun={() => onRunCommand(cmd.id, cmd)}
                     />
                 ))}
             </div>

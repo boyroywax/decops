@@ -1,0 +1,236 @@
+/**
+ * ActionsMonitor Component Styles
+ * Job queue monitor, automations, and history
+ */
+
+.actions-monitor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SECTION HEADERS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.actions-monitor__section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xl);
+}
+
+.actions-monitor__section-title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  font-family: var(--font-display);
+}
+
+.actions-monitor__section-title--spaced {
+  margin: 0 0 var(--space-xl) 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * QUEUE CONTROLS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.actions-monitor__controls {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.actions-monitor__pause-btn {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--text-void);
+  color: var(--text-muted);
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-lg);
+  cursor: pointer;
+  font-weight: var(--font-medium);
+  font-family: var(--font-mono);
+  transition: all var(--transition-fast);
+}
+
+.actions-monitor__pause-btn--paused {
+  background: var(--color-warning);
+  color: black;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * JOB LISTS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.actions-monitor__job-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.actions-monitor__empty {
+  padding: var(--space-3xl);
+  text-align: center;
+  color: var(--text-ghost);
+  border: 1px dashed var(--text-void);
+  border-radius: var(--radius-xl);
+}
+
+/* Active job card */
+.actions-monitor__job-card {
+  padding: var(--space-xl);
+  background: #18181b;
+  border: 1px solid var(--text-void);
+  border-radius: var(--radius-xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.actions-monitor__job-type {
+  font-weight: var(--font-medium);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.actions-monitor__job-status {
+  font-size: var(--text-base);
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--text-void);
+  color: var(--text-muted);
+}
+
+.actions-monitor__job-id {
+  font-size: var(--text-md);
+  color: var(--text-muted);
+  margin-top: var(--space-xs);
+}
+
+.actions-monitor__job-processing {
+  font-size: var(--text-md);
+  color: var(--color-info);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * AUTOMATIONS GRID
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.actions-monitor__auto-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-xl);
+}
+
+.actions-monitor__auto-card {
+  padding: var(--space-xl);
+  background: #18181b;
+  border: 1px solid var(--text-void);
+  border-radius: var(--radius-xl);
+}
+
+.actions-monitor__auto-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.actions-monitor__auto-name {
+  font-weight: var(--font-semibold);
+}
+
+.actions-monitor__auto-schedule {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+}
+
+.actions-monitor__auto-desc {
+  font-size: var(--text-lg);
+  color: var(--text-muted);
+  margin: 0 0 var(--space-lg) 0;
+  height: 40px;
+  overflow: hidden;
+}
+
+.actions-monitor__auto-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.actions-monitor__auto-time {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-md);
+  color: var(--text-subtle);
+}
+
+.actions-monitor__auto-action {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-md);
+  font-family: var(--font-mono);
+  transition: opacity var(--transition-fast);
+}
+
+.actions-monitor__auto-action:hover {
+  opacity: 0.8;
+}
+
+.actions-monitor__auto-action--run {
+  color: var(--color-info);
+}
+
+.actions-monitor__auto-action--delete {
+  color: var(--color-danger);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HISTORY
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.actions-monitor__history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.actions-monitor__history-item {
+  padding: var(--space-lg) var(--space-xl);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--text-void);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.actions-monitor__history-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.actions-monitor__history-type {
+  font-size: 14px;
+  font-weight: var(--font-medium);
+}
+
+.actions-monitor__history-time {
+  font-size: var(--text-base);
+  color: var(--text-ghost);
+}
+
+.actions-monitor__history-result {
+  font-size: var(--text-md);
+  color: var(--text-muted);
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

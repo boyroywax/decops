@@ -3,6 +3,7 @@ import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { Grid, Plus, Download, Upload, Check, Trash2, FolderOpen, Save } from "lucide-react";
 import { WorkspaceMetadata } from "../../types";
+import "../../styles/components/workspace-manager.css";
 
 interface WorkspaceManagerProps {
     onClose: () => void;
@@ -163,71 +164,45 @@ export function WorkspaceManager({ onClose }: WorkspaceManagerProps) {
 
     return (
         <div
-            className="workspace-menu-container"
-            style={{
-                position: "absolute",
-                top: 50,
-                right: 80, // Adjust based on header layout
-                width: 320,
-                background: "rgba(10, 10, 15, 0.95)",
-                backdropFilter: "blur(12px)",
-                border: "1px solid rgba(0, 229, 160, 0.2)",
-                borderRadius: 12,
-                padding: 16,
-                zIndex: 1000,
-                boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-                display: "flex",
-                flexDirection: "column",
-                gap: 12
-            }}
+            className="workspace-menu-container workspace-manager"
         >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.06)", paddingBottom: 12 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: "#e4e4e7", display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="workspace-manager__header">
+                <span className="workspace-manager__title">
                     <Grid size={14} color="#00e5a0" /> Workspaces
                 </span>
-                <div style={{ display: "flex", gap: 4 }}>
+                <div className="workspace-manager__header-actions">
                     <button
                         onClick={handleSaveCurrent}
-                        style={{ padding: 6, borderRadius: 6, background: "rgba(255,255,255,0.05)", border: "none", cursor: "pointer", color: "#a1a1aa" }}
+                        className="workspace-manager__icon-btn"
                         title="Save Current Workspace"
                     >
                         <Save size={14} />
                     </button>
                     <button
                         onClick={() => fileInputRef.current?.click()}
-                        style={{ padding: 6, borderRadius: 6, background: "rgba(255,255,255,0.05)", border: "none", cursor: "pointer", color: "#a1a1aa" }}
+                        className="workspace-manager__icon-btn"
                         title="Import Workspace"
                     >
                         <Upload size={14} />
                     </button>
-                    <input type="file" ref={fileInputRef} onChange={handleImportJSON} style={{ display: "none" }} accept=".json" />
+                    <input type="file" ref={fileInputRef} onChange={handleImportJSON} className="workspace-manager__file-input" accept=".json" />
                 </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 300, overflowY: "auto" }}>
+            <div className="workspace-manager__list">
                 {workspaces.map(ws => (
                     <div
                         key={ws.id}
                         onClick={() => handleSwitchWorkspace(ws.id)}
-                        style={{
-                            padding: "10px 12px",
-                            borderRadius: 8,
-                            background: ws.id === activeWorkspaceId ? "rgba(0, 229, 160, 0.1)" : "transparent",
-                            border: ws.id === activeWorkspaceId ? "1px solid rgba(0, 229, 160, 0.2)" : "1px solid transparent",
-                            cursor: "pointer",
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            transition: "all 0.2s"
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = ws.id === activeWorkspaceId ? "rgba(0, 229, 160, 0.15)" : "rgba(255,255,255,0.03)"}
-                        onMouseLeave={(e) => e.currentTarget.style.background = ws.id === activeWorkspaceId ? "rgba(0, 229, 160, 0.1)" : "transparent"}
+                        className={`workspace-manager__item ${ws.id === activeWorkspaceId ? "workspace-manager__item--active" : ""}`}
+                        onMouseEnter={(e) => { if (ws.id !== activeWorkspaceId) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                        onMouseLeave={(e) => { if (ws.id !== activeWorkspaceId) e.currentTarget.style.background = "transparent"; }}
                     >
-                        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                            <div style={{ fontSize: 13, color: ws.id === activeWorkspaceId ? "#fff" : "#e4e4e7", fontWeight: 500 }}>
+                        <div className="workspace-manager__item-info">
+                            <div className={`workspace-manager__item-name ${ws.id === activeWorkspaceId ? "workspace-manager__item-name--active" : ""}`}>
                                 {ws.name}
                             </div>
-                            <div style={{ fontSize: 10, color: "#71717a" }}>
+                            <div className="workspace-manager__item-date">
                                 {new Date(ws.lastModified).toLocaleDateString()}
                             </div>
                         </div>
@@ -236,7 +211,7 @@ export function WorkspaceManager({ onClose }: WorkspaceManagerProps) {
                         ) : (
                             <button
                                 onClick={(e) => handleDelete(e, ws.id)}
-                                style={{ padding: 4, background: "none", border: "none", cursor: "pointer", color: "#52525b" }}
+                                className="workspace-manager__delete-btn"
                                 title="Delete Workspace"
                             >
                                 <Trash2 size={13} />
@@ -247,57 +222,33 @@ export function WorkspaceManager({ onClose }: WorkspaceManagerProps) {
             </div>
 
             {isCreating ? (
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <div className="workspace-manager__create-form">
                     <input
                         value={newWorkspaceName}
                         onChange={e => setNewWorkspaceName(e.target.value)}
                         placeholder="Workspace Name"
-                        style={{ flex: 1, padding: "6px 10px", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)", background: "#000", color: "white", fontSize: 12 }}
+                        className="workspace-manager__create-input"
                         autoFocus
                         onKeyDown={e => e.key === 'Enter' && handleCreateWorkspace()}
                     />
                     <button
                         onClick={handleCreateWorkspace}
-                        style={{ padding: "6px 10px", borderRadius: 6, background: "#00e5a0", color: "#000", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                        className="workspace-manager__create-submit"
                     >Create</button>
                 </div>
             ) : (
                 <button
                     onClick={() => setIsCreating(true)}
-                    style={{
-                        marginTop: 4,
-                        padding: "8px",
-                        borderRadius: 8,
-                        border: "1px dashed rgba(255,255,255,0.1)",
-                        background: "none",
-                        color: "#a1a1aa",
-                        fontSize: 12,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 6
-                    }}
+                    className="workspace-manager__new-btn"
                 >
                     <Plus size={14} /> New Workspace
                 </button>
             )}
 
-            <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 12, marginTop: 4, display: "flex", justifyContent: "space-between" }}>
+            <div className="workspace-manager__footer">
                 <button
                     onClick={handleExportJSON}
-                    style={{
-                        padding: "6px 10px",
-                        borderRadius: 6,
-                        background: "rgba(255,255,255,0.05)",
-                        color: "#e4e4e7",
-                        border: "none",
-                        fontSize: 11,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6
-                    }}
+                    className="workspace-manager__export-btn"
                 >
                     <Download size={12} /> Export JSON
                 </button>

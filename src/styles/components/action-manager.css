@@ -1,0 +1,229 @@
+/**
+ * ActionManager Component Styles
+ * Bottom panel with monitor, library, and builder tabs
+ * Styled to match ChatPanel for uniform footer panel appearance
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CONTAINER  —  matches .chat-panel
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.action-manager {
+  background: rgba(0, 0, 0, 0.8);
+  border-top: 1px solid var(--border-accent);
+  display: flex;
+  flex-direction: column;
+  font-family: inherit;
+  backdrop-filter: blur(12px);
+  position: relative;
+  transition: height 0.1s ease-out;
+}
+
+.action-manager--resizing {
+  transition: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * RESIZE HANDLE  —  matches .chat-panel__resize-handle
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.action-manager__resize-handle {
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.action-manager__resize-grip {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HEADER  —  matches .chat-panel__header
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.action-manager__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
+}
+
+.action-manager__header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.action-manager__title {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.action-manager__separator {
+  color: var(--text-void);
+  font-size: var(--text-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TABS  —  matches .chat-panel__convos-toggle style (inline text buttons)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.action-manager__tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.action-manager__tab {
+  background: none;
+  border: none;
+  color: var(--text-ghost);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.action-manager__tab:hover {
+  color: var(--text-muted);
+}
+
+.action-manager__tab--active {
+  background: rgba(0, 229, 160, 0.08);
+  color: var(--color-accent);
+}
+
+.action-manager__tab-count {
+  font-size: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0 4px;
+  border-radius: var(--radius-md);
+  color: var(--text-ghost);
+}
+
+.action-manager__tab--active .action-manager__tab-count {
+  background: rgba(0, 229, 160, 0.15);
+  color: var(--color-accent);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HEADER ACTIONS  —  matches .chat-panel__header-right / __close-btn
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.action-manager__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.action-manager__close-btn {
+  background: none;
+  border: none;
+  color: var(--text-subtle);
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  transition: color var(--transition-fast);
+}
+
+.action-manager__close-btn:hover {
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CONTENT AREA  —  matches .chat-panel__messages padding
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.action-manager__content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.action-manager__tab-content {
+  flex: 1;
+  overflow: auto;
+  padding: 12px 14px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.action-manager__tab-content::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.action-manager__tab-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.action-manager__tab-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.action-manager__tab-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.action-manager__library {
+  flex: 1;
+  overflow: auto;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4xl);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.action-manager__library::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.action-manager__library::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.action-manager__library::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.action-manager__library::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.action-manager__section-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-muted);
+  margin-bottom: var(--space-lg);
+  letter-spacing: 0.02em;
+}

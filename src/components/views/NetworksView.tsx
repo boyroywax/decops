@@ -3,7 +3,6 @@ import type {
   Agent, Channel, Group, Network, Bridge,
   BridgeMessage, BridgeForm, ViewId,
 } from "../../types";
-import { inputStyle } from "../shared/ui";
 import {
   Globe, Plus, Sparkles, Link2, Layers,
 } from "lucide-react";
@@ -13,6 +12,7 @@ import { BridgeBuilder } from "./networks/BridgeBuilder";
 import { BridgeCard } from "./networks/BridgeCard";
 import { CreateNetworkModal } from "./networks/CreateNetworkModal";
 import { TopologyPanel } from "./networks/TopologyPanel";
+import "../../styles/components/networks.css";
 
 interface NetworksViewProps {
   agents: Agent[];
@@ -56,73 +56,38 @@ export function NetworksView({
   ];
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <div className="networks-root">
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+      <div className="networks-header">
         <div>
-          <h2 style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontSize: 20, fontWeight: 700, marginBottom: 4,
-            display: "flex", alignItems: "center", gap: 10,
-            letterSpacing: "-0.01em",
-          }}>
+          <h2 className="networks-title">
             <GradientIcon icon={Globe} size={20} gradient={["#38bdf8", "#60a5fa"]} />
             Network Manager
           </h2>
-          <p style={{ fontSize: 12, color: "#71717a", margin: 0, lineHeight: 1.6 }}>
+          <p className="networks-subtitle">
             Create and manage isolated networks. Bridge agents across networks for cross-mesh communication.
           </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          style={{
-            background: "linear-gradient(135deg, #38bdf8 0%, #60a5fa 100%)",
-            border: "none",
-            color: "#0a0a0f",
-            padding: "10px 20px",
-            borderRadius: 8,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            fontSize: 12, fontWeight: 600,
-            display: "flex", alignItems: "center", gap: 6,
-            flexShrink: 0,
-          }}
+          className="networks-create-btn"
         >
           <Plus size={14} strokeWidth={2.5} /> New Network
         </button>
       </div>
 
       {/* Tab Bar */}
-      <div style={{
-        display: "flex", gap: 2, marginBottom: 20,
-        background: "rgba(0,0,0,0.2)", borderRadius: 10,
-        padding: 3, border: "1px solid rgba(255,255,255,0.04)",
-      }}>
+      <div className="networks-tab-bar">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            style={{
-              flex: 1,
-              background: activeTab === tab.id ? "rgba(56,189,248,0.1)" : "transparent",
-              border: activeTab === tab.id ? "1px solid rgba(56,189,248,0.2)" : "1px solid transparent",
-              color: activeTab === tab.id ? "#38bdf8" : "#71717a",
-              padding: "8px 16px", borderRadius: 8,
-              cursor: "pointer", fontFamily: "inherit",
-              fontSize: 11, fontWeight: 500,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              gap: 6, transition: "all 0.15s",
-            }}
+            className={`networks-tab${activeTab === tab.id ? " networks-tab--active" : ""}`}
           >
             <tab.icon size={13} />
             {tab.label}
             {tab.count !== undefined && tab.count > 0 && (
-              <span style={{
-                fontSize: 9,
-                background: activeTab === tab.id ? "rgba(56,189,248,0.2)" : "rgba(255,255,255,0.06)",
-                color: activeTab === tab.id ? "#38bdf8" : "#52525b",
-                padding: "1px 6px", borderRadius: 8,
-              }}>
+              <span className="networks-tab__count">
                 {tab.count}
               </span>
             )}
@@ -132,14 +97,10 @@ export function NetworksView({
 
       {/* ─── Networks Tab ─── */}
       {activeTab === "networks" && (
-        <div style={{ flex: 1, overflow: "auto" }}>
+        <div className="networks-tab-content">
           {/* Network Cards Grid */}
           {ecosystems.length > 0 ? (
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-              gap: 16,
-            }}>
+            <div className="networks-grid">
               {ecosystems.map((net) => (
                 <NetworkCard
                   key={net.id}
@@ -157,41 +118,26 @@ export function NetworksView({
             </div>
           ) : (
             /* Empty state */
-            <div style={{
-              textAlign: "center", padding: 60, color: "#3f3f46",
-              border: "1px dashed rgba(56,189,248,0.12)", borderRadius: 14,
-            }}>
-              <div style={{ marginBottom: 16 }}>
+            <div className="networks-empty">
+              <div className="networks-empty__icon">
                 <GradientIcon icon={Globe} size={36} gradient={["#38bdf8", "#60a5fa"]} />
               </div>
-              <div style={{ fontSize: 13, color: "#71717a", fontWeight: 500, marginBottom: 8 }}>
+              <div className="networks-empty__title">
                 No networks yet
               </div>
-              <div style={{ fontSize: 11, color: "#52525b", marginBottom: 20, maxWidth: 360, margin: "0 auto 20px" }}>
+              <div className="networks-empty__desc">
                 Create a network to organize your agents, channels, and groups. Use the Architect for AI-powered network generation.
               </div>
-              <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <div className="networks-empty__actions">
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  style={{
-                    background: "rgba(56,189,248,0.1)",
-                    border: "1px solid rgba(56,189,248,0.2)",
-                    color: "#38bdf8", padding: "10px 20px", borderRadius: 8,
-                    fontFamily: "inherit", fontSize: 11, cursor: "pointer",
-                    display: "flex", alignItems: "center", gap: 6,
-                  }}
+                  className="networks-empty__create-btn"
                 >
                   <Plus size={14} /> Create Network
                 </button>
                 <button
                   onClick={() => setView("architect")}
-                  style={{
-                    background: "rgba(251,191,36,0.1)",
-                    border: "1px solid rgba(251,191,36,0.2)",
-                    color: "#fbbf24", padding: "10px 20px", borderRadius: 8,
-                    fontFamily: "inherit", fontSize: 11, cursor: "pointer",
-                    display: "flex", alignItems: "center", gap: 6,
-                  }}
+                  className="networks-empty__architect-btn"
                 >
                   <Sparkles size={14} /> Open Architect
                 </button>
@@ -203,26 +149,16 @@ export function NetworksView({
 
       {/* ─── Bridges Tab ─── */}
       {activeTab === "bridges" && (
-        <div style={{ flex: 1, overflow: "auto" }}>
+        <div className="networks-tab-content">
           {/* Create Bridge CTA */}
-          <div style={{
-            display: "flex", justifyContent: "space-between",
-            alignItems: "center", marginBottom: 16,
-          }}>
-            <div style={{ fontSize: 12, color: "#a1a1aa" }}>
+          <div className="bridges-header">
+            <div className="bridges-desc">
               Bridges connect agents across different networks. Bridges are a channel type ({`p2p → bridge`}).
             </div>
             {ecosystems.length >= 2 && (
               <button
                 onClick={() => setShowBridgeBuilder(!showBridgeBuilder)}
-                style={{
-                  background: showBridgeBuilder ? "rgba(251,191,36,0.1)" : "rgba(251,191,36,0.06)",
-                  border: `1px solid ${showBridgeBuilder ? "rgba(251,191,36,0.3)" : "rgba(251,191,36,0.15)"}`,
-                  color: "#fbbf24", padding: "8px 16px", borderRadius: 8,
-                  fontFamily: "inherit", fontSize: 11, fontWeight: 500,
-                  cursor: "pointer", display: "flex", alignItems: "center",
-                  gap: 6, flexShrink: 0,
-                }}
+                className={`bridges-new-btn${showBridgeBuilder ? " bridges-new-btn--active" : ""}`}
               >
                 <Link2 size={13} /> {showBridgeBuilder ? "Hide Builder" : "New Bridge"}
               </button>
@@ -244,7 +180,7 @@ export function NetworksView({
 
           {/* Bridge List */}
           {bridges.length > 0 ? (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 12 }}>
+            <div className="bridges-grid">
               {bridges.map((b) => (
                 <BridgeCard
                   key={b.id}
@@ -256,13 +192,10 @@ export function NetworksView({
               ))}
             </div>
           ) : (
-            <div style={{
-              textAlign: "center", padding: 50, color: "#3f3f46",
-              border: "1px dashed rgba(251,191,36,0.1)", borderRadius: 14,
-            }}>
-              <Link2 size={28} color="#3f3f46" style={{ marginBottom: 8 }} />
-              <div style={{ fontSize: 12, marginBottom: 8, color: "#52525b" }}>No bridges yet</div>
-              <div style={{ fontSize: 11, color: "#3f3f46", maxWidth: 300, margin: "0 auto" }}>
+            <div className="bridges-empty">
+              <Link2 size={28} color="#3f3f46" className="bridges-empty__icon" />
+              <div className="bridges-empty__title">No bridges yet</div>
+              <div className="bridges-empty__desc">
                 {ecosystems.length < 2
                   ? "You need at least 2 saved networks to create bridges between them."
                   : "Create a bridge to connect agents across different networks."}
@@ -274,7 +207,7 @@ export function NetworksView({
 
       {/* ─── Topology Tab ─── */}
       {activeTab === "topology" && (
-        <div style={{ flex: 1 }}>
+        <div className="networks-tab-content--no-scroll">
           <TopologyPanel ecosystems={ecosystems} bridges={bridges} activeBridges={activeBridges} />
         </div>
       )}

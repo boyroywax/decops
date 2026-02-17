@@ -1,5 +1,12 @@
 import type { CSSProperties, ReactNode } from "react";
 
+// NOTE: These inline style constants are DEPRECATED
+// Use CSS classes from the design system instead:
+// - .input, .input-accent, .input-channel, etc. for inputs
+// - .section-title for section titles
+// - .btn-pill for pill buttons
+// - .checkbox for checkboxes
+// - .bulk-action-bar for bulk actions
 export const inputStyle: CSSProperties = {
   background: "rgba(0,0,0,0.4)",
   border: "1px solid rgba(255,255,255,0.08)",
@@ -16,7 +23,7 @@ export const inputStyle: CSSProperties = {
 
 export function SectionTitle({ text }: { text: string }) {
   return (
-    <div style={{ fontSize: 9, color: "#52525b", letterSpacing: "0.12em", marginBottom: 10, textTransform: "uppercase" }}>
+    <div className="section-title">
       {text}
     </div>
   );
@@ -36,17 +43,12 @@ export function PillButton({
   return (
     <button
       onClick={onClick}
-      style={{
-        background: active ? activeColor + "18" : "rgba(0,0,0,0.3)",
-        border: `1px solid ${active ? activeColor + "45" : "rgba(255,255,255,0.06)"}`,
-        color: active ? activeColor : "#71717a",
-        padding: "8px 12px",
-        borderRadius: 6,
-        cursor: "pointer",
-        fontFamily: "inherit",
-        fontSize: 11,
-        transition: "all 0.15s",
-      }}
+      className={`btn-pill ${active ? 'active' : ''}`}
+      style={active ? { 
+        background: `${activeColor}18`, 
+        color: activeColor, 
+        borderColor: `${activeColor}45` 
+      } : undefined}
     >
       {children}
     </button>
@@ -65,23 +67,11 @@ export function BulkCheckbox({
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onChange(); }}
-      style={{
-        width: 18,
-        height: 18,
-        borderRadius: 4,
-        border: `1.5px solid ${checked ? color : "rgba(255,255,255,0.15)"}`,
-        background: checked ? color + "20" : "transparent",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-        transition: "all 0.15s",
-        padding: 0,
-      }}
+      className={`checkbox ${checked ? 'checked' : ''}`}
+      style={checked ? { borderColor: color, background: `${color}20` } : undefined}
     >
       {checked && (
-        <span style={{ color, fontSize: 11, lineHeight: 1 }}>✓</span>
+        <span className="checkbox-checkmark" style={{ color }}>✓</span>
       )}
     </button>
   );
@@ -108,89 +98,26 @@ export function BulkActionBar({
 }) {
   if (count === 0) return null;
   return (
-    <div
-      style={{
-        position: "sticky",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 50,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "12px 18px",
-        background: "rgba(10,10,15,0.95)",
-        backdropFilter: "blur(12px)",
-        border: "1px solid rgba(239,68,68,0.2)",
-        borderRadius: 10,
-        marginTop: 16,
-        animation: "slideUp 0.2s ease-out",
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{
-          fontSize: 12, fontWeight: 600, color: "#ef4444",
-          background: "rgba(239,68,68,0.1)", padding: "4px 10px",
-          borderRadius: 6, fontFamily: "var(--font-mono)",
-        }}>
+    <div className="bulk-action-bar">
+      <div className="flex items-center gap-lg">
+        <span className="bulk-action-count">
           {count}
         </span>
-        <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+        <span className="bulk-action-label">
           {entityName}{count !== 1 ? "s" : ""} selected
         </span>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <button
-          onClick={allSelected ? onClear : onSelectAll}
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: "1px solid var(--border-medium)",
-            color: "var(--text-muted)",
-            padding: "6px 12px",
-            borderRadius: 6,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            fontSize: 10,
-          }}
-        >
+      <div className="bulk-actions">
+        <button onClick={allSelected ? onClear : onSelectAll} className="btn btn-ghost btn-sm">
           {allSelected ? "Deselect All" : `Select All (${total})`}
         </button>
-        <button
-          onClick={onClear}
-          style={{
-            background: "transparent",
-            border: "1px solid var(--border-medium)",
-            color: "var(--text-muted)",
-            padding: "6px 12px",
-            borderRadius: 6,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            fontSize: 10,
-          }}
-        >
+        <button onClick={onClear} className="btn btn-ghost btn-sm">
           Cancel
         </button>
-        <button
-          onClick={onDelete}
-          style={{
-            background: "rgba(239,68,68,0.15)",
-            border: "1px solid rgba(239,68,68,0.35)",
-            color: "#ef4444",
-            padding: "6px 14px",
-            borderRadius: 6,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            fontSize: 11,
-            fontWeight: 500,
-            display: "flex",
-            alignItems: "center",
-            gap: 5,
-          }}
-        >
+        <button onClick={onDelete} className="btn btn-danger btn-sm">
           🗑 Delete {count}
         </button>
       </div>
-      <style>{`@keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
     </div>
   );
 }
