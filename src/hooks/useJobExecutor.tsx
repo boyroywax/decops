@@ -341,7 +341,14 @@ export function useJobExecutor({
                         id: `art-${Date.now()}`,
                         type: "json",
                         name: "result.json",
-                        content: JSON.stringify(resultArtifact, null, 2)
+                        content: JSON.stringify(resultArtifact, null, 2),
+                        tags: [
+                            `type:json`,
+                            `source:job`,
+                            `job:${queuedJob.type}`,
+                            ...(queuedJob.request?.name ? [`name:${queuedJob.request.name}`] : []),
+                        ],
+                        source: "job",
                     });
 
                 } catch (err: any) {

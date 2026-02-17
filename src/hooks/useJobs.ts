@@ -39,11 +39,12 @@ export function useJobs() {
     }, []);
 
     const addArtifact = useCallback((jobId: string, artifact: JobArtifact) => {
+        const stamped = { ...artifact, createdAt: artifact.createdAt || Date.now(), source: artifact.source || "job" as const };
         setJobs((prev) => prev.map((job) => {
             if (job.id === jobId) {
                 return {
                     ...job,
-                    artifacts: [...job.artifacts, artifact],
+                    artifacts: [...job.artifacts, stamped],
                     updatedAt: Date.now()
                 };
             }
@@ -52,7 +53,16 @@ export function useJobs() {
     }, []);
 
     const importArtifact = useCallback((artifact: JobArtifact) => {
-        setStandaloneArtifacts(prev => [artifact, ...prev]);
+        const stamped = { ...artifact, createdAt: artifact.createdAt || Date.now(), source: artifact.source || "import" as const };
+        setStandaloneArtifacts(prev => [stamped, ...prev]);
+    }, []);
+
+    const updateArtifact = useCallback((id: string, updates: Partial<JobArtifact>) => {
+        setStandaloneArtifacts(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+        setJobs(prev => prev.map(job => ({
+            ...job,
+            artifacts: job.artifacts.map(a => a.id === id ? { ...a, ...updates } : a)
+        })));
     }, []);
 
     const removeJob = useCallback((id: string) => {
@@ -142,6 +152,7 @@ export function useJobs() {
         clearJobs,
         importArtifact,
         removeArtifact,
+        updateArtifact,
         allArtifacts,
         isPaused,
         toggleQueuePause,

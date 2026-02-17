@@ -422,12 +422,18 @@ export interface EmailOTPVerification {
 
 export type JobStatus = "queued" | "running" | "completed" | "failed";
 
+export type ArtifactType = "markdown" | "json" | "yaml" | "csv" | "image" | "code";
+
 export interface JobArtifact {
   id: string;
-  type: "markdown" | "json" | "yaml" | "csv" | "image" | "code";
+  type: ArtifactType;
   content?: string; // Text content
   url?: string; // URL for images or downloads
   name: string;
+  tags?: string[];  // Tag-based organization (e.g. "type:json", "agent:alice", "network:alpha")
+  createdAt?: number;  // Unix timestamp
+  description?: string;  // Optional description
+  source?: "job" | "import" | "command" | "user";  // Where the artifact came from
 }
 
 export interface JobStep {

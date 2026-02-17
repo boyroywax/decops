@@ -16,7 +16,7 @@ export const createArtifactCommand: CommandDefinition = {
         type: {
             name: "type",
             type: "string",
-            description: "Type: markdown, json, yaml, code",
+            description: "Type: markdown, json, yaml, code, csv, image",
             required: true,
             defaultValue: "markdown"
         },
@@ -25,16 +25,36 @@ export const createArtifactCommand: CommandDefinition = {
             type: "string",
             description: "The text content of the artifact",
             required: true
+        },
+        tags: {
+            name: "tags",
+            type: "string",
+            description: "Comma-separated tags (e.g. source:job,type:report)",
+            required: false
+        },
+        description: {
+            name: "description",
+            type: "string",
+            description: "Short description of the artifact",
+            required: false
         }
     },
     output: "Details of the created artifact.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" }, artifact: { type: "object" } } },
     execute: async (args, context: CommandContext) => {
+        const tags = args.tags
+            ? args.tags.split(",").map((t: string) => t.trim()).filter(Boolean)
+            : [];
+        tags.push(`type:${args.type}`);
+
         const artifact = {
             id: `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
             name: args.name,
             type: args.type,
-            content: args.content
+            content: args.content,
+            tags,
+            description: args.description || "",
+            source: "command" as const,
         };
         context.jobs.importArtifact(artifact);
         context.workspace.addLog(`Artifact created: ${args.name}`);
@@ -64,22 +84,14 @@ export const editArtifactCommand: CommandDefinition = {
     output: "Details of the updated artifact.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" }, artifact: { type: "object" } } },
     execute: async (args, context: CommandContext) => {
-        // This is a bit tricky because centralized 'edit' isn't explicitly in useJobs context yet,
-        // but we can simulate it by removing and re-adding or implementing a rigorous update.
-        // For now, we'll try to find it in "allArtifacts" and update it if possible.
-        // Note: The current useJobs hook doesn't expose a direct 'updateArtifact' method for standalone artifacts easily
-        // without some refactoring. We'll implement a simple "replace" logic here using remove+import (not atomic, but works).
-
         const existing = context.jobs.allArtifacts.find((a: any) => a.id === args.id);
         if (!existing) {
             throw new Error(`Artifact ${args.id} not found.`);
         }
 
-        context.jobs.removeArtifact(args.id);
+        context.jobs.updateArtifact(args.id, { content: args.content });
 
         const updated = { ...existing, content: args.content };
-        context.jobs.importArtifact(updated);
-
         context.workspace.addLog(`Artifact updated: ${existing.name}`);
         return { success: true, artifact: updated };
     }

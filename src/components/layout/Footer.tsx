@@ -25,6 +25,7 @@ interface FooterProps {
     allArtifacts: JobArtifact[];
     importArtifact: (artifact: JobArtifact) => void;
     removeArtifact: (id: string) => void;
+    updateArtifact: (id: string, updates: Partial<JobArtifact>) => void;
     isPaused: boolean;
     toggleQueuePause: () => void;
     stopJob: (id: string) => void;
@@ -38,7 +39,7 @@ interface FooterProps {
 
 type PanelMode = "none" | "chat" | "jobs" | "artifacts";
 
-export function Footer({ agents, channels, groups, messages, ecosystems, bridges, ecosystem, addLog, setView, jobs, removeJob, clearJobs, addJob, allArtifacts, importArtifact, removeArtifact, savedJobs, saveJob, deleteJob, ...jobsProps }: FooterProps) {
+export function Footer({ agents, channels, groups, messages, ecosystems, bridges, ecosystem, addLog, setView, jobs, removeJob, clearJobs, addJob, allArtifacts, importArtifact, removeArtifact, updateArtifact, savedJobs, saveJob, deleteJob, ...jobsProps }: FooterProps) {
     const [panel, setPanel] = useState<PanelMode>("none");
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const { theme, toggleTheme } = useTheme();
@@ -86,6 +87,7 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                     artifacts={allArtifacts}
                     importArtifact={importArtifact}
                     removeArtifact={removeArtifact}
+                    updateArtifact={updateArtifact}
                     onClose={() => setPanel("none")}
                 />
             )}

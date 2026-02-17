@@ -25,6 +25,7 @@ interface ViewSwitcherProps {
     allArtifacts: any[];
     importArtifact: any;
     removeArtifact: any;
+    updateArtifact: any;
     notebookEntries: any[];
     clearNotebook: () => void;
     exportNotebook: () => void;
@@ -43,6 +44,7 @@ export function ViewSwitcher({
     allArtifacts,
     importArtifact,
     removeArtifact,
+    updateArtifact,
     notebookEntries,
     clearNotebook,
     exportNotebook,
@@ -266,6 +268,7 @@ export function ViewSwitcher({
                 artifacts={allArtifacts}
                 importArtifact={importArtifact}
                 removeArtifact={removeArtifact}
+                updateArtifact={updateArtifact}
             />
         );
     }

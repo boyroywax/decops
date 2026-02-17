@@ -83,7 +83,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   const { user, logout } = useAuth();
   const {
     jobs, addJob, updateJobStatus, addArtifact, removeJob, clearJobs,
-    allArtifacts, importArtifact, removeArtifact,
+    allArtifacts, importArtifact, removeArtifact, updateArtifact,
     isPaused, toggleQueuePause, stopJob, reorderQueue, updateJob,
     setJobs, setStandaloneArtifacts
   } = useJobsContext();
@@ -328,6 +328,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
               allArtifacts={allArtifacts}
               importArtifact={importArtifact}
               removeArtifact={removeArtifact}
+              updateArtifact={updateArtifact}
               notebookEntries={notebookEntries}
               clearNotebook={clearNotebook}
               exportNotebook={exportNotebook}
@@ -353,6 +354,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           allArtifacts={allArtifacts}
           importArtifact={importArtifact}
           removeArtifact={removeArtifact}
+          updateArtifact={updateArtifact}
           isPaused={isPaused}
           toggleQueuePause={toggleQueuePause}
           stopJob={stopJob}
