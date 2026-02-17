@@ -29,9 +29,17 @@ export function ArchitectPopup({
 }: ArchitectPopupProps) {
   const backdropRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+
+  // Auto-resize textarea based on content
+  const autoResize = () => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px"; // max ~4 lines
+  };
 
   // Focus input when popup opens
   useEffect(() => {
@@ -39,6 +47,11 @@ export function ArchitectPopup({
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [isOpen, archPhase]);
+
+  // Auto-resize when prompt changes (e.g., preset selection)
+  useEffect(() => {
+    if (isOpen) setTimeout(autoResize, 0);
+  }, [isOpen, archPrompt]);
 
   // Escape to close (unless deploying)
   useEffect(() => {
@@ -203,21 +216,26 @@ export function ArchitectPopup({
 
             {/* Command Input Bar */}
             <div style={{
-              display: "flex", gap: 8, alignItems: "center",
+              display: "flex", gap: 8, alignItems: "flex-start",
               background: "rgba(0,0,0,0.3)",
               border: "1px solid rgba(251,191,36,0.15)",
               borderRadius: 10,
               padding: "4px 4px 4px 14px",
             }}>
-              <Sparkles size={14} color="#fbbf24" style={{ flexShrink: 0, opacity: archGenerating ? 0.5 : 1 }} />
-              <input
+              <Sparkles size={14} color="#fbbf24" style={{ flexShrink: 0, opacity: archGenerating ? 0.5 : 1, marginTop: 11 }} />
+              <textarea
                 ref={inputRef}
-                type="text"
                 value={archPrompt}
-                onChange={(e) => setArchPrompt(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") handleSubmit(); }}
+                onChange={(e) => { setArchPrompt(e.target.value); autoResize(); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
                 placeholder="Describe a network to build…"
                 disabled={archGenerating}
+                rows={1}
                 style={{
                   flex: 1,
                   background: "transparent",
@@ -227,6 +245,11 @@ export function ArchitectPopup({
                   fontFamily: "'DM Mono', monospace",
                   fontSize: 13,
                   padding: "10px 0",
+                  resize: "none",
+                  lineHeight: 1.5,
+                  minHeight: 36,
+                  maxHeight: 120,
+                  overflow: "auto",
                 }}
               />
               <button
@@ -243,6 +266,8 @@ export function ArchitectPopup({
                   display: "flex", alignItems: "center", gap: 6,
                   flexShrink: 0,
                   transition: "all 0.15s",
+                  alignSelf: "flex-start",
+                  marginTop: 4,
                 }}
               >
                 {archGenerating ? (
@@ -266,7 +291,7 @@ export function ArchitectPopup({
 
             {/* Keyboard hint */}
             <div style={{ textAlign: "center", marginTop: 12, fontSize: 10, color: "#3f3f46" }}>
-              Press <kbd style={kbdStyle}>Enter</kbd> to generate · <kbd style={kbdStyle}>Esc</kbd> to close
+              <kbd style={kbdStyle}>Enter</kbd> generate · <kbd style={kbdStyle}>Shift+Enter</kbd> newline · <kbd style={kbdStyle}>Esc</kbd> close
             </div>
           </div>
         )}
