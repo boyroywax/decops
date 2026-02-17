@@ -29,6 +29,12 @@ export const createAgentCommand: CommandDefinition = {
             description: "Getting started prompt for the agent",
             required: true,
             defaultValue: 0
+        },
+        networkId: {
+            name: "networkId",
+            type: "string",
+            description: "ID of the network this agent belongs to",
+            required: false,
         }
     },
     output: "JSON object containing the created agent's ID and details.",
@@ -47,7 +53,7 @@ export const createAgentCommand: CommandDefinition = {
         }
     },
     execute: async (args, context) => {
-        const { name, role, prompt } = args;
+        const { name, role, prompt, networkId } = args;
         const { workspace } = context;
 
         // Simulate delay
@@ -62,7 +68,7 @@ export const createAgentCommand: CommandDefinition = {
             keys: generateKeyPair(),
             createdAt: new Date().toISOString(),
             status: "active" as const,
-            networkId: context.ecosystem?.activeNetworkId || undefined,
+            networkId: networkId || context.ecosystem?.activeNetworkId || undefined,
         };
 
         workspace.setAgents((prev: any[]) => [...prev, newAgent]);

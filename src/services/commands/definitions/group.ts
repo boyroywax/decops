@@ -26,6 +26,12 @@ export const createGroupCommand: CommandDefinition = {
             type: "string",
             description: "Governance model",
             required: true,
+        },
+        networkId: {
+            name: "networkId",
+            type: "string",
+            description: "ID of the network this group belongs to",
+            required: false,
         }
     },
     output: "JSON object containing the created group details.",
@@ -69,7 +75,7 @@ export const createGroupCommand: CommandDefinition = {
             did: generateGroupDID(),
             color: GROUP_COLORS[groups.length % GROUP_COLORS.length],
             createdAt: new Date().toISOString(),
-            networkId: context.ecosystem?.activeNetworkId || undefined,
+            networkId: args.networkId || context.ecosystem?.activeNetworkId || undefined,
         };
 
         setGroups((prev: any[]) => [...prev, newGroup]);

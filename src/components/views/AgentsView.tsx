@@ -66,33 +66,72 @@ export function AgentsView({
 
       {showCreate && (
         <div style={{ background: "rgba(0,229,160,0.04)", border: "1px solid rgba(0,229,160,0.12)", borderRadius: 10, padding: 20, marginBottom: 20 }}>
-          <SectionTitle text="Identity & Role" />
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
-            <input placeholder="Agent name" value={newAgent.name} onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })} style={{ ...inputStyle, flex: 1, minWidth: 160, border: "1px solid rgba(0,229,160,0.15)" }} />
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {ROLES.map((r) => (
-                <PillButton key={r.id} active={newAgent.role === r.id} activeColor={r.color} onClick={() => setNewAgent({ ...newAgent, role: r.id })}>
-                  {r.icon} {r.label}
-                </PillButton>
-              ))}
+          {ecosystems.length === 0 ? (
+            <div style={{ textAlign: "center", padding: 30, color: "#71717a" }}>
+              <Globe size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
+              <div style={{ fontSize: 12, marginBottom: 4 }}>No networks available</div>
+              <div style={{ fontSize: 10, color: "#52525b" }}>Create a network first before adding agents.</div>
             </div>
-          </div>
-          <SectionTitle text="Agent Prompt" />
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-            {PROMPT_TEMPLATES.map((t, idx) => (
-              <button key={t.label} onClick={() => setNewAgent({ ...newAgent, prompt: t.prompt, templateIdx: idx })} style={{
-                background: newAgent.templateIdx === idx ? "rgba(0,229,160,0.12)" : "rgba(0,0,0,0.3)",
-                border: `1px solid ${newAgent.templateIdx === idx ? "rgba(0,229,160,0.3)" : "rgba(255,255,255,0.06)"}`,
-                color: newAgent.templateIdx === idx ? "#00e5a0" : "#71717a",
-                padding: "5px 10px", borderRadius: 4, cursor: "pointer", fontFamily: "inherit", fontSize: 10,
-              }}>{t.label}</button>
-            ))}
-          </div>
-          <textarea placeholder="Define behavior..." value={newAgent.prompt} onChange={(e) => setNewAgent({ ...newAgent, prompt: e.target.value, templateIdx: 0 })} rows={4} style={{ ...inputStyle, border: "1px solid rgba(0,229,160,0.15)", lineHeight: 1.6 }} />
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
-            <span style={{ fontSize: 10, color: "#52525b" }}>{newAgent.prompt.length > 0 ? `${newAgent.prompt.length} chars` : "No prompt"}</span>
-            <button onClick={createAgent} style={{ background: "#00e5a0", color: "#0a0a0f", border: "none", padding: "10px 20px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 500 }}>Generate Identity</button>
-          </div>
+          ) : (
+            <>
+              <SectionTitle text="Network Assignment" />
+              <div style={{ marginBottom: 16 }}>
+                <select 
+                  value={newAgent.networkId} 
+                  onChange={(e) => setNewAgent({ ...newAgent, networkId: e.target.value })} 
+                  style={{ ...inputStyle, width: "100%", border: "1px solid rgba(0,229,160,0.2)" }}
+                >
+                  <option value="">Select network...</option>
+                  {ecosystems.map((n) => (
+                    <option key={n.id} value={n.id}>{n.name}</option>
+                  ))}
+                </select>
+              </div>
+              <SectionTitle text="Identity & Role" />
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+                <input placeholder="Agent name" value={newAgent.name} onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })} style={{ ...inputStyle, flex: 1, minWidth: 160, border: "1px solid rgba(0,229,160,0.15)" }} />
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {ROLES.map((r) => (
+                    <PillButton key={r.id} active={newAgent.role === r.id} activeColor={r.color} onClick={() => setNewAgent({ ...newAgent, role: r.id })}>
+                      {r.icon} {r.label}
+                    </PillButton>
+                  ))}
+                </div>
+              </div>
+              <SectionTitle text="Agent Prompt" />
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+                {PROMPT_TEMPLATES.map((t, idx) => (
+                  <button key={t.label} onClick={() => setNewAgent({ ...newAgent, prompt: t.prompt, templateIdx: idx })} style={{
+                    background: newAgent.templateIdx === idx ? "rgba(0,229,160,0.12)" : "rgba(0,0,0,0.3)",
+                    border: `1px solid ${newAgent.templateIdx === idx ? "rgba(0,229,160,0.3)" : "rgba(255,255,255,0.06)"}`,
+                    color: newAgent.templateIdx === idx ? "#00e5a0" : "#71717a",
+                    padding: "5px 10px", borderRadius: 4, cursor: "pointer", fontFamily: "inherit", fontSize: 10,
+                  }}>{t.label}</button>
+                ))}
+              </div>
+              <textarea placeholder="Define behavior..." value={newAgent.prompt} onChange={(e) => setNewAgent({ ...newAgent, prompt: e.target.value, templateIdx: 0 })} rows={4} style={{ ...inputStyle, border: "1px solid rgba(0,229,160,0.15)", lineHeight: 1.6 }} />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
+                <span style={{ fontSize: 10, color: "#52525b" }}>{newAgent.prompt.length > 0 ? `${newAgent.prompt.length} chars` : "No prompt"}</span>
+                <button 
+                  onClick={createAgent} 
+                  disabled={!newAgent.networkId || !newAgent.name.trim()}
+                  style={{ 
+                    background: newAgent.networkId && newAgent.name.trim() ? "#00e5a0" : "#3f3f46", 
+                    color: "#0a0a0f", 
+                    border: "none", 
+                    padding: "10px 20px", 
+                    borderRadius: 6, 
+                    cursor: newAgent.networkId && newAgent.name.trim() ? "pointer" : "not-allowed", 
+                    fontFamily: "inherit", 
+                    fontSize: 12, 
+                    fontWeight: 500 
+                  }}
+                >
+                  Generate Identity
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 

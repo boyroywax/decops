@@ -61,56 +61,101 @@ export function GroupsView({
 
       {showGroupCreate && (
         <div style={{ background: "rgba(244,114,182,0.04)", border: "1px solid rgba(244,114,182,0.12)", borderRadius: 10, padding: 20, marginBottom: 20 }}>
-          <SectionTitle text="Group Identity" />
-          <input placeholder="Group name" value={groupForm.name} onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })} style={{ ...inputStyle, border: "1px solid rgba(244,114,182,0.15)", marginBottom: 16 }} />
-          <SectionTitle text="Governance Model" />
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8, marginBottom: 16 }}>
-            {GOVERNANCE_MODELS.map((g) => (
-              <button key={g.id} onClick={() => setGroupForm({ ...groupForm, governance: g.id })} style={{
-                background: groupForm.governance === g.id ? "rgba(244,114,182,0.1)" : "rgba(0,0,0,0.3)",
-                border: `1px solid ${groupForm.governance === g.id ? "rgba(244,114,182,0.35)" : "rgba(255,255,255,0.06)"}`,
-                color: groupForm.governance === g.id ? "#f472b6" : "#71717a",
-                padding: "10px 14px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
-              }}>
-                <div style={{ fontSize: 13, marginBottom: 4 }}>{g.icon} {g.label}</div>
-                <div style={{ fontSize: 9, color: "#52525b" }}>{g.desc}</div>
-              </button>
-            ))}
-          </div>
-          {groupForm.governance === "threshold" && (
-            <div style={{ marginBottom: 16 }}>
-              <SectionTitle text="Threshold (M-of-N)" />
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <input type="number" min={1} max={groupForm.members.length || 10} value={groupForm.threshold} onChange={(e) => setGroupForm({ ...groupForm, threshold: parseInt(e.target.value) || 2 })} style={{ ...inputStyle, width: 60, textAlign: "center", border: "1px solid rgba(244,114,182,0.15)" }} />
-                <span style={{ fontSize: 11, color: "#71717a" }}>of {groupForm.members.length} required</span>
-              </div>
+          {ecosystems.length === 0 ? (
+            <div style={{ textAlign: "center", padding: 30, color: "#71717a" }}>
+              <Globe size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
+              <div style={{ fontSize: 12, marginBottom: 4 }}>No networks available</div>
+              <div style={{ fontSize: 10, color: "#52525b" }}>Create a network first before forming groups.</div>
             </div>
-          )}
-          <SectionTitle text="Select Members" />
-          {agents.length === 0 ? (
-            <div style={{ fontSize: 11, color: "#3f3f46", padding: 16 }}>Create agents first.</div>
           ) : (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-              {agents.map((a) => {
-                const role = ROLES.find((r) => r.id === a.role)!;
-                const selected = groupForm.members.includes(a.id);
-                return (
-                  <button key={a.id} onClick={() => toggleGroupMember(a.id)} style={{
-                    background: selected ? role.color + "15" : "rgba(0,0,0,0.3)",
-                    border: `1px solid ${selected ? role.color + "40" : "rgba(255,255,255,0.06)"}`,
-                    color: selected ? role.color : "#71717a",
-                    padding: "8px 14px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 11,
+            <>
+              <SectionTitle text="Network Assignment" />
+              <select 
+                value={groupForm.networkId} 
+                onChange={(e) => setGroupForm({ ...groupForm, networkId: e.target.value, members: [] })} 
+                style={{ ...inputStyle, width: "100%", border: "1px solid rgba(244,114,182,0.2)", marginBottom: 16 }}
+              >
+                <option value="">Select network...</option>
+                {ecosystems.map((n) => (
+                  <option key={n.id} value={n.id}>{n.name}</option>
+                ))}
+              </select>
+              <SectionTitle text="Group Identity" />
+              <input placeholder="Group name" value={groupForm.name} onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })} style={{ ...inputStyle, border: "1px solid rgba(244,114,182,0.15)", marginBottom: 16 }} />
+              <SectionTitle text="Governance Model" />
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8, marginBottom: 16 }}>
+                {GOVERNANCE_MODELS.map((g) => (
+                  <button key={g.id} onClick={() => setGroupForm({ ...groupForm, governance: g.id })} style={{
+                    background: groupForm.governance === g.id ? "rgba(244,114,182,0.1)" : "rgba(0,0,0,0.3)",
+                    border: `1px solid ${groupForm.governance === g.id ? "rgba(244,114,182,0.35)" : "rgba(255,255,255,0.06)"}`,
+                    color: groupForm.governance === g.id ? "#f472b6" : "#71717a",
+                    padding: "10px 14px", borderRadius: 8, cursor: "pointer", fontFamily: "inherit", textAlign: "left",
                   }}>
-                    {selected ? "✓ " : ""}{role.icon} {a.name}
+                    <div style={{ fontSize: 13, marginBottom: 4 }}>{g.icon} {g.label}</div>
+                    <div style={{ fontSize: 9, color: "#52525b" }}>{g.desc}</div>
                   </button>
+                ))}
+              </div>
+              {groupForm.governance === "threshold" && (
+                <div style={{ marginBottom: 16 }}>
+                  <SectionTitle text="Threshold (M-of-N)" />
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <input type="number" min={1} max={groupForm.members.length || 10} value={groupForm.threshold} onChange={(e) => setGroupForm({ ...groupForm, threshold: parseInt(e.target.value) || 2 })} style={{ ...inputStyle, width: 60, textAlign: "center", border: "1px solid rgba(244,114,182,0.15)" }} />
+                    <span style={{ fontSize: 11, color: "#71717a" }}>of {groupForm.members.length} required</span>
+                  </div>
+                </div>
+              )}
+              <SectionTitle text="Select Members" />
+              {!groupForm.networkId ? (
+                <div style={{ fontSize: 11, color: "#71717a", padding: 16, textAlign: "center" }}>Select a network first to see available agents.</div>
+              ) : (() => {
+                const networkAgents = agents.filter(a => a.networkId === groupForm.networkId);
+                if (networkAgents.length === 0) {
+                  return (
+                    <div style={{ fontSize: 11, color: "#71717a", padding: 16, textAlign: "center" }}>No agents in this network. Create agents first.</div>
+                  );
+                }
+                return (
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+                    {networkAgents.map((a) => {
+                      const role = ROLES.find((r) => r.id === a.role)!;
+                      const selected = groupForm.members.includes(a.id);
+                      return (
+                        <button key={a.id} onClick={() => toggleGroupMember(a.id)} style={{
+                          background: selected ? role.color + "15" : "rgba(0,0,0,0.3)",
+                          border: `1px solid ${selected ? role.color + "40" : "rgba(255,255,255,0.06)"}`,
+                          color: selected ? role.color : "#71717a",
+                          padding: "8px 14px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 11,
+                        }}>
+                          {selected ? "✓ " : ""}{role.icon} {a.name}
+                        </button>
+                      );
+                    })}
+                  </div>
                 );
-              })}
-            </div>
+              })()}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 10, color: "#52525b" }}>{groupForm.members.length} selected</span>
+                <button 
+                  onClick={createGroup} 
+                  disabled={groupForm.members.length < 2 || !groupForm.name.trim() || !groupForm.networkId} 
+                  style={{ 
+                    background: groupForm.members.length >= 2 && groupForm.name.trim() && groupForm.networkId ? "#f472b6" : "#3f3f46", 
+                    color: "#0a0a0f", 
+                    border: "none", 
+                    padding: "10px 20px", 
+                    borderRadius: 6, 
+                    cursor: groupForm.members.length >= 2 && groupForm.networkId ? "pointer" : "not-allowed", 
+                    fontFamily: "inherit", 
+                    fontSize: 12, 
+                    fontWeight: 500 
+                  }}
+                >
+                  Form Group
+                </button>
+              </div>
+            </>
           )}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 10, color: "#52525b" }}>{groupForm.members.length} selected</span>
-            <button onClick={createGroup} disabled={groupForm.members.length < 2 || !groupForm.name.trim()} style={{ background: groupForm.members.length >= 2 && groupForm.name.trim() ? "#f472b6" : "#3f3f46", color: "#0a0a0f", border: "none", padding: "10px 20px", borderRadius: 6, cursor: groupForm.members.length >= 2 ? "pointer" : "not-allowed", fontFamily: "inherit", fontSize: 12, fontWeight: 500 }}>Form Group</button>
-          </div>
         </div>
       )}
 

@@ -286,12 +286,14 @@ export interface NewAgentForm {
   role: RoleId;
   prompt: string;
   templateIdx: number;
+  networkId: string;
 }
 
 export interface ChannelForm {
   from: string;
   to: string;
   type: ChannelTypeId;
+  networkId: string;
 }
 
 export interface GroupForm {
@@ -299,6 +301,7 @@ export interface GroupForm {
   governance: GovernanceModelId;
   members: string[];
   threshold: number;
+  networkId: string;
 }
 
 export interface BridgeForm {

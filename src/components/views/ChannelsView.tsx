@@ -50,32 +50,74 @@ export function ChannelsView({
         )}
       </div>
 
-      {agents.length < 2 ? (
+      {ecosystems.length === 0 ? (
         <div style={{ textAlign: "center", padding: 40, color: "#3f3f46", border: "1px dashed rgba(167,139,250,0.15)", borderRadius: 12 }}>
-          <div style={{ fontSize: 12 }}>Need at least 2 agents.</div>
+          <Globe size={24} style={{ marginBottom: 8, opacity: 0.5 }} />
+          <div style={{ fontSize: 12, marginBottom: 4 }}>No networks available</div>
+          <div style={{ fontSize: 10, color: "#52525b" }}>Create a network first before adding channels.</div>
         </div>
       ) : (
         <div style={{ background: "rgba(167,139,250,0.04)", border: "1px solid rgba(167,139,250,0.12)", borderRadius: 10, padding: 20, marginBottom: 20 }}>
           <SectionTitle text="Establish Channel" />
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <select value={channelForm.from} onChange={(e) => setChannelForm({ ...channelForm, from: e.target.value })} style={{ ...inputStyle, width: "auto", minWidth: 140, border: "1px solid rgba(167,139,250,0.2)" }}>
-              <option value="">From…</option>
-              {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-            <ArrowLeftRight size={10} color="#52525b" />
-            <select value={channelForm.to} onChange={(e) => setChannelForm({ ...channelForm, to: e.target.value })} style={{ ...inputStyle, width: "auto", minWidth: 140, border: "1px solid rgba(167,139,250,0.2)" }}>
-              <option value="">To…</option>
-              {agents.filter((a) => a.id !== channelForm.from).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-            <div style={{ display: "flex", gap: 4 }}>
-              {CHANNEL_TYPES.map((t) => (
-                <PillButton key={t.id} active={channelForm.type === t.id} activeColor="#a78bfa" onClick={() => setChannelForm({ ...channelForm, type: t.id })}>
-                  {t.icon} {t.label}
-                </PillButton>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
+            <select 
+              value={channelForm.networkId} 
+              onChange={(e) => setChannelForm({ ...channelForm, networkId: e.target.value, from: "", to: "" })} 
+              style={{ ...inputStyle, width: "auto", minWidth: 160, border: "1px solid rgba(167,139,250,0.2)" }}
+            >
+              <option value="">Select network...</option>
+              {ecosystems.map((n) => (
+                <option key={n.id} value={n.id}>{n.name}</option>
               ))}
-            </div>
-            <button onClick={createChannel} style={{ background: "#a78bfa", color: "#0a0a0f", border: "none", padding: "10px 18px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 500 }}>Connect</button>
+            </select>
           </div>
+          {channelForm.networkId && (() => {
+            const networkAgents = agents.filter(a => a.networkId === channelForm.networkId);
+            if (networkAgents.length < 2) {
+              return (
+                <div style={{ fontSize: 11, color: "#71717a", padding: 16, textAlign: "center" }}>
+                  Need at least 2 agents in this network to create a channel.
+                </div>
+              );
+            }
+            return (
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <select value={channelForm.from} onChange={(e) => setChannelForm({ ...channelForm, from: e.target.value })} style={{ ...inputStyle, width: "auto", minWidth: 140, border: "1px solid rgba(167,139,250,0.2)" }}>
+                  <option value="">From…</option>
+                  {networkAgents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+                <ArrowLeftRight size={10} color="#52525b" />
+                <select value={channelForm.to} onChange={(e) => setChannelForm({ ...channelForm, to: e.target.value })} style={{ ...inputStyle, width: "auto", minWidth: 140, border: "1px solid rgba(167,139,250,0.2)" }}>
+                  <option value="">To…</option>
+                  {networkAgents.filter((a) => a.id !== channelForm.from).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {CHANNEL_TYPES.map((t) => (
+                    <PillButton key={t.id} active={channelForm.type === t.id} activeColor="#a78bfa" onClick={() => setChannelForm({ ...channelForm, type: t.id })}>
+                      {t.icon} {t.label}
+                    </PillButton>
+                  ))}
+                </div>
+                <button 
+                  onClick={createChannel} 
+                  disabled={!channelForm.from || !channelForm.to}
+                  style={{ 
+                    background: channelForm.from && channelForm.to ? "#a78bfa" : "#3f3f46", 
+                    color: "#0a0a0f", 
+                    border: "none", 
+                    padding: "10px 18px", 
+                    borderRadius: 6, 
+                    cursor: channelForm.from && channelForm.to ? "pointer" : "not-allowed", 
+                    fontFamily: "inherit", 
+                    fontSize: 11, 
+                    fontWeight: 500 
+                  }}
+                >
+                  Connect
+                </button>
+              </div>
+            );
+          })()}
         </div>
       )}
 
