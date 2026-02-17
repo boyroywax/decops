@@ -171,6 +171,8 @@ export function NetworksView({
           {showBridgeBuilder && ecosystems.length >= 2 && (
             <BridgeBuilder
               ecosystems={ecosystems}
+              agents={agents}
+              groups={groups}
               bridgeForm={bridgeForm}
               setBridgeForm={setBridgeForm}
               bridgeFromNet={bridgeFromNet}

@@ -77,3 +77,10 @@
   color: #52525b;
   margin-top: 8px;
 }
+
+.bridge-builder__notice {
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  padding: var(--space-sm) 0;
+  margin-top: 4px;
+}

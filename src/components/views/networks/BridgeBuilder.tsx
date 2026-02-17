@@ -1,12 +1,14 @@
-import type { Network, Bridge, BridgeForm } from "../../../types";
+import type { Agent, Group, Network, Bridge, BridgeForm } from "../../../types";
 import { ROLES, CHANNEL_TYPES } from "../../../constants";
 import { inputStyle, PillButton } from "../../shared/ui";
-import { ArrowLeftRight, Link2 } from "lucide-react";
+import { ArrowLeftRight, Link2, Users } from "lucide-react";
 import { GradientIcon } from "../../shared/GradientIcon";
 import "../../../styles/components/bridge-builder.css";
 
 interface BridgeBuilderProps {
   ecosystems: Network[];
+  agents: Agent[];
+  groups: Group[];
   bridgeForm: BridgeForm;
   setBridgeForm: (v: BridgeForm) => void;
   bridgeFromNet: Network | null | undefined;
@@ -16,10 +18,23 @@ interface BridgeBuilderProps {
 }
 
 export function BridgeBuilder({
-  ecosystems, bridgeForm, setBridgeForm,
+  ecosystems, agents, groups, bridgeForm, setBridgeForm,
   bridgeFromNet, bridgeToNet,
   createBridge, onClose,
 }: BridgeBuilderProps) {
+  // Use workspace-level agents filtered by networkId (always fresh)
+  const fromNetAgents = bridgeForm.fromNet
+    ? agents.filter(a => a.networkId === bridgeForm.fromNet)
+    : [];
+  const toNetAgents = bridgeForm.toNet
+    ? agents.filter(a => a.networkId === bridgeForm.toNet)
+    : [];
+  const fromNetGroups = bridgeForm.fromNet
+    ? groups.filter(g => g.networkId === bridgeForm.fromNet)
+    : [];
+  const toNetGroups = bridgeForm.toNet
+    ? groups.filter(g => g.networkId === bridgeForm.toNet)
+    : [];
   const ready = bridgeForm.fromAgent && bridgeForm.toAgent;
   return (
     <div className="bridge-builder">
@@ -36,23 +51,59 @@ export function BridgeBuilder({
             style={{ ...inputStyle, border: "1px solid rgba(251,191,36,0.15)" }}
           >
             <option value="">Select network…</option>
-            {ecosystems.map((n) => (
-              <option key={n.id} value={n.id}>{n.name} ({n.agents.length} agents)</option>
-            ))}
+            {ecosystems.map((n) => {
+              const count = agents.filter(a => a.networkId === n.id).length;
+              return <option key={n.id} value={n.id}>{n.name} ({count} agents)</option>;
+            })}
           </select>
-          {bridgeFromNet && (
+          {bridgeForm.fromNet && fromNetAgents.length > 0 && (
             <select
               value={bridgeForm.fromAgent}
               onChange={(e) => setBridgeForm({ ...bridgeForm, fromAgent: e.target.value })}
               style={{ ...inputStyle, border: "1px solid rgba(251,191,36,0.1)", marginTop: 6 }}
             >
               <option value="">Select agent…</option>
-              {bridgeFromNet.agents.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name} ({ROLES.find((r) => r.id === a.role)?.label})
-                </option>
-              ))}
+              {fromNetGroups.length > 0 ? (
+                <>
+                  {fromNetGroups.map((g) => {
+                    const memberAgents = fromNetAgents.filter(a => g.members.includes(a.id));
+                    if (memberAgents.length === 0) return null;
+                    return (
+                      <optgroup key={g.id} label={`${g.name} (${memberAgents.length})`}>
+                        {memberAgents.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name} ({ROLES.find((r) => r.id === a.role)?.label})
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                  {(() => {
+                    const groupedIds = new Set(fromNetGroups.flatMap(g => g.members));
+                    const ungrouped = fromNetAgents.filter(a => !groupedIds.has(a.id));
+                    if (ungrouped.length === 0) return null;
+                    return (
+                      <optgroup label="Ungrouped">
+                        {ungrouped.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name} ({ROLES.find((r) => r.id === a.role)?.label})
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })()}
+                </>
+              ) : (
+                fromNetAgents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} ({ROLES.find((r) => r.id === a.role)?.label})
+                  </option>
+                ))
+              )}
             </select>
+          )}
+          {bridgeForm.fromNet && fromNetAgents.length === 0 && (
+            <div className="bridge-builder__notice">No agents in this network</div>
           )}
         </div>
         <div className="bridge-builder__arrow">
@@ -66,23 +117,59 @@ export function BridgeBuilder({
             style={{ ...inputStyle, border: "1px solid rgba(251,191,36,0.15)" }}
           >
             <option value="">Select network…</option>
-            {ecosystems.filter((n) => n.id !== bridgeForm.fromNet).map((n) => (
-              <option key={n.id} value={n.id}>{n.name} ({n.agents.length} agents)</option>
-            ))}
+            {ecosystems.filter((n) => n.id !== bridgeForm.fromNet).map((n) => {
+              const count = agents.filter(a => a.networkId === n.id).length;
+              return <option key={n.id} value={n.id}>{n.name} ({count} agents)</option>;
+            })}
           </select>
-          {bridgeToNet && (
+          {bridgeForm.toNet && toNetAgents.length > 0 && (
             <select
               value={bridgeForm.toAgent}
               onChange={(e) => setBridgeForm({ ...bridgeForm, toAgent: e.target.value })}
               style={{ ...inputStyle, border: "1px solid rgba(251,191,36,0.1)", marginTop: 6 }}
             >
               <option value="">Select agent…</option>
-              {bridgeToNet.agents.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name} ({ROLES.find((r) => r.id === a.role)?.label})
-                </option>
-              ))}
+              {toNetGroups.length > 0 ? (
+                <>
+                  {toNetGroups.map((g) => {
+                    const memberAgents = toNetAgents.filter(a => g.members.includes(a.id));
+                    if (memberAgents.length === 0) return null;
+                    return (
+                      <optgroup key={g.id} label={`${g.name} (${memberAgents.length})`}>
+                        {memberAgents.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name} ({ROLES.find((r) => r.id === a.role)?.label})
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                  {(() => {
+                    const groupedIds = new Set(toNetGroups.flatMap(g => g.members));
+                    const ungrouped = toNetAgents.filter(a => !groupedIds.has(a.id));
+                    if (ungrouped.length === 0) return null;
+                    return (
+                      <optgroup label="Ungrouped">
+                        {ungrouped.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name} ({ROLES.find((r) => r.id === a.role)?.label})
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })()}
+                </>
+              ) : (
+                toNetAgents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} ({ROLES.find((r) => r.id === a.role)?.label})
+                  </option>
+                ))
+              )}
             </select>
+          )}
+          {bridgeForm.toNet && toNetAgents.length === 0 && (
+            <div className="bridge-builder__notice">No agents in this network</div>
           )}
         </div>
       </div>

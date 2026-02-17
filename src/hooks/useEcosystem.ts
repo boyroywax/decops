@@ -198,8 +198,11 @@ export function useEcosystem({
   const selBridge = bridges.find((b) => b.id === selectedBridge);
   const selBridgeFromNet = selBridge ? ecosystems.find((n) => n.id === selBridge.fromNetworkId) : null;
   const selBridgeToNet = selBridge ? ecosystems.find((n) => n.id === selBridge.toNetworkId) : null;
-  const selBridgeFrom = selBridgeFromNet?.agents.find((a) => a.id === selBridge?.fromAgentId);
-  const selBridgeTo = selBridgeToNet?.agents.find((a) => a.id === selBridge?.toAgentId);
+  // Resolve bridge agents from workspace-level agents (always fresh) with fallback to Network.agents
+  const selBridgeFrom = agents.find((a) => a.id === selBridge?.fromAgentId)
+    || selBridgeFromNet?.agents.find((a) => a.id === selBridge?.fromAgentId);
+  const selBridgeTo = agents.find((a) => a.id === selBridge?.toAgentId)
+    || selBridgeToNet?.agents.find((a) => a.id === selBridge?.toAgentId);
   const bridgeFromNet = bridgeForm.fromNet ? ecosystems.find((n) => n.id === bridgeForm.fromNet) : null;
   const bridgeToNet = bridgeForm.toNet ? ecosystems.find((n) => n.id === bridgeForm.toNet) : null;
 
