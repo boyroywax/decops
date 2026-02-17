@@ -275,13 +275,21 @@ export function ViewSwitcher({
     }
 
     if (view === "network") {
+        // Scoped to a specific network if navigated from network detail
+        const netId = navContext.networkId;
+        const netAgents = netId ? workspace.agents.filter(a => a.networkId === netId) : workspace.agents;
+        const netChannels = netId ? workspace.channels.filter(c => c.networkId === netId) : workspace.channels;
+        const netGroups = netId ? workspace.groups.filter(g => g.networkId === netId) : workspace.groups;
         return (
-            <NetworkView
-                agents={workspace.agents}
-                channels={workspace.channels}
-                groups={workspace.groups}
-                activeChannels={workspace.activeChannels}
-            />
+            <>
+                {netId && breadcrumb}
+                <NetworkView
+                    agents={netAgents}
+                    channels={netChannels}
+                    groups={netGroups}
+                    activeChannels={workspace.activeChannels}
+                />
+            </>
         );
     }
 

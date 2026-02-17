@@ -96,7 +96,13 @@ export function NetworkDetailView({
       {/* Topology Canvas */}
       {networkAgents.length > 0 && (
         <div className="network-detail__section">
-          <div className="network-detail__section-title">Topology</div>
+          <div
+            className="network-detail__section-title network-detail__section-title--link"
+            onClick={() => navigateTo("network", { networkId })}
+          >
+            Topology
+            <span className="network-detail__section-link">View full →</span>
+          </div>
           <div className="network-detail__topology">
             <NetworkCanvas
               agents={networkAgents}

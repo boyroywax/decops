@@ -107,6 +107,31 @@
   letter-spacing: 0.08em;
 }
 
+.network-detail__section-title--link {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  transition: color 0.15s ease;
+}
+
+.network-detail__section-title--link:hover {
+  color: var(--text-secondary);
+}
+
+.network-detail__section-link {
+  font-size: 9px;
+  font-weight: var(--font-normal);
+  color: var(--text-ghost);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  transition: color 0.15s ease;
+}
+
+.network-detail__section-title--link:hover .network-detail__section-link {
+  color: var(--text-subtle);
+}
+
 /* ═══════════════════════════════
  * GRID (agents / groups / channels)
  * ═══════════════════════════════ */

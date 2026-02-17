@@ -3,7 +3,7 @@ import type { ViewId, Network, Message, BridgeMessage } from "../../types";
 import type { LucideIcon } from "lucide-react";
 import {
   Sparkles, Globe, Bot, ArrowLeftRight,
-  Hexagon, MessageSquare, Network as NetworkIcon,
+  Hexagon, MessageSquare,
   ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
   Activity, Zap,
 } from "lucide-react";
@@ -32,7 +32,6 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; 
   { id: "channels", label: "Channels", icon: ArrowLeftRight, accent: "#a78bfa", gradient: ["#a78bfa", "#c084fc"] },
   { id: "groups", label: "Groups", icon: Hexagon, accent: "#f472b6", gradient: ["#f472b6", "#fb7185"] },
   { id: "messages", label: "Messages", icon: MessageSquare, accent: "#fbbf24", gradient: ["#fbbf24", "#fb923c"] },
-  { id: "network", label: "Topology", icon: NetworkIcon, accent: "#00e5a0", gradient: ["#00e5a0", "#38bdf8"] },
 ];
 
 export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, agents, channels, groups, collapsed, setCollapsed, isMobile }: SidebarProps) {
