@@ -129,6 +129,9 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
           {(!collapsed || isMobile) && (
             <>
               {tab.label}
+              {tab.id === "architect" && (
+                <span style={{ marginLeft: "auto", fontSize: 8, color: "#52525b", fontFamily: "'DM Mono', monospace" }}>⌘K</span>
+              )}
               {tab.id === "networks" && ecosystems.length > 0 && (
                 <span style={{ marginLeft: "auto", fontSize: 9, background: "rgba(56,189,248,0.15)", color: "#38bdf8", padding: "1px 6px", borderRadius: 8 }}>{ecosystems.length}</span>
               )}

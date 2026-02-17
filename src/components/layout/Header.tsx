@@ -9,9 +9,10 @@ interface HeaderProps {
   user?: any;
   logout?: () => void;
   setView?: (v: ViewId) => void;
+  onProfileClick?: () => void;
 }
 
-export function Header({ user, logout, setView }: HeaderProps) {
+export function Header({ user, logout, setView, onProfileClick }: HeaderProps) {
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
 
   return (
@@ -52,7 +53,7 @@ export function Header({ user, logout, setView }: HeaderProps) {
           </div>
 
           <button
-            onClick={() => setView?.("profile")}
+            onClick={() => onProfileClick ? onProfileClick() : setView?.("profile")}
             style={{
               background: "none",
               border: "1px solid rgba(255,255,255,0.06)",

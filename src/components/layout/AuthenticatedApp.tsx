@@ -18,6 +18,8 @@ import { useJobExecutor } from "../../hooks/useJobExecutor";
 import { useAutomations } from "../../context/AutomationsContext";
 import { EcosystemContext } from "../../context/EcosystemContext";
 import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
+import { ProfileModal } from "./ProfileModal";
+import { ArchitectPopup } from "./ArchitectPopup";
 
 
 
@@ -26,11 +28,17 @@ interface AuthenticatedAppProps {
 }
 
 export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
-  const [view, setViewRaw] = useState<ViewId>("architect");
+  const [view, setViewRaw] = useState<ViewId>("networks");
   const { entries: notebookEntries, addEntry: addNotebookEntry, addLog, clearNotebook, exportNotebook } = notebook;
 
-  // Wrap setView to track navigation in Notebook
+  // Modal / popup state
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showArchitectPopup, setShowArchitectPopup] = useState(false);
+
+  // Wrap setView to track navigation in Notebook — intercept profile & architect
   const setView = useCallback((v: ViewId) => {
+    if (v === "profile") { setShowProfileModal(true); return; }
+    if (v === "architect") { setShowArchitectPopup(true); return; }
     setViewRaw(v);
     addNotebookEntry({
       category: "navigation",
@@ -229,11 +237,23 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     prevEntriesLengthRef.current = notebookEntries.length;
   }, [notebookEntries.length]);
 
+  // Ctrl+K / Cmd+K keybinding for Architect popup
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setShowArchitectPopup(prev => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
     <div style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", background: "#0a0a0f", color: "#e4e4e7", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
 
-      <Header user={user} logout={logout} setView={setView} />
+      <Header user={user} logout={logout} setView={setView} onProfileClick={() => setShowProfileModal(true)} />
 
       <EcosystemContext.Provider value={ecosystem}>
         <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative", flexDirection: isMobile ? "column" : "row" }}>
@@ -302,6 +322,26 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           saveJob={saveJob}
           deleteJob={deleteJob}
 
+        />
+
+        {/* Profile Modal (overlay) */}
+        <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
+
+        {/* Architect Popup (Ctrl+K) */}
+        <ArchitectPopup
+          isOpen={showArchitectPopup}
+          onClose={() => setShowArchitectPopup(false)}
+          archPrompt={architect.archPrompt}
+          setArchPrompt={architect.setArchPrompt}
+          archGenerating={architect.archGenerating}
+          archPreview={architect.archPreview}
+          archError={architect.archError}
+          archPhase={architect.archPhase}
+          deployProgress={architect.deployProgress}
+          generateNetwork={architect.generateNetwork}
+          deployNetwork={architect.deployNetwork}
+          resetArchitect={architect.resetArchitect}
+          setView={setView}
         />
       </EcosystemContext.Provider>
 

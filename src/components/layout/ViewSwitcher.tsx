@@ -1,5 +1,4 @@
 import type { ViewId } from "../../types";
-import { ArchitectView } from "../views/ArchitectView";
 import { NetworksView } from "../views/NetworksView";
 import { AgentsView } from "../views/AgentsView";
 import { ChannelsView } from "../views/ChannelsView";
@@ -8,7 +7,6 @@ import { MessagesView } from "../views/MessagesView";
 import { NetworkView } from "../views/NetworkView";
 import { ArtifactsView } from "../views/ArtifactsView";
 import { ActivityView } from "../views/ActivityView";
-import { ProfileView } from "../views/ProfileView";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
 import type { WorkspaceContextType } from "../../context/WorkspaceContext";
 
@@ -43,43 +41,6 @@ export function ViewSwitcher({
     addNotebookEntry,
     addJob
 }: ViewSwitcherProps) {
-    if (view === "profile") {
-        return (
-            <ProfileView
-                agents={workspace.agents}
-                channels={workspace.channels}
-                groups={workspace.groups}
-                messages={workspace.messages}
-                ecosystems={ecosystem.ecosystems}
-                bridges={ecosystem.bridges}
-                setAgents={workspace.setAgents}
-                setChannels={workspace.setChannels}
-                setGroups={workspace.setGroups}
-                setMessages={workspace.setMessages}
-                setEcosystems={ecosystem.setEcosystems}
-                setBridges={ecosystem.setBridges}
-            />
-        );
-    }
-
-    if (view === "architect") {
-        return (
-            <ArchitectView
-                archPrompt={architect.archPrompt}
-                setArchPrompt={architect.setArchPrompt}
-                archGenerating={architect.archGenerating}
-                archPreview={architect.archPreview}
-                archError={architect.archError}
-                archPhase={architect.archPhase}
-                deployProgress={architect.deployProgress}
-                generateNetwork={architect.generateNetwork}
-                deployNetwork={architect.deployNetwork}
-                resetArchitect={architect.resetArchitect}
-                setView={setView}
-            />
-        );
-    }
-
     if (view === "networks" || view === "ecosystem") {
         return (
             <NetworksView
