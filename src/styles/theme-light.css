@@ -424,3 +424,305 @@
 [data-theme="light"] .chat-md td {
   border-color: rgba(0, 0, 0, 0.08);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CREATE NETWORK MODAL — Light Mode
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .cnm__backdrop {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .cnm__panel {
+  background: #ffffff;
+  border-color: rgba(56, 189, 248, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .cnm__title {
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .cnm__close-btn {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #9999aa;
+}
+
+[data-theme="light"] .cnm__close-btn:hover {
+  color: #555570;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .cnm__label {
+  color: #555570;
+}
+
+[data-theme="light"] .cnm__input {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(56, 189, 248, 0.18);
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .cnm__input--desc {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .cnm__textarea {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(251, 191, 36, 0.25);
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .cnm__toggle {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .cnm__toggle--active {
+  background: rgba(251, 191, 36, 0.06);
+  border-color: rgba(251, 191, 36, 0.25);
+}
+
+[data-theme="light"] .cnm__toggle-icon {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .cnm__toggle-label {
+  color: #555570;
+}
+
+[data-theme="light"] .cnm__toggle-desc {
+  color: #9999aa;
+}
+
+[data-theme="light"] .cnm__switch {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .cnm__switch-knob {
+  background: #ffffff;
+}
+
+[data-theme="light"] .cnm__switch--active .cnm__switch-knob {
+  background: #ffffff;
+}
+
+[data-theme="light"] .cnm__info {
+  color: #71718a;
+  background: rgba(56, 189, 248, 0.06);
+  border-color: rgba(56, 189, 248, 0.12);
+}
+
+[data-theme="light"] .cnm__cancel-btn {
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #555570;
+}
+
+[data-theme="light"] .cnm__cancel-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .cnm__submit-btn {
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .cnm__submit-btn--enabled {
+  color: #ffffff;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * WORKSPACE MODAL — Light Mode
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .ws-modal__backdrop {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .ws-modal__container {
+  background: #ffffff;
+  box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .ws-modal__header {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .ws-modal__close-btn {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .ws-modal__close-btn:hover {
+  color: #1a1a2e;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .ws-modal__create-card {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.01);
+}
+
+[data-theme="light"] .ws-modal__create-card:hover {
+  background: rgba(0, 180, 120, 0.04);
+}
+
+[data-theme="light"] .ws-modal__create-circle {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .ws-modal__overlay {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(6px);
+}
+
+[data-theme="light"] .ws-modal__overlay--switch {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="light"] .ws-modal__form {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .ws-modal__input {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .ws-modal__textarea {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .ws-modal__cancel-btn {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .ws-modal__create-btn {
+  background: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .ws-modal__create-btn--enabled {
+  color: #ffffff;
+}
+
+[data-theme="light"] .ws-modal__switch-card {
+  background: #ffffff;
+  border-color: rgba(0, 180, 120, 0.2);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .ws-modal__stay-btn {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .ws-modal__switch-btn {
+  color: #ffffff;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * WORKSPACE CARD — Light Mode
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .ws-card__back {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .ws-card__id {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .ws-card__switch-btn {
+  color: #ffffff;
+}
+
+[data-theme="light"] .ws-card__copy-btn {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .ws-card__cancel-btn {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * BRIDGE BUILDER — Light Mode
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .bridge-builder {
+  background: rgba(251, 191, 36, 0.04);
+  border-color: rgba(251, 191, 36, 0.15);
+}
+
+[data-theme="light"] .bridge-builder__title {
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .bridge-builder__col-label {
+  color: #71718a;
+}
+
+[data-theme="light"] .bridge-builder__submit {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .bridge-builder__submit--enabled {
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .bridge-builder__hint {
+  color: #9999aa;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PROFILE MODAL — Light Mode
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .profile-modal-backdrop {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .profile-modal {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ACTIVITY MODAL — Light Mode
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .activity-modal__backdrop {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .activity-modal__panel {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ARCHITECT POPUP — Light Mode
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .architect-popup-backdrop {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .architect-popup {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+

@@ -3,6 +3,7 @@ import { ROLES, CHANNEL_TYPES } from "../../../constants";
 import { inputStyle, PillButton } from "../../shared/ui";
 import { ArrowLeftRight, Link2 } from "lucide-react";
 import { GradientIcon } from "../../shared/GradientIcon";
+import "../../../styles/components/bridge-builder.css";
 
 interface BridgeBuilderProps {
   ecosystems: Network[];
@@ -19,21 +20,16 @@ export function BridgeBuilder({
   bridgeFromNet, bridgeToNet,
   createBridge, onClose,
 }: BridgeBuilderProps) {
+  const ready = bridgeForm.fromAgent && bridgeForm.toAgent;
   return (
-    <div style={{
-      background: "rgba(251,191,36,0.03)",
-      border: "1px solid rgba(251,191,36,0.1)",
-      borderRadius: 14,
-      padding: 18,
-      marginBottom: 20,
-    }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: "#e4e4e7", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
+    <div className="bridge-builder">
+      <div className="bridge-builder__title">
         <GradientIcon icon={Link2} size={14} gradient={["#fbbf24", "#fb923c"]} />
         Bridge Builder
       </div>
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start", marginBottom: 14 }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 9, color: "#52525b", marginBottom: 4, fontWeight: 600, letterSpacing: "0.05em" }}>SOURCE NETWORK</div>
+      <div className="bridge-builder__row">
+        <div className="bridge-builder__col">
+          <div className="bridge-builder__col-label">SOURCE NETWORK</div>
           <select
             value={bridgeForm.fromNet}
             onChange={(e) => setBridgeForm({ ...bridgeForm, fromNet: e.target.value, fromAgent: "" })}
@@ -59,11 +55,11 @@ export function BridgeBuilder({
             </select>
           )}
         </div>
-        <div style={{ alignSelf: "center", flexShrink: 0, padding: "10px 0" }}>
+        <div className="bridge-builder__arrow">
           <ArrowLeftRight size={18} color="#fbbf24" />
         </div>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 9, color: "#52525b", marginBottom: 4, fontWeight: 600, letterSpacing: "0.05em" }}>TARGET NETWORK</div>
+        <div className="bridge-builder__col">
+          <div className="bridge-builder__col-label">TARGET NETWORK</div>
           <select
             value={bridgeForm.toNet}
             onChange={(e) => setBridgeForm({ ...bridgeForm, toNet: e.target.value, toAgent: "" })}
@@ -90,7 +86,7 @@ export function BridgeBuilder({
           )}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+      <div className="bridge-builder__footer">
         <div style={{ display: "flex", gap: 4 }}>
           {CHANNEL_TYPES.map((t) => (
             <PillButton
@@ -105,24 +101,13 @@ export function BridgeBuilder({
         </div>
         <button
           onClick={() => { createBridge(); onClose(); }}
-          disabled={!bridgeForm.fromAgent || !bridgeForm.toAgent}
-          style={{
-            background: bridgeForm.fromAgent && bridgeForm.toAgent ? "#fbbf24" : "#3f3f46",
-            color: "#0a0a0f",
-            border: "none",
-            padding: "10px 18px",
-            borderRadius: 6,
-            cursor: bridgeForm.fromAgent && bridgeForm.toAgent ? "pointer" : "not-allowed",
-            fontFamily: "inherit",
-            fontSize: 11,
-            fontWeight: 600,
-            marginLeft: "auto",
-          }}
+          disabled={!ready}
+          className={`bridge-builder__submit${ready ? " bridge-builder__submit--enabled" : ""}`}
         >
           Create Bridge
         </button>
       </div>
-      <div style={{ fontSize: 9, color: "#52525b", marginTop: 8 }}>
+      <div className="bridge-builder__hint">
         Bridge channels appear as cross-network connections (mode: bridge)
       </div>
     </div>
