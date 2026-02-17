@@ -7,14 +7,24 @@ import { ANTHROPIC_MODELS } from "../../constants";
 import MessageBubble from "../chat/MessageBubble";
 import { loadConversations, saveConversations, loadActiveId, saveActiveId, makeId, deriveTitle } from "../chat/utils";
 import type { Conversation } from "../chat/types";
+import { useCommandContext } from "../../hooks/useCommandContext";
+import { useJobsContext } from "../../context/JobsContext";
+import { useArchitect } from "../../hooks/useArchitect";
+import { useEcosystem } from "../../hooks/useEcosystem"; // This might not be needed if ecosystem is passed as prop
+import { useAuth } from "../../context/AuthContext";
+import { registry } from "../../services/commands/init"; // This import is not used directly here, but might be elsewhere
+import { registry as commandRegistry } from "../../services/commands/registry";
+import { useWorkspaceContext } from "../../context/WorkspaceContext";
+import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {
     context: WorkspaceContext;
+    ecosystem?: any; // Automated ecosystem object
     onClose: () => void;
     addLog?: (msg: string) => void;
 }
 
-export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
+export function ChatPanel({ context, ecosystem, onClose, addLog }: ChatPanelProps) {
     const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
     const [activeId, setActiveId] = useState<string | null>(loadActiveId);
     const [input, setInput] = useState("");
@@ -79,6 +89,32 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
         }
     }, [activeId, conversations]);
 
+    // Build Commmand Context for CLI
+    const { user } = useAuth();
+    const jobs = useJobsContext();
+    const architect = useArchitect(addLog, jobs.addJob, jobs.jobs);
+
+    // We only have access to React Context "workspace" via imported hook, NOT via prop.
+    // The prop `context` is `WorkspaceContext` interface (data only), not the Hook result.
+    // BUT `useCommandContext` expects `WorkspaceContextType` which has setters.
+    // We need to use the hook `useWorkspaceContext` here to get full context!
+    // The prop `context` passed from Footer is just a data snapshot used for AI context.
+
+    const workspaceCtx = useWorkspaceContext(); // This gives us setters too!
+
+    // Determine which ecosystem object to use. 
+    // If passed via props, use it. usage of useEcosystem inside ChatPanel would be wrong.
+    // If not passed, we can't run ecosystem commands safely.
+
+    const commandContext = useCommandContext({
+        workspace: workspaceCtx,
+        user,
+        jobs,
+        ecosystem: ecosystem || { ecosystems: [], bridges: [] }, // Fallback if missing, some cmds might fail
+        architect,
+        addLog: addLog || (() => { })
+    });
+
     const send = useCallback(async () => {
         const text = input.trim();
         if (!text || loading) return;
@@ -107,17 +143,58 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
         setLoading(true);
 
         try {
-            const response = await chatWithWorkspace(text, currentMessages, context);
-            const finalMsgs = [...updatedMsgs, { role: "assistant" as const, content: response }];
-            updateConversation(currentId, finalMsgs);
-            addLog?.(`Chat: "${text.slice(0, 40)}${text.length > 40 ? "…" : ""}"`);
+            // CLI INTERCEPTION
+            if (text.startsWith("/")) {
+                const part1 = text.split(" ")[0];
+                const commandId = part1.slice(1); // remove /
+                const argsString = text.slice(part1.length).trim();
+
+                let args: any = {};
+                if (argsString) {
+                    // 1. Try JSON
+                    if (argsString.startsWith("{")) {
+                        try {
+                            args = JSON.parse(argsString);
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
+                    // 2. Try Key=Value if empty (simple regex)
+                    if (Object.keys(args).length === 0 && argsString.includes("=")) {
+                        const regex = /(\w+)=(?:"([^"]*)"|(\S+))/g;
+                        let match;
+                        while ((match = regex.exec(argsString)) !== null) {
+                            const key = match[1];
+                            const value = match[2] || match[3];
+                            args[key] = value;
+                        }
+                    }
+                    // 3. If still empty and string exists, maybe it's a "query" or default arg?
+                    // Some commands might take a single string.
+                    // But our registry expects named args.
+                    // We'll leave it empty if parsing failed, or put raw string in "input"?
+                }
+
+                addLog?.(`CLI: Executing /${commandId}`);
+
+                // Execute
+                await commandRegistry.execute(commandId, args, commandContext);
+
+                const successMsg = [...updatedMsgs, { role: "assistant" as const, content: `✅ Command \`/${commandId}\` executed successfully.` }];
+                updateConversation(currentId, successMsg);
+            } else {
+                const response = await chatWithWorkspace(text, currentMessages, context);
+                const finalMsgs = [...updatedMsgs, { role: "assistant" as const, content: response }];
+                updateConversation(currentId, finalMsgs);
+                addLog?.(`Chat: "${text.slice(0, 40)}${text.length > 40 ? "…" : ""}"`);
+            }
         } catch (err) {
             const errMsg = [...updatedMsgs, { role: "assistant" as const, content: `Error: ${err instanceof Error ? err.message : String(err)}` }];
             updateConversation(currentId, errMsg);
         } finally {
             setLoading(false);
         }
-    }, [input, loading, activeId, conversations, context, addLog, updateConversation]);
+    }, [input, loading, activeId, conversations, context, addLog, updateConversation, commandContext]);
 
     const [height, setHeight] = useState(400);
     const [isResizing, setIsResizing] = useState(false);
@@ -154,90 +231,42 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
     const modelId = getSelectedModel();
     const modelLabel = ANTHROPIC_MODELS.find(m => m.id === modelId)?.label || modelId;
 
+    const isReady = !!input.trim() && !loading;
+
     return (
-        <div style={{
-            height,
-            background: "rgba(0,0,0,0.8)",
-            borderTop: "1px solid rgba(0,229,160,0.12)",
-            display: "flex",
-            flexDirection: "column",
-            fontFamily: "inherit",
-            backdropFilter: "blur(12px)",
-            position: "relative",
-            transition: isResizing ? "none" : "height 0.1s ease-out",
-        }}>
+        <div className={`chat-panel${isResizing ? " chat-panel--resizing" : ""}`} style={{ height }}>
             {/* Resize Handle */}
-            <div
-                onMouseDown={startResizing}
-                style={{
-                    position: "absolute",
-                    top: -4,
-                    left: 0,
-                    right: 0,
-                    height: 8,
-                    cursor: "ns-resize",
-                    zIndex: 10,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                }}
-            >
-                <div style={{ width: 40, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.1)" }} />
+            <div onMouseDown={startResizing} className="chat-panel__resize-handle">
+                <div className="chat-panel__resize-indicator" />
             </div>
 
             {/* Header */}
-            <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "6px 14px",
-                borderBottom: "1px solid rgba(255,255,255,0.04)",
-                flexShrink: 0,
-            }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 9, color: "#52525b", letterSpacing: "0.1em" }}>WORKSPACE CHAT</span>
-                    <span style={{ fontSize: 9, color: "#3f3f46", background: "rgba(255,255,255,0.04)", padding: "1px 6px", borderRadius: 4 }}>{modelLabel}</span>
-                    <span style={{ color: "#27272a", fontSize: 10 }}>│</span>
+            <div className="chat-panel__header">
+                <div className="chat-panel__header-left">
+                    <span className="chat-panel__title">WORKSPACE CHAT</span>
+                    <span className="chat-panel__model-badge">{modelLabel}</span>
+                    <span className="chat-panel__separator">│</span>
                     {/* Conversations toggle */}
                     <button
                         onClick={() => setShowConvos(!showConvos)}
-                        style={{
-                            background: showConvos ? "rgba(0,229,160,0.08)" : "none",
-                            border: "none",
-                            color: showConvos ? "#00e5a0" : "#52525b",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                            fontSize: 9,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                            padding: "2px 6px",
-                            borderRadius: 3,
-                            transition: "all 0.15s",
-                        }}
+                        className={`chat-panel__convos-toggle${showConvos ? " chat-panel__convos-toggle--active" : ""}`}
                     >
                         <AlignJustify size={9} />
                         Conversations
                         {conversations.length > 0 && (
-                            <span style={{
-                                fontSize: 8,
-                                background: showConvos ? "rgba(0,229,160,0.15)" : "rgba(255,255,255,0.06)",
-                                padding: "0 4px",
-                                borderRadius: 4,
-                                color: showConvos ? "#00e5a0" : "#52525b",
-                            }}>{conversations.length}</span>
+                            <span className={`chat-panel__convos-count${showConvos ? " chat-panel__convos-count--active" : ""}`}>{conversations.length}</span>
                         )}
                     </button>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div className="chat-panel__header-right">
                     <button
                         onClick={createNewChat}
-                        style={{ background: "none", border: "none", color: "#52525b", cursor: "pointer", fontSize: 9, fontFamily: "inherit", padding: "2px 6px" }}
+                        className="chat-panel__new-btn"
                         title="New conversation"
                     >+ New</button>
                     <button
                         onClick={onClose}
-                        style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer", padding: "0 4px", lineHeight: 1, display: "flex", alignItems: "center" }}
+                        className="chat-panel__close-btn"
                         title="Close chat"
                     ><X size={14} /></button>
                 </div>
@@ -246,22 +275,13 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
             {/* Body: either conversations list or chat */}
             {showConvos ? (
                 /* Conversations list */
-                <div style={{ flex: 1, overflow: "auto", padding: "8px 10px" }}>
+                <div className="chat-panel__convos-list">
                     {conversations.length === 0 && (
-                        <div style={{ textAlign: "center", padding: "40px 0", color: "#3f3f46" }}>
-                            <div style={{ fontSize: 11, marginBottom: 6 }}>No conversations yet</div>
+                        <div className="chat-panel__empty-state">
+                            <div className="chat-panel__empty-text">No conversations yet</div>
                             <button
                                 onClick={createNewChat}
-                                style={{
-                                    background: "rgba(0,229,160,0.08)",
-                                    border: "1px solid rgba(0,229,160,0.2)",
-                                    borderRadius: 6,
-                                    padding: "6px 14px",
-                                    color: "#00e5a0",
-                                    fontSize: 11,
-                                    fontFamily: "inherit",
-                                    cursor: "pointer",
-                                }}
+                                className="chat-panel__start-btn"
                             >+ Start a conversation</button>
                         </div>
                     )}
@@ -269,76 +289,39 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
                         <div
                             key={c.id}
                             onClick={() => switchTo(c.id)}
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                padding: "8px 10px",
-                                borderRadius: 6,
-                                cursor: "pointer",
-                                background: c.id === activeId ? "rgba(0,229,160,0.06)" : "transparent",
-                                border: c.id === activeId ? "1px solid rgba(0,229,160,0.12)" : "1px solid transparent",
-                                marginBottom: 2,
-                                transition: "all 0.1s",
-                            }}
+                            className={`chat-panel__convo-item${c.id === activeId ? " chat-panel__convo-item--active" : ""}`}
                         >
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{
-                                    fontSize: 11,
-                                    color: c.id === activeId ? "#e4e4e7" : "#a1a1aa",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                    fontWeight: c.id === activeId ? 500 : 400,
-                                }}>{c.title}</div>
-                                <div style={{ fontSize: 9, color: "#3f3f46", marginTop: 2, display: "flex", gap: 8 }}>
+                            <div className="chat-panel__convo-info">
+                                <div className="chat-panel__convo-title">{c.title}</div>
+                                <div className="chat-panel__convo-meta">
                                     <span>{c.messages.length} msgs</span>
                                     <span>{new Date(c.updatedAt).toLocaleDateString()}</span>
                                 </div>
                             </div>
                             <button
                                 onClick={e => { e.stopPropagation(); deleteConvo(c.id); }}
-                                style={{
-                                    background: "none",
-                                    border: "none",
-                                    color: "#3f3f46",
-                                    cursor: "pointer",
-                                    fontSize: 12,
-                                    padding: "2px 6px",
-                                    flexShrink: 0,
-                                    opacity: 0.5,
-                                    transition: "opacity 0.1s",
-                                }}
+                                className="chat-panel__convo-delete"
                                 title="Delete conversation"
-                                onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
-                                onMouseLeave={e => (e.currentTarget.style.opacity = "0.5")}
                             ><X size={12} /></button>
                         </div>
                     ))}
                 </div>
             ) : (
                 /* Chat messages */
-                <div style={{ flex: 1, overflow: "auto", padding: "12px 14px" }}>
+                <div className="chat-panel__messages">
                     {messages.length === 0 && !loading && (
-                        <div style={{ textAlign: "center", padding: "40px 0", color: "#3f3f46" }}>
+                        <div className="chat-panel__chat-empty">
                             <GradientIcon icon={MessageCircle} size={24} gradient={["#00e5a0", "#38bdf8"]} />
-                            <div style={{ fontSize: 11, marginBottom: 4 }}>Workspace AI Assistant</div>
-                            <div style={{ fontSize: 10, color: "#27272a", maxWidth: 300, margin: "0 auto", lineHeight: 1.5 }}>
+                            <div className="chat-panel__chat-empty-title">Workspace AI Assistant</div>
+                            <div className="chat-panel__chat-empty-desc">
                                 Ask about your agents, channels, groups, topology — or request workspace actions.
                             </div>
                         </div>
                     )}
                     {messages.map((m, i) => <MessageBubble key={i} msg={m} context={context} />)}
                     {loading && (
-                        <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 8 }}>
-                            <div style={{
-                                background: "rgba(255,255,255,0.04)",
-                                border: "1px solid rgba(255,255,255,0.06)",
-                                borderRadius: "12px 12px 12px 2px",
-                                padding: "8px 16px",
-                                fontSize: 12,
-                                color: "#52525b",
-                            }}>
+                        <div className="chat-panel__loading">
+                            <div className="chat-panel__loading-bubble">
                                 <span style={{ animation: "pulse 1.5s ease-in-out infinite" }}>●</span>
                                 <span style={{ animation: "pulse 1.5s ease-in-out 0.3s infinite" }}> ●</span>
                                 <span style={{ animation: "pulse 1.5s ease-in-out 0.6s infinite" }}> ●</span>
@@ -351,13 +334,7 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
 
             {/* Input (always visible) */}
             {!showConvos && (
-                <div style={{
-                    padding: "8px 14px",
-                    borderTop: "1px solid rgba(255,255,255,0.04)",
-                    display: "flex",
-                    gap: 8,
-                    flexShrink: 0,
-                }}>
+                <div className="chat-panel__input-area">
                     <input
                         ref={inputRef}
                         value={input}
@@ -365,32 +342,12 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
                         onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
                         placeholder="Ask about your workspace..."
                         disabled={loading}
-                        style={{
-                            flex: 1,
-                            background: "rgba(0,0,0,0.4)",
-                            border: "1px solid rgba(255,255,255,0.06)",
-                            borderRadius: 8,
-                            padding: "8px 12px",
-                            color: "#e4e4e7",
-                            fontSize: 12,
-                            fontFamily: "inherit",
-                            outline: "none",
-                        }}
+                        className="chat-panel__input"
                     />
                     <button
                         onClick={send}
                         disabled={loading || !input.trim()}
-                        style={{
-                            background: input.trim() && !loading ? "rgba(0,229,160,0.15)" : "rgba(255,255,255,0.03)",
-                            border: `1px solid ${input.trim() && !loading ? "rgba(0,229,160,0.3)" : "rgba(255,255,255,0.06)"}`,
-                            borderRadius: 8,
-                            padding: "8px 14px",
-                            color: input.trim() && !loading ? "#00e5a0" : "#3f3f46",
-                            cursor: input.trim() && !loading ? "pointer" : "default",
-                            fontSize: 12,
-                            fontFamily: "inherit",
-                            transition: "all 0.15s",
-                        }}
+                        className={`chat-panel__send-btn${isReady ? " chat-panel__send-btn--ready" : ""}`}
                     >Send</button>
                 </div>
             )}

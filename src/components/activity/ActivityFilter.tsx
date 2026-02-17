@@ -1,5 +1,6 @@
 import type { NotebookCategory } from "../../types";
 import { CATEGORY_META } from "./utils";
+import "../../styles/components/activity-filter.css";
 
 interface ActivityFilterProps {
     search: string;
@@ -10,25 +11,15 @@ interface ActivityFilterProps {
 
 export function ActivityFilter({ search, setSearch, activeFilters, toggleFilter }: ActivityFilterProps) {
     return (
-        <div style={{ marginBottom: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="activity-filter">
             <input
+                className="activity-filter__search"
                 type="text"
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search entries..."
-                style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    background: "var(--bg-input)",
-                    border: "1px solid var(--border-default)",
-                    borderRadius: "var(--radius-lg)",
-                    color: "var(--text-primary)",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 13,
-                    boxSizing: "border-box",
-                }}
             />
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <div className="activity-filter__tags">
                 {(Object.keys(CATEGORY_META) as NotebookCategory[]).map(cat => {
                     const meta = CATEGORY_META[cat];
                     const active = activeFilters.has(cat);
@@ -36,17 +27,11 @@ export function ActivityFilter({ search, setSearch, activeFilters, toggleFilter 
                         <button
                             key={cat}
                             onClick={() => toggleFilter(cat)}
+                            className="activity-filter__tag"
                             style={{
-                                padding: "4px 10px",
-                                borderRadius: 12,
-                                border: `1px solid ${active ? meta.color + "60" : "var(--border-subtle)"}`,
-                                background: active ? meta.color + "15" : "transparent",
-                                color: active ? meta.color : "var(--text-ghost)",
-                                fontSize: 11,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                transition: "all 0.15s",
-                                fontFamily: "var(--font-mono)",
+                                borderColor: active ? meta.color + "60" : undefined,
+                                background: active ? meta.color + "15" : undefined,
+                                color: active ? meta.color : undefined,
                             }}
                         >
                             {meta.icon} {meta.label}

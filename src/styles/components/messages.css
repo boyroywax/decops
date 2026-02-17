@@ -1,0 +1,438 @@
+/**
+ * Messages View Component Styles
+ * Two-pane layout: channel sidebar + message thread
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * LAYOUT - Two-pane flex container
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.messages-layout {
+  display: flex;
+  gap: var(--space-xl);
+  height: calc(100vh - 120px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SIDEBAR - Channel list
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.messages-sidebar {
+  width: var(--channel-list-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.messages-sidebar__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  margin: 0 0 var(--space-md);
+}
+
+.messages-sidebar__empty {
+  font-size: var(--text-sm);
+  color: var(--text-invisible);
+  padding: var(--space-md);
+}
+
+.messages-sidebar__section-gap {
+  margin-top: var(--space-md);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CHANNEL BUTTON - Sidebar list item
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.channel-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg) var(--space-lg);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  display: block;
+  width: 100%;
+  transition: all var(--transition-fast);
+}
+
+.channel-btn:hover {
+  background: var(--bg-surface-hover);
+}
+
+/* P2P active */
+.channel-btn--active-p2p {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.25);
+}
+
+/* Bridge active */
+.channel-btn--active-bridge {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+.channel-btn__label {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.channel-btn--active-p2p .channel-btn__label {
+  color: var(--color-warning);
+}
+
+.channel-btn--active-bridge .channel-btn__label {
+  color: var(--color-info);
+}
+
+/* Dynamic group active color applied via inline style on the button */
+.channel-btn--active-group .channel-btn__label {
+  /* color set dynamically via inline style */
+}
+
+.channel-btn__meta {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  margin-top: 3px;
+}
+
+.channel-btn__meta--bridge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.channel-btn__msg-count {
+  margin-left: var(--space-md);
+  color: var(--color-warning);
+}
+
+.channel-btn__msg-count--bridge {
+  margin-left: var(--space-sm);
+  color: var(--color-info);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * THREAD PANEL - Message list + header + input
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.msg-thread {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-3xl);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+/* Thread Header */
+.msg-thread__header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.msg-thread__header-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+}
+
+.msg-thread__header-arrow {
+  color: var(--text-ghost);
+  margin: 0 var(--space-md);
+}
+
+.msg-thread__header-subtitle {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  margin-top: var(--space-xs);
+}
+
+.msg-thread__header-subtitle--bridge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.msg-thread__header-broadcast {
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* Thread body (scrollable messages area) */
+.msg-thread__body {
+  flex: 1;
+  overflow: auto;
+  padding: 18px;
+}
+
+/* Empty state */
+.msg-thread__empty {
+  text-align: center;
+  padding: var(--space-5xl);
+  color: var(--text-invisible);
+}
+
+.msg-thread__empty-text {
+  font-size: var(--text-base);
+}
+
+.msg-thread__empty-text--gap {
+  font-size: var(--text-base);
+  margin-top: var(--space-md);
+}
+
+/* Placeholder - no channel selected */
+.msg-thread__placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-invisible);
+}
+
+.msg-thread__placeholder-inner {
+  text-align: center;
+}
+
+.msg-thread__placeholder-text {
+  font-size: var(--text-md);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * MESSAGE BUBBLE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.msg-item {
+  margin-bottom: var(--space-2xl);
+  background: transparent;
+  border-radius: var(--radius-xl);
+  padding: 0;
+  border: 1px solid transparent;
+  transition: all var(--transition-base);
+}
+
+.msg-item--checked {
+  background: rgba(239, 68, 68, 0.04);
+  padding: var(--space-md);
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+/* Broadcast variant (slightly tighter spacing) */
+.msg-item--broadcast {
+  margin-bottom: 14px;
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.msg-row {
+  display: flex;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.msg-row--reply {
+  display: flex;
+  gap: var(--space-lg);
+  padding-left: 38px;
+}
+
+.msg-row--bridge {
+  margin-bottom: var(--space-2xl);
+}
+
+/* Avatar icon */
+.msg-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-lg);
+  flex-shrink: 0;
+  /* background & border set dynamically via inline style for role color */
+}
+
+/* Message content wrapper */
+.msg-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Sender label */
+.msg-sender {
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-xs);
+  /* color set dynamically via inline style for role color */
+}
+
+.msg-sender__timestamp {
+  color: var(--text-invisible);
+  font-size: var(--text-xs);
+}
+
+.msg-sender__net {
+  color: var(--text-invisible);
+  font-size: 8px;
+}
+
+.msg-sender__status {
+  font-size: var(--text-xs);
+}
+
+.msg-sender__status--no-prompt {
+  color: var(--color-danger);
+}
+
+.msg-sender__status--response {
+  color: var(--text-invisible);
+}
+
+/* Chat bubble - sent (from sender: small top-left radius) */
+.msg-bubble--sent {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-default);
+  border-radius: 2px var(--radius-2xl) var(--radius-2xl) var(--radius-2xl);
+  padding: var(--space-lg) 14px;
+  font-size: var(--text-md);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Chat bubble - received (from responder: small top-right radius) */
+.msg-bubble--received {
+  border-radius: var(--radius-2xl) 2px var(--radius-2xl) var(--radius-2xl);
+  padding: var(--space-lg) 14px;
+  font-size: var(--text-md);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  /* background & border set dynamically for role color */
+}
+
+.msg-bubble--received-default {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-default);
+}
+
+.msg-bubble--no-prompt {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  color: var(--text-subtle);
+}
+
+/* Broadcast bubble (uniform radius) */
+.msg-bubble--broadcast {
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg) 14px;
+  font-size: var(--text-md);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  /* background & border set dynamically for role color */
+}
+
+/* Bridge response - pre-wrap for code */
+.msg-bubble--bridge-response {
+  white-space: pre-wrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * THINKING INDICATOR
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.msg-thinking {
+  padding-left: 56px;
+  font-size: var(--text-base);
+  color: var(--color-warning);
+}
+
+.msg-thinking--bridge {
+  padding-left: 38px;
+  font-size: var(--text-base);
+  color: var(--color-info);
+}
+
+.msg-thinking__dot {
+  animation: pulse 1.5s infinite;
+}
+
+.msg-thinking--broadcast {
+  font-size: var(--text-base);
+  color: var(--color-warning);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * INPUT BAR
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.msg-input-bar {
+  padding: 14px 18px;
+  border-top: 1px solid var(--border-default);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.msg-input-row {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.msg-input-row .input {
+  flex: 1;
+}
+
+/* Input border color variants */
+.msg-input--p2p {
+  border-color: rgba(251, 191, 36, 0.15);
+}
+
+.msg-input--bridge {
+  border-color: rgba(56, 189, 248, 0.15);
+}
+
+/* Disabled / sending state */
+.msg-input--sending {
+  opacity: 0.5;
+}
+
+/* Send button */
+.msg-send-btn {
+  background: var(--color-warning);
+  color: var(--bg-primary);
+  border: none;
+  padding: var(--space-lg) 18px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.msg-send-btn:disabled {
+  background: var(--text-invisible);
+  cursor: not-allowed;
+}
+
+.msg-send-btn--bridge {
+  background: var(--color-info);
+}
+
+.msg-send-btn--bridge:disabled {
+  background: var(--text-invisible);
+}
+
+/* Group broadcast button uses dynamic group color via inline style */

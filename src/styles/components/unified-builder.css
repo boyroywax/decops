@@ -1,0 +1,535 @@
+/**
+ * UnifiedBuilder Component Styles
+ * 3-pane layout: command sidebar | step list | config panel
+ * Supports Job (run-once) and Automation (scheduled) modes
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ROOT CONTAINER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.builder {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HEADER / META BAR
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.builder__header {
+  padding: var(--space-lg) var(--space-xl);
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+}
+
+.builder__header-row {
+  display: flex;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.builder__name-wrap {
+  flex: 1;
+}
+
+.builder__name-input {
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  width: 100%;
+  padding: var(--space-xs) 0;
+  font-family: inherit;
+}
+
+.builder__name-input:focus {
+  outline: none;
+  border-bottom-color: rgba(0, 229, 160, 0.4);
+}
+
+.builder__actions {
+  display: flex;
+  gap: var(--space-md);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CONTROLS ROW (mode selector, exec mode, schedule, description)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.builder__controls {
+  display: flex;
+  gap: var(--space-xl);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Toggle button group (mode selector & execution selector) */
+.builder__toggle-group {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-lg);
+  padding: 2px;
+}
+
+.builder__toggle-btn {
+  background: none;
+  color: var(--text-subtle);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-xs) 10px;
+  font-size: var(--text-base);
+  cursor: pointer;
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+  transition: all var(--transition-fast);
+}
+
+.builder__toggle-btn--active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* Execution mode sub-group */
+.builder__exec-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.builder__exec-label {
+  font-size: var(--text-md);
+  color: var(--text-muted);
+}
+
+.builder__exec-toggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  padding: 2px;
+}
+
+.builder__exec-btn {
+  background: none;
+  color: var(--text-subtle);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-md);
+  font-size: var(--text-base);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.builder__exec-btn--active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* Schedule input group */
+.builder__schedule-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex: 1;
+}
+
+.builder__schedule-icon {
+  color: var(--text-muted);
+}
+
+.builder__schedule-input {
+  background: var(--bg-surface);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  padding: var(--space-xs) var(--space-md);
+  font-family: inherit;
+  width: 140px;
+}
+
+.builder__schedule-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Description input */
+.builder__desc-input {
+  background: var(--bg-surface);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-md);
+  flex: 1;
+  padding: var(--space-xs) var(--space-md);
+  font-family: inherit;
+  min-width: 200px;
+}
+
+.builder__desc-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * 3-PANE BODY
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.builder__body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * LEFT SIDEBAR — Command Browser
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.builder__sidebar {
+  width: 220px;
+  border-right: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+}
+
+.builder__search {
+  padding: var(--space-md);
+}
+
+.builder__search-box {
+  position: relative;
+}
+
+.builder__search-icon {
+  position: absolute;
+  left: var(--space-md);
+  top: var(--space-md);
+  color: var(--text-subtle);
+}
+
+.builder__search-input {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md) var(--space-sm) 26px;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+
+.builder__search-input:focus {
+  outline: none;
+  border-color: rgba(0, 229, 160, 0.3);
+}
+
+/* Command list */
+.builder__command-list {
+  flex: 1;
+  overflow: auto;
+  padding: 0 var(--space-md) var(--space-md);
+}
+
+.builder__command {
+  padding: var(--space-md);
+  margin-bottom: var(--space-xs);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  background: var(--bg-surface);
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+}
+
+.builder__command:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-medium);
+}
+
+.builder__command-name {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+}
+
+.builder__command-desc {
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CENTER PANE — Step List
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.builder__steps {
+  flex: 1;
+  border-right: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Shared panel header for Steps + Config */
+.builder__panel-header {
+  padding: var(--space-md) var(--space-lg);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.builder__step-list {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-lg);
+}
+
+/* Empty state */
+.builder__empty {
+  text-align: center;
+  color: var(--text-ghost);
+  margin-top: var(--space-5xl);
+  font-size: var(--text-md);
+}
+
+/* Individual step card */
+.builder__step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 10px var(--space-lg);
+  margin-bottom: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast);
+}
+
+.builder__step--selected {
+  background: rgba(0, 229, 160, 0.08);
+  border-color: rgba(0, 229, 160, 0.3);
+}
+
+.builder__step-index {
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+  width: 16px;
+}
+
+.builder__step-content {
+  flex: 1;
+}
+
+.builder__step-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.builder__step-name {
+  font-size: var(--text-md);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+}
+
+.builder__step--selected .builder__step-name {
+  color: var(--color-accent);
+}
+
+.builder__step-badge {
+  font-size: var(--text-sm);
+  color: #eab308;
+  background: rgba(234, 179, 8, 0.1);
+  padding: 0 var(--space-xs);
+  border-radius: 2px;
+}
+
+.builder__step-meta {
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+  margin-top: 2px;
+}
+
+.builder__step-actions {
+  display: flex;
+  gap: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * RIGHT PANE — Configuration
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.builder__config {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated);
+}
+
+.builder__config-header {
+  padding: var(--space-md) var(--space-lg);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.builder__config-body {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-xl);
+}
+
+.builder__config-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* Command info at top of config */
+.builder__config-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.builder__config-desc {
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Horizontal divider */
+.builder__divider {
+  height: 1px;
+  background: var(--border-default);
+}
+
+/* Argument list */
+.builder__arg-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.builder__arg-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+
+.builder__arg-label {
+  display: block;
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  font-weight: var(--font-medium);
+}
+
+.builder__arg-required {
+  color: var(--color-danger);
+}
+
+.builder__arg-type {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+}
+
+.builder__arg-desc {
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+  margin-top: 2px;
+}
+
+/* Condition */
+.builder__condition-label {
+  display: block;
+  font-size: var(--text-base);
+  color: #eab308;
+  margin-bottom: var(--space-xs);
+  font-weight: var(--font-medium);
+}
+
+.builder__condition-input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-input);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-md);
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.builder__condition-input:focus {
+  outline: none;
+  border-color: rgba(234, 179, 8, 0.3);
+}
+
+.builder__condition-hint {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  margin-top: var(--space-xs);
+}
+
+/* Empty config state */
+.builder__config-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-ghost);
+}
+
+.builder__config-empty-icon {
+  margin-bottom: var(--space-lg);
+  opacity: 0.5;
+}
+
+.builder__config-empty-text {
+  font-size: var(--text-md);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ICON BUTTONS (move / delete in step list)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.builder__icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-subtle);
+  cursor: pointer;
+  padding: var(--space-xs);
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  transition: all var(--transition-fast);
+}
+
+.builder__icon-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.builder__icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.builder__icon-btn--danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-danger);
+}

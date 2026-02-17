@@ -1,55 +1,68 @@
-import { Hexagon, Zap, LogOut } from "lucide-react";
+import { useState } from "react";
+import { Hexagon, Zap, LogOut, Grid } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import type { ViewId } from "../../types";
 import { GemAvatar } from "../shared/GemAvatar";
+import { WorkspaceManagerModal } from "./WorkspaceManagerModal";
+import "../../styles/components/header.css";
 
 interface HeaderProps {
   user?: any;
   logout?: () => void;
   setView?: (v: ViewId) => void;
+  onProfileClick?: () => void;
+  activityPulse?: boolean;
+  onActivityClick?: () => void;
 }
 
-export function Header({ user, logout, setView }: HeaderProps) {
+export function Header({ user, logout, setView, onProfileClick, activityPulse, onActivityClick }: HeaderProps) {
+  const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
+
   return (
-    <header style={{ padding: "10px 20px", borderBottom: "1px solid rgba(0,229,160,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,229,160,0.02)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #00e5a0 0%, #0a0a0f 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+    <header className="app-header">
+      <div className="header-brand">
+        <div className="header-logo">
           <Hexagon size={18} color="#0a0a0f" strokeWidth={2.5} />
         </div>
         <div>
-          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, letterSpacing: "-0.02em" }}>MESH WORKSPACE</div>
-          <div style={{ fontSize: 10, color: "#71717a", letterSpacing: "0.05em" }}>DECENTRALIZED AGENT COLLABORATION</div>
+          <div className="header-title">MESH WORKSPACE</div>
+          <div className="header-subtitle">DECENTRALIZED AGENT COLLABORATION</div>
         </div>
       </div>
 
       {user && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="header-actions">
+          <div className="header-action-btn">
+            <button
+              onClick={() => setShowWorkspaceModal(!showWorkspaceModal)}
+              className={`header-icon-btn ${showWorkspaceModal ? 'active' : ''}`}
+              title="Workspace Manager"
+            >
+              <Grid size={18} />
+            </button>
+            {showWorkspaceModal && <WorkspaceManagerModal onClose={() => setShowWorkspaceModal(false)} />}
+          </div>
+
           <button
-            onClick={() => setView?.("profile")}
-            style={{
-              background: "none",
-              border: "1px solid rgba(255,255,255,0.06)",
-              borderRadius: 8,
-              padding: "4px 10px 4px 4px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              transition: "all 0.15s",
-            }}
+            onClick={onActivityClick}
+            className={`header-icon-btn ${activityPulse ? 'pulsing' : ''}`}
+            title="Activity"
           >
-            <GemAvatar seed={user.email || user.username || "user"} size={28} />
-            <div style={{ textAlign: "left" }}>
-              <div style={{ fontSize: 11, color: "#e4e4e7", fontWeight: 500, fontFamily: "inherit" }}>{user.firstName || user.username}</div>
-              <div style={{ fontSize: 9, color: "#52525b", fontFamily: "inherit" }}>{user.email || "User"}</div>
-            </div>
+            <Zap size={16} color={activityPulse ? "#00e5a0" : "#71717a"} />
           </button>
 
           <button
-            onClick={logout}
-            style={{ background: "none", border: "none", color: "#52525b", cursor: "pointer", padding: 4, transition: "color 0.15s", display: "flex", alignItems: "center" }}
-            title="Logout"
+            onClick={() => onProfileClick ? onProfileClick() : setView?.("profile")}
+            className="header-user-btn"
           >
+            <GemAvatar seed={user.email || user.username || "user"} size={28} />
+            <div className="header-user-info">
+              <div className="header-user-name">{user.firstName || user.username}</div>
+              <div className="header-user-email">{user.email || "User"}</div>
+            </div>
+          </button>
+
+          <button onClick={logout} className="header-logout-btn" title="Logout">
             <LogOut size={14} />
           </button>
         </div>

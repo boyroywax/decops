@@ -7,22 +7,23 @@ export function useAgents(addJob: (job: JobRequest) => void) {
 
     // UI State
     const [showCreate, setShowCreate] = useState(false);
-    const [newAgent, setNewAgent] = useState<NewAgentForm>({ name: "", role: "researcher", prompt: "", templateIdx: 0 });
+    const [newAgent, setNewAgent] = useState<NewAgentForm>({ name: "", role: "researcher", prompt: "", templateIdx: 0, networkId: "" });
     const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
     const [editingPrompt, setEditingPrompt] = useState<string | null>(null);
     const [editPromptText, setEditPromptText] = useState("");
 
     const createAgent = () => {
-        if (!newAgent.name.trim()) return;
+        if (!newAgent.name.trim() || !newAgent.networkId) return;
         addJob({
             type: "create_agent",
             request: {
                 name: newAgent.name.trim(),
                 role: newAgent.role,
-                prompt: newAgent.prompt.trim()
+                prompt: newAgent.prompt.trim(),
+                networkId: newAgent.networkId
             }
         });
-        setNewAgent({ name: "", role: "researcher", prompt: "", templateIdx: 0 });
+        setNewAgent({ name: "", role: "researcher", prompt: "", templateIdx: 0, networkId: newAgent.networkId });
         setShowCreate(false);
     };
 

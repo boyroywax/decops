@@ -3,14 +3,18 @@ import { JobsProvider, useJobsContext } from "../context/JobsContext";
 import { WorkspaceProvider } from "../context/WorkspaceContext";
 import { AuthenticatedApp } from "./layout/AuthenticatedApp";
 import { LoginView } from "./views/LoginView";
-import { registerCommands } from "../services/commands/init";
-import { useEffect } from "react";
+import { AutomationsProvider } from "../context/AutomationsContext";
+import { useNotebook } from "../hooks/useNotebook";
 
 function InternalApp() {
     const { addJob } = useJobsContext();
+    const notebook = useNotebook();
+
     return (
         <WorkspaceProvider addJob={addJob}>
-            <AuthenticatedApp />
+            <AutomationsProvider addLog={notebook.addLog}>
+                <AuthenticatedApp notebook={notebook} />
+            </AutomationsProvider>
         </WorkspaceProvider>
     );
 }
@@ -18,10 +22,6 @@ function InternalApp() {
 export function Main() {
     const { isInitialized, isLoading, isAuthenticated } = useAuth();
     console.log('[App] Main render:', { isInitialized, isLoading, isAuthenticated });
-
-    useEffect(() => {
-        registerCommands();
-    }, []);
 
     if (!isInitialized || isLoading) {
         return (

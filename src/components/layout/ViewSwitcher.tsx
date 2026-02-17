@@ -1,6 +1,8 @@
-import type { ViewId } from "../../types";
-import { ArchitectView } from "../views/ArchitectView";
-import { EcosystemView } from "../views/EcosystemView";
+import type { ViewId, NavContext } from "../../types";
+import { NetworksView } from "../views/NetworksView";
+import { NetworkDetailView } from "../views/NetworkDetailView";
+import { GroupDetailView } from "../views/GroupDetailView";
+import { AgentDetailView } from "../views/AgentDetailView";
 import { AgentsView } from "../views/AgentsView";
 import { ChannelsView } from "../views/ChannelsView";
 import { GroupsView } from "../views/GroupsView";
@@ -8,13 +10,15 @@ import { MessagesView } from "../views/MessagesView";
 import { NetworkView } from "../views/NetworkView";
 import { ArtifactsView } from "../views/ArtifactsView";
 import { ActivityView } from "../views/ActivityView";
-import { ProfileView } from "../views/ProfileView";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
+import { Breadcrumb } from "./Breadcrumb";
 import type { WorkspaceContextType } from "../../context/WorkspaceContext";
 
 interface ViewSwitcherProps {
     view: ViewId;
     setView: (view: ViewId) => void;
+    navContext: NavContext;
+    navigateTo: (view: ViewId, ctx: NavContext) => void;
     workspace: WorkspaceContextType;
     architect: any;
     ecosystem: any;
@@ -25,11 +29,14 @@ interface ViewSwitcherProps {
     clearNotebook: () => void;
     exportNotebook: () => void;
     addNotebookEntry: (entry: any) => void;
+    addJob: (job: any) => void;
 }
 
 export function ViewSwitcher({
     view,
     setView,
+    navContext,
+    navigateTo,
     workspace,
     architect,
     ecosystem,
@@ -39,48 +46,81 @@ export function ViewSwitcher({
     notebookEntries,
     clearNotebook,
     exportNotebook,
-    addNotebookEntry
+    addNotebookEntry,
+    addJob
 }: ViewSwitcherProps) {
-    if (view === "profile") {
-        return (
-            <ProfileView
-                agents={workspace.agents}
-                channels={workspace.channels}
-                groups={workspace.groups}
-                messages={workspace.messages}
-                ecosystems={ecosystem.ecosystems}
-                bridges={ecosystem.bridges}
-                setAgents={workspace.setAgents}
-                setChannels={workspace.setChannels}
-                setGroups={workspace.setGroups}
-                setMessages={workspace.setMessages}
-                setEcosystems={ecosystem.setEcosystems}
-                setBridges={ecosystem.setBridges}
-            />
-        );
-    }
+    const breadcrumb = (navContext.networkId || navContext.groupId || navContext.agentId) ? (
+        <Breadcrumb
+            navContext={navContext}
+            navigateTo={navigateTo}
+            ecosystems={ecosystem.ecosystems}
+            agents={workspace.agents}
+            groups={workspace.groups}
+        />
+    ) : null;
 
-    if (view === "architect") {
+    if (view === "networks" || view === "ecosystem") {
+        // Drill-down: Agent detail (deepest)
+        if (navContext.agentId && navContext.networkId) {
+            return (
+                <>
+                    {breadcrumb}
+                    <AgentDetailView
+                        agentId={navContext.agentId}
+                        networkId={navContext.networkId}
+                        groupId={navContext.groupId}
+                        agents={workspace.agents}
+                        channels={workspace.channels}
+                        groups={workspace.groups}
+                        messages={workspace.messages}
+                        ecosystems={ecosystem.ecosystems}
+                        navigateTo={navigateTo}
+                        updateAgentPrompt={workspace.updateAgentPrompt}
+                        removeAgent={workspace.removeAgent}
+                    />
+                </>
+            );
+        }
+        // Drill-down: Group detail
+        if (navContext.groupId && navContext.networkId) {
+            return (
+                <>
+                    {breadcrumb}
+                    <GroupDetailView
+                        groupId={navContext.groupId}
+                        networkId={navContext.networkId}
+                        agents={workspace.agents}
+                        groups={workspace.groups}
+                        ecosystems={ecosystem.ecosystems}
+                        navigateTo={navigateTo}
+                        removeGroup={workspace.removeGroup}
+                        setBroadcastGroup={workspace.setBroadcastGroup}
+                        setView={setView}
+                    />
+                </>
+            );
+        }
+        // Drill-down: Network detail
+        if (navContext.networkId) {
+            return (
+                <>
+                    {breadcrumb}
+                    <NetworkDetailView
+                        networkId={navContext.networkId}
+                        agents={workspace.agents}
+                        channels={workspace.channels}
+                        groups={workspace.groups}
+                        ecosystems={ecosystem.ecosystems}
+                        bridges={ecosystem.bridges}
+                        navigateTo={navigateTo}
+                        dissolveNetwork={ecosystem.dissolveNetwork}
+                    />
+                </>
+            );
+        }
+        // Top level: Network manager
         return (
-            <ArchitectView
-                archPrompt={architect.archPrompt}
-                setArchPrompt={architect.setArchPrompt}
-                archGenerating={architect.archGenerating}
-                archPreview={architect.archPreview}
-                archError={architect.archError}
-                archPhase={architect.archPhase}
-                deployProgress={architect.deployProgress}
-                generateNetwork={architect.generateNetwork}
-                deployNetwork={architect.deployNetwork}
-                resetArchitect={architect.resetArchitect}
-                setView={setView}
-            />
-        );
-    }
-
-    if (view === "ecosystem") {
-        return (
-            <EcosystemView
+            <NetworksView
                 agents={workspace.agents}
                 channels={workspace.channels}
                 groups={workspace.groups}
@@ -88,30 +128,16 @@ export function ViewSwitcher({
                 bridges={ecosystem.bridges}
                 bridgeMessages={ecosystem.bridgeMessages}
                 activeBridges={ecosystem.activeBridges}
-                ecoSaveName={ecosystem.ecoSaveName}
-                setEcoSaveName={ecosystem.setEcoSaveName}
                 bridgeForm={ecosystem.bridgeForm}
                 setBridgeForm={ecosystem.setBridgeForm}
-                selectedBridge={ecosystem.selectedBridge}
-                setSelectedBridge={ecosystem.setSelectedBridge}
-                bridgeMsgInput={ecosystem.bridgeMsgInput}
-                setBridgeMsgInput={ecosystem.setBridgeMsgInput}
-                bridgeSending={ecosystem.bridgeSending}
-                msgEndRef={ecosystem.msgEndRef}
-                selBridgeFrom={ecosystem.selBridgeFrom}
-                selBridgeTo={ecosystem.selBridgeTo}
-                selBridgeFromNet={ecosystem.selBridgeFromNet}
-                selBridgeToNet={ecosystem.selBridgeToNet}
                 bridgeFromNet={ecosystem.bridgeFromNet}
                 bridgeToNet={ecosystem.bridgeToNet}
-                saveCurrentNetwork={ecosystem.saveCurrentNetwork}
-                loadNetwork={ecosystem.loadNetwork}
                 dissolveNetwork={ecosystem.dissolveNetwork}
-                clearWorkspace={workspace.clearWorkspace}
                 createBridge={ecosystem.createBridge}
                 removeBridge={ecosystem.removeBridge}
-                sendBridgeMessage={ecosystem.sendBridgeMessage}
                 setView={setView}
+                addJob={addJob}
+                navigateTo={navigateTo}
             />
         );
     }
@@ -123,6 +149,7 @@ export function ViewSwitcher({
                 channels={workspace.channels}
                 groups={workspace.groups}
                 messages={workspace.messages}
+                ecosystems={ecosystem.ecosystems}
                 showCreate={workspace.showCreate}
                 setShowCreate={workspace.setShowCreate}
                 newAgent={workspace.newAgent}
@@ -147,6 +174,7 @@ export function ViewSwitcher({
                 agents={workspace.agents}
                 channels={workspace.channels}
                 messages={workspace.messages}
+                ecosystems={ecosystem.ecosystems}
                 channelForm={workspace.channelForm}
                 setChannelForm={workspace.setChannelForm}
                 createChannel={workspace.createChannel}
@@ -163,6 +191,7 @@ export function ViewSwitcher({
             <GroupsView
                 agents={workspace.agents}
                 groups={workspace.groups}
+                ecosystems={ecosystem.ecosystems}
                 showGroupCreate={workspace.showGroupCreate}
                 setShowGroupCreate={workspace.setShowGroupCreate}
                 groupForm={workspace.groupForm}
@@ -203,6 +232,19 @@ export function ViewSwitcher({
                 sendMessage={workspace.sendMessage}
                 sendBroadcast={workspace.sendBroadcast}
                 removeMessages={workspace.removeMessages}
+                ecosystems={ecosystem.ecosystems}
+                bridges={ecosystem.bridges}
+                bridgeMessages={ecosystem.bridgeMessages}
+                selectedBridge={ecosystem.selectedBridge}
+                setSelectedBridge={ecosystem.setSelectedBridge}
+                bridgeMsgInput={ecosystem.bridgeMsgInput}
+                setBridgeMsgInput={ecosystem.setBridgeMsgInput}
+                bridgeSending={ecosystem.bridgeSending}
+                selBridgeFrom={ecosystem.selBridgeFrom}
+                selBridgeTo={ecosystem.selBridgeTo}
+                selBridgeFromNet={ecosystem.selBridgeFromNet}
+                selBridgeToNet={ecosystem.selBridgeToNet}
+                sendBridgeMessage={ecosystem.sendBridgeMessage}
             />
         );
     }
@@ -240,6 +282,8 @@ export function ViewSwitcher({
             </ErrorBoundary>
         );
     }
+
+
 
     return null;
 }

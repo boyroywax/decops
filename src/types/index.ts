@@ -4,11 +4,14 @@ export type RoleId = "researcher" | "builder" | "curator" | "validator" | "orche
 
 export type ChannelTypeId = "data" | "task" | "consensus";
 
+export type ChannelMode = "p2p" | "bridge" | "broadcast";
+
 export type GovernanceModelId = "majority" | "threshold" | "delegated" | "unanimous";
 
 export type ViewId =
   | "architect"
-  | "ecosystem"
+  | "networks"
+  | "ecosystem"  // Legacy alias
   | "agents"
   | "channels"
   | "groups"
@@ -17,7 +20,15 @@ export type ViewId =
   | "data"
   | "profile"
   | "artifacts"
-  | "activity";
+  | "activity"
+  | "actions";
+
+/** Navigation context for hierarchical drill-down: Ecosystem → Network → Group → Agent */
+export interface NavContext {
+  networkId?: string;
+  groupId?: string;
+  agentId?: string;
+}
 
 export type NotebookCategory = "action" | "output" | "navigation" | "system" | "narrative";
 
@@ -132,6 +143,7 @@ export interface Agent {
   keys: KeyPair;
   createdAt: string;
   status: "active";
+  networkId?: string;  // Which network this agent belongs to
 }
 
 export interface Channel {
@@ -139,8 +151,13 @@ export interface Channel {
   from: string;
   to: string;
   type: ChannelTypeId;
+  mode?: ChannelMode;  // p2p (default/local), bridge (cross-network), broadcast (group)
   offset: number;
   createdAt: string;
+  networkId?: string;  // Which network this channel belongs to (absent for bridge-mode)
+  // Bridge-specific fields (present when mode === "bridge")
+  fromNetworkId?: string;
+  toNetworkId?: string;
 }
 
 export interface Group {
@@ -152,6 +169,7 @@ export interface Group {
   did: string;
   color: string;
   createdAt: string;
+  networkId?: string;  // Which network this group belongs to
 }
 
 export interface Message {
@@ -186,6 +204,18 @@ export interface Network {
   groups: Group[];
   messages: Message[];
   createdAt: string;
+  description?: string;
+}
+
+/** First-class Ecosystem — the "universe" of networks and bridges within a workspace */
+export interface Ecosystem {
+  id: string;
+  name: string;
+  did: string;
+  networks: Network[];
+  bridges: Bridge[];
+  bridgeMessages: BridgeMessage[];
+  createdAt: string;
 }
 
 export interface Bridge {
@@ -211,16 +241,33 @@ export interface DeployProgress {
 }
 
 export interface MeshConfig {
+  networks?: MeshConfigNetwork[];
   agents: MeshConfigAgent[];
   channels: MeshConfigChannel[];
   groups: MeshConfigGroup[];
+  bridges?: MeshConfigBridge[];
   exampleMessages: MeshConfigMessage[];
+}
+
+export interface MeshConfigNetwork {
+  name: string;
+  description?: string;
+  agents: number[]; // indices into agents array
+}
+
+export interface MeshConfigBridge {
+  fromNetwork: number; // index into networks array
+  toNetwork: number;
+  fromAgent: number; // index into agents array
+  toAgent: number;
+  type: string; // channel type
 }
 
 export interface MeshConfigAgent {
   name: string;
   role: string;
   prompt: string;
+  network?: number; // index into networks array (alternative to MeshConfigNetwork.agents)
 }
 
 export interface MeshConfigChannel {
@@ -246,12 +293,14 @@ export interface NewAgentForm {
   role: RoleId;
   prompt: string;
   templateIdx: number;
+  networkId: string;
 }
 
 export interface ChannelForm {
   from: string;
   to: string;
   type: ChannelTypeId;
+  networkId: string;
 }
 
 export interface GroupForm {
@@ -259,6 +308,7 @@ export interface GroupForm {
   governance: GovernanceModelId;
   members: string[];
   threshold: number;
+  networkId: string;
 }
 
 export interface BridgeForm {
@@ -384,6 +434,10 @@ export interface JobStep {
   id: string;
   commandId: string;
   args: Record<string, any>;
+  name?: string;
+  status?: "pending" | "running" | "completed" | "failed" | "skipped";
+  result?: string;
+  condition?: string; // JS expression string
 }
 
 export interface JobDefinition {
@@ -449,6 +503,12 @@ export interface CreateBridgeRequest {
   type: ChannelTypeId;
 }
 
+export interface CreateNetworkRequest {
+  name: string;
+  description?: string;
+  architectPrompt?: string;  // Optional: use Architect to generate the network
+}
+
 export interface ResetWorkspaceRequest { }
 
 // Discriminated Union for all Job types
@@ -465,9 +525,10 @@ export type JobRequest =
   | { type: "delete_group"; request: DeleteRequest }
   | { type: "bulk_delete"; request: DeleteRequest }
   | { type: "create_bridge"; request: CreateBridgeRequest }
+  | { type: "create_network"; request: CreateNetworkRequest }
   | { type: "reset_workspace"; request: ResetWorkspaceRequest }
   // Fallback for dynamic/other jobs
-  | { type: string; request: Record<string, any> };
+  | { type: string; request: Record<string, any>; steps?: JobStep[]; mode?: 'serial' | 'parallel' };
 
 export interface Job {
   id: string;
@@ -488,3 +549,47 @@ export interface Job {
   mode?: 'serial' | 'parallel';
 }
 
+
+export interface WorkspaceMetadata {
+  id: string;
+  name: string;
+  created: number;
+  lastModified: number;
+  description?: string;
+  stats?: {
+    agentCount: number;
+    channelCount: number;
+    groupCount: number;
+    networkCount: number;
+  };
+}
+
+export interface Workspace {
+  metadata: WorkspaceMetadata;
+
+  /** First-class ecosystem (target model: all entities live here) */
+  ecosystem?: Ecosystem;
+  /** Which network is currently focused/active in the UI */
+  activeNetworkId?: string;
+  /** Which user was last associated with this workspace */
+  userId?: string;
+
+  // ─── Legacy top-level arrays (kept for backward compat during migration) ───
+  /** @deprecated Agents should live inside Network. Will be removed once migration completes. */
+  agents: Agent[];
+  /** @deprecated Channels should live inside Network. Will be removed once migration completes. */
+  channels: Channel[];
+  /** @deprecated Groups should live inside Network. Will be removed once migration completes. */
+  groups: Group[];
+  /** @deprecated Messages should live inside Network. Will be removed once migration completes. */
+  messages: Message[];
+  /** @deprecated Use ecosystem.networks instead */
+  networks?: Network[];
+  /** @deprecated Use ecosystem.bridges instead */
+  bridges?: Bridge[];
+
+  jobs?: Job[];
+  artifacts?: JobArtifact[];
+  automations?: any[]; // AutomationDefinition
+  automationRuns?: any[]; // AutomationRun
+}

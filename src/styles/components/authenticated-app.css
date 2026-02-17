@@ -1,0 +1,64 @@
+/**
+ * AuthenticatedApp Layout Styles
+ * Root layout shell: full-height container, content area, sidebar wrapper
+ */
+
+.app-shell {
+  font-family: var(--font-mono);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  flex-direction: row;
+}
+
+.app-content--mobile {
+  flex-direction: column;
+}
+
+.app-sidebar-wrapper {
+  position: relative;
+  z-index: 20;
+  height: 100%;
+  width: auto;
+}
+
+.app-sidebar-wrapper--mobile {
+  height: auto;
+  width: 100%;
+}
+
+.app-main {
+  flex: 1;
+  padding: var(--space-3xl);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.app-main::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.app-main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.app-main::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.app-main::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}

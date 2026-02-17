@@ -6,21 +6,22 @@ export function useChannels(addJob: (job: JobRequest) => void) {
     const [channels, setChannels] = useLocalStorage<Channel[]>("decops_channels", []);
 
     // UI State
-    const [channelForm, setChannelForm] = useState<ChannelForm>({ from: "", to: "", type: "data" });
+    const [channelForm, setChannelForm] = useState<ChannelForm>({ from: "", to: "", type: "data", networkId: "" });
     const [activeChannel, setActiveChannel] = useState<string | null>(null);
     const [activeChannels, setActiveChannels] = useState<Set<string>>(new Set()); // For AI processing feedback
 
     const createChannel = () => {
-        if (!channelForm.from || !channelForm.to || channelForm.from === channelForm.to) return;
+        if (!channelForm.from || !channelForm.to || channelForm.from === channelForm.to || !channelForm.networkId) return;
         addJob({
             type: "create_channel",
             request: {
                 from: channelForm.from,
                 to: channelForm.to,
-                type: channelForm.type
+                type: channelForm.type,
+                networkId: channelForm.networkId
             }
         });
-        setChannelForm({ from: "", to: "", type: "data" });
+        setChannelForm({ from: "", to: "", type: "data", networkId: channelForm.networkId });
     };
 
     const removeChannel = (id: string) => {

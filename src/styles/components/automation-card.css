@@ -1,0 +1,205 @@
+/**
+ * AutomationCard Component Styles
+ * Individual automation card with run controls, status, and tags
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CARD CONTAINER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.automation-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-3xl);
+  padding: var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.automation-card:hover {
+  border-color: var(--border-medium);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * STATUS STRIPE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.automation-card__stripe {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+}
+
+.automation-card__stripe--running {
+  background: var(--color-info);
+}
+
+.automation-card__stripe--failed {
+  background: var(--color-danger);
+}
+
+.automation-card__stripe--default {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HEADER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.automation-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.automation-card__info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.automation-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(56, 189, 248, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.automation-card__name {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.automation-card__schedule {
+  font-size: var(--text-base);
+  color: var(--text-subtle);
+  margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ACTION BUTTONS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.automation-card__actions {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.automation-card__logs-btn {
+  background: var(--bg-surface-hover);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-lg);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--text-base);
+  font-family: inherit;
+  transition: all var(--transition-base);
+}
+
+.automation-card__logs-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+.automation-card__run-btn {
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  transition: all var(--transition-base);
+}
+
+.automation-card__run-btn--ready {
+  background: rgba(0, 229, 160, 0.1);
+  border: 1px solid rgba(0, 229, 160, 0.2);
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.automation-card__run-btn--ready:hover {
+  background: rgba(0, 229, 160, 0.18);
+}
+
+.automation-card__run-btn--running {
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  color: var(--color-info);
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * DESCRIPTION
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.automation-card__description {
+  font-size: var(--text-md);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TAGS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.automation-card__tags {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.automation-card__tag {
+  font-size: var(--text-sm);
+  background: var(--bg-surface-hover);
+  color: var(--text-subtle);
+  padding: 2px var(--space-md);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * DIVIDER & FOOTER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.automation-card__divider {
+  height: 1px;
+  background: var(--border-default);
+}
+
+.automation-card__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--text-base);
+}
+
+.automation-card__last-run {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--text-subtle);
+}
+
+.automation-card__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.automation-card__status-label {
+  text-transform: capitalize;
+}

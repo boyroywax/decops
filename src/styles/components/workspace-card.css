@@ -1,0 +1,280 @@
+/**
+ * WorkspaceCard component styles
+ * Extracted from inline styles in WorkspaceCard.tsx
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CARD CONTAINER & FLIP
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.ws-card {
+  perspective: 1000px;
+  width: 100%;
+  height: 220px;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+
+.ws-card--elevated {
+  z-index: 10;
+}
+
+.ws-card__inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.ws-card__inner--flipped {
+  transform: rotateY(180deg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * FRONT FACE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.ws-card__front {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-3xl);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: none;
+}
+
+.ws-card--active .ws-card__front {
+  background: linear-gradient(135deg, rgba(0, 229, 160, 0.05) 0%, var(--bg-primary) 100%);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 30px rgba(0, 229, 160, 0.15);
+}
+
+.ws-card__front-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.ws-card__name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.ws-card--active .ws-card__name {
+  color: var(--color-accent);
+}
+
+.ws-card__active-badge {
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 229, 160, 0.1);
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  letter-spacing: 0.05em;
+}
+
+.ws-card__date {
+  font-size: var(--text-md);
+  color: var(--text-subtle);
+  margin-top: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.ws-card__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * STAT ITEM
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.ws-card__stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: var(--bg-surface);
+  padding: 6px 8px;
+  border-radius: var(--radius-lg);
+}
+
+.ws-card__stat-value {
+  font-size: 14px;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.ws-card__stat-label {
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * BACK FACE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.ws-card__back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  transform: rotateY(180deg);
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-3xl);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.ws-card__back--deleting {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.ws-card__manage-title {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.ws-card__description {
+  font-size: var(--text-lg);
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ws-card__id {
+  margin-top: var(--space-xl);
+  font-size: var(--text-base);
+  color: var(--text-ghost);
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.2);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * BACK ACTION BUTTONS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.ws-card__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.ws-card__switch-btn {
+  flex: 1;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  background: var(--color-accent);
+  border: none;
+  color: #09090b;
+  cursor: pointer;
+  font-weight: var(--font-semibold);
+  font-size: var(--text-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.ws-card__copy-btn {
+  flex: 1;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-weight: var(--font-medium);
+  font-size: var(--text-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.ws-card__delete-btn {
+  flex: 0;
+  padding: 0 12px;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--color-danger);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  min-width: 36px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * DELETE CONFIRMATION
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.ws-card__delete-confirm {
+  text-align: center;
+  padding-top: 10px;
+}
+
+.ws-card__delete-confirm-icon {
+  margin-bottom: 12px;
+}
+
+.ws-card__delete-confirm-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.ws-card__delete-confirm-text {
+  font-size: var(--text-lg);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.ws-card__cancel-btn {
+  flex: 1;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-weight: var(--font-medium);
+  font-size: var(--text-lg);
+}
+
+.ws-card__confirm-btn {
+  flex: 1;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  background: var(--color-danger);
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-weight: var(--font-semibold);
+  font-size: var(--text-lg);
+}

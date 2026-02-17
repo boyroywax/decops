@@ -1,0 +1,274 @@
+/**
+ * AutomationBuilder Component Styles
+ * BEM-ish naming: .auto-builder, .auto-builder__*, .auto-builder__*--modifier
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ROOT CONTAINER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.auto-builder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+  background: var(--bg-modal);
+  padding: var(--space-3xl);
+  border-radius: var(--radius-3xl);
+  border: 1px solid var(--border-default);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HEADER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.auto-builder__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.auto-builder__title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  margin: 0;
+}
+
+.auto-builder__close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--text-xl);
+  padding: var(--space-xs);
+  transition: color var(--transition-fast);
+}
+
+.auto-builder__close:hover {
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * FORM
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.auto-builder__form {
+  display: grid;
+  gap: var(--space-xl);
+}
+
+.auto-builder__label {
+  display: block;
+  font-size: var(--text-lg);
+  color: var(--text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * STEPS SECTION
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.auto-builder__steps {
+  border-top: 1px solid var(--border-default);
+  padding-top: var(--space-xl);
+}
+
+.auto-builder__steps-title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  margin: 0 0 var(--space-lg) 0;
+}
+
+.auto-builder__step-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * INDIVIDUAL STEP CARD
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.auto-builder__step {
+  padding: var(--space-lg);
+  background: var(--bg-surface-hover);
+  border-radius: var(--radius-xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.auto-builder__step-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.auto-builder__step-number {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--text-invisible);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  flex-shrink: 0;
+}
+
+.auto-builder__step-command {
+  font-weight: var(--font-medium);
+}
+
+.auto-builder__step-meta {
+  font-size: var(--text-md);
+  color: var(--text-muted);
+}
+
+.auto-builder__step-condition {
+  color: var(--color-warning);
+  margin-left: var(--space-md);
+}
+
+.auto-builder__step-remove {
+  background: transparent;
+  border: none;
+  color: var(--color-danger);
+  cursor: pointer;
+  font-size: var(--text-2xl);
+  padding: var(--space-xs);
+  transition: opacity var(--transition-fast);
+}
+
+.auto-builder__step-remove:hover {
+  opacity: 0.7;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * EMPTY STATE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.auto-builder__empty {
+  padding: var(--space-2xl);
+  text-align: center;
+  color: var(--text-ghost);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ADD STEP BUTTON
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.auto-builder__add-btn {
+  width: 100%;
+  padding: var(--space-lg);
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  transition: background var(--transition-fast);
+}
+
+.auto-builder__add-btn:hover {
+  background: var(--bg-surface);
+  outline: 1px solid var(--border-medium);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * STEP FORM (add/edit step panel)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.auto-builder__step-form {
+  padding: var(--space-xl);
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.auto-builder__select {
+  width: 100%;
+  padding: var(--space-md);
+  background: var(--bg-modal);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  outline: none;
+}
+
+.auto-builder__select:focus {
+  border-color: rgba(0, 229, 160, 0.3);
+}
+
+.auto-builder__condition-input {
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+}
+
+.auto-builder__help-text {
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+  margin: var(--space-xs) 0 0 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ARGS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.auto-builder__args {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.auto-builder__arg-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.auto-builder__required {
+  color: var(--color-danger);
+}
+
+.auto-builder__arg-type {
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * STEP ACTIONS (Add Step / Cancel buttons row)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.auto-builder__step-actions {
+  display: flex;
+  gap: var(--space-lg);
+  margin-top: var(--space-md);
+}
+
+.auto-builder__step-actions .btn {
+  flex: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * FOOTER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.auto-builder__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-lg);
+  margin-top: var(--space-md);
+}

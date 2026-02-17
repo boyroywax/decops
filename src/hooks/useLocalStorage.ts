@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
+// Unique ID per hook instance to avoid self-triggering on custom events
+let instanceCounter = 0;
+
 export function useLocalStorage<T>(key: string, initialValue: T) {
+    const instanceId = useRef(++instanceCounter).current;
     // Get from local storage then parse stored json or return initialValue
     const readValue = useCallback((): T => {
         if (typeof window === "undefined") {
@@ -28,22 +32,30 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
         (value: T | ((val: T) => T)) => {
             try {
                 // Use functional setState so React always provides the latest state
+                let serialized: string | null = null;
                 setStoredValue((prev) => {
                     const valueToStore =
                         value instanceof Function ? value(prev) : value;
 
                     // Sync to localStorage immediately with the resolved value
                     if (typeof window !== "undefined") {
-                        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+                        serialized = JSON.stringify(valueToStore);
+                        window.localStorage.setItem(key, serialized);
                     }
 
                     return valueToStore;
                 });
+                // Dispatch sync event OUTSIDE the setState updater to avoid setState-during-setState
+                if (serialized !== null) {
+                    window.dispatchEvent(new CustomEvent('local-storage-sync', {
+                        detail: { key, newValue: serialized, sourceInstance: instanceId }
+                    }));
+                }
             } catch (error) {
                 console.warn(`Error setting localStorage key "${key}":`, error);
             }
         },
-        [key]
+        [key, instanceId]
     );
 
     useEffect(() => {
@@ -62,8 +74,26 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
             }
         };
 
+        // Listen for same-tab sync events from other hook instances
+        const handleLocalSync = (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            // Skip events dispatched by this same hook instance
+            if (detail.sourceInstance === instanceId) return;
+            if (detail.key === key && detail.newValue !== null) {
+                try {
+                    setStoredValue(JSON.parse(detail.newValue));
+                } catch (error) {
+                    console.warn(`Error parsing local sync for key "${key}":`, error);
+                }
+            }
+        };
+
         window.addEventListener("storage", handleStorageChange);
-        return () => window.removeEventListener("storage", handleStorageChange);
+        window.addEventListener("local-storage-sync", handleLocalSync);
+        return () => {
+            window.removeEventListener("storage", handleStorageChange);
+            window.removeEventListener("local-storage-sync", handleLocalSync);
+        };
     }, [key]);
 
     return [storedValue, setValue] as const;

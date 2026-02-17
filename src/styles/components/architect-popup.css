@@ -1,0 +1,758 @@
+/**
+ * ArchitectPopup Component Styles
+ * Modal overlay with multi-phase architect workflow:
+ *   input → preview → deploying → done
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * BACKDROP & MODAL SHELL
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.architect-popup-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  display: flex;
+  justify-content: center;
+  padding-top: min(15vh, 120px);
+  animation: archFadeIn 0.12s ease-out;
+}
+
+.architect-popup-backdrop--expanded {
+  align-items: center;
+  padding-top: 0;
+}
+
+.architect-popup-backdrop:not(.architect-popup-backdrop--expanded) {
+  align-items: flex-start;
+}
+
+.architect-popup {
+  background: var(--bg-modal);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  border-radius: var(--radius-4xl);
+  width: min(680px, calc(100vw - 48px));
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(251, 191, 36, 0.06);
+  transition: width var(--transition-base), max-height var(--transition-base);
+}
+
+.architect-popup--expanded {
+  width: min(780px, calc(100vw - 48px));
+  max-height: calc(100vh - 64px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HEADER BAR
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.architect-popup__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px var(--space-2xl) 10px;
+  flex-shrink: 0;
+}
+
+.architect-popup__header--bordered {
+  border-bottom: 1px solid var(--border-default);
+}
+
+.architect-popup__header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.architect-popup__title {
+  font-family: var(--font-display);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-lg);
+  color: var(--color-warning);
+}
+
+.architect-popup__phase-label {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  font-family: var(--font-mono);
+}
+
+.architect-popup__new-btn {
+  background: var(--bg-surface-hover);
+  border: 1px solid var(--border-medium);
+  color: var(--text-subtle);
+  padding: var(--space-xs) var(--space-lg);
+  border-radius: var(--radius-lg);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * INPUT PHASE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.architect-popup__input-phase {
+  padding: var(--space-xs) var(--space-2xl) var(--space-2xl);
+}
+
+/* ── Template Card Deck ── */
+
+.architect-popup__deck-wrap {
+  position: relative;
+  margin-bottom: var(--space-xl);
+}
+
+.architect-popup__deck {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: var(--space-xs) 0 var(--space-md);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.architect-popup__deck::-webkit-scrollbar {
+  display: none;
+}
+
+.architect-popup__deck-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: rgba(15, 15, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.architect-popup__deck-arrow--left {
+  left: -2px;
+}
+
+.architect-popup__deck-arrow--right {
+  right: -2px;
+}
+
+/* ── Scenario Preset Card ── */
+
+.architect-popup__preset {
+  flex: 0 0 auto;
+  width: 180px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-lg) 14px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+/* selected state uses dynamic border/background via inline style */
+
+.architect-popup__preset-icon {
+  font-size: 18px;
+  margin-bottom: var(--space-sm);
+}
+
+.architect-popup__preset-label {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-xs);
+  font-family: var(--font-display);
+}
+
+.architect-popup__preset-desc {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── Command Input Bar ── */
+
+.architect-popup__input-bar {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+  background: var(--bg-elevated);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-xs) var(--space-xs) var(--space-xs) 14px;
+}
+
+.architect-popup__input-icon {
+  flex-shrink: 0;
+  margin-top: 11px;
+}
+
+.architect-popup__input-icon--generating {
+  opacity: 0.5;
+}
+
+.architect-popup__textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  padding: 10px 0;
+  resize: none;
+  line-height: 1.5;
+  min-height: 36px;
+  max-height: 120px;
+  overflow: auto;
+}
+
+.architect-popup__submit-btn {
+  border: none;
+  padding: var(--space-md) 18px;
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+  align-self: flex-start;
+  margin-top: var(--space-xs);
+}
+
+.architect-popup__submit-btn--ready {
+  background: var(--color-warning);
+  color: var(--bg-primary);
+}
+
+.architect-popup__submit-btn--disabled {
+  background: var(--text-invisible);
+  color: var(--bg-primary);
+  cursor: not-allowed;
+}
+
+.architect-popup__submit-btn--generating {
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--color-warning);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  cursor: not-allowed;
+}
+
+.architect-popup__generating-text {
+  animation: pulse 1.5s infinite;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* ── Error Box ── */
+
+.architect-popup__error {
+  background: var(--bg-danger-subtle, rgba(239, 68, 68, 0.08));
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-xl);
+  padding: var(--space-md) var(--space-lg);
+  font-size: var(--text-base);
+  color: var(--color-danger);
+  margin-top: 10px;
+}
+
+/* ── Keyboard Hints ── */
+
+.architect-popup__kbd-hints {
+  text-align: center;
+  margin-top: var(--space-lg);
+  font-size: var(--text-sm);
+  color: var(--text-invisible);
+}
+
+.architect-popup__kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--border-default);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * DEPLOYING PHASE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.architect-popup__deploying {
+  padding: var(--space-5xl) var(--space-3xl);
+  text-align: center;
+}
+
+.architect-popup__deploying-icon {
+  font-size: 36px;
+  margin-bottom: 14px;
+  animation: pulse 1.5s infinite;
+}
+
+.architect-popup__deploying-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-warning);
+  margin-bottom: var(--space-md);
+}
+
+.architect-popup__deploying-step {
+  font-size: var(--text-base);
+  color: var(--text-subtle);
+  margin-bottom: 18px;
+}
+
+.architect-popup__progress-track {
+  max-width: 280px;
+  margin: 0 auto;
+  background: var(--bg-surface-hover);
+  border-radius: var(--radius-lg);
+  height: 5px;
+  overflow: hidden;
+}
+
+.architect-popup__progress-bar {
+  height: 100%;
+  background: var(--color-warning);
+  border-radius: var(--radius-lg);
+  transition: width var(--transition-slow);
+}
+
+.architect-popup__progress-count {
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+  margin-top: var(--space-sm);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * DONE PHASE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.architect-popup__done {
+  padding: 36px var(--space-3xl);
+  text-align: center;
+}
+
+.architect-popup__done-check {
+  font-size: 36px;
+  margin-bottom: 14px;
+}
+
+.architect-popup__done-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-accent);
+  margin-bottom: var(--space-md);
+}
+
+.architect-popup__done-summary {
+  font-size: var(--text-base);
+  color: var(--text-subtle);
+  margin-bottom: 22px;
+}
+
+.architect-popup__done-actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.architect-popup__done-btn {
+  padding: var(--space-md) var(--space-xl);
+  border-radius: var(--radius-xl);
+  font-family: inherit;
+  font-size: var(--text-base);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* done-btn color variants use inline style for dynamic color */
+
+.architect-popup__build-another-btn {
+  background: var(--bg-surface-hover);
+  border: 1px solid var(--border-medium);
+  color: var(--text-subtle);
+  padding: var(--space-md) var(--space-xl);
+  border-radius: var(--radius-xl);
+  font-family: inherit;
+  font-size: var(--text-base);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PREVIEW PHASE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.architect-review {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-xl) var(--space-2xl) var(--space-2xl);
+}
+
+.architect-review__blueprint {
+  background: rgba(251, 191, 36, 0.04);
+  border: 1px solid rgba(251, 191, 36, 0.12);
+  border-radius: var(--radius-2xl);
+  padding: 18px;
+  margin-bottom: var(--space-xl);
+}
+
+.architect-review__blueprint-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.architect-review__blueprint-title {
+  font-size: var(--text-md);
+  font-weight: var(--font-medium);
+  color: var(--color-warning);
+}
+
+.architect-review__blueprint-stats {
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+}
+
+/* ── Section Label ── */
+
+.architect-review__section-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--text-ghost);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-md);
+}
+
+/* ── Network Cards ── */
+
+.architect-review__networks-grid {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-xl);
+}
+
+.architect-review__network-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  padding: 10px;
+  min-width: 180px;
+}
+
+/* border-color set inline for dynamic network color */
+
+.architect-review__network-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.architect-review__network-name {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+}
+
+/* color set inline for dynamic network color */
+
+.architect-review__network-desc {
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+  margin-bottom: var(--space-xs);
+}
+
+.architect-review__network-count {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+}
+
+/* ── Agent Cards ── */
+
+.architect-review__agents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.architect-review__agent-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-xl);
+  padding: 10px;
+}
+
+/* border-color set inline for dynamic role color */
+
+.architect-review__agent-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.architect-review__agent-icon {
+  font-size: var(--text-lg);
+}
+
+.architect-review__agent-info {
+  flex: 1;
+}
+
+.architect-review__agent-name {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+}
+
+.architect-review__agent-role {
+  font-size: var(--text-xs);
+}
+
+/* color set inline for role color */
+
+.architect-review__agent-network-badge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-md);
+}
+
+/* background/color set inline for dynamic network color */
+
+.architect-review__agent-network-label {
+  font-size: 8px;
+}
+
+.architect-review__agent-prompt {
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+  line-height: 1.4;
+  max-height: 40px;
+  overflow: hidden;
+}
+
+/* ── Channel Cards ── */
+
+.architect-review__channels-grid {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-xl);
+}
+
+.architect-review__channel-card {
+  background: var(--bg-elevated);
+  border: 1px solid rgba(167, 139, 250, 0.15);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) 10px;
+  font-size: var(--text-sm);
+}
+
+.architect-review__channel-agent {
+  color: var(--text-secondary);
+}
+
+.architect-review__channel-arrow {
+  margin: 0 var(--space-xs);
+  vertical-align: middle;
+}
+
+.architect-review__channel-type {
+  color: var(--color-channel);
+  margin-left: var(--space-sm);
+}
+
+/* ── Group Cards ── */
+
+.architect-review__groups-grid {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-xl);
+}
+
+.architect-review__group-card {
+  background: var(--bg-elevated);
+  border: 1px solid rgba(244, 114, 182, 0.15);
+  border-radius: var(--radius-xl);
+  padding: 10px;
+  min-width: 160px;
+}
+
+.architect-review__group-name {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  color: var(--color-group);
+  margin-bottom: var(--space-xs);
+}
+
+.architect-review__group-gov {
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+  margin-bottom: var(--space-xs);
+}
+
+.architect-review__group-members {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.architect-review__member-badge {
+  font-size: var(--text-xs);
+  padding: 2px 5px;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-hover);
+  color: var(--text-muted);
+}
+
+/* ── Bridge Cards ── */
+
+.architect-review__bridges-grid {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-xl);
+}
+
+.architect-review__bridge-card {
+  background: var(--bg-elevated);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: var(--radius-xl);
+  padding: 10px;
+}
+
+.architect-review__bridge-layout {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.architect-review__bridge-endpoint {
+  text-align: center;
+}
+
+.architect-review__bridge-net-name {
+  font-size: var(--text-xs);
+  margin-bottom: 2px;
+}
+
+/* color set inline for network color */
+
+.architect-review__bridge-agent-name {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.architect-review__bridge-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.architect-review__bridge-type {
+  font-size: 8px;
+  color: var(--color-channel);
+}
+
+/* ── Example Messages ── */
+
+.architect-review__messages-grid {
+  /* stacked list */
+}
+
+.architect-review__message-card {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--bg-surface-hover);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) 10px;
+  margin-bottom: var(--space-sm);
+}
+
+.architect-review__message-route {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  margin-bottom: 3px;
+}
+
+.architect-review__message-text {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* ── Action Buttons ── */
+
+.architect-review__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.architect-review__deploy-btn {
+  background: var(--color-warning);
+  color: var(--bg-primary);
+  border: none;
+  padding: 10px var(--space-3xl);
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.architect-review__discard-btn {
+  background: transparent;
+  border: 1px solid var(--border-medium);
+  color: var(--text-subtle);
+  padding: 10px 18px;
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-base);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * KEYFRAMES (kept here as well for encapsulation)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes archFadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

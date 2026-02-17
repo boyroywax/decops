@@ -1,0 +1,398 @@
+/**
+ * Agent View Component Styles
+ * Styles for the agent cards, creation form, and related components
+ */
+
+/* Agent View Header */
+.agents-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2xl);
+}
+
+.agents-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.agents-title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* Create Agent Toggle Button */
+.create-agent-toggle {
+  background: rgba(0, 229, 160, 0.12);
+  color: var(--color-accent);
+  border: 1px solid rgba(0, 229, 160, 0.25);
+  padding: var(--space-md) var(--space-xl);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  transition: all var(--transition-fast);
+}
+
+.create-agent-toggle:hover {
+  background: rgba(0, 229, 160, 0.18);
+}
+
+.create-agent-toggle--cancel {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-danger);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.create-agent-toggle--cancel:hover {
+  background: rgba(239, 68, 68, 0.22);
+}
+
+/* Empty State */
+.agents-empty-state {
+  text-align: center;
+  padding: var(--space-6xl);
+  color: var(--border-default);
+  border: 1px dashed rgba(0, 229, 160, 0.1);
+  border-radius: var(--radius-2xl);
+}
+
+.agents-empty-text {
+  font-size: var(--text-md);
+  margin-top: var(--space-md);
+}
+
+/* Agent Cards Grid */
+.agent-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-lg);
+}
+
+/* Agent Card */
+.agent-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-xl);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.agent-card:hover {
+  background: var(--bg-surface-hover);
+}
+
+.agent-card--selected {
+  background: rgba(0, 229, 160, 0.06);
+}
+
+.agent-card--checked {
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.agent-card--editing {
+  cursor: default;
+}
+
+.agent-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.agent-card-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.agent-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  border: 1px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xl);
+}
+
+.agent-card-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.agent-card-name {
+  font-weight: var(--font-medium);
+  font-size: var(--text-lg);
+}
+
+.agent-card-role {
+  font-size: var(--text-sm);
+}
+
+.agent-card-badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.agent-card-network-badge {
+  font-size: var(--text-xs);
+  padding: 2px var(--space-md);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.agent-card-prompted-badge {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  background: rgba(0, 229, 160, 0.08);
+  padding: 2px var(--space-md);
+  border-radius: var(--radius-sm);
+}
+
+.agent-card-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  box-shadow: 0 0 8px var(--color-accent);
+}
+
+.agent-card-network {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+  background: var(--bg-elevated);
+  padding: 2px var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.agent-card-network-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+}
+
+/* Agent Prompt Preview */
+.agent-prompt-preview {
+  margin-top: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(0, 229, 160, 0.08);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-height: 42px;
+  overflow: hidden;
+}
+
+.agent-prompt-preview--expanded {
+  max-height: none;
+}
+
+.agent-prompt-label {
+  color: var(--text-ghost);
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  margin-right: var(--space-xs);
+}
+
+/* Agent DID Display */
+.agent-did-section {
+  margin-top: var(--space-lg);
+  font-size: var(--text-sm);
+}
+
+.agent-did-label {
+  color: var(--text-ghost);
+  margin-bottom: var(--space-xs);
+  letter-spacing: 0.05em;
+}
+
+.agent-did-value {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  word-break: break-all;
+}
+
+/* Agent Stats */
+.agent-stats {
+  margin-top: var(--space-lg);
+  display: flex;
+  gap: var(--space-lg);
+  font-size: var(--text-sm);
+  flex-wrap: wrap;
+}
+
+.agent-stat-label {
+  color: var(--text-ghost);
+}
+
+.agent-stat-value {
+  color: var(--text-subtle);
+}
+
+/* Agent Groups */
+.agent-groups-list {
+  margin-top: var(--space-md);
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.agent-group-badge {
+  font-size: var(--text-xs);
+  padding: 2px var(--space-md);
+  border-radius: var(--radius-xl);
+  border: 1px solid;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+/* Agent Card Actions */  
+.agent-card-actions {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  gap: var(--space-md);
+}
+
+/* Create Agent Form */
+.create-agent-form {
+  background: rgba(0, 229, 160, 0.04);
+  border: 1px solid rgba(0, 229, 160, 0.12);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-2xl);
+  margin-bottom: var(--space-2xl);
+}
+
+.create-agent-field {
+  margin-bottom: var(--space-xl);
+}
+
+.create-agent-identity-row {
+  display: flex;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-xl);
+}
+
+.create-agent-name-input {
+  flex: 1;
+  min-width: 160px;
+}
+
+.create-agent-textarea {
+  line-height: 1.6;
+}
+
+.create-agent-empty {
+  text-align: center;
+  padding: var(--space-4xl);
+  color: var(--text-subtle);
+}
+
+.create-agent-empty-icon {
+  margin-bottom: var(--space-md);
+  opacity: 0.5;
+}
+
+.create-agent-empty-title {
+  font-size: var(--text-md);
+  margin-bottom: var(--space-xs);
+}
+
+.create-agent-empty-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+}
+
+/* Role Selector Pills */
+.role-selector {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+/* Template Buttons */
+.template-buttons {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-lg);
+}
+
+.template-btn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  color: var(--text-subtle);
+  padding: 5px var(--space-lg);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  transition: all var(--transition-fast);
+}
+
+.template-btn:hover {
+  background: var(--bg-surface-hover);
+}
+
+.template-btn--active {
+  background: rgba(0, 229, 160, 0.12);
+  border-color: rgba(0, 229, 160, 0.3);
+  color: var(--color-accent);
+}
+
+/* Form Footer */
+.create-agent-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-lg);
+}
+
+.create-agent-char-count {
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+}
+
+.create-agent-submit {
+  padding: var(--space-lg) var(--space-2xl);
+}
+
+/* Prompt Edit Mode */
+.prompt-edit-section {
+  margin-top: var(--space-lg);
+}
+
+.prompt-edit-textarea {
+  line-height: 1.5;
+}
+
+.prompt-edit-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}

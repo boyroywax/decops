@@ -1,0 +1,55 @@
+/**
+ * NetworkView Component Styles
+ * Network topology visualization wrapper
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * LAYOUT
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.network-view {
+  height: calc(100vh - 120px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HEADER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.network-view__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * EMPTY STATE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.network-view__empty {
+  text-align: center;
+  padding: 60px;
+  color: var(--text-invisible);
+  border: 1px dashed rgba(0, 229, 160, 0.1);
+  border-radius: var(--radius-3xl);
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.network-view__empty-text {
+  font-size: var(--text-md);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CANVAS CONTAINER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.network-view__canvas {
+  background: var(--bg-elevated);
+  border: 1px solid rgba(0, 229, 160, 0.08);
+  border-radius: var(--radius-3xl);
+  height: calc(100% - 50px);
+  overflow: hidden;
+}

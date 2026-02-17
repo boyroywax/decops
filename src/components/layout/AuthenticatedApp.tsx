@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Compass } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
-import type { ViewId } from "../../types";
+import type { ViewId, NavContext } from "../../types";
 import { useNotebook } from "../../hooks/useNotebook";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { useArchitect } from "../../hooks/useArchitect";
@@ -15,13 +15,37 @@ import { useJobCatalog } from "../../hooks/useJobCatalog";
 import { ViewSwitcher } from "./ViewSwitcher";
 import { useJobExecutor } from "../../hooks/useJobExecutor";
 
-export function AuthenticatedApp() {
-  const [view, setViewRaw] = useState<ViewId>("architect");
-  const { entries: notebookEntries, addEntry: addNotebookEntry, addLog, clearNotebook, exportNotebook } = useNotebook();
+import { useAutomations } from "../../context/AutomationsContext";
+import { EcosystemContext } from "../../context/EcosystemContext";
+import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
+import { ProfileModal } from "./ProfileModal";
+import { ArchitectPopup } from "./ArchitectPopup";
+import { ActivityModal } from "./ActivityModal";
+import "../../styles/components/authenticated-app.css";
 
-  // Wrap setView to track navigation in Notebook
+
+
+interface AuthenticatedAppProps {
+  notebook: ReturnType<typeof useNotebook>;
+}
+
+export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
+  const [view, setViewRaw] = useState<ViewId>("networks");
+  const [navContext, setNavContext] = useState<NavContext>({});
+  const { entries: notebookEntries, addEntry: addNotebookEntry, addLog, clearNotebook, exportNotebook } = notebook;
+
+  // Modal / popup state
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showArchitectPopup, setShowArchitectPopup] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
+
+  // Wrap setView to track navigation in Notebook — intercept profile, architect, activity
   const setView = useCallback((v: ViewId) => {
+    if (v === "profile") { setShowProfileModal(true); return; }
+    if (v === "architect") { setShowArchitectPopup(true); return; }
+    if (v === "activity") { setShowActivityModal(true); return; }
     setViewRaw(v);
+    setNavContext({}); // Clear drill-down context on sidebar navigation
     addNotebookEntry({
       category: "navigation",
       icon: <GradientIcon icon={Compass} size={16} gradient={["#38bdf8", "#818cf8"]} />,
@@ -31,16 +55,143 @@ export function AuthenticatedApp() {
     });
   }, [addNotebookEntry]);
 
+  // Hierarchical navigation: navigate to a view with drill-down context
+  const navigateTo = useCallback((v: ViewId, ctx: NavContext) => {
+    if (v === "profile") { setShowProfileModal(true); return; }
+    if (v === "architect") { setShowArchitectPopup(true); return; }
+    if (v === "activity") { setShowActivityModal(true); return; }
+    setViewRaw(v);
+    setNavContext(ctx);
+    const parts: string[] = [v];
+    if (ctx.networkId) parts.push("network");
+    if (ctx.groupId) parts.push("group");
+    if (ctx.agentId) parts.push("agent");
+    addNotebookEntry({
+      category: "navigation",
+      icon: <GradientIcon icon={Compass} size={16} gradient={["#38bdf8", "#818cf8"]} />,
+      title: `Drilled into ${parts.join(" › ")}`,
+      description: `Navigated to ${v} detail view.`,
+      tags: ["navigation", v, "drill-down"],
+    });
+  }, [addNotebookEntry]);
+
   const { user, logout } = useAuth();
   const {
     jobs, addJob, updateJobStatus, addArtifact, removeJob, clearJobs,
     allArtifacts, importArtifact, removeArtifact,
-    isPaused, toggleQueuePause, stopJob, reorderQueue
+    isPaused, toggleQueuePause, stopJob, reorderQueue, updateJob,
+    setJobs, setStandaloneArtifacts
   } = useJobsContext();
 
   const { savedJobs, saveJob, deleteJob } = useJobCatalog();
   const workspace = useWorkspaceContext();
-  const architect = useArchitect(addLog, addJob);
+  const architect = useArchitect(addLog, addJob, jobs);
+  const automations = useAutomations();
+
+  // Workspace Management Logic
+  const {
+    workspaces, activeWorkspaceId, setActiveWorkspaceId, createWorkspace, saveWorkspace, loadWorkspace, deleteWorkspace, duplicateWorkspace
+  } = useWorkspaceManager();
+
+  const handleSwitchWorkspace = async (id: string) => {
+    if (id === activeWorkspaceId) return;
+
+    // Save Current
+    if (activeWorkspaceId) {
+      const currentData = workspace.exportWorkspace();
+      const currentMeta = workspaces.find(w => w.id === activeWorkspaceId);
+      if (currentMeta) {
+        // Filter out transition jobs to prevent loops on reload
+        const jobsToSave = jobs.filter(j => j.type !== 'switch_workspace' && j.type !== 'create_workspace');
+
+        saveWorkspace({
+          metadata: currentMeta,
+          ...currentData,
+          ecosystem: ecosystem.ecosystem,
+          activeNetworkId: ecosystem.activeNetworkId || undefined,
+          userId: user?.id,
+          // Legacy fields kept for backward compat
+          networks: ecosystem.ecosystems || [],
+          bridges: ecosystem.bridges || [],
+          jobs: jobsToSave,
+          artifacts: allArtifacts,
+          automations: automations.automations || [],
+          automationRuns: automations.runs
+        });
+      }
+    }
+
+    // Load New
+    const newWorkspace = loadWorkspace(id);
+    if (newWorkspace) {
+      workspace.clearWorkspace();
+      clearJobs();
+      if (automations.setAutomations) automations.setAutomations([]);
+      if (automations.setRuns) automations.setRuns([]);
+
+      // Restore ecosystem — prefer first-class ecosystem, fall back to legacy arrays
+      if (newWorkspace.ecosystem && ecosystem.setEcosystem) {
+        ecosystem.setEcosystem(newWorkspace.ecosystem);
+      } else {
+        if (ecosystem.setEcosystems) ecosystem.setEcosystems(newWorkspace.networks || []);
+        if (ecosystem.setBridges) ecosystem.setBridges(newWorkspace.bridges || []);
+      }
+
+      // Restore active network
+      if (ecosystem.setActiveNetworkId) {
+        ecosystem.setActiveNetworkId(newWorkspace.activeNetworkId || null);
+      }
+
+      workspace.importWorkspace(newWorkspace);
+      if (newWorkspace.jobs && setJobs) setJobs(newWorkspace.jobs);
+      if (newWorkspace.artifacts && setStandaloneArtifacts) setStandaloneArtifacts(newWorkspace.artifacts);
+      if (newWorkspace.automations && automations.setAutomations) automations.setAutomations(newWorkspace.automations);
+      if (newWorkspace.automationRuns && automations.setRuns) automations.setRuns(newWorkspace.automationRuns);
+
+      setActiveWorkspaceId(id);
+    }
+  };
+
+  const handleCreateWorkspace = async (name: string, description?: string) => {
+    // Save current workspace state before creating new one
+    if (activeWorkspaceId) {
+      const currentData = workspace.exportWorkspace();
+      const currentMeta = workspaces.find(w => w.id === activeWorkspaceId);
+      if (currentMeta) {
+        const jobsToSave = jobs.filter(j => j.type !== 'switch_workspace' && j.type !== 'create_workspace');
+
+        saveWorkspace({
+          metadata: currentMeta,
+          ...currentData,
+          ecosystem: ecosystem.ecosystem,
+          activeNetworkId: ecosystem.activeNetworkId || undefined,
+          userId: user?.id,
+          networks: ecosystem.ecosystems || [],
+          bridges: ecosystem.bridges || [],
+          jobs: jobsToSave,
+          artifacts: allArtifacts,
+          automations: automations.automations || [],
+          automationRuns: automations.runs
+        });
+      }
+    }
+
+    // Create new workspace without switching — user stays in current workspace
+    const newWs = createWorkspace(name, description);
+    return newWs.metadata.id;
+  };
+
+  const workspaceManager = useMemo(() => ({
+    list: () => workspaces,
+    create: handleCreateWorkspace,
+    switch: handleSwitchWorkspace,
+    delete: async (id: string) => deleteWorkspace(id),
+    duplicate: async (sourceId: string, name?: string) => {
+      const id = duplicateWorkspace(sourceId, name);
+      return id;
+    },
+    currentId: activeWorkspaceId
+  }), [workspaces, activeWorkspaceId, handleCreateWorkspace, handleSwitchWorkspace, duplicateWorkspace]);
 
   const ecosystem = useEcosystem({
     addLog,
@@ -60,6 +211,7 @@ export function AuthenticatedApp() {
     jobs,
     addJob,
     updateJobStatus,
+    updateJob,
     addArtifact,
     removeJob,
     clearJobs,
@@ -71,12 +223,16 @@ export function AuthenticatedApp() {
     savedJobs,
     saveJob,
     deleteJob,
+    setJobs,
+    setStandaloneArtifacts,
     workspace,
     user,
     architect,
     ecosystem,
     addLog,
-    addNotebookEntry
+    addNotebookEntry,
+    automations,
+    workspaceManager
   });
 
   // Responsive state
@@ -107,72 +263,123 @@ export function AuthenticatedApp() {
     prevEntriesLengthRef.current = notebookEntries.length;
   }, [notebookEntries.length]);
 
+  // Ctrl+K / Cmd+K keybinding for Architect popup
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setShowArchitectPopup(prev => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
-    <div style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", background: "#0a0a0f", color: "#e4e4e7", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className="app-shell">
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
 
-      <Header user={user} logout={logout} setView={setView} />
+      <Header user={user} logout={logout} setView={setView} onProfileClick={() => setShowProfileModal(true)} activityPulse={activityPulse} onActivityClick={() => setShowActivityModal(true)} />
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative", flexDirection: isMobile ? "column" : "row" }}>
-        <div style={{
-          position: "relative",
-          zIndex: 20,
-          height: isMobile ? "auto" : "100%",
-          width: isMobile ? "100%" : "auto",
-        }}>
-          <Sidebar
-            view={view}
-            setView={setView}
-            ecosystems={ecosystem.ecosystems}
-            messages={workspace.messages}
-            collapsed={sidebarCollapsed}
-            setCollapsed={setSidebarCollapsed}
-            isMobile={isMobile}
-          />
+      <EcosystemContext.Provider value={ecosystem}>
+        <div className={`app-content ${isMobile ? "app-content--mobile" : ""}`}>
+          <div className={`app-sidebar-wrapper ${isMobile ? "app-sidebar-wrapper--mobile" : ""}`}>
+            <Sidebar
+              view={view}
+              setView={setView}
+              ecosystems={ecosystem.ecosystems}
+              messages={workspace.messages}
+              bridgeMessages={ecosystem.bridgeMessages}
+              agents={workspace.agents}
+              channels={workspace.channels}
+              groups={workspace.groups}
+              collapsed={sidebarCollapsed}
+              setCollapsed={setSidebarCollapsed}
+              isMobile={isMobile}
+            />
+          </div>
+
+          <main className="app-main">
+            <ViewSwitcher
+              view={view}
+              setView={setView}
+              navContext={navContext}
+              navigateTo={navigateTo}
+              workspace={workspace}
+              architect={architect}
+              ecosystem={ecosystem}
+              allArtifacts={allArtifacts}
+              importArtifact={importArtifact}
+              removeArtifact={removeArtifact}
+              notebookEntries={notebookEntries}
+              clearNotebook={clearNotebook}
+              exportNotebook={exportNotebook}
+              addNotebookEntry={addNotebookEntry}
+              addJob={addJob}
+            />
+          </main>
         </div>
 
-        <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
-          <ViewSwitcher
-            view={view}
-            setView={setView}
-            workspace={workspace}
-            architect={architect}
-            ecosystem={ecosystem}
-            allArtifacts={allArtifacts}
-            importArtifact={importArtifact}
-            removeArtifact={removeArtifact}
-            notebookEntries={notebookEntries}
-            clearNotebook={clearNotebook}
-            exportNotebook={exportNotebook}
-            addNotebookEntry={addNotebookEntry}
-          />
-        </main>
-      </div>
+        <Footer
+          agents={workspace.agents}
+          channels={workspace.channels}
+          groups={workspace.groups}
+          messages={workspace.messages}
 
-      <Footer
-        agents={workspace.agents}
-        channels={workspace.channels}
-        groups={workspace.groups}
-        messages={workspace.messages}
-        ecosystems={ecosystem.ecosystems}
-        bridges={ecosystem.bridges}
-        addLog={addLog}
-        setView={setView}
-        jobs={jobs}
-        addJob={addJob}
-        isPaused={isPaused}
-        toggleQueuePause={toggleQueuePause}
-        stopJob={stopJob}
-        reorderQueue={reorderQueue}
-        removeJob={removeJob}
-        clearJobs={clearJobs}
-        activityPulse={activityPulse}
-        isMobile={isMobile}
-        savedJobs={savedJobs}
-        saveJob={saveJob}
-        deleteJob={deleteJob}
+          ecosystems={ecosystem.ecosystems}
+          bridges={ecosystem.bridges}
+          ecosystem={ecosystem}
+          addLog={addLog}
+          setView={setView}
+          jobs={jobs}
+          addJob={addJob}
+          allArtifacts={allArtifacts}
+          importArtifact={importArtifact}
+          removeArtifact={removeArtifact}
+          isPaused={isPaused}
+          toggleQueuePause={toggleQueuePause}
+          stopJob={stopJob}
+          reorderQueue={reorderQueue}
+          removeJob={removeJob}
+          clearJobs={clearJobs}
+          activityPulse={activityPulse}
+          isMobile={isMobile}
+          savedJobs={savedJobs}
+          saveJob={saveJob}
+          deleteJob={deleteJob}
 
-      />
+        />
+
+        {/* Profile Modal (overlay) */}
+        <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
+
+        {/* Activity Modal (overlay) */}
+        <ActivityModal
+          isOpen={showActivityModal}
+          onClose={() => setShowActivityModal(false)}
+          entries={notebookEntries}
+          clearNotebook={clearNotebook}
+          exportNotebook={exportNotebook}
+          addEntry={addNotebookEntry}
+        />
+
+        {/* Architect Popup (Ctrl+K) */}
+        <ArchitectPopup
+          isOpen={showArchitectPopup}
+          onClose={() => setShowArchitectPopup(false)}
+          archPrompt={architect.archPrompt}
+          setArchPrompt={architect.setArchPrompt}
+          archGenerating={architect.archGenerating}
+          archPreview={architect.archPreview}
+          archError={architect.archError}
+          archPhase={architect.archPhase}
+          deployProgress={architect.deployProgress}
+          generateNetwork={architect.generateNetwork}
+          deployNetwork={architect.deployNetwork}
+          resetArchitect={architect.resetArchitect}
+          setView={setView}
+        />
+      </EcosystemContext.Provider>
 
       <style>{`
         :root {
@@ -328,10 +535,10 @@ export function AuthenticatedApp() {
           font-weight: 600;
         }
 
-        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
         select option { background: #18181b; color: #e4e4e7; }
       `}</style>
     </div>

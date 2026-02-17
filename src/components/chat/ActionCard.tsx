@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Bot, ArrowLeftRight, Hexagon, MessageSquare, Sparkles, Settings, PlusCircle, Image, FileJson, FileText } from "lucide-react";
 import type { WorkspaceContext } from "../../services/ai";
 import type { ParsedAction } from "./types";
+import "../../styles/components/action-card.css";
 
 interface ActionCardProps {
     action: ParsedAction;
@@ -41,36 +42,23 @@ export default function ActionCard({ action, context }: ActionCardProps) {
     const [expandedArtifact, setExpandedArtifact] = useState<string | null>(null);
 
     return (
-        <div style={{
+        <div className="action-card" style={{
             background: `${meta.color}08`,
             border: `1px solid ${meta.color}30`,
-            borderRadius: 8,
-            padding: "8px 12px",
-            marginTop: 6,
-            fontSize: 11,
-            position: "relative",
         }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span style={{ color: meta.color, display: "flex", alignItems: "center" }}>{meta.icon}</span>
-                    <span style={{ color: meta.color, fontWeight: 600, fontSize: 10, letterSpacing: "0.05em" }}>{meta.label}</span>
+            <div className="action-card__header">
+                <div className="action-card__type">
+                    <span className="action-card__type-icon" style={{ color: meta.color }}>{meta.icon}</span>
+                    <span className="action-card__type-label" style={{ color: meta.color }}>{meta.label}</span>
                 </div>
 
                 {matchingJob ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                        <span style={{
-                            fontSize: 9,
+                    <div className="action-card__status-group">
+                        <span className="action-card__status" style={{
                             color: getStatusColor(matchingJob.status),
                             background: getStatusColor(matchingJob.status) + "20",
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            fontWeight: 600,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4
                         }}>
-                            <span style={{
-                                display: "inline-block", width: 4, height: 4, borderRadius: "50%",
+                            <span className="action-card__status-dot" style={{
                                 background: getStatusColor(matchingJob.status),
                                 boxShadow: matchingJob.status === "running" ? `0 0 4px ${getStatusColor(matchingJob.status)}` : "none"
                             }} />
@@ -81,19 +69,7 @@ export default function ActionCard({ action, context }: ActionCardProps) {
                     context.addJob && (
                         <button
                             onClick={() => context.addJob!({ type: action.type, request: action })}
-                            style={{
-                                background: "rgba(255,255,255,0.06)",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                color: "#a1a1aa",
-                                borderRadius: 4,
-                                padding: "2px 6px",
-                                fontSize: 9,
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 4,
-                                transition: "all 0.15s"
-                            }}
+                            className="action-card__add-btn"
                             title="Add to Job Queue"
                         >
                             <PlusCircle size={10} /> Add to Job
@@ -103,30 +79,18 @@ export default function ActionCard({ action, context }: ActionCardProps) {
             </div>
 
             {details.map((d, i) => (
-                <div key={i} style={{ color: "#a1a1aa", fontSize: 10, marginLeft: 16 }}>{d}</div>
+                <div key={i} className="action-card__detail">{d}</div>
             ))}
 
             {matchingJob && matchingJob.status === "completed" && matchingJob.artifacts.length > 0 && (
-                <div style={{ marginTop: 8, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 8 }}>
-                    <div style={{ fontSize: 10, color: "#71717a", marginBottom: 4 }}>Generated Artifacts:</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                <div className="action-card__artifacts">
+                    <div className="action-card__artifacts-title">Generated Artifacts:</div>
+                    <div className="action-card__artifacts-list">
                         {matchingJob.artifacts.map((art: any) => (
                             <button
                                 key={art.id}
                                 onClick={() => setExpandedArtifact(expandedArtifact === art.id ? null : art.id)}
-                                style={{
-                                    background: expandedArtifact === art.id ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.04)",
-                                    border: `1px solid ${expandedArtifact === art.id ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.08)"}`,
-                                    borderRadius: 4,
-                                    padding: "2px 6px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 4,
-                                    color: expandedArtifact === art.id ? "#fff" : "#e4e4e7",
-                                    cursor: "pointer",
-                                    fontSize: 10,
-                                    fontFamily: "inherit"
-                                }}
+                                className={`action-card__artifact-btn ${expandedArtifact === art.id ? "action-card__artifact-btn--active" : ""}`}
                             >
                                 {art.type === "image" ? <Image size={10} /> : art.type === "json" ? <FileJson size={10} /> : <FileText size={10} />}
                                 {art.name}
@@ -143,19 +107,7 @@ export default function ActionCard({ action, context }: ActionCardProps) {
                         }
 
                         return (
-                            <div style={{
-                                marginTop: 8,
-                                background: "rgba(0,0,0,0.3)",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                borderRadius: 6,
-                                padding: 8,
-                                fontSize: 10,
-                                fontFamily: "monospace",
-                                color: "#d4d4d8",
-                                overflowX: "auto",
-                                maxHeight: 200,
-                                whiteSpace: "pre-wrap"
-                            }}>
+                            <div className="action-card__artifact-content">
                                 {content || "No content available"}
                             </div>
                         );

@@ -1,7 +1,7 @@
 
 import type { RoleId, JobRequest } from "../../types";
 
-export type CommandArgType = "string" | "number" | "boolean" | "object" | "array";
+export type CommandArgType = "string" | "number" | "boolean" | "object" | "array" | "group" | "agent" | "channel" | "network";
 
 export interface CommandArg {
     name: string;
@@ -46,15 +46,25 @@ export interface CommandContext {
         getCatalog: () => any[];
         saveDefinition: (def: any) => void;
         deleteDefinition: (id: string) => void;
+        // Persistence
+        setJobs?: (jobs: any[]) => void;
+        setStandaloneArtifacts?: (artifacts: any[]) => void;
+        clearJobs?: () => void;
     };
     ecosystem: {
+        // First-class ecosystem object
+        ecosystem: any; // Ecosystem object
+        setEcosystem: (updater: any) => void;
+        // Active network
+        activeNetworkId: string | null;
+        // Backward-compat derived arrays
         ecosystems: any[];
         bridges: any[];
-        bridgeMessages: any[]; // [NEW]
+        bridgeMessages: any[];
         setEcosystems: React.Dispatch<React.SetStateAction<any[]>>;
         setBridges: React.Dispatch<React.SetStateAction<any[]>>;
-        setBridgeMessages: React.Dispatch<React.SetStateAction<any[]>>; // [NEW]
-        setActiveBridges: React.Dispatch<React.SetStateAction<Set<string>>>; // [NEW]
+        setBridgeMessages: React.Dispatch<React.SetStateAction<any[]>>;
+        setActiveBridges: React.Dispatch<React.SetStateAction<Set<string>>>;
         createBridge: (from: string, to: string) => void;
         removeBridge: (id: string) => void;
         saveCurrentNetwork: () => void;
@@ -68,6 +78,20 @@ export interface CommandContext {
     architect: {
         generateNetwork: (prompt: string) => void;
         deployNetwork: () => void;
+    };
+    automations: {
+        runAutomation: (id: string) => Promise<void>;
+        runs: any[];
+        setAutomations?: (automations: any[]) => void;
+        setRuns?: (runs: any[]) => void;
+    };
+    workspaceManager?: {
+        list: () => any[];
+        create: (name: string, description?: string) => Promise<string>;
+        switch: (id: string) => Promise<void>;
+        delete: (id: string) => Promise<void>;
+        duplicate: (sourceId: string, name?: string) => Promise<string>;
+        currentId: string | null;
     };
 }
 

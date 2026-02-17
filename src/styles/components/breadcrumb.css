@@ -1,0 +1,60 @@
+/**
+ * Breadcrumb Navigation Component
+ * Hierarchical path: Networks > Network Name > Group Name > Agent Name
+ */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) 0;
+  margin-bottom: var(--space-lg);
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+  font-family: var(--font-display);
+}
+
+.breadcrumb__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  background: none;
+  border: none;
+  color: var(--text-subtle);
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  transition: all 0.15s ease;
+}
+
+.breadcrumb__item:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.breadcrumb__item--active {
+  color: var(--text-secondary);
+  cursor: default;
+  font-weight: var(--font-medium);
+}
+
+.breadcrumb__item--active:hover {
+  background: none;
+  color: var(--text-secondary);
+}
+
+.breadcrumb__separator {
+  color: var(--border-subtle);
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumb__color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}

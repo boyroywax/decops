@@ -1,0 +1,215 @@
+/**
+ * Network Detail View Styles
+ * Dedicated page for a single network with topology, agents, groups, channels
+ */
+
+.network-detail {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* ═══════════════════════════════
+ * HEADER
+ * ═══════════════════════════════ */
+
+.network-detail__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.network-detail__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.network-detail__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.network-detail__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.network-detail__did {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  word-break: break-all;
+  margin-top: var(--space-2xs);
+}
+
+.network-detail__meta {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+}
+
+/* ═══════════════════════════════
+ * STATS BAR
+ * ═══════════════════════════════ */
+
+.network-detail__stats {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.network-detail__stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+}
+
+.network-detail__stat-value {
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* ═══════════════════════════════
+ * SECTION
+ * ═══════════════════════════════ */
+
+.network-detail__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.network-detail__section-title {
+  font-size: var(--text-2xs);
+  font-weight: var(--font-medium);
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ═══════════════════════════════
+ * GRID (agents / groups / channels)
+ * ═══════════════════════════════ */
+
+.network-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-sm);
+}
+
+/* ═══════════════════════════════
+ * ENTITY CARD (reusable for agent/group/channel cards)
+ * ═══════════════════════════════ */
+
+.nd-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.nd-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.nd-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.nd-card__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.nd-card__name {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.nd-card__sub {
+  font-size: var(--text-2xs);
+  color: var(--text-subtle);
+}
+
+.nd-card__badge {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ═══════════════════════════════
+ * TOPOLOGY EMBED
+ * ═══════════════════════════════ */
+
+.network-detail__topology {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--radius-xl);
+  height: 280px;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════
+ * EMPTY STATE
+ * ═══════════════════════════════ */
+
+.network-detail__empty {
+  text-align: center;
+  padding: var(--space-2xl) var(--space-xl);
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+  border: 1px dashed rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-lg);
+}
+
+/* ═══════════════════════════════
+ * DESCRIPTION
+ * ═══════════════════════════════ */
+
+.network-detail__description {
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+  line-height: 1.6;
+  padding: var(--space-md);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
