@@ -129,12 +129,13 @@ export function GroupDetailView({
           <div className="group-detail__members">
             {nonMembers.map(agent => {
               const role = ROLES.find(r => r.id === agent.role);
+              const agentGroup = groups.find(g => g.networkId === networkId && g.members.includes(agent.id));
               return (
                 <div
                   key={agent.id}
                   className="group-detail__member"
                   style={{ opacity: 0.6 }}
-                  onClick={() => navigateTo("networks", { networkId, agentId: agent.id })}
+                  onClick={() => navigateTo("networks", { networkId, ...(agentGroup ? { groupId: agentGroup.id } : {}), agentId: agent.id })}
                 >
                   <div
                     className="group-detail__member-icon"
