@@ -188,30 +188,6 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                             }}>{jobs.filter(j => j.status === 'running' || j.status === 'queued').length}</span>
                         )}
                     </button>
-
-                    <span style={{ color: "#27272a", fontSize: 10 }}>│</span>
-
-                    <button
-                        onClick={() => setView("activity")}
-                        style={{
-                            background: "none",
-                            border: "none",
-                            color: "#52525b",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                            fontSize: 10,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
-                            padding: "2px 6px",
-                            borderRadius: 3,
-                            transition: "all 0.15s",
-                            animation: jobsProps.activityPulse ? "softPulse 3s infinite" : "none",
-                        }}
-                        title="Activity"
-                    >
-                        <Zap size={10} color={jobsProps.activityPulse ? "#00e5a0" : "#52525b"} style={{ fill: jobsProps.activityPulse ? "#00e5a0" : "none" }} />
-                    </button>
                     {!isOnline && (
                         <>
                             <span style={{ color: "#27272a", fontSize: 10 }}>│</span>

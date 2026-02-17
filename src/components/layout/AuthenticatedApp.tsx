@@ -20,6 +20,7 @@ import { EcosystemContext } from "../../context/EcosystemContext";
 import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
 import { ProfileModal } from "./ProfileModal";
 import { ArchitectPopup } from "./ArchitectPopup";
+import { ActivityModal } from "./ActivityModal";
 
 
 
@@ -34,11 +35,13 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   // Modal / popup state
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showArchitectPopup, setShowArchitectPopup] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
 
-  // Wrap setView to track navigation in Notebook — intercept profile & architect
+  // Wrap setView to track navigation in Notebook — intercept profile, architect, activity
   const setView = useCallback((v: ViewId) => {
     if (v === "profile") { setShowProfileModal(true); return; }
     if (v === "architect") { setShowArchitectPopup(true); return; }
+    if (v === "activity") { setShowActivityModal(true); return; }
     setViewRaw(v);
     addNotebookEntry({
       category: "navigation",
@@ -253,7 +256,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     <div style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", background: "#0a0a0f", color: "#e4e4e7", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
 
-      <Header user={user} logout={logout} setView={setView} onProfileClick={() => setShowProfileModal(true)} />
+      <Header user={user} logout={logout} setView={setView} onProfileClick={() => setShowProfileModal(true)} activityPulse={activityPulse} onActivityClick={() => setShowActivityModal(true)} />
 
       <EcosystemContext.Provider value={ecosystem}>
         <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative", flexDirection: isMobile ? "column" : "row" }}>
@@ -326,6 +329,16 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
 
         {/* Profile Modal (overlay) */}
         <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
+
+        {/* Activity Modal (overlay) */}
+        <ActivityModal
+          isOpen={showActivityModal}
+          onClose={() => setShowActivityModal(false)}
+          entries={notebookEntries}
+          clearNotebook={clearNotebook}
+          exportNotebook={exportNotebook}
+          addEntry={addNotebookEntry}
+        />
 
         {/* Architect Popup (Ctrl+K) */}
         <ArchitectPopup

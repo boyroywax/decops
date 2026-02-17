@@ -10,12 +10,24 @@ interface HeaderProps {
   logout?: () => void;
   setView?: (v: ViewId) => void;
   onProfileClick?: () => void;
+  activityPulse?: boolean;
+  onActivityClick?: () => void;
 }
 
-export function Header({ user, logout, setView, onProfileClick }: HeaderProps) {
+export function Header({ user, logout, setView, onProfileClick, activityPulse, onActivityClick }: HeaderProps) {
   const [showWorkspaceModal, setShowWorkspaceModal] = useState(false);
 
+  const pulseStyle = `
+    @keyframes softPulse {
+      0% { box-shadow: 0 0 0 0 rgba(0, 229, 160, 0.4); opacity: 1; }
+      70% { box-shadow: 0 0 0 6px rgba(0, 229, 160, 0); opacity: 1; }
+      100% { box-shadow: 0 0 0 0 rgba(0, 229, 160, 0); opacity: 1; }
+    }
+  `;
+
   return (
+    <>
+    <style>{pulseStyle}</style>
     <header style={{ padding: "10px 20px", borderBottom: "1px solid rgba(0,229,160,0.12)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,229,160,0.02)", position: 'relative' }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #00e5a0 0%, #0a0a0f 100%)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -53,6 +65,26 @@ export function Header({ user, logout, setView, onProfileClick }: HeaderProps) {
           </div>
 
           <button
+            onClick={onActivityClick}
+            style={{
+              background: activityPulse ? "rgba(0, 229, 160, 0.08)" : "none",
+              border: activityPulse ? "1px solid rgba(0, 229, 160, 0.2)" : "1px solid rgba(255,255,255,0.06)",
+              borderRadius: 8,
+              width: 38,
+              height: 38,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.15s",
+              animation: activityPulse ? "softPulse 3s infinite" : "none",
+            }}
+            title="Activity"
+          >
+            <Zap size={16} color={activityPulse ? "#00e5a0" : "#71717a"} />
+          </button>
+
+          <button
             onClick={() => onProfileClick ? onProfileClick() : setView?.("profile")}
             style={{
               background: "none",
@@ -83,5 +115,6 @@ export function Header({ user, logout, setView, onProfileClick }: HeaderProps) {
         </div>
       )}
     </header>
+    </>
   );
 }
