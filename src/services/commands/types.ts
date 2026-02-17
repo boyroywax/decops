@@ -52,13 +52,17 @@ export interface CommandContext {
         clearJobs?: () => void;
     };
     ecosystem: {
+        // First-class ecosystem object
+        ecosystem: any; // Ecosystem object
+        setEcosystem: (updater: any) => void;
+        // Backward-compat derived arrays
         ecosystems: any[];
         bridges: any[];
-        bridgeMessages: any[]; // [NEW]
+        bridgeMessages: any[];
         setEcosystems: React.Dispatch<React.SetStateAction<any[]>>;
         setBridges: React.Dispatch<React.SetStateAction<any[]>>;
-        setBridgeMessages: React.Dispatch<React.SetStateAction<any[]>>; // [NEW]
-        setActiveBridges: React.Dispatch<React.SetStateAction<Set<string>>>; // [NEW]
+        setBridgeMessages: React.Dispatch<React.SetStateAction<any[]>>;
+        setActiveBridges: React.Dispatch<React.SetStateAction<Set<string>>>;
         createBridge: (from: string, to: string) => void;
         removeBridge: (id: string) => void;
         saveCurrentNetwork: () => void;

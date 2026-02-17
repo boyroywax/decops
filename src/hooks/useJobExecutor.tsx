@@ -129,6 +129,8 @@ export function useJobExecutor({
                             clearJobs
                         },
                         ecosystem: {
+                            ecosystem: ecosystem.ecosystem,
+                            setEcosystem: ecosystem.setEcosystem,
                             ecosystems: ecosystem.ecosystems,
                             bridges: ecosystem.bridges,
                             bridgeMessages: ecosystem.bridgeMessages,

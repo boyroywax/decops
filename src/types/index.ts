@@ -136,6 +136,7 @@ export interface Agent {
   keys: KeyPair;
   createdAt: string;
   status: "active";
+  networkId?: string;  // Which network this agent belongs to
 }
 
 export interface Channel {
@@ -146,6 +147,7 @@ export interface Channel {
   mode?: ChannelMode;  // p2p (default/local), bridge (cross-network), broadcast (group)
   offset: number;
   createdAt: string;
+  networkId?: string;  // Which network this channel belongs to (absent for bridge-mode)
   // Bridge-specific fields (present when mode === "bridge")
   fromNetworkId?: string;
   toNetworkId?: string;
@@ -160,6 +162,7 @@ export interface Group {
   did: string;
   color: string;
   createdAt: string;
+  networkId?: string;  // Which network this group belongs to
 }
 
 export interface Message {
@@ -193,6 +196,18 @@ export interface Network {
   channels: Channel[];
   groups: Group[];
   messages: Message[];
+  createdAt: string;
+  description?: string;
+}
+
+/** First-class Ecosystem — the "universe" of networks and bridges within a workspace */
+export interface Ecosystem {
+  id: string;
+  name: string;
+  did: string;
+  networks: Network[];
+  bridges: Bridge[];
+  bridgeMessages: BridgeMessage[];
   createdAt: string;
 }
 
@@ -524,12 +539,26 @@ export interface WorkspaceMetadata {
 
 export interface Workspace {
   metadata: WorkspaceMetadata;
+
+  /** First-class ecosystem (target model: all entities live here) */
+  ecosystem?: Ecosystem;
+  /** Which network is currently focused/active in the UI */
+  activeNetworkId?: string;
+
+  // ─── Legacy top-level arrays (kept for backward compat during migration) ───
+  /** @deprecated Agents should live inside Network. Will be removed once migration completes. */
   agents: Agent[];
+  /** @deprecated Channels should live inside Network. Will be removed once migration completes. */
   channels: Channel[];
+  /** @deprecated Groups should live inside Network. Will be removed once migration completes. */
   groups: Group[];
+  /** @deprecated Messages should live inside Network. Will be removed once migration completes. */
   messages: Message[];
+  /** @deprecated Use ecosystem.networks instead */
   networks?: Network[];
+  /** @deprecated Use ecosystem.bridges instead */
   bridges?: Bridge[];
+
   jobs?: Job[];
   artifacts?: JobArtifact[];
   automations?: any[]; // AutomationDefinition

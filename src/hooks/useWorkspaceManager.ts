@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocalStorage } from './useLocalStorage';
-import type { Workspace, WorkspaceMetadata } from '../types';
+import type { Workspace, WorkspaceMetadata, Ecosystem } from '../types';
+import { generateEcosystemDID } from '../utils/identity';
 
 const STORAGE_PREFIX = 'decops_workspace_';
 const METADATA_KEY = 'decops_workspaces_metadata';
@@ -40,8 +41,19 @@ export function useWorkspaceManager() {
             lastModified: Date.now(),
         };
 
+        const defaultEcosystem: Ecosystem = {
+            id: crypto.randomUUID(),
+            name: `${name} Ecosystem`,
+            did: generateEcosystemDID(),
+            networks: [],
+            bridges: [],
+            bridgeMessages: [],
+            createdAt: new Date().toISOString(),
+        };
+
         const newWorkspace: Workspace = {
             metadata,
+            ecosystem: defaultEcosystem,
             agents: [],
             channels: [],
             groups: [],
@@ -69,7 +81,7 @@ export function useWorkspaceManager() {
                         agentCount: workspace.agents.length,
                         channelCount: workspace.channels.length,
                         groupCount: workspace.groups.length,
-                        networkCount: (workspace as any).ecosystems?.length || 0 // Cast as generic or update Type if ecosystems is missing from Workspace interface
+                        networkCount: workspace.ecosystem?.networks?.length || workspace.networks?.length || 0
                     }
                 }
                 : w

@@ -73,6 +73,8 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
         saveWorkspace({
           metadata: currentMeta,
           ...currentData,
+          ecosystem: ecosystem.ecosystem,
+          // Legacy fields kept for backward compat
           networks: ecosystem.ecosystems || [],
           bridges: ecosystem.bridges || [],
           jobs: jobsToSave,
@@ -90,12 +92,16 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
       clearJobs();
       if (automations.setAutomations) automations.setAutomations([]);
       if (automations.setRuns) automations.setRuns([]);
-      if (ecosystem.setEcosystems) ecosystem.setEcosystems([]);
-      if (ecosystem.setBridges) ecosystem.setBridges([]);
+
+      // Restore ecosystem — prefer first-class ecosystem, fall back to legacy arrays
+      if (newWorkspace.ecosystem && ecosystem.setEcosystem) {
+        ecosystem.setEcosystem(newWorkspace.ecosystem);
+      } else {
+        if (ecosystem.setEcosystems) ecosystem.setEcosystems(newWorkspace.networks || []);
+        if (ecosystem.setBridges) ecosystem.setBridges(newWorkspace.bridges || []);
+      }
 
       workspace.importWorkspace(newWorkspace);
-      if (newWorkspace.networks && ecosystem.setEcosystems) ecosystem.setEcosystems(newWorkspace.networks);
-      if (newWorkspace.bridges && ecosystem.setBridges) ecosystem.setBridges(newWorkspace.bridges);
       if (newWorkspace.jobs && setJobs) setJobs(newWorkspace.jobs);
       if (newWorkspace.artifacts && setStandaloneArtifacts) setStandaloneArtifacts(newWorkspace.artifacts);
       if (newWorkspace.automations && automations.setAutomations) automations.setAutomations(newWorkspace.automations);
@@ -116,6 +122,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
         saveWorkspace({
           metadata: currentMeta,
           ...currentData,
+          ecosystem: ecosystem.ecosystem,
           networks: ecosystem.ecosystems || [],
           bridges: ecosystem.bridges || [],
           jobs: jobsToSave,

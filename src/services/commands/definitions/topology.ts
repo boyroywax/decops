@@ -75,11 +75,18 @@ export const printTopologyCommand: CommandDefinition = {
         }
     },
     execute: async (args, context: CommandContext) => {
+        const eco = context.ecosystem.ecosystem;
         const topology = {
-            agents: context.workspace.agents.map((a: any) => ({ id: a.id, name: a.name, role: a.role })),
-            channels: context.workspace.channels.map((c: any) => ({ from: c.from, to: c.to, type: c.type })),
-            groups: context.workspace.groups.map((g: any) => ({ name: g.name, members: g.members })),
-            ecosystems: context.ecosystem.ecosystems.map((e: any) => ({ id: e.id, name: e.name })),
+            ecosystem: eco ? { id: eco.id, name: eco.name, did: eco.did } : null,
+            agents: context.workspace.agents.map((a: any) => ({ id: a.id, name: a.name, role: a.role, networkId: a.networkId })),
+            channels: context.workspace.channels.map((c: any) => ({ from: c.from, to: c.to, type: c.type, networkId: c.networkId })),
+            groups: context.workspace.groups.map((g: any) => ({ name: g.name, members: g.members, networkId: g.networkId })),
+            networks: context.ecosystem.ecosystems.map((e: any) => ({
+                id: e.id, name: e.name,
+                agentCount: e.agents?.length || 0,
+                channelCount: e.channels?.length || 0,
+                groupCount: e.groups?.length || 0,
+            })),
             bridges: context.ecosystem.bridges
         };
         return topology;
