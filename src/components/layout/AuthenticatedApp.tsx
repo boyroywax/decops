@@ -95,7 +95,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
 
   // Workspace Management Logic
   const {
-    workspaces, activeWorkspaceId, setActiveWorkspaceId, createWorkspace, saveWorkspace, loadWorkspace, deleteWorkspace, duplicateWorkspace
+    workspaces, activeWorkspaceId, setActiveWorkspaceId, createWorkspace, saveWorkspace, loadWorkspace, deleteWorkspace, duplicateWorkspace, updateStats
   } = useWorkspaceManager();
 
   const handleSwitchWorkspace = async (id: string) => {
@@ -210,6 +210,18 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     setMessages: workspace.setMessages,
     setView,
   }, addJob);
+
+  // Keep workspace card stats in sync with live data
+  useEffect(() => {
+    if (activeWorkspaceId) {
+      updateStats(activeWorkspaceId, {
+        agentCount: workspace.agents.length,
+        channelCount: workspace.channels.length,
+        groupCount: workspace.groups.length,
+        networkCount: ecosystem.ecosystems?.length || 0,
+      });
+    }
+  }, [activeWorkspaceId, workspace.agents.length, workspace.channels.length, workspace.groups.length, ecosystem.ecosystems?.length]);
 
   // Use the new hook for job execution
   useJobExecutor({

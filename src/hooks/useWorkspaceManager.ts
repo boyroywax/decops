@@ -147,6 +147,13 @@ export function useWorkspaceManager() {
         // We can implement this in the UI component or return a helper here.
     };
 
+    /** Lightweight metadata-only stats update (no full localStorage save) */
+    const updateStats = (id: string, stats: { agentCount: number; channelCount: number; groupCount: number; networkCount: number }) => {
+        setWorkspaces(prev => prev.map(w =>
+            w.id === id ? { ...w, stats, lastModified: Date.now() } : w
+        ));
+    };
+
     return {
         workspaces,
         activeWorkspaceId,
@@ -155,6 +162,7 @@ export function useWorkspaceManager() {
         saveWorkspace,
         loadWorkspace,
         deleteWorkspace,
-        duplicateWorkspace
+        duplicateWorkspace,
+        updateStats
     };
 }
