@@ -34,8 +34,6 @@ interface NetworksViewProps {
   removeBridge: (id: string) => void;
   setView: (v: ViewId) => void;
   addJob: (job: any) => void;
-  activeNetworkId: string | null;
-  setActiveNetworkId: (id: string | null) => void;
 }
 
 type ManagerTab = "networks" | "bridges" | "topology";
@@ -47,7 +45,7 @@ export function NetworksView({
   bridgeFromNet, bridgeToNet,
   saveCurrentNetwork, dissolveNetwork,
   createBridge, removeBridge, setView,
-  addJob, activeNetworkId, setActiveNetworkId,
+  addJob,
 }: NetworksViewProps) {
   const [activeTab, setActiveTab] = useState<ManagerTab>("networks");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -202,8 +200,6 @@ export function NetworksView({
                   isExpanded={expandedNetwork === net.id}
                   onToggleExpand={() => setExpandedNetwork(expandedNetwork === net.id ? null : net.id)}
                   dissolveNetwork={dissolveNetwork}
-                  isActive={activeNetworkId === net.id}
-                  onSetActive={() => setActiveNetworkId(activeNetworkId === net.id ? null : net.id)}
                 />
               ))}
             </div>
