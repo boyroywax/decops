@@ -1,4 +1,4 @@
-import type { Agent, Channel, ChannelForm, ViewId, Message, Network } from "../../types";
+import type { Agent, Channel, ChannelForm, ViewId, NavContext, Message, Network } from "../../types";
 import { CHANNEL_TYPES, ROLES } from "../../constants";
 import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar, PillButton } from "../shared/ui";
 import { ArrowLeftRight, X, Globe } from "lucide-react";
@@ -18,12 +18,14 @@ interface ChannelsViewProps {
   removeChannels: (ids: Set<string>) => void;
   setActiveChannel: (id: string) => void;
   setView: (v: ViewId) => void;
+  navigateTo?: (view: ViewId, ctx: NavContext) => void;
 }
 
 export function ChannelsView({
   agents, channels, messages, ecosystems,
   channelForm, setChannelForm,
   createChannel, removeChannel, removeChannels, setActiveChannel, setView,
+  navigateTo,
 }: ChannelsViewProps) {
   const bulk = useBulkSelect();
 
@@ -121,7 +123,10 @@ export function ChannelsView({
         const isChecked = bulk.has(ch.id);
         if (!from || !to) return null;
         return (
-          <div key={ch.id} className={`channel-item ${isChecked ? 'channel-item--checked' : ''}`}>
+          <div key={ch.id} className={`channel-item ${isChecked ? 'channel-item--checked' : ''}`}
+            onClick={() => navigateTo?.("channels", { networkId: ch.networkId, channelId: ch.id })}
+            style={{ cursor: navigateTo ? "pointer" : undefined }}
+          >
             <div className="channel-item-left">
               <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(ch.id)} color="#a78bfa" />
               <span style={{ color: ROLES.find(r => r.id === from.role)?.color }}>{from.name}</span>

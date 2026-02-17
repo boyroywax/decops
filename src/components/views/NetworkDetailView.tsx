@@ -207,7 +207,11 @@ export function NetworkDetailView({
               const fromAgent = networkAgents.find(a => a.id === ch.from);
               const toAgent = networkAgents.find(a => a.id === ch.to);
               return (
-                <div key={ch.id} className="nd-card" style={{ cursor: "default" }}>
+                <div
+                  key={ch.id}
+                  className="nd-card"
+                  onClick={() => navigateTo("channels", { networkId, channelId: ch.id })}
+                >
                   <div className="nd-card__header">
                     <div
                       className="nd-card__icon"

@@ -5,6 +5,7 @@ import { GroupDetailView } from "../views/GroupDetailView";
 import { AgentDetailView } from "../views/AgentDetailView";
 import { AgentsView } from "../views/AgentsView";
 import { ChannelsView } from "../views/ChannelsView";
+import { ChannelDetailView } from "../views/ChannelDetailView";
 import { GroupsView } from "../views/GroupsView";
 import { MessagesView } from "../views/MessagesView";
 import { NetworkView } from "../views/NetworkView";
@@ -51,13 +52,14 @@ export function ViewSwitcher({
     addNotebookEntry,
     addJob
 }: ViewSwitcherProps) {
-    const breadcrumb = (navContext.networkId || navContext.groupId || navContext.agentId) ? (
+    const breadcrumb = (navContext.networkId || navContext.groupId || navContext.agentId || navContext.channelId) ? (
         <Breadcrumb
             navContext={navContext}
             navigateTo={navigateTo}
             ecosystems={ecosystem.ecosystems}
             agents={workspace.agents}
             groups={workspace.groups}
+            channels={workspace.channels}
         />
     ) : null;
 
@@ -171,6 +173,26 @@ export function ViewSwitcher({
     }
 
     if (view === "channels") {
+        // Drill-down: Channel detail
+        if (navContext.channelId) {
+            return (
+                <>
+                    {breadcrumb}
+                    <ChannelDetailView
+                        channelId={navContext.channelId}
+                        networkId={navContext.networkId}
+                        agents={workspace.agents}
+                        channels={workspace.channels}
+                        messages={workspace.messages}
+                        ecosystems={ecosystem.ecosystems}
+                        navigateTo={navigateTo}
+                        removeChannel={workspace.removeChannel}
+                        setActiveChannel={workspace.setActiveChannel}
+                        setView={setView}
+                    />
+                </>
+            );
+        }
         return (
             <ChannelsView
                 agents={workspace.agents}
@@ -184,6 +206,7 @@ export function ViewSwitcher({
                 removeChannels={workspace.removeChannels}
                 setActiveChannel={workspace.setActiveChannel}
                 setView={setView}
+                navigateTo={navigateTo}
             />
         );
     }

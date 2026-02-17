@@ -1,4 +1,4 @@
-import type { ViewId, NavContext, Network, Agent, Group } from "../../types";
+import type { ViewId, NavContext, Network, Agent, Group, Channel } from "../../types";
 import { ChevronRight, Globe } from "lucide-react";
 import "../../styles/components/breadcrumb.css";
 
@@ -8,12 +8,14 @@ interface BreadcrumbProps {
   ecosystems: Network[];
   agents: Agent[];
   groups: Group[];
+  channels?: Channel[];
 }
 
-export function Breadcrumb({ navContext, navigateTo, ecosystems, agents, groups }: BreadcrumbProps) {
+export function Breadcrumb({ navContext, navigateTo, ecosystems, agents, groups, channels = [] }: BreadcrumbProps) {
   const network = ecosystems.find(n => n.id === navContext.networkId);
   const group = groups.find(g => g.id === navContext.groupId);
   const agent = agents.find(a => a.id === navContext.agentId);
+  const channel = channels.find(c => c.id === navContext.channelId);
 
   const items: { label: string; color?: string; onClick?: () => void }[] = [];
 
@@ -47,6 +49,16 @@ export function Breadcrumb({ navContext, navigateTo, ecosystems, agents, groups 
   if (agent) {
     items.push({
       label: agent.name,
+    });
+  }
+
+  // Channel level (leaf node from network → channel path)
+  if (channel && navContext.networkId) {
+    const fromAgent = agents.find(a => a.id === channel.from);
+    const toAgent = agents.find(a => a.id === channel.to);
+    items.push({
+      label: `${fromAgent?.name || "?"} → ${toAgent?.name || "?"}`,
+      color: "#a78bfa",
     });
   }
 

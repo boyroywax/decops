@@ -14,6 +14,7 @@ export type ViewId =
   | "ecosystem"  // Legacy alias
   | "agents"
   | "channels"
+  | "channel"
   | "groups"
   | "messages"
   | "network"
@@ -23,11 +24,12 @@ export type ViewId =
   | "activity"
   | "actions";
 
-/** Navigation context for hierarchical drill-down: Ecosystem → Network → Group → Agent */
+/** Navigation context for hierarchical drill-down: Ecosystem → Network → Group → Agent → Channel */
 export interface NavContext {
   networkId?: string;
   groupId?: string;
   agentId?: string;
+  channelId?: string;
 }
 
 export type NotebookCategory = "action" | "output" | "navigation" | "system" | "narrative";

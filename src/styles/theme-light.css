@@ -158,6 +158,43 @@
   color: #2d2d44;
 }
 
+/* Channel Detail View */
+[data-theme="light"] .channel-detail__stat,
+[data-theme="light"] .cd-endpoint,
+[data-theme="light"] .cd-message {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .cd-endpoint:hover,
+[data-theme="light"] .channel-detail__stat--clickable:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.10);
+}
+
+[data-theme="light"] .channel-detail__empty {
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #9999aa;
+}
+
+[data-theme="light"] .channel-detail__actions {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .channel-detail__action-btn--primary {
+  background: rgba(167, 139, 250, 0.08);
+  border-color: rgba(167, 139, 250, 0.15);
+}
+
+[data-theme="light"] .channel-detail__action-btn--danger {
+  background: rgba(220, 38, 38, 0.06);
+  border-color: rgba(220, 38, 38, 0.12);
+}
+
+[data-theme="light"] .cd-message__response {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
 [data-theme="light"] .agent-detail__action-btn--danger,
 [data-theme="light"] .group-detail__action-btn--danger {
   background: rgba(220, 38, 38, 0.06);
