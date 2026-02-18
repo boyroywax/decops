@@ -1,15 +1,19 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
 
-type Theme = "dark" | "light";
+export type Theme = "dark" | "light" | "solar";
+
+const THEME_ORDER: Theme[] = ["dark", "light", "solar"];
 
 interface ThemeContextType {
   theme: Theme;
+  setTheme: (t: Theme) => void;
   toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
   theme: "dark",
+  setTheme: () => {},
   toggleTheme: () => {},
 });
 
@@ -17,10 +21,14 @@ export function useTheme() {
   return useContext(ThemeContext);
 }
 
+function isValidTheme(v: string | null): v is Theme {
+  return v === "dark" || v === "light" || v === "solar";
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
+  const [theme, setThemeState] = useState<Theme>(() => {
     const saved = localStorage.getItem("decops_theme");
-    return (saved === "light" || saved === "dark") ? saved : "dark";
+    return isValidTheme(saved) ? saved : "dark";
   });
 
   useEffect(() => {
@@ -28,12 +36,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("decops_theme", theme);
   }, [theme]);
 
+  const setTheme = useCallback((t: Theme) => setThemeState(t), []);
+
   const toggleTheme = useCallback(() => {
-    setTheme(prev => prev === "dark" ? "light" : "dark");
+    setThemeState(prev => {
+      const idx = THEME_ORDER.indexOf(prev);
+      return THEME_ORDER[(idx + 1) % THEME_ORDER.length];
+    });
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

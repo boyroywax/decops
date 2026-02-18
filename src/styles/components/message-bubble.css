@@ -1,0 +1,39 @@
+/**
+ * Message Bubble — Chat panel message bubbles (user + assistant)
+ */
+
+.mb-row {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.mb-row--user {
+  justify-content: flex-end;
+}
+
+.mb-row--assistant {
+  justify-content: flex-start;
+}
+
+.mb-bubble {
+  max-width: 85%;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-word;
+  color: var(--text-secondary);
+}
+
+.mb-bubble--user {
+  background: rgba(0, 229, 160, 0.1);
+  border: 1px solid rgba(0, 229, 160, 0.2);
+  border-radius: 12px 12px 2px 12px;
+  color: var(--text-primary);
+}
+
+.mb-bubble--assistant {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px 12px 12px 2px;
+  color: var(--text-secondary);
+}

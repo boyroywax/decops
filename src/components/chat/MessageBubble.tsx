@@ -3,6 +3,7 @@ import type { ChatMessage, WorkspaceContext } from "../../services/ai";
 import { parseActions } from "./utils";
 import ActionCard from "./ActionCard";
 import { MarkdownContent } from "../shared/MarkdownContent";
+import "../../styles/components/message-bubble.css";
 
 interface MessageBubbleProps {
     msg: ChatMessage;
@@ -14,27 +15,10 @@ export default function MessageBubble({ msg, context }: MessageBubbleProps) {
     const { cleanText, actions } = parseActions(msg.content);
 
     return (
-        <div style={{
-            display: "flex",
-            justifyContent: isUser ? "flex-end" : "flex-start",
-            marginBottom: 8,
-        }}>
-            <div
-                style={{
-                    maxWidth: "85%",
-                    background: isUser ? "rgba(0,229,160,0.1)" : "rgba(255,255,255,0.04)",
-                    border: `1px solid ${isUser ? "rgba(0,229,160,0.2)" : "rgba(255,255,255,0.06)"}`,
-                    borderRadius: isUser ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
-                    padding: "8px 12px",
-                    fontSize: 12,
-                    lineHeight: 1.5,
-                    color: "#e4e4e7",
-                    wordBreak: "break-word",
-                    ...(isUser ? { whiteSpace: "pre-wrap" as const } : {}),
-                }}
-            >
+        <div className={`mb-row ${isUser ? "mb-row--user" : "mb-row--assistant"}`}>
+            <div className={`mb-bubble ${isUser ? "mb-bubble--user" : "mb-bubble--assistant"}`}>
                 {isUser
-                    ? cleanText
+                    ? <span style={{ whiteSpace: "pre-wrap" }}>{cleanText}</span>
                     : <MarkdownContent content={cleanText} />
                 }
                 {actions.map((a, i) => <ActionCard key={i} action={a} context={context} />)}

@@ -290,6 +290,40 @@
   scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
+/* Message bubbles in chat panel */
+[data-theme="light"] .mb-bubble--user {
+  background: rgba(0, 180, 120, 0.08);
+  border-color: rgba(0, 180, 120, 0.18);
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .mb-bubble--assistant {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #2d2d44;
+}
+
+/* Ensure chat-md text is readable in light mode */
+[data-theme="light"] .chat-md {
+  color: #2d2d44;
+}
+
+[data-theme="light"] .chat-md h3 {
+  color: #555570;
+}
+
+[data-theme="light"] .chat-md h4 {
+  color: #6b6b80;
+}
+
+[data-theme="light"] .chat-md li::marker {
+  color: #9999aa;
+}
+
+[data-theme="light"] .chat-md pre code {
+  color: #2d2d44;
+}
+
 /* ─── Action Manager (Jobs panel) ─── */
 [data-theme="light"] .action-manager {
   background: #ffffff;
