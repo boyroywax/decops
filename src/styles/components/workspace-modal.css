@@ -26,13 +26,13 @@
 .ws-modal__container {
   width: 100%;
   max-width: 1000px;
-  height: 85vh;
-  background: var(--bg-primary);
+  max-height: 85vh;
+  background: var(--bg-modal);
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-4xl);
   display: flex;
   flex-direction: column;
-  box-shadow: 0 50px 100px -20px rgba(0, 0, 0, 0.8);
+  box-shadow: var(--shadow-xl);
   overflow: hidden;
   position: relative;
 }
@@ -83,7 +83,7 @@
 }
 
 .ws-modal__close-btn {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   color: var(--text-subtle);
@@ -98,7 +98,7 @@
 
 .ws-modal__close-btn:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-surface-hover);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -124,7 +124,7 @@
 
 .ws-modal__create-card {
   height: 220px;
-  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border: 1px dashed var(--border-medium);
   border-radius: var(--radius-3xl);
   display: flex;
   flex-direction: column;
@@ -147,7 +147,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-surface-hover);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -190,8 +190,8 @@
 
 .ws-modal__form {
   width: 440px;
-  background: #18181b;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-modal);
+  border: 1px solid var(--border-medium);
   border-radius: var(--radius-4xl);
   padding: 32px;
   box-shadow: var(--shadow-xl);
@@ -221,10 +221,10 @@
 .ws-modal__input {
   width: 100%;
   padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-xl);
-  color: white;
+  color: var(--text-primary);
   outline: none;
   font-size: 14px;
   font-family: inherit;
@@ -233,10 +233,10 @@
 .ws-modal__textarea {
   width: 100%;
   padding: 12px 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-xl);
-  color: white;
+  color: var(--text-primary);
   outline: none;
   min-height: 100px;
   resize: none;
@@ -255,7 +255,7 @@
   flex: 1;
   padding: 12px;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-default);
   color: var(--text-primary);
   border-radius: var(--radius-xl);
   cursor: pointer;
@@ -270,8 +270,8 @@
   font-weight: var(--font-semibold);
   border-radius: var(--radius-xl);
   font-size: 14px;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.3);
+  background: var(--bg-surface-hover);
+  color: var(--text-ghost);
   cursor: not-allowed;
 }
 
@@ -287,7 +287,7 @@
 
 .ws-modal__switch-card {
   width: 440px;
-  background: #18181b;
+  background: var(--bg-modal);
   border: 1px solid rgba(0, 229, 160, 0.15);
   border-radius: var(--radius-4xl);
   padding: 32px;
@@ -334,7 +334,7 @@
   flex: 1;
   padding: 12px;
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-default);
   color: var(--text-primary);
   border-radius: var(--radius-xl);
   cursor: pointer;
