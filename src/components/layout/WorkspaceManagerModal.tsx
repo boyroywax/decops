@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
 import { useJobsContext } from "../../context/JobsContext";
 import { X, Plus, Terminal, ArrowRight, Check } from "lucide-react";
@@ -103,7 +104,7 @@ export function WorkspaceManagerModal({ onClose }: WorkspaceManagerModalProps) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [onClose]);
 
-    return (
+    return createPortal(
         <div className="ws-modal__backdrop">
             <div className="workspace-modal-content ws-modal__container">
                 {/* Header */}
@@ -228,6 +229,7 @@ export function WorkspaceManagerModal({ onClose }: WorkspaceManagerModalProps) {
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
