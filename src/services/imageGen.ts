@@ -60,11 +60,11 @@ export async function generatePortrait(
     );
   }
 
-  // Prepend high-quality style directives
+  // Prepend style directives for consistent vector-art portraits
   const styledPrompt =
-    "Professional high-quality digital portrait, detailed realistic rendering, " +
-    "cinematic lighting, sharp focus, centered headshot composition, " +
-    "clean solid-color background, studio photography quality. " +
+    "Flat vector art portrait illustration, simple cel-shaded style, " +
+    "limited color palette, clean bold outlines, solid color fills, " +
+    "centered headshot, plain solid color background. " +
     prompt;
 
   const url = `${GEMINI_API_BASE}/${IMAGE_MODEL}:predict?key=${apiKey}`;
