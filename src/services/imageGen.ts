@@ -1,8 +1,8 @@
 /**
- * imageGen — Google Gemini image generation service.
+ * imageGen — Google Imagen 4.0 image generation service.
  *
- * Generates AI portraits using Gemini 2.5 Flash Image model via the
- * Generative Language API (generateContent with IMAGE responseModality).
+ * Generates high-quality AI portraits using Imagen 4.0 via the
+ * Generative Language API (:predict endpoint).
  * Requires a Google AI API key stored in localStorage under "gemini_api_key".
  *
  * Returns base64-encoded image data suitable for caching in IndexedDB.
@@ -12,10 +12,10 @@ const GEMINI_API_BASE =
   "https://generativelanguage.googleapis.com/v1beta/models";
 
 /**
- * Model that supports native image generation via generateContent.
- * Uses responseModalities: ["IMAGE", "TEXT"] to get inline image data.
+ * Imagen 4.0 — dedicated high-quality image generation model.
+ * Uses :predict endpoint with instances/parameters format.
  */
-const IMAGE_MODEL = "gemini-2.5-flash-image";
+const IMAGE_MODEL = "imagen-4.0-generate-001";
 
 // ── API key management ──
 
@@ -45,7 +45,7 @@ export interface GeneratedImage {
 }
 
 /**
- * Generate a portrait image via Gemini generateContent with IMAGE modality.
+ * Generate a portrait image via Imagen 4.0 :predict endpoint.
  *
  * @param prompt — text-to-image prompt string
  * @returns base64-encoded image or throws on failure
@@ -60,26 +60,26 @@ export async function generatePortrait(
     );
   }
 
-  // Prepend style directives for consistent vector-art portraits
+  // Prepend high-quality style directives
   const styledPrompt =
-    "Generate an image: flat vector art portrait illustration, simple cel-shaded style, " +
-    "limited color palette, clean bold outlines, solid color fills, " +
-    "centered headshot, plain solid color background. " +
+    "Professional high-quality digital portrait, detailed realistic rendering, " +
+    "cinematic lighting, sharp focus, centered headshot composition, " +
+    "clean solid-color background, studio photography quality. " +
     prompt;
 
-  const url = `${GEMINI_API_BASE}/${IMAGE_MODEL}:generateContent?key=${apiKey}`;
+  const url = `${GEMINI_API_BASE}/${IMAGE_MODEL}:predict?key=${apiKey}`;
 
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      contents: [
-        {
-          parts: [{ text: styledPrompt }],
-        },
+      instances: [
+        { prompt: styledPrompt },
       ],
-      generationConfig: {
-        responseModalities: ["IMAGE", "TEXT"],
+      parameters: {
+        sampleCount: 1,
+        aspectRatio: "1:1",
+        personGeneration: "allow_all",
       },
     }),
   });
@@ -87,27 +87,24 @@ export async function generatePortrait(
   if (!response.ok) {
     const errorText = await response.text().catch(() => "Unknown error");
     throw new Error(
-      `Gemini API error (${response.status}): ${errorText.slice(0, 300)}`,
+      `Imagen API error (${response.status}): ${errorText.slice(0, 300)}`,
     );
   }
 
   const data = await response.json();
 
-  // Extract image from candidates → content → parts → inlineData
-  const candidates = data?.candidates;
-  if (!candidates?.length) {
-    throw new Error("Image generation returned no candidates");
+  // Extract image from predictions[].bytesBase64Encoded
+  const predictions = data?.predictions;
+  if (!predictions?.length) {
+    throw new Error("Image generation returned no predictions");
   }
 
-  for (const candidate of candidates) {
-    const parts = candidate?.content?.parts || [];
-    for (const part of parts) {
-      if (part.inlineData?.data) {
-        return {
-          data: part.inlineData.data,
-          mimeType: part.inlineData.mimeType || "image/png",
-        };
-      }
+  for (const prediction of predictions) {
+    if (prediction.bytesBase64Encoded) {
+      return {
+        data: prediction.bytesBase64Encoded,
+        mimeType: prediction.mimeType || "image/png",
+      };
     }
   }
 

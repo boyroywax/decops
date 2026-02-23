@@ -1,11 +1,11 @@
 /**
- * AgentPortrait — AI-generated portrait via Gemini Imagen 3
+ * AgentPortrait — AI-generated portrait via Google Imagen 4.0
  *
- * Generates a vector-art portrait from each agent's AIEOS physicality
- * image_prompts using Google's Imagen 3 model. Caches results in
+ * Generates a high-quality portrait from each agent's AIEOS physicality
+ * image_prompts using Google's Imagen 4.0 model. Caches results in
  * IndexedDB so generation only happens once per agent/prompt combo.
  *
- * Flow: Check IndexedDB cache → if miss, call Imagen 3 API → cache result.
+ * Flow: Check IndexedDB cache → if miss, call Imagen 4 API → cache result.
  * Falls back to role-colored initials if no API key or on error.
  */
 
@@ -178,12 +178,6 @@ export function AgentPortrait({
     }
   }, [visible, status, loadPortrait]);
 
-  // SVG filter for vector-art posterisation
-  const filterId = useMemo(
-    () => `pvec-${(pHash % 99999)}`,
-    [pHash],
-  );
-
   return (
     <div
       ref={containerRef}
@@ -200,38 +194,6 @@ export function AgentPortrait({
         flexShrink: 0,
       }}
     >
-      {/* ── Hidden SVG filter for vector-art posterisation ── */}
-      <svg
-        width="0"
-        height="0"
-        style={{ position: "absolute", pointerEvents: "none" }}
-      >
-        <defs>
-          <filter id={filterId} colorInterpolationFilters="sRGB">
-            <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" result="b" />
-            <feComponentTransfer in="b" result="p">
-              <feFuncR
-                type="discrete"
-                tableValues="0.05 0.2 0.38 0.55 0.72 0.88 1"
-              />
-              <feFuncG
-                type="discrete"
-                tableValues="0.05 0.2 0.38 0.55 0.72 0.88 1"
-              />
-              <feFuncB
-                type="discrete"
-                tableValues="0.05 0.2 0.38 0.55 0.72 0.88 1"
-              />
-            </feComponentTransfer>
-            <feComponentTransfer in="p">
-              <feFuncR type="linear" slope="1.1" intercept="-0.04" />
-              <feFuncG type="linear" slope="1.1" intercept="-0.04" />
-              <feFuncB type="linear" slope="1.1" intercept="-0.04" />
-            </feComponentTransfer>
-          </filter>
-        </defs>
-      </svg>
-
       {/* ── Loading skeleton ── */}
       {status === "loading" && (
         <div
@@ -270,7 +232,6 @@ export function AgentPortrait({
             width: "100%",
             height: "100%",
             objectFit: "cover",
-            filter: `url(#${filterId})`,
             display: "block",
           }}
         />
