@@ -1,4 +1,4 @@
-import { Globe, Bot, Sparkles } from "lucide-react";
+import { Bot, Sparkles } from "lucide-react";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import type { ViewId } from "../../types";
 
@@ -20,9 +20,6 @@ export function DoneContent({ onNavigate, resetArchitect }: DoneContentProps) {
       <div className="architect-popup__done-actions">
         <button onClick={() => onNavigate("network")} className="architect-popup__done-btn" style={{ background: "#00e5a012", border: "1px solid #00e5a025", color: "#00e5a0" }}>
           ◈ View Topology
-        </button>
-        <button onClick={() => onNavigate("networks")} className="architect-popup__done-btn" style={{ background: "#38bdf812", border: "1px solid #38bdf825", color: "#38bdf8" }}>
-          <Globe size={13} /> Save to Ecosystem
         </button>
         <button onClick={() => onNavigate("agents")} className="architect-popup__done-btn" style={{ background: "#00e5a012", border: "1px solid #00e5a025", color: "#00e5a0" }}>
           <Bot size={13} /> Browse Agents
