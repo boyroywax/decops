@@ -116,6 +116,22 @@
   background: rgba(0, 0, 0, 0.04);
 }
 
+/* Portrait containers — light */
+[data-theme="light"] .agent-card-portrait {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .agent-card:hover .agent-card-portrait {
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .agent-detail__portrait {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.10);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
 /* Identity / prompt cards */
 [data-theme="light"] .agent-detail__identity,
 [data-theme="light"] .agent-detail__prompt,

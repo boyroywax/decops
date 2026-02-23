@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { AgentChat } from "../chat/AgentChat";
 import { CopyableId } from "../shared/CopyableId";
+import { AgentPortrait } from "../shared/AgentPortrait";
 import { downloadAgentAieos, aieosToAgent, validateAieos } from "../../utils/aieos";
 import { AieosEditor } from "./AieosEditor";
 import "../../styles/components/agent-detail.css";
@@ -157,14 +158,8 @@ export function AgentDetailView({
       <div className="agent-detail__header">
         <div>
           <div className="agent-detail__title-row">
-            <div
-              className="agent-detail__icon"
-              style={{
-                background: `${role?.color || "#555"}15`,
-                border: `1px solid ${role?.color || "#555"}30`,
-              }}
-            >
-              <span style={{ fontSize: 22 }}>{role?.icon}</span>
+            <div className="agent-detail__portrait">
+              <AgentPortrait agent={agent} size={72} />
             </div>
             <div>
               <h2 className="agent-detail__title">{agent.name}</h2>

@@ -117,6 +117,22 @@
   background: rgba(120, 80, 20, 0.05);
 }
 
+/* Portrait containers — solar */
+[data-theme="solar"] .agent-card-portrait {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .agent-card:hover .agent-card-portrait {
+  border-color: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .agent-detail__portrait {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.12);
+  box-shadow: 0 2px 12px rgba(120, 80, 20, 0.06);
+}
+
 /* Identity / prompt cards */
 [data-theme="solar"] .agent-detail__identity,
 [data-theme="solar"] .agent-detail__prompt,

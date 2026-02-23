@@ -128,6 +128,30 @@
   font-size: var(--text-xl);
 }
 
+.agent-card-portrait {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.agent-card:hover .agent-card-portrait {
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.04);
+}
+
+.agent-card--selected .agent-card-portrait {
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.06);
+}
+
 .agent-card-info {
   display: flex;
   flex-direction: column;

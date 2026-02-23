@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Bot, Hexagon, X, Globe, Download, Sparkles } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { CopyableId } from "../shared/CopyableId";
+import { AgentPortrait } from "../shared/AgentPortrait";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
 import { validateAieos, downloadAgentAieos } from "../../utils/aieos";
 import "../../styles/components/agents.css";
@@ -175,7 +176,9 @@ export function AgentsView({
               <div className="agent-card-header">
                 <div className="agent-card-identity">
                   <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(a.id)} color={role.color} />
-                  <div className="agent-card-icon" style={{ background: role.color + '15', borderColor: role.color + '30' }}>{role.icon}</div>
+                  <div className="agent-card-portrait">
+                    <AgentPortrait agent={a} size={42} />
+                  </div>
                   <div className="agent-card-info">
                     <div className="agent-card-name">{a.name}</div>
                     <div className="agent-card-role" style={{ color: role.color }}>{role.label}</div>
