@@ -4,6 +4,7 @@ import {
   Users, Calendar, Trash2, Radio,
 } from "lucide-react";
 import { CopyableId } from "../shared/CopyableId";
+import { GroupBadge } from "../shared/GroupBadge";
 import "../../styles/components/group-detail.css";
 
 interface GroupDetailViewProps {
@@ -44,15 +45,7 @@ export function GroupDetailView({
       <div className="group-detail__header">
         <div>
           <div className="group-detail__title-row">
-            <div
-              className="group-detail__icon"
-              style={{
-                background: `${group.color}15`,
-                border: `1px solid ${group.color}30`,
-              }}
-            >
-              <Users size={22} color={group.color} />
-            </div>
+            <GroupBadge group={group} members={memberAgents} size={52} />
             <div>
               <h2 className="group-detail__title">{group.name}</h2>
               <div className="group-detail__did"><CopyableId value={group.did} label="DID" /></div>

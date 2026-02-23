@@ -44,14 +44,18 @@ export interface GeneratedImage {
   mimeType: string;
 }
 
+export type ImageStyle = "portrait" | "badge";
+
 /**
- * Generate a portrait image via Imagen 4.0 :predict endpoint.
+ * Generate an image via Imagen 4.0 :predict endpoint.
  *
  * @param prompt — text-to-image prompt string
+ * @param style — "portrait" for agent headshots, "badge" for group emblems
  * @returns base64-encoded image or throws on failure
  */
 export async function generatePortrait(
   prompt: string,
+  style: ImageStyle = "portrait",
 ): Promise<GeneratedImage> {
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
@@ -60,12 +64,17 @@ export async function generatePortrait(
     );
   }
 
-  // Prepend style directives for consistent vector-art portraits
-  const styledPrompt =
-    "Flat vector art portrait illustration, simple cel-shaded style, " +
-    "limited color palette, clean bold outlines, solid color fills, " +
-    "centered headshot, plain solid color background. " +
-    prompt;
+  // Style-specific prefix
+  const stylePrefix =
+    style === "badge"
+      ? "Flat vector art emblem badge icon, simple cel-shaded style, " +
+        "limited color palette, clean bold outlines, solid color fills, " +
+        "centered symmetrical design, plain solid color background. "
+      : "Flat vector art portrait illustration, simple cel-shaded style, " +
+        "limited color palette, clean bold outlines, solid color fills, " +
+        "centered headshot, plain solid color background. ";
+
+  const styledPrompt = stylePrefix + prompt;
 
   const url = `${GEMINI_API_BASE}/${IMAGE_MODEL}:predict?key=${apiKey}`;
 

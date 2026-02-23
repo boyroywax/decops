@@ -4,6 +4,7 @@ import { GradientIcon } from "../shared/GradientIcon";
 import { ROLES, GOVERNANCE_MODELS } from "../../constants";
 import { SectionTitle, BulkCheckbox, BulkActionBar } from "../shared/ui";
 import { CopyableId } from "../shared/CopyableId";
+import { GroupBadge } from "../shared/GroupBadge";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
 import "../../styles/components/groups.css";
 
@@ -164,6 +165,7 @@ export function GroupsView({
               <div className="group-card-top">
                 <div className="group-card-info">
                   <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(g.id)} color={g.color} />
+                  <GroupBadge group={g} members={memberAgents} size={36} />
                   <div>
                     <div className="group-card-name" style={{ color: g.color }}><Hexagon size={14} /> {g.name}</div>
                     <div className="group-card-governance">{gov?.icon} {gov?.label}</div>
