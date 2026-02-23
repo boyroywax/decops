@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Agent, Group, GroupForm, GovernanceModelId, Channel, Message, ViewId, Network } from "../../types";
 import { Hexagon, X, MessageSquare, Check, Plus, Globe } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
@@ -5,6 +6,7 @@ import { ROLES, GOVERNANCE_MODELS } from "../../constants";
 import { SectionTitle, BulkCheckbox, BulkActionBar } from "../shared/ui";
 import { CopyableId } from "../shared/CopyableId";
 import { GroupBadge } from "../shared/GroupBadge";
+import { GroupTradingCard } from "../shared/GroupTradingCard";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
 import "../../styles/components/groups.css";
 
@@ -34,6 +36,7 @@ export function GroupsView({
   setBroadcastGroup, setView,
 }: GroupsViewProps) {
   const bulk = useBulkSelect();
+  const [tradingCardGroup, setTradingCardGroup] = useState<{ group: Group; members: Agent[]; networkName?: string; networkColor?: string } | null>(null);
 
   const getNetworkName = (networkId?: string) => {
     if (!networkId) return null;
@@ -165,7 +168,7 @@ export function GroupsView({
               <div className="group-card-top">
                 <div className="group-card-info">
                   <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(g.id)} color={g.color} />
-                  <GroupBadge group={g} members={memberAgents} size={36} />
+                  <GroupBadge group={g} members={memberAgents} size={36} onClick={(e) => { e.stopPropagation(); setTradingCardGroup({ group: g, members: memberAgents, networkName: network?.name, networkColor: network?.color }); }} />
                   <div>
                     <div className="group-card-name" style={{ color: g.color }}><Hexagon size={14} /> {g.name}</div>
                     <div className="group-card-governance">{gov?.icon} {gov?.label}</div>
@@ -216,6 +219,16 @@ export function GroupsView({
         onDelete={handleBulkDelete}
         allSelected={bulk.isAllSelected(groups.map(g => g.id))}
         entityName="group"
+      />
+
+      {/* Trading card modal */}
+      <GroupTradingCard
+        group={tradingCardGroup?.group!}
+        members={tradingCardGroup?.members || []}
+        networkName={tradingCardGroup?.networkName}
+        networkColor={tradingCardGroup?.networkColor}
+        isOpen={!!tradingCardGroup}
+        onClose={() => setTradingCardGroup(null)}
       />
     </div>
   );

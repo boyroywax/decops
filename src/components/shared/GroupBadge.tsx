@@ -222,6 +222,7 @@ export function GroupBadge({
         overflow: "hidden",
         position: "relative",
         flexShrink: 0,
+        cursor: onClick ? "pointer" : undefined,
       }}
     >
       {/* ── Loading skeleton ── */}

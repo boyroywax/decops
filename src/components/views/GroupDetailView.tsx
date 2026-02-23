@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Agent, Group, Network, ViewId, NavContext } from "../../types";
 import { ROLES, GOVERNANCE_MODELS } from "../../constants";
 import {
@@ -5,6 +6,7 @@ import {
 } from "lucide-react";
 import { CopyableId } from "../shared/CopyableId";
 import { GroupBadge } from "../shared/GroupBadge";
+import { GroupTradingCard } from "../shared/GroupTradingCard";
 import "../../styles/components/group-detail.css";
 
 interface GroupDetailViewProps {
@@ -38,6 +40,7 @@ export function GroupDetailView({
   const gov = GOVERNANCE_MODELS.find(g => g.id === group.governance);
   const memberAgents = agents.filter(a => group.members.includes(a.id));
   const nonMembers = agents.filter(a => a.networkId === networkId && !group.members.includes(a.id));
+  const [showTradingCard, setShowTradingCard] = useState(false);
 
   return (
     <div className="group-detail">
@@ -45,7 +48,7 @@ export function GroupDetailView({
       <div className="group-detail__header">
         <div>
           <div className="group-detail__title-row">
-            <GroupBadge group={group} members={memberAgents} size={52} />
+            <GroupBadge group={group} members={memberAgents} size={52} onClick={() => setShowTradingCard(true)} />
             <div>
               <h2 className="group-detail__title">{group.name}</h2>
               <div className="group-detail__did"><CopyableId value={group.did} label="DID" /></div>
@@ -172,6 +175,16 @@ export function GroupDetailView({
           <Trash2 size={12} /> Remove Group
         </button>
       </div>
+
+      {/* Trading card modal */}
+      <GroupTradingCard
+        group={group}
+        members={memberAgents}
+        networkName={network?.name}
+        networkColor={network?.color}
+        isOpen={showTradingCard}
+        onClose={() => setShowTradingCard(false)}
+      />
     </div>
   );
 }
