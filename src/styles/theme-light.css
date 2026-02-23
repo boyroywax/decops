@@ -126,6 +126,10 @@
   border-color: rgba(0, 0, 0, 0.15);
 }
 
+[data-theme="light"] .agent-portrait-wrap:hover {
+  border-color: rgba(0, 0, 0, 0.18) !important;
+}
+
 [data-theme="light"] .agent-detail__portrait {
   background: rgba(0, 0, 0, 0.02);
   border-color: rgba(0, 0, 0, 0.10);

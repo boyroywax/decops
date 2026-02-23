@@ -127,6 +127,10 @@
   border-color: rgba(120, 80, 20, 0.18);
 }
 
+[data-theme="solar"] .agent-portrait-wrap:hover {
+  border-color: rgba(120, 80, 20, 0.22) !important;
+}
+
 [data-theme="solar"] .agent-detail__portrait {
   background: rgba(120, 80, 20, 0.03);
   border-color: rgba(120, 80, 20, 0.12);
