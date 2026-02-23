@@ -11,6 +11,7 @@ import {
 import { AgentChat } from "../chat/AgentChat";
 import { CopyableId } from "../shared/CopyableId";
 import { AgentPortrait } from "../shared/AgentPortrait";
+import { AgentTradingCard } from "../shared/AgentTradingCard";
 import { downloadAgentAieos, aieosToAgent, validateAieos } from "../../utils/aieos";
 import { AieosEditor } from "./AieosEditor";
 import "../../styles/components/agent-detail.css";
@@ -74,6 +75,7 @@ export function AgentDetailView({
   const [aieosOpen, setAieosOpen] = useState(false);
   const [aieosEditing, setAieosEditing] = useState(false);
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [showTradingCard, setShowTradingCard] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   if (!agent) {
@@ -158,7 +160,7 @@ export function AgentDetailView({
       <div className="agent-detail__header">
         <div>
           <div className="agent-detail__title-row">
-            <div className="agent-detail__portrait">
+            <div className="agent-detail__portrait" onClick={() => setShowTradingCard(true)} style={{ cursor: "pointer" }}>
               <AgentPortrait agent={agent} size={72} />
             </div>
             <div>
@@ -711,6 +713,13 @@ export function AgentDetailView({
           <Trash2 size={12} /> Remove Agent
         </button>
       </div>
+
+      {/* Trading card modal */}
+      <AgentTradingCard
+        agent={agent}
+        isOpen={showTradingCard}
+        onClose={() => setShowTradingCard(false)}
+      />
     </div>
   );
 }

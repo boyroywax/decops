@@ -6,6 +6,7 @@ import { Bot, Hexagon, X, Globe, Download, Sparkles } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { CopyableId } from "../shared/CopyableId";
 import { AgentPortrait } from "../shared/AgentPortrait";
+import { AgentTradingCard } from "../shared/AgentTradingCard";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
 import { validateAieos, downloadAgentAieos } from "../../utils/aieos";
 import "../../styles/components/agents.css";
@@ -40,6 +41,7 @@ export function AgentsView({
   createAgent, updateAgentPrompt, removeAgent, removeAgents,
 }: AgentsViewProps) {
   const bulk = useBulkSelect();
+  const [tradingCardAgent, setTradingCardAgent] = useState<Agent | null>(null);
 
   const getNetworkName = (networkId?: string) => {
     if (!networkId) return null;
@@ -176,7 +178,7 @@ export function AgentsView({
               <div className="agent-card-header">
                 <div className="agent-card-identity">
                   <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(a.id)} color={role.color} />
-                  <div className="agent-card-portrait">
+                  <div className="agent-card-portrait" onClick={(e) => { e.stopPropagation(); setTradingCardAgent(a); }}>
                     <AgentPortrait agent={a} size={42} />
                   </div>
                   <div className="agent-card-info">
@@ -287,6 +289,13 @@ export function AgentsView({
         onDelete={handleBulkDelete}
         allSelected={bulk.isAllSelected(agents.map(a => a.id))}
         entityName="agent"
+      />
+
+      {/* Trading card modal */}
+      <AgentTradingCard
+        agent={tradingCardAgent!}
+        isOpen={!!tradingCardAgent}
+        onClose={() => setTradingCardAgent(null)}
       />
     </div>
   );

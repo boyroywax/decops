@@ -1,0 +1,391 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Agent Trading Card — Collectible-style modal card
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Backdrop ── */
+.tc-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal, 1000);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: tc-fadeIn 0.2s ease-out;
+  padding: var(--space-xl);
+}
+
+/* ── Card shell ── */
+.tc-card {
+  position: relative;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-card, #1a1a2e);
+  border: 1.5px solid var(--border-medium, #333);
+  border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0 var(--space-xl);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 8px 40px rgba(0, 0, 0, 0.5),
+    0 0 80px -20px var(--tc-accent, #a1a1aa);
+  animation: tc-cardIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Holographic top glow */
+.tc-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  border-radius: 20px 20px 0 0;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* ── Close button ── */
+.tc-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #aaa);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tc-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #fff);
+  transform: scale(1.05);
+}
+
+/* ── Portrait area ── */
+.tc-portrait-area {
+  position: relative;
+  z-index: 2;
+  margin-top: 28px;
+  margin-bottom: 8px;
+}
+
+.tc-portrait-frame {
+  width: 200px;
+  height: 200px;
+  border-radius: 16px;
+  border: 2px solid;
+  overflow: hidden;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Make portrait square instead of circle inside the trading card */
+.tc-portrait-frame .agent-portrait-wrap {
+  border-radius: 14px !important;
+}
+
+/* Power badge */
+.tc-power-badge {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.04em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Identity block ── */
+.tc-identity {
+  text-align: center;
+  padding: 8px var(--space-2xl) 0;
+  z-index: 2;
+}
+
+.tc-name {
+  font-family: var(--font-display, sans-serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary, #fff);
+  margin: 0;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.tc-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+}
+
+.tc-personality {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 6px;
+  padding: 3px 10px;
+  border: 1px solid;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Quick facts ── */
+.tc-facts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px var(--space-2xl) 4px;
+}
+
+.tc-fact-chip {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid;
+  color: var(--text-secondary, #aaa);
+  white-space: nowrap;
+}
+
+/* ── Section labels ── */
+.tc-section-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted, #888);
+  margin-bottom: 8px;
+}
+
+/* ── Neural Matrix Stats ── */
+.tc-stats-section {
+  width: 100%;
+  padding: 12px var(--space-2xl) 4px;
+}
+
+.tc-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 16px;
+}
+
+.tc-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tc-stat__label {
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-muted, #888);
+  width: 28px;
+  flex-shrink: 0;
+  letter-spacing: 0.06em;
+}
+
+.tc-stat__bar {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.tc-stat__fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tc-stat__value {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  width: 18px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Skills ── */
+.tc-skills-section {
+  width: 100%;
+  padding: 8px var(--space-2xl) 4px;
+}
+
+.tc-skills-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.tc-skill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border: 1px solid;
+  border-radius: 8px;
+  font-size: 10px;
+  color: var(--text-secondary, #aaa);
+}
+
+.tc-skill-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tc-skill-priority {
+  font-size: 9px;
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  opacity: 0.7;
+}
+
+/* ── Core drive quote ── */
+.tc-quote-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px var(--space-2xl) 4px;
+  width: 100%;
+}
+
+.tc-quote {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-secondary, #aaa);
+  line-height: 1.5;
+}
+
+/* ── Footer ── */
+.tc-footer {
+  width: 100%;
+  padding: 12px var(--space-2xl) 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tc-meta {
+  display: flex;
+  gap: 10px;
+}
+
+.tc-meta-item {
+  font-size: 9px;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-muted, #666);
+  letter-spacing: 0.04em;
+}
+
+/* ── Animations ── */
+@keyframes tc-fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes tc-cardIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ── Scrollbar styling ── */
+.tc-card::-webkit-scrollbar {
+  width: 4px;
+}
+.tc-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tc-card::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+
+/* ═══ Light theme overrides ═══ */
+[data-theme="light"] .tc-backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+[data-theme="light"] .tc-card {
+  background: var(--bg-card, #fff);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, 0.15),
+    0 0 80px -20px var(--tc-accent, #888);
+}
+[data-theme="light"] .tc-close {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: var(--text-secondary);
+}
+[data-theme="light"] .tc-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .tc-stat__bar {
+  background: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .tc-footer {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .tc-card::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* ═══ Solar theme overrides ═══ */
+[data-theme="solar"] .tc-backdrop {
+  background: rgba(15, 10, 5, 0.7);
+}
+[data-theme="solar"] .tc-card {
+  background: var(--bg-card, #1a1408);
+  border-color: rgba(120, 80, 20, 0.18);
+}
+[data-theme="solar"] .tc-close {
+  background: rgba(120, 80, 20, 0.15);
+  border-color: rgba(120, 80, 20, 0.12);
+}
+[data-theme="solar"] .tc-stat__bar {
+  background: rgba(120, 80, 20, 0.08);
+}
+[data-theme="solar"] .tc-footer {
+  border-top-color: rgba(120, 80, 20, 0.08);
+}
