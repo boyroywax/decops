@@ -69,7 +69,6 @@ export function CommandCard({ command, onRun }: CommandCardProps) {
             <div className={`cmd-card__inner ${getTransitionClass()}`} style={{ transform: getTransform() }}>
                 {/* Front */}
                 <div className="cmd-card__front" style={{
-                    background: `linear-gradient(145deg, rgba(255,255,255,0.03) 0%, ${color}05 100%)`,
                     border: `1px solid ${color}30`,
                 }}>
                     <div>

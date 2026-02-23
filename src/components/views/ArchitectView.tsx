@@ -47,7 +47,7 @@ export function ArchitectView({
         )}
       </div>
       <div className="architect__desc">
-        Describe a network and the AI architect will generate agents, channels, groups, and example conversations.
+        Describe a single network or a multi-network ecosystem and the AI architect will generate agents, channels, groups, bridges, and example conversations.
       </div>
 
       {archPhase === "input" && (

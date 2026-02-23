@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { X, Gem, Plus, FileText, Image, Code, File, Tag, Layers, Clock, Hash, ChevronRight, Search, Upload, PenLine } from "lucide-react";
+import { X, Gem, Plus, FileText, Image, Code, File, Tag, Layers, Clock, Hash, ChevronRight, Search, Upload, PenLine, ChevronsUp, ChevronsDown } from "lucide-react";
 import type { JobArtifact } from "../../types";
 import "../../styles/components/artifacts-panel.css";
 
@@ -13,6 +13,10 @@ interface ArtifactsPanelProps {
     removeArtifact: (id: string) => void;
     updateArtifact: (id: string, updates: Partial<JobArtifact>) => void;
     onClose: () => void;
+    height: number;
+    setHeight: (h: number) => void;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
 }
 
 /* ─── Helpers ───────────────────────────────────────────────────────── */
@@ -173,8 +177,7 @@ function CreateArtifactModal({ onClose, onCreate }: {
  * MAIN COMPONENT
  * ═══════════════════════════════════════════════════════════════════════ */
 
-export function ArtifactsPanel({ artifacts, importArtifact, removeArtifact, updateArtifact, onClose }: ArtifactsPanelProps) {
-    const [height, setHeight] = useState(420);
+export function ArtifactsPanel({ artifacts, importArtifact, removeArtifact, updateArtifact, onClose, height, setHeight, isExpanded, onToggleExpand }: ArtifactsPanelProps) {
     const [isResizing, setIsResizing] = useState(false);
     const [search, setSearch] = useState("");
     const [selectedArtifact, setSelectedArtifact] = useState<JobArtifact | null>(null);
@@ -190,7 +193,9 @@ export function ArtifactsPanel({ artifacts, importArtifact, removeArtifact, upda
     const resize = (e: MouseEvent) => {
         if (isResizing) {
             const h = window.innerHeight - e.clientY;
-            if (h > 220 && h < window.innerHeight - 50) setHeight(h);
+            if (h > 220 && h < window.innerHeight - 50) {
+                setHeight(h);
+            }
         }
     };
 
@@ -294,6 +299,13 @@ export function ArtifactsPanel({ artifacts, importArtifact, removeArtifact, upda
                         title="Toggle tag sidebar"
                     >
                         <Tag size={12} />
+                    </button>
+                    <button
+                        onClick={onToggleExpand}
+                        className="artifacts-panel__expand-btn"
+                        title={isExpanded ? "Collapse panel" : "Expand panel"}
+                    >
+                        {isExpanded ? <ChevronsDown size={14} /> : <ChevronsUp size={14} />}
                     </button>
                     <button onClick={onClose} className="artifacts-panel__close-btn" title="Close artifacts">
                         <X size={14} />

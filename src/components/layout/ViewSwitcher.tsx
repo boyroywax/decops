@@ -80,6 +80,7 @@ export function ViewSwitcher({
                         ecosystems={ecosystem.ecosystems}
                         navigateTo={navigateTo}
                         updateAgentPrompt={workspace.updateAgentPrompt}
+                        updateAgent={workspace.updateAgent}
                         removeAgent={workspace.removeAgent}
                     />
                 </>

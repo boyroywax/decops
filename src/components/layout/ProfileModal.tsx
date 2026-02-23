@@ -6,6 +6,7 @@ import { useEcosystemContext } from "../../context/EcosystemContext";
 import { ANTHROPIC_MODELS } from "../../constants";
 import { getSelectedModel, setSelectedModel } from "../../services/ai";
 import { GemAvatar } from "../shared/GemAvatar";
+import { CopyableId } from "../shared/CopyableId";
 import "../../styles/components/profile-modal.css";
 
 interface ProfileModalProps {
@@ -59,14 +60,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setSelectedModel(modelId);
     setStatus(`Model switched to ${ANTHROPIC_MODELS.find(m => m.id === modelId)?.label}`);
     setTimeout(() => setStatus(""), 3000);
-  };
-
-  const copyDid = () => {
-    if (user?.did) {
-      navigator.clipboard.writeText(user.did);
-      setStatus("DID copied!");
-      setTimeout(() => setStatus(""), 3000);
-    }
   };
 
   const downloadJSON = (data: any, filename: string) => {
@@ -212,12 +205,10 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               <div>
                 <label className="label">DID</label>
                 <div className="profile-form-row">
-                  <div className="did-display">
-                    {user.did || "No DID issued"}
-                  </div>
-                  <button onClick={copyDid} className="btn-icon">
-                    <Clipboard size={12} />
-                  </button>
+                  {user.did
+                    ? <CopyableId value={user.did} label="DID" />
+                    : <div className="did-display">No DID issued</div>
+                  }
                 </div>
               </div>
             </section>

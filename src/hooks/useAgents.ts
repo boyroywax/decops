@@ -47,6 +47,10 @@ export function useAgents(addJob: (job: JobRequest) => void) {
         if (selectedAgent && ids.has(selectedAgent)) setSelectedAgent(null);
     };
 
+    const updateAgent = (id: string, patch: Partial<Agent>) => {
+        setAgents(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a));
+    };
+
     return {
         agents, setAgents,
         showCreate, setShowCreate,
@@ -54,6 +58,6 @@ export function useAgents(addJob: (job: JobRequest) => void) {
         selectedAgent, setSelectedAgent,
         editingPrompt, setEditingPrompt,
         editPromptText, setEditPromptText,
-        createAgent, updateAgentPrompt, removeAgent, removeAgents
+        createAgent, updateAgentPrompt, updateAgent, removeAgent, removeAgents
     };
 }

@@ -4,6 +4,7 @@ import {
   Globe, Trash2, Link2,
   ChevronDown, ChevronUp, ArrowRight,
 } from "lucide-react";
+import { CopyableId } from "../../shared/CopyableId";
 
 interface NetworkCardProps {
   net: Network;
@@ -126,7 +127,7 @@ export function NetworkCard({
 
         {/* DID */}
         <div style={{ fontSize: 9, color: "#3f3f46", fontFamily: "monospace", marginBottom: 12, wordBreak: "break-all" }}>
-          {net.did}
+          <CopyableId value={net.did} label="DID" />
         </div>
 
         {/* Actions */}

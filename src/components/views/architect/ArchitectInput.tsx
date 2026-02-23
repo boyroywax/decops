@@ -36,9 +36,9 @@ export function ArchitectInput({
                 ))}
             </div>
 
-            <SectionTitle text="Or describe your own network" />
+            <SectionTitle text="Or describe your own network or ecosystem" />
             <textarea
-                placeholder="Describe the mesh network you want to build. Be specific about agent roles, how they should collaborate, what kind of decisions need group governance, and what problems they're solving together..."
+                placeholder="Describe the mesh network or multi-network ecosystem you want to build. Be specific about agent roles, how they should collaborate, whether you need multiple networks with bridges, what kind of decisions need group governance, and what problems they're solving together..."
                 value={archPrompt}
                 onChange={(e) => setArchPrompt(e.target.value)}
                 rows={5}
@@ -64,7 +64,7 @@ export function ArchitectInput({
                 }}
             >
                 {archGenerating && <span style={{ animation: "pulse 1.5s infinite" }}><GradientIcon icon={Sparkles} size={16} gradient={["#fbbf24", "#fcd34d"]} /></span>}
-                {archGenerating ? "Architecting mesh network…" : <><GradientIcon icon={Sparkles} size={16} gradient={["#fbbf24", "#fcd34d"]} /> Generate Network</>}
+                {archGenerating ? "Architecting mesh network…" : <><GradientIcon icon={Sparkles} size={16} gradient={["#fbbf24", "#fcd34d"]} /> Generate Ecosystem</>}
             </button>
         </>
     );

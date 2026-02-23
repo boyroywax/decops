@@ -145,6 +145,22 @@
   align-items: center;
 }
 
+.chat-panel__expand-btn {
+  background: none;
+  border: none;
+  color: var(--text-subtle);
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  transition: color var(--transition-fast);
+}
+
+.chat-panel__expand-btn:hover {
+  color: var(--color-accent, #00e5a0);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * CONVERSATIONS LIST
  * ═══════════════════════════════════════════════════════════════════════════ */

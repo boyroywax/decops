@@ -153,6 +153,22 @@
   color: var(--text-primary);
 }
 
+.action-manager__expand-btn {
+  background: none;
+  border: none;
+  color: var(--text-subtle);
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  transition: color var(--transition-fast);
+}
+
+.action-manager__expand-btn:hover {
+  color: var(--color-accent, #00e5a0);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * CONTENT AREA  —  matches .chat-panel__messages padding
  * ═══════════════════════════════════════════════════════════════════════════ */

@@ -10,7 +10,7 @@ export function ArchitectDeploying({ deployProgress }: ArchitectDeployingProps) 
     return (
         <div style={{ textAlign: "center", padding: "60px 0" }}>
             <div style={{ fontSize: 40, marginBottom: 16, animation: "pulse 1.5s infinite" }}><GradientIcon icon={Hexagon} size={40} gradient={["#f472b6", "#ec4899"]} /></div>
-            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 600, color: "#fbbf24", marginBottom: 8 }}>Deploying Mesh Network</div>
+            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 600, color: "#fbbf24", marginBottom: 8 }}>Deploying Ecosystem</div>
             <div style={{ fontSize: 11, color: "#71717a", marginBottom: 20 }}>{deployProgress.step}</div>
             <div style={{ maxWidth: 300, margin: "0 auto", background: "rgba(255,255,255,0.04)", borderRadius: 6, height: 6, overflow: "hidden" }}>
                 <div style={{

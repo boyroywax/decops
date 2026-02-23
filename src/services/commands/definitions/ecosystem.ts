@@ -4,6 +4,7 @@ import { generateNetworkDID } from "../../../utils/identity";
 import { generateMeshConfig } from "../../ai";
 import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, GROUP_COLORS, NETWORK_COLORS } from "../../../constants";
 import { generateDID, generateKeyPair, generateGroupDID } from "../../../utils/identity";
+import { createAieosEntity } from "../../../utils/aieos";
 
 export const createNetworkCommand: CommandDefinition = {
     id: "create_network",
@@ -60,6 +61,7 @@ export const createNetworkCommand: CommandDefinition = {
                         prompt: a.prompt || "", did: generateDID(), keys: generateKeyPair(),
                         createdAt: new Date().toISOString(), status: "active",
                         networkId,
+                        aieos: createAieosEntity(a.name, validRole, a.prompt || ""),
                     });
                 }
 

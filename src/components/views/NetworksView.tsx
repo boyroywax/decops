@@ -189,6 +189,7 @@ export function NetworksView({
                 <BridgeCard
                   key={b.id}
                   bridge={b}
+                  agents={agents}
                   ecosystems={ecosystems}
                   bridgeMessages={bridgeMessages}
                   removeBridge={removeBridge}

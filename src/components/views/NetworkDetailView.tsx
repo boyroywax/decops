@@ -4,6 +4,7 @@ import {
   Globe, Users, Radio, Link2, Calendar,
 } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
+import { CopyableId } from "../shared/CopyableId";
 import { NetworkCanvas } from "../canvas/NetworkCanvas";
 import "../../styles/components/network-detail.css";
 
@@ -55,7 +56,7 @@ export function NetworkDetailView({
             </div>
             <div>
               <h2 className="network-detail__title">{network.name}</h2>
-              <div className="network-detail__did">{network.did}</div>
+              <div className="network-detail__did"><CopyableId value={network.did} label="DID" /></div>
             </div>
           </div>
           <div className="network-detail__meta">

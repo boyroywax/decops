@@ -3,6 +3,7 @@ import { ROLES, GOVERNANCE_MODELS } from "../../constants";
 import {
   Users, Calendar, Trash2, Radio,
 } from "lucide-react";
+import { CopyableId } from "../shared/CopyableId";
 import "../../styles/components/group-detail.css";
 
 interface GroupDetailViewProps {
@@ -54,7 +55,7 @@ export function GroupDetailView({
             </div>
             <div>
               <h2 className="group-detail__title">{group.name}</h2>
-              <div className="group-detail__did">{group.did}</div>
+              <div className="group-detail__did"><CopyableId value={group.did} label="DID" /></div>
             </div>
           </div>
           <div className="group-detail__meta">

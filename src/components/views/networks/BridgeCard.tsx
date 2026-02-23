@@ -1,19 +1,20 @@
-import type { Network, Bridge, BridgeMessage } from "../../../types";
+import type { Agent, Network, Bridge, BridgeMessage } from "../../../types";
 import { CHANNEL_TYPES } from "../../../constants";
 import { ArrowLeftRight, X } from "lucide-react";
 
 interface BridgeCardProps {
   bridge: Bridge;
+  agents: Agent[];
   ecosystems: Network[];
   bridgeMessages: BridgeMessage[];
   removeBridge: (id: string) => void;
 }
 
-export function BridgeCard({ bridge: b, ecosystems, bridgeMessages, removeBridge }: BridgeCardProps) {
+export function BridgeCard({ bridge: b, agents, ecosystems, bridgeMessages, removeBridge }: BridgeCardProps) {
   const fNet = ecosystems.find((n) => n.id === b.fromNetworkId);
   const tNet = ecosystems.find((n) => n.id === b.toNetworkId);
-  const fA = fNet?.agents.find((a) => a.id === b.fromAgentId);
-  const tA = tNet?.agents.find((a) => a.id === b.toAgentId);
+  const fA = agents.find((a) => a.id === b.fromAgentId) || fNet?.agents.find((a) => a.id === b.fromAgentId);
+  const tA = agents.find((a) => a.id === b.toAgentId) || tNet?.agents.find((a) => a.id === b.toAgentId);
   const bmCount = bridgeMessages.filter((m) => m.bridgeId === b.id).length;
 
   return (

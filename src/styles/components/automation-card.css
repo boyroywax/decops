@@ -45,7 +45,7 @@
 }
 
 .automation-card__stripe--default {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--border-default, rgba(255, 255, 255, 0.1));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

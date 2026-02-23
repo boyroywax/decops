@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, LayoutGrid, List, Terminal, Play, Trash2, Plus, Zap, BookOpen, Activity } from "lucide-react";
+import { X, LayoutGrid, List, Terminal, Play, Trash2, Plus, Zap, BookOpen, Activity, ChevronsUp, ChevronsDown } from "lucide-react";
 import { ActionsMonitor } from "./ActionsMonitor";
 import { UnifiedBuilder } from "./UnifiedBuilder";
 import { ActionLibrary } from "./ActionLibrary";
@@ -17,10 +17,13 @@ interface ActionManagerProps {
     savedJobs: any[];
     saveJob: (job: any) => void;
     deleteJob: (id: string) => void;
+    height: number;
+    setHeight: (h: number) => void;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
 }
 
-export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob }: ActionManagerProps) {
-    const [height, setHeight] = useState(500);
+export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob, height, setHeight, isExpanded, onToggleExpand }: ActionManagerProps) {
     const [isResizing, setIsResizing] = useState(false);
     const [activeTab, setActiveTab] = useState<"monitor" | "library" | "builder">("monitor");
 
@@ -111,6 +114,11 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
                 </div>
 
                 <div className="action-manager__header-actions">
+                    <button
+                        onClick={onToggleExpand}
+                        className="action-manager__expand-btn"
+                        title={isExpanded ? "Collapse panel" : "Expand panel"}
+                    >{isExpanded ? <ChevronsDown size={14} /> : <ChevronsUp size={14} />}</button>
                     <button
                         onClick={onClose}
                         className="action-manager__close-btn"

@@ -3,6 +3,7 @@ import { Hexagon, X, MessageSquare, Check, Plus, Globe } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { ROLES, GOVERNANCE_MODELS } from "../../constants";
 import { SectionTitle, BulkCheckbox, BulkActionBar } from "../shared/ui";
+import { CopyableId } from "../shared/CopyableId";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
 import "../../styles/components/groups.css";
 
@@ -173,7 +174,7 @@ export function GroupsView({
                   <span className="group-member-count">{memberAgents.length} members</span>
                 </div>
               </div>
-              <div className="group-did"><div className="group-did-label">GROUP DID</div><div className="group-did-value">{g.did}</div></div>
+              <div className="group-did"><div className="group-did-label">GROUP DID</div><div className="group-did-value"><CopyableId value={g.did} label="DID" truncate={42} /></div></div>
               {g.governance === "threshold" && <div className="group-threshold-info">Threshold: <span style={{ color: g.color }}>{g.threshold}</span> of {memberAgents.length}</div>}
               <div className="group-members-badges">
                 {memberAgents.map((a) => {

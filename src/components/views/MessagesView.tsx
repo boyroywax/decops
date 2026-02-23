@@ -120,8 +120,8 @@ export function MessagesView({
             {bridges.map((b) => {
               const fNet = ecosystems.find((n) => n.id === b.fromNetworkId);
               const tNet = ecosystems.find((n) => n.id === b.toNetworkId);
-              const fA = fNet?.agents.find((a) => a.id === b.fromAgentId);
-              const tA = tNet?.agents.find((a) => a.id === b.toAgentId);
+              const fA = agents.find((a) => a.id === b.fromAgentId) || fNet?.agents.find((a) => a.id === b.fromAgentId);
+              const tA = agents.find((a) => a.id === b.toAgentId) || tNet?.agents.find((a) => a.id === b.toAgentId);
               const bmCount = bridgeMessages.filter((m) => m.bridgeId === b.id).length;
               const isAc = selectedBridge === b.id;
               return (

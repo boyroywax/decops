@@ -192,7 +192,7 @@ export function PreviewContent({ preview, deployNetwork, resetArchitect }: Previ
       {/* Action buttons */}
       <div className="architect-review__actions">
         <button onClick={deployNetwork} className="architect-review__deploy-btn">
-          <GradientIcon icon={Hexagon} size={14} gradient={["#f472b6", "#ec4899"]} /> Deploy Network
+          <GradientIcon icon={Hexagon} size={14} gradient={["#f472b6", "#ec4899"]} /> Deploy Ecosystem
         </button>
         <button onClick={resetArchitect} className="architect-review__discard-btn">
           Discard

@@ -49,6 +49,7 @@
   width: 100%;
   height: 100%;
   backface-visibility: hidden;
+  background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.02) 100%);
   border-radius: var(--radius-3xl);
   padding: var(--space-xl);
   display: flex;
@@ -132,7 +133,7 @@
   width: 100%;
   height: 100%;
   backface-visibility: hidden;
-  background: #09090b;
+  background: var(--cmd-card-back-bg, #09090b);
   border-radius: var(--radius-3xl);
   padding: var(--space-xl);
   transform: rotateY(180deg);
@@ -189,7 +190,7 @@
 .cmd-card__arg-type {
   color: var(--text-ghost);
   font-size: var(--text-xs);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--cmd-card-arg-type-bg, rgba(255, 255, 255, 0.03));
   padding: 1px 4px;
   border-radius: var(--radius-sm);
 }

@@ -1,6 +1,7 @@
 
 import { CommandDefinition } from "../types";
 import { generateDID, generateKeyPair } from "../../../utils/identity";
+import { createAieosEntity } from "../../../utils/aieos";
 import { ROLES } from "../../../constants";
 
 export const createAgentCommand: CommandDefinition = {
@@ -69,6 +70,7 @@ export const createAgentCommand: CommandDefinition = {
             createdAt: new Date().toISOString(),
             status: "active" as const,
             networkId: networkId || context.ecosystem?.activeNetworkId || undefined,
+            aieos: createAieosEntity(name, role, prompt),
         };
 
         workspace.setAgents((prev: any[]) => [...prev, newAgent]);

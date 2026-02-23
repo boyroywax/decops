@@ -2,6 +2,7 @@ import type { Agent, Channel, Message, Network, ViewId, NavContext } from "../..
 import { CHANNEL_TYPES, ROLES } from "../../constants";
 import { Radio, Calendar, ArrowLeftRight, MessageSquare, Globe, Zap, Users, Clock, Trash2 } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
+import { CopyableId } from "../shared/CopyableId";
 import { MarkdownContent } from "../shared/MarkdownContent";
 import "../../styles/components/channel-detail.css";
 
@@ -66,7 +67,7 @@ export function ChannelDetailView({
             <h2 className="channel-detail__title">
               {fromAgent?.name || "Unknown"} <ArrowLeftRight size={16} className="channel-detail__arrow" /> {toAgent?.name || "Unknown"}
             </h2>
-            <div className="channel-detail__did">{channel.id}</div>
+            <div className="channel-detail__did"><CopyableId value={channel.id} label="ID" /></div>
           </div>
         </div>
         <div className="channel-detail__meta">

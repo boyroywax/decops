@@ -4,6 +4,7 @@ import {
   RefreshCw, Settings, Handshake,
   Vote, Lock, User, Sparkles,
   Dna, Palette, Siren, Rocket,
+  GitBranch, Network,
 } from "lucide-react";
 import { GradientIcon } from "../components/shared/GradientIcon";
 import type { Role, ChannelType, GovernanceModel, PromptTemplate, ScenarioPreset } from "../types";
@@ -80,6 +81,20 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     icon: <GradientIcon icon={Package} size={20} gradient={["#a78bfa", "#c084fc"]} />,
     color: "#a78bfa",
     desc: "Decentralized supply chain with procurement, logistics, quality assurance, and compliance agents under threshold governance.",
+  },
+  {
+    id: "cross-org-alliance",
+    label: "Cross-Org Alliance",
+    icon: <GradientIcon icon={GitBranch} size={20} gradient={["#fbbf24", "#f59e0b"]} />,
+    color: "#fbbf24",
+    desc: "Multi-network ecosystem: two organizations with separate agent teams bridged together for shared intelligence and coordinated ops.",
+  },
+  {
+    id: "federated-research",
+    label: "Federated Research",
+    icon: <GradientIcon icon={Network} size={20} gradient={["#38bdf8", "#818cf8"]} />,
+    color: "#818cf8",
+    desc: "Three bridged networks — data collection, analysis hub, and review board — each with specialized agents, connected by cross-network bridges.",
   },
 ];
 

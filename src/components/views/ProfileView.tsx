@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { AlertTriangle, Clipboard, Key, Bot, Download, Upload, Check } from "lucide-react";
+import { AlertTriangle, Key, Bot, Download, Upload, Check } from "lucide-react";
+import { CopyableId } from "../shared/CopyableId";
 import { GradientIcon } from "../shared/GradientIcon";
 import { useAuth } from "../../context/AuthContext";
 import { ANTHROPIC_MODELS } from "../../constants";
@@ -76,13 +77,7 @@ export function ProfileView({
         setTimeout(() => setStatus(""), 3000);
     };
 
-    const copyDid = () => {
-        if (user?.did) {
-            navigator.clipboard.writeText(user.did);
-            setStatus("DID copied to clipboard!");
-            setTimeout(() => setStatus(""), 3000);
-        }
-    };
+
 
     const handleImportClick = () => fileInputRef.current?.click();
 
@@ -161,12 +156,10 @@ export function ProfileView({
                         <div>
                             <label className="profile__did-label">Decentralized ID (DID)</label>
                             <div className="profile__did-row">
-                                <div className="profile__did-value">
-                                    {user.did || "No DID issued yet"}
-                                </div>
-                                <button onClick={copyDid} className="btn btn-secondary" title="Copy DID">
-                                    <Clipboard size={14} />
-                                </button>
+                                {user.did
+                                    ? <CopyableId value={user.did} label="DID" />
+                                    : <div className="profile__did-value">No DID issued yet</div>
+                                }
                             </div>
                         </div>
                     </div>
@@ -283,7 +276,7 @@ export function ProfileView({
 
                                     {/* Model ID */}
                                     <div className="profile__model-id">
-                                        {model.id.length > 24 ? model.id.slice(0, 22) + "…" : model.id}
+                                        <CopyableId value={model.id} truncate={28} label="ID" />
                                     </div>
                                 </button>
                             );

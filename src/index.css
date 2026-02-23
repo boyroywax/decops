@@ -30,6 +30,7 @@
 @import './styles/components/network-view.css';
 @import './styles/components/architect.css';
 @import './styles/components/unified-builder.css';
+@import './styles/components/copyable-id.css';
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * FONT IMPORTS

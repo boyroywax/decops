@@ -2,6 +2,7 @@
 import type { CommandDefinition, CommandContext } from "../types";
 import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, GROUP_COLORS, NETWORK_COLORS } from "../../../constants";
 import { generateDID, generateKeyPair, generateGroupDID } from "../../../utils/identity";
+import { createAieosEntity } from "../../../utils/aieos";
 import { callAgentAI, generateMeshConfig } from "../../ai";
 
 export const promptArchitectCommand: CommandDefinition = {
@@ -122,6 +123,7 @@ export const deployNetworkCommand: CommandDefinition = {
                 createdAt: new Date().toISOString(),
                 status: "active",
                 networkId,
+                aieos: createAieosEntity(a.name, validRole, a.prompt || ""),
             };
             newAgents.push(agent);
             agentIdMap[i] = agent.id;

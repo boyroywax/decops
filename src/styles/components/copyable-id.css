@@ -1,0 +1,89 @@
+/* ─── CopyableId shared component ─── */
+
+.copyable-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.copyable-id__label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, #71717a);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.copyable-id__value {
+  font-size: 10px;
+  color: var(--color-text-secondary, #a1a1aa);
+  word-break: break-all;
+  min-width: 0;
+  flex: 1;
+  line-height: 1.4;
+}
+
+.copyable-id__value--mono {
+  font-family: 'DM Mono', 'Fira Code', monospace;
+}
+
+/* Tooltip on hover when truncated (via native title) – enhance with CSS if needed */
+.copyable-id__value[title] {
+  cursor: help;
+  text-decoration: underline dotted rgba(161, 161, 170, 0.3);
+  text-underline-offset: 2px;
+}
+
+.copyable-id__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 3px 5px;
+  cursor: pointer;
+  color: #71717a;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.copyable-id__btn:hover {
+  background: rgba(0, 229, 160, 0.1);
+  border-color: rgba(0, 229, 160, 0.3);
+  color: #00e5a0;
+}
+
+.copyable-id__btn--copied {
+  background: rgba(0, 229, 160, 0.15);
+  border-color: rgba(0, 229, 160, 0.4);
+  color: #00e5a0;
+}
+
+/* Light theme overrides */
+:root[data-theme="light"] .copyable-id__value {
+  color: #52525b;
+}
+
+:root[data-theme="light"] .copyable-id__btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #71717a;
+}
+
+:root[data-theme="light"] .copyable-id__btn:hover {
+  background: rgba(0, 180, 130, 0.1);
+  border-color: rgba(0, 180, 130, 0.3);
+  color: #059669;
+}
+
+:root[data-theme="light"] .copyable-id__btn--copied {
+  background: rgba(0, 180, 130, 0.15);
+  border-color: rgba(0, 180, 130, 0.4);
+  color: #059669;
+}

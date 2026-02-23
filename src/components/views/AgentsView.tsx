@@ -2,9 +2,11 @@ import type { Agent, Channel, Group, Message, NewAgentForm, Network } from "../.
 import { ROLES, PROMPT_TEMPLATES } from "../../constants";
 import { inputStyle, SectionTitle, PillButton, BulkCheckbox, BulkActionBar } from "../shared/ui";
 import { useState } from "react";
-import { Bot, Hexagon, X, Globe } from "lucide-react";
+import { Bot, Hexagon, X, Globe, Download, Sparkles } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
+import { CopyableId } from "../shared/CopyableId";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
+import { validateAieos, downloadAgentAieos } from "../../utils/aieos";
 import "../../styles/components/agents.css";
 
 interface AgentsViewProps {
@@ -211,8 +213,34 @@ export function AgentsView({
               )}
               <div className="agent-did-section">
                 <div className="agent-did-label">DID</div>
-                <div className="agent-did-value">{a.did}</div>
+                <div className="agent-did-value"><CopyableId value={a.did} label="DID" truncate={42} /></div>
               </div>
+              {/* AIEOS Profile */}
+              {(() => {
+                const v = validateAieos(a.aieos);
+                const pct = Math.round(v.coverage * 100);
+                const color = pct > 60 ? "#00e5a0" : pct > 30 ? "#fbbf24" : "#ef4444";
+                return (
+                  <div className="agent-aieos-row">
+                    <div className="agent-aieos-badge">
+                      <Sparkles size={10} color="#fbbf24" />
+                      <span className="agent-aieos-label">AIEOS</span>
+                      <span className="agent-aieos-coverage" style={{ color, borderColor: `${color}40` }}>
+                        {pct}%
+                      </span>
+                    </div>
+                    {isSelected && (
+                      <button
+                        className="agent-aieos-export"
+                        onClick={(e) => { e.stopPropagation(); downloadAgentAieos(a); }}
+                        title="Export .aieos.json"
+                      >
+                        <Download size={10} /> Export
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
               <div className="agent-stats">
                 <div><span className="agent-stat-label">CH </span><span className="agent-stat-value">{agentChannels.length}</span></div>
                 <div><span className="agent-stat-label">GROUPS </span><span className="agent-stat-value">{agentGroups.length}</span></div>

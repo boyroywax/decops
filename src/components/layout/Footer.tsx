@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "../../types";
 import { Bot, ArrowLeftRight, Hexagon, MessageSquare, Globe, Network as NetworkIcon, MessageCircle, ListTodo, Zap, WifiOff, Terminal, Gem, Sun, Moon, Sunrise } from "lucide-react";
 import { ChatPanel } from "./ChatPanel";
@@ -39,10 +39,33 @@ interface FooterProps {
 
 type PanelMode = "none" | "chat" | "jobs" | "artifacts";
 
+const DEFAULT_PANEL_HEIGHT = 420;
+
 export function Footer({ agents, channels, groups, messages, ecosystems, bridges, ecosystem, addLog, setView, jobs, removeJob, clearJobs, addJob, allArtifacts, importArtifact, removeArtifact, updateArtifact, savedJobs, saveJob, deleteJob, ...jobsProps }: FooterProps) {
     const [panel, setPanel] = useState<PanelMode>("none");
+    const [panelHeight, setPanelHeight] = useState(DEFAULT_PANEL_HEIGHT);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const savedHeightRef = useRef(DEFAULT_PANEL_HEIGHT);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const { theme, toggleTheme } = useTheme();
+
+    // Resize handler: sets height and clears expanded state
+    const handleSetHeight = (h: number) => {
+        setPanelHeight(h);
+        setIsExpanded(false);
+    };
+
+    // Toggle between full height and previous height (default or user-set)
+    const handleToggleExpand = () => {
+        if (isExpanded) {
+            setPanelHeight(savedHeightRef.current);
+            setIsExpanded(false);
+        } else {
+            savedHeightRef.current = panelHeight;
+            setPanelHeight(window.innerHeight - 93);
+            setIsExpanded(true);
+        }
+    };
 
     useEffect(() => {
         const handleOnline = () => setIsOnline(true);
@@ -69,6 +92,10 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                     ecosystem={ecosystem}
                     onClose={() => setPanel("none")}
                     addLog={addLog}
+                    height={panelHeight}
+                    setHeight={handleSetHeight}
+                    isExpanded={isExpanded}
+                    onToggleExpand={handleToggleExpand}
                 />
             )}
 
@@ -79,6 +106,10 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                     savedJobs={savedJobs}
                     saveJob={saveJob}
                     deleteJob={deleteJob}
+                    height={panelHeight}
+                    setHeight={handleSetHeight}
+                    isExpanded={isExpanded}
+                    onToggleExpand={handleToggleExpand}
                 />
             )}
 
@@ -89,6 +120,10 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                     removeArtifact={removeArtifact}
                     updateArtifact={updateArtifact}
                     onClose={() => setPanel("none")}
+                    height={panelHeight}
+                    setHeight={handleSetHeight}
+                    isExpanded={isExpanded}
+                    onToggleExpand={handleToggleExpand}
                 />
             )}
 

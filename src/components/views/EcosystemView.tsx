@@ -9,6 +9,7 @@ import { Globe, ArrowLeftRight, X, Sparkles } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { MarkdownContent } from "../shared/MarkdownContent";
 import { EcosystemCanvas } from "../canvas/EcosystemCanvas";
+import { CopyableId } from "../shared/CopyableId";
 import "../../styles/components/ecosystem.css";
 
 interface EcosystemViewProps {
@@ -92,7 +93,7 @@ export function EcosystemView({
                   </div>
                   <div className="eco-network-card__dot" style={{ background: net.color, boxShadow: `0 0 8px ${net.color}` }} />
                 </div>
-                <div className="eco-network-card__did">{net.did}</div>
+                <div className="eco-network-card__did"><CopyableId value={net.did} label="DID" truncate={40} /></div>
                 <div className="eco-network-card__agents">
                   {net.agents.slice(0, 6).map((a) => {
                     const r = ROLES.find((x) => x.id === a.role);
@@ -165,8 +166,8 @@ export function EcosystemView({
             {bridges.map((b) => {
               const fNet = ecosystems.find((n) => n.id === b.fromNetworkId);
               const tNet = ecosystems.find((n) => n.id === b.toNetworkId);
-              const fA = fNet?.agents.find((a) => a.id === b.fromAgentId);
-              const tA = tNet?.agents.find((a) => a.id === b.toAgentId);
+              const fA = agents.find((a) => a.id === b.fromAgentId) || fNet?.agents.find((a) => a.id === b.fromAgentId);
+              const tA = agents.find((a) => a.id === b.toAgentId) || tNet?.agents.find((a) => a.id === b.toAgentId);
               const bmCount = bridgeMessages.filter((m) => m.bridgeId === b.id).length;
               const isSel = selectedBridge === b.id;
               return (

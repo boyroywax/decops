@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, AlignJustify, MessageCircle } from "lucide-react";
+import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { chatWithWorkspace, getSelectedModel } from "../../services/ai";
 import type { ChatMessage, WorkspaceContext } from "../../services/ai";
@@ -22,9 +22,13 @@ interface ChatPanelProps {
     ecosystem?: any; // Automated ecosystem object
     onClose: () => void;
     addLog?: (msg: string) => void;
+    height: number;
+    setHeight: (h: number) => void;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
 }
 
-export function ChatPanel({ context, ecosystem, onClose, addLog }: ChatPanelProps) {
+export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeight, isExpanded, onToggleExpand }: ChatPanelProps) {
     const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
     const [activeId, setActiveId] = useState<string | null>(loadActiveId);
     const [input, setInput] = useState("");
@@ -196,7 +200,6 @@ export function ChatPanel({ context, ecosystem, onClose, addLog }: ChatPanelProp
         }
     }, [input, loading, activeId, conversations, context, addLog, updateConversation, commandContext]);
 
-    const [height, setHeight] = useState(400);
     const [isResizing, setIsResizing] = useState(false);
 
     const startResizing = useCallback((e: React.MouseEvent) => {
@@ -215,7 +218,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog }: ChatPanelProp
                 setHeight(newHeight);
             }
         }
-    }, [isResizing]);
+    }, [isResizing, setHeight]);
 
     useEffect(() => {
         if (isResizing) {
@@ -264,6 +267,11 @@ export function ChatPanel({ context, ecosystem, onClose, addLog }: ChatPanelProp
                         className="chat-panel__new-btn"
                         title="New conversation"
                     >+ New</button>
+                    <button
+                        onClick={onToggleExpand}
+                        className="chat-panel__expand-btn"
+                        title={isExpanded ? "Collapse panel" : "Expand panel"}
+                    >{isExpanded ? <ChevronsDown size={14} /> : <ChevronsUp size={14} />}</button>
                     <button
                         onClick={onClose}
                         className="chat-panel__close-btn"

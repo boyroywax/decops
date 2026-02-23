@@ -180,7 +180,7 @@ export function ArchitectPopup({
                     handleSubmit();
                   }
                 }}
-                placeholder="Describe a network to build…"
+                placeholder="Describe a network or multi-network ecosystem to build…"
                 disabled={archGenerating}
                 rows={1}
                 className="architect-popup__textarea"
@@ -225,7 +225,7 @@ export function ArchitectPopup({
               <GradientIcon icon={Hexagon} size={36} gradient={["#f472b6", "#ec4899"]} />
             </div>
             <div className="architect-popup__deploying-title">
-              Deploying Network
+              Deploying Ecosystem
             </div>
             <div className="architect-popup__deploying-step">{deployProgress.step}</div>
             <div className="architect-popup__progress-track">

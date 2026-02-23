@@ -290,6 +290,56 @@
   scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
+[data-theme="light"] .chat-panel__convos-list::-webkit-scrollbar-thumb,
+[data-theme="light"] .chat-panel__messages::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .chat-panel__convos-list::-webkit-scrollbar-thumb:hover,
+[data-theme="light"] .chat-panel__messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .chat-panel__convo-item--active {
+  background: rgba(0, 180, 120, 0.06);
+  border-color: rgba(0, 180, 120, 0.15);
+}
+
+[data-theme="light"] .chat-panel__convo-item:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .chat-panel__input {
+  background: #fafafa;
+  border-color: rgba(0, 0, 0, 0.10);
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .chat-panel__input:focus {
+  border-color: rgba(0, 180, 120, 0.35);
+}
+
+[data-theme="light"] .chat-panel__send-btn--ready {
+  background: rgba(0, 180, 120, 0.10);
+  border-color: rgba(0, 180, 120, 0.25);
+  color: #00875a;
+}
+
+[data-theme="light"] .chat-panel__start-btn {
+  background: rgba(0, 180, 120, 0.06);
+  border-color: rgba(0, 180, 120, 0.18);
+  color: #00875a;
+}
+
+[data-theme="light"] .chat-panel__empty-state,
+[data-theme="light"] .chat-panel__chat-empty {
+  color: #9999aa;
+}
+
+[data-theme="light"] .chat-panel__chat-empty-desc {
+  color: #b0b0bb;
+}
+
 /* Message bubbles in chat panel */
 [data-theme="light"] .mb-bubble--user {
   background: rgba(0, 180, 120, 0.08);
@@ -355,11 +405,163 @@
   scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
+[data-theme="light"] .action-manager__tab-content::-webkit-scrollbar-thumb,
+[data-theme="light"] .action-manager__library::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .action-manager__tab-content::-webkit-scrollbar-thumb:hover,
+[data-theme="light"] .action-manager__library::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .action-manager__section-title {
+  color: #555570;
+}
+
+[data-theme="light"] .action-manager__tab {
+  color: #7a7a90;
+}
+
+[data-theme="light"] .action-manager__tab:hover {
+  color: #444460;
+}
+
+[data-theme="light"] .action-manager__tab--active {
+  background: rgba(0, 180, 120, 0.06);
+  color: #00875a;
+}
+
+[data-theme="light"] .action-manager__separator {
+  color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .action-manager__close-btn:hover {
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .action-manager__expand-btn:hover {
+  color: #00875a;
+}
+
 /* Action library search in light mode */
 [data-theme="light"] .action-library__search {
   background: var(--bg-input);
   border-color: rgba(0, 0, 0, 0.10);
   color: var(--text-primary);
+}
+
+/* ─── Actions Monitor — Light ─── */
+[data-theme="light"] .actions-monitor__pause-btn {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: #52525b;
+}
+
+[data-theme="light"] .actions-monitor__pause-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .actions-monitor__empty {
+  border-color: rgba(0, 0, 0, 0.10);
+  color: #a1a1aa;
+}
+
+[data-theme="light"] .actions-monitor__job-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .actions-monitor__job-status {
+  background: rgba(0, 0, 0, 0.04);
+  color: #52525b;
+}
+
+[data-theme="light"] .actions-monitor__auto-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .actions-monitor__history-item {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .actions-monitor__history-item:hover {
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .actions-monitor__history-step {
+  background: #f9fafb;
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .actions-monitor__step-result {
+  background: #f4f4f5;
+}
+
+[data-theme="light"] .actions-monitor__request-param {
+  background: #f4f4f5;
+  border-color: rgba(0, 0, 0, 0.06);
+  color: #3f3f46;
+}
+
+[data-theme="light"] .actions-monitor__request-param-key {
+  color: #71717a;
+}
+
+[data-theme="light"] .actions-monitor__history-status--completed {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.18);
+}
+
+[data-theme="light"] .actions-monitor__history-status--failed {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.18);
+}
+
+/* ─── Command Cards — Light ─── */
+[data-theme="light"] {
+  --cmd-card-back-bg: #ffffff;
+  --cmd-card-arg-type-bg: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .cmd-card__front {
+  background: linear-gradient(145deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.95) 100%) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .cmd-card__description {
+  color: #52525b;
+}
+
+[data-theme="light"] .cmd-card__back {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .cmd-card__config-header {
+  color: #52525b;
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .cmd-card__arg-name {
+  color: #18181b;
+}
+
+[data-theme="light"] .cmd-card__arg-type {
+  color: #71717a;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .cmd-card__output-label {
+  color: #71717a;
+}
+
+[data-theme="light"] .cmd-card__output-text {
+  color: #3f3f46;
 }
 
 /* ─── Artifacts Panel ─── */

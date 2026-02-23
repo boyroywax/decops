@@ -291,6 +291,56 @@
   scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
 }
 
+[data-theme="solar"] .chat-panel__convos-list::-webkit-scrollbar-thumb,
+[data-theme="solar"] .chat-panel__messages::-webkit-scrollbar-thumb {
+  background: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .chat-panel__convos-list::-webkit-scrollbar-thumb:hover,
+[data-theme="solar"] .chat-panel__messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 80, 20, 0.28);
+}
+
+[data-theme="solar"] .chat-panel__convo-item--active {
+  background: rgba(184, 134, 11, 0.08);
+  border-color: rgba(184, 134, 11, 0.18);
+}
+
+[data-theme="solar"] .chat-panel__convo-item:hover {
+  background: rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .chat-panel__input {
+  background: #fdf6e3;
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .chat-panel__input:focus {
+  border-color: rgba(184, 134, 11, 0.35);
+}
+
+[data-theme="solar"] .chat-panel__send-btn--ready {
+  background: rgba(184, 134, 11, 0.10);
+  border-color: rgba(184, 134, 11, 0.25);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .chat-panel__start-btn {
+  background: rgba(184, 134, 11, 0.08);
+  border-color: rgba(184, 134, 11, 0.20);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .chat-panel__empty-state,
+[data-theme="solar"] .chat-panel__chat-empty {
+  color: #a89882;
+}
+
+[data-theme="solar"] .chat-panel__chat-empty-desc {
+  color: #b8a88c;
+}
+
 /* Message bubbles in chat panel */
 [data-theme="solar"] .mb-bubble--user {
   background: rgba(184, 134, 11, 0.10);
@@ -390,10 +440,162 @@
   scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
 }
 
+[data-theme="solar"] .action-manager__tab-content::-webkit-scrollbar-thumb,
+[data-theme="solar"] .action-manager__library::-webkit-scrollbar-thumb {
+  background: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .action-manager__tab-content::-webkit-scrollbar-thumb:hover,
+[data-theme="solar"] .action-manager__library::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 80, 20, 0.28);
+}
+
+[data-theme="solar"] .action-manager__section-title {
+  color: #5c5040;
+}
+
+[data-theme="solar"] .action-manager__tab {
+  color: #8a7c68;
+}
+
+[data-theme="solar"] .action-manager__tab:hover {
+  color: #5c5040;
+}
+
+[data-theme="solar"] .action-manager__tab--active {
+  background: rgba(184, 134, 11, 0.08);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .action-manager__separator {
+  color: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .action-manager__close-btn:hover {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .action-manager__expand-btn:hover {
+  color: #8b6914;
+}
+
 [data-theme="solar"] .action-library__search {
   background: var(--bg-input);
   border-color: rgba(120, 80, 20, 0.12);
   color: var(--text-primary);
+}
+
+/* ─── Actions Monitor — Solar ─── */
+[data-theme="solar"] .actions-monitor__pause-btn {
+  background: rgba(120, 80, 20, 0.05);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #5c5040;
+}
+
+[data-theme="solar"] .actions-monitor__pause-btn:hover {
+  background: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .actions-monitor__empty {
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #a89f8c;
+}
+
+[data-theme="solar"] .actions-monitor__job-card {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.10);
+  box-shadow: 0 1px 3px rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .actions-monitor__job-status {
+  background: rgba(120, 80, 20, 0.06);
+  color: #5c5040;
+}
+
+[data-theme="solar"] .actions-monitor__auto-card {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.10);
+  box-shadow: 0 1px 3px rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .actions-monitor__history-item {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.10);
+  box-shadow: 0 1px 3px rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .actions-monitor__history-item:hover {
+  border-color: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .actions-monitor__history-step {
+  background: rgba(253, 246, 227, 0.6);
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .actions-monitor__step-result {
+  background: rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .actions-monitor__request-param {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.08);
+  color: #5c5040;
+}
+
+[data-theme="solar"] .actions-monitor__request-param-key {
+  color: #7c6f5b;
+}
+
+[data-theme="solar"] .actions-monitor__history-status--completed {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.18);
+}
+
+[data-theme="solar"] .actions-monitor__history-status--failed {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.18);
+}
+
+/* ─── Command Cards — Solar ─── */
+[data-theme="solar"] {
+  --cmd-card-back-bg: #fdf6e3;
+  --cmd-card-arg-type-bg: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .cmd-card__front {
+  background: linear-gradient(145deg, rgba(253,246,227,0.9) 0%, rgba(253,246,227,0.98) 100%) !important;
+  box-shadow: 0 2px 8px rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .cmd-card__description {
+  color: #5c5040;
+}
+
+[data-theme="solar"] .cmd-card__back {
+  box-shadow: 0 4px 12px rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .cmd-card__config-header {
+  color: #5c5040;
+  border-bottom-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .cmd-card__arg-name {
+  color: #3d3526;
+}
+
+[data-theme="solar"] .cmd-card__arg-type {
+  color: #7c6f5b;
+  background: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .cmd-card__output-label {
+  color: #7c6f5b;
+}
+
+[data-theme="solar"] .cmd-card__output-text {
+  color: #5c5040;
 }
 
 /* ─── Artifacts Panel — Solar ─── */

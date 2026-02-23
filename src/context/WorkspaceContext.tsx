@@ -21,6 +21,7 @@ export interface WorkspaceContextType {
     setEditPromptText: React.Dispatch<React.SetStateAction<string>>;
     createAgent: () => void;
     updateAgentPrompt: (id: string) => void;
+    updateAgent: (id: string, patch: Partial<Agent>) => void;
     removeAgent: (id: string) => void;
     removeAgents: (ids: Set<string>) => void;
 
