@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { X, AlertTriangle, Clipboard, Key, Bot, Download, Upload, Check } from "lucide-react";
+import { X, AlertTriangle, Clipboard, Key, Bot, Download, Upload, Check, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { useEcosystemContext } from "../../context/EcosystemContext";
 import { ANTHROPIC_MODELS } from "../../constants";
 import { getSelectedModel, setSelectedModel } from "../../services/ai";
+import { getGeminiApiKey, setGeminiApiKey as saveGeminiKey } from "../../services/imageGen";
 import { GemAvatar } from "../shared/GemAvatar";
 import { CopyableId } from "../shared/CopyableId";
 import "../../styles/components/profile-modal.css";
@@ -24,6 +25,9 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [status, setStatus] = useState("");
   const [selectedModelId, setSelectedModelId] = useState(getSelectedModel());
   const [hasKey, setHasKey] = useState(false);
+  const [geminiKey, setGeminiKey] = useState("");
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [hasGeminiKey, setHasGeminiKey] = useState(false);
   const [importStatus, setImportStatus] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
@@ -31,6 +35,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   useEffect(() => {
     const storedKey = localStorage.getItem("anthropic_api_key");
     if (storedKey) { setApiKey(storedKey); setHasKey(true); }
+    const storedGemini = getGeminiApiKey();
+    if (storedGemini) { setGeminiKey(storedGemini); setHasGeminiKey(true); }
   }, []);
 
   useEffect(() => {
@@ -51,6 +57,18 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       localStorage.removeItem("anthropic_api_key");
       setHasKey(false);
       setStatus("API Key removed.");
+    }
+    setTimeout(() => setStatus(""), 3000);
+  };
+
+  const handleSaveGeminiKey = () => {
+    saveGeminiKey(geminiKey);
+    if (geminiKey.trim()) {
+      setHasGeminiKey(true);
+      setStatus("Gemini key saved! Portraits will generate on next load.");
+    } else {
+      setHasGeminiKey(false);
+      setStatus("Gemini key removed.");
     }
     setTimeout(() => setStatus(""), 3000);
   };
@@ -246,6 +264,35 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                   <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">console.anthropic.com</a>
                 </p>
               )}
+              {/* Gemini API Key for Image Generation */}
+              <div style={{ marginTop: "var(--space-lg)", paddingTop: "var(--space-md)", borderTop: "1px solid var(--border-subtle)" }}>
+                <label className="label" style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <ImageIcon size={12} style={{ opacity: 0.6 }} /> Google AI (Gemini) Key
+                  <span style={{ fontSize: "10px", opacity: 0.45, marginLeft: 4 }}>portraits</span>
+                </label>
+                <div className="profile-form-row">
+                  <div className="profile-form-input-wrapper">
+                    <input
+                      type={showGeminiKey ? "text" : "password"}
+                      value={geminiKey}
+                      onChange={(e) => setGeminiKey(e.target.value)}
+                      placeholder="AIza..."
+                      className={`input ${hasGeminiKey ? "input-success" : ""}`}
+                    />
+                    <button onClick={() => setShowGeminiKey(!showGeminiKey)} className="profile-form-toggle">
+                      {showGeminiKey ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                  <button onClick={handleSaveGeminiKey} className="btn btn-primary">Save</button>
+                </div>
+                {hasGeminiKey && <div className="profile-key-status">● Gemini key configured</div>}
+                {!hasGeminiKey && (
+                  <p className="profile-hint">
+                    For AI portraits.{" "}
+                    <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">aistudio.google.com</a>
+                  </p>
+                )}
+              </div>
             </section>
 
             {/* Model Selection */}

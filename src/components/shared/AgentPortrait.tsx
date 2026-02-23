@@ -1,31 +1,26 @@
 /**
- * AgentPortrait — AI-generated portrait with vector art stylization
+ * AgentPortrait — AI-generated portrait via Gemini Imagen 3
  *
- * Uses Pollinations.ai (free, no API key) to create a portrait from the
- * agent's AIEOS physicality image_prompts, then applies CSS/SVG filters
- * to achieve a clean, posterized vector art aesthetic.
+ * Generates a vector-art portrait from each agent's AIEOS physicality
+ * image_prompts using Google's Imagen 3 model. Caches results in
+ * IndexedDB so generation only happens once per agent/prompt combo.
  *
- * Features:
- * - Deterministic: same agent always gets the same portrait (via seed)
- * - Uses AIEOS image_prompts.portrait for the AI prompt
- * - SVG feComponentTransfer filter for posterized vector-art look
- * - Graceful loading skeleton + initial-letter fallback
- * - Lazy loading via IntersectionObserver
+ * Flow: Check IndexedDB cache → if miss, call Imagen 3 API → cache result.
+ * Falls back to role-colored initials if no API key or on error.
  */
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { Agent } from "../../types";
 import { ROLES } from "../../constants";
+import { generatePortrait, hasGeminiApiKey } from "../../services/imageGen";
+import {
+  getCachedPortrait,
+  setCachedPortrait,
+  promptHash,
+  type CachedPortrait,
+} from "../../services/portraitCache";
 
 // ── Helpers ──
-
-function hashCode(str: string): number {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(h);
-}
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -33,45 +28,37 @@ function getInitials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-// ── Portrait URL generation ──
-
-const POLLINATIONS_BASE = "https://image.pollinations.ai/prompt";
-
-function buildPortraitUrl(agent: Agent, size: number): string {
+/** Build the generation prompt from AIEOS data */
+function buildPrompt(agent: Agent): string {
   const phys = agent.aieos?.physicality;
-  const basePrompt = phys?.image_prompts?.portrait || "";
+  const base = phys?.image_prompts?.portrait || "";
 
-  // Fallback from physicality fields if no image_prompt
-  const fallbackPrompt = phys
-    ? [
-        phys.face?.shape && `${phys.face.shape} face`,
-        phys.face?.eyes?.color && `${phys.face.eyes.color} eyes`,
-        phys.face?.hair?.color &&
-          `${phys.face.hair.color} ${phys.face.hair.style || "hair"}`,
-        phys.style?.aesthetic_archetype,
-      ]
-        .filter(Boolean)
-        .join(", ") || `AI agent portrait, ${agent.role} role`
-    : `AI agent portrait, ${agent.role} role`;
+  if (base) return base;
 
-  const prompt = basePrompt || fallbackPrompt;
+  // Synthesize from physicality fields
+  if (phys) {
+    const parts = [
+      phys.face?.shape && `${phys.face.shape} face`,
+      phys.face?.eyes?.color && `${phys.face.eyes.color} eyes`,
+      phys.face?.hair?.color &&
+        `${phys.face.hair.color} ${phys.face.hair.style || "hair"}`,
+      phys.style?.aesthetic_archetype,
+    ].filter(Boolean);
+    if (parts.length > 0) return parts.join(", ");
+  }
 
-  const style =
-    "flat vector art portrait, simple cel-shaded illustration, limited color palette, " +
-    "clean bold outlines, solid color fills, centered face headshot, plain background,";
-
-  const fullPrompt = `${style} ${prompt}`;
-  const encoded = encodeURIComponent(fullPrompt);
-  const seed = hashCode(agent.id);
-  const px = Math.max(size * 3, 256);
-
-  return `${POLLINATIONS_BASE}/${encoded}?width=${px}&height=${px}&seed=${seed}&nologo=true&model=flux`;
+  return `AI agent portrait, ${agent.role} role`;
 }
 
-// ── In-memory load cache (survives re-render, resets on full page reload) ──
+// ── In-memory data URL cache (prevents re-creating object URLs) ──
+const dataUrlCache = new Map<string, string>();
 
-const loadedImages = new Set<string>();
-const failedImages = new Set<string>();
+function toDataUrl(portrait: CachedPortrait): string {
+  return `data:${portrait.mimeType};base64,${portrait.data}`;
+}
+
+// ── Dedup: track in-flight generation per agent to avoid double calls ──
+const inflightGenerations = new Map<string, Promise<CachedPortrait | null>>();
 
 // ── Component ──
 
@@ -79,7 +66,7 @@ interface AgentPortraitProps {
   agent: Agent;
   /** Pixel size of the square portrait (default 64) */
   size?: number;
-  /** @deprecated — colour is now auto from role */
+  /** @deprecated — colour is now auto-derived from role */
   strokeColor?: string;
   className?: string;
   onClick?: (e: React.MouseEvent) => void;
@@ -94,18 +81,17 @@ export function AgentPortrait({
   const role = ROLES.find((r) => r.id === agent.role);
   const color = role?.color || "#a1a1aa";
 
-  const url = useMemo(
-    () => buildPortraitUrl(agent, size),
-    [agent.id, agent.role, size],
+  const prompt = useMemo(() => buildPrompt(agent), [agent.id, agent.role]);
+  const pHash = useMemo(() => promptHash(prompt), [prompt]);
+
+  const [imageUrl, setImageUrl] = useState<string | null>(
+    dataUrlCache.get(agent.id) || null,
+  );
+  const [status, setStatus] = useState<"idle" | "loading" | "loaded" | "error">(
+    dataUrlCache.has(agent.id) ? "loaded" : "idle",
   );
 
-  const alreadyLoaded = loadedImages.has(url);
-  const alreadyFailed = failedImages.has(url);
-
-  const [status, setStatus] = useState<"loading" | "loaded" | "error">(
-    alreadyLoaded ? "loaded" : alreadyFailed ? "error" : "loading",
-  );
-  const [visible, setVisible] = useState(alreadyLoaded); // skip observer when cached
+  const [visible, setVisible] = useState(dataUrlCache.has(agent.id));
   const containerRef = useRef<HTMLDivElement>(null);
 
   // ── Lazy-load via IntersectionObserver ──
@@ -126,42 +112,76 @@ export function AgentPortrait({
     return () => observer.disconnect();
   }, [visible]);
 
-  // ── Image preload ──
-  useEffect(() => {
-    if (!visible || alreadyLoaded || alreadyFailed) return;
-    let cancelled = false;
-
-    const img = new Image();
-    img.onload = () => {
-      if (cancelled) return;
-      loadedImages.add(url);
-      setStatus("loaded");
-    };
-    img.onerror = () => {
-      if (cancelled) return;
-      failedImages.add(url);
+  // ── Load / generate portrait ──
+  const loadPortrait = useCallback(async () => {
+    // No API key → stay on fallback
+    if (!hasGeminiApiKey()) {
       setStatus("error");
-    };
-    img.src = url;
+      return;
+    }
 
-    // 20-second timeout fallback
-    const timer = setTimeout(() => {
-      if (!loadedImages.has(url) && !cancelled) {
-        failedImages.add(url);
+    setStatus("loading");
+
+    try {
+      // 1. Check IndexedDB cache
+      const cached = await getCachedPortrait(agent.id, pHash);
+      if (cached) {
+        const url = toDataUrl(cached);
+        dataUrlCache.set(agent.id, url);
+        setImageUrl(url);
+        setStatus("loaded");
+        return;
+      }
+
+      // 2. Deduplicate inflight requests
+      let generationPromise = inflightGenerations.get(agent.id);
+      if (!generationPromise) {
+        generationPromise = (async (): Promise<CachedPortrait | null> => {
+          try {
+            const result = await generatePortrait(prompt);
+            const entry: CachedPortrait = {
+              data: result.data,
+              mimeType: result.mimeType,
+              promptHash: pHash,
+              cachedAt: new Date().toISOString(),
+            };
+            await setCachedPortrait(agent.id, entry);
+            return entry;
+          } catch (err) {
+            console.warn(`[AgentPortrait] Generation failed for ${agent.name}:`, err);
+            return null;
+          } finally {
+            inflightGenerations.delete(agent.id);
+          }
+        })();
+        inflightGenerations.set(agent.id, generationPromise);
+      }
+
+      const result = await generationPromise;
+      if (result) {
+        const url = toDataUrl(result);
+        dataUrlCache.set(agent.id, url);
+        setImageUrl(url);
+        setStatus("loaded");
+      } else {
         setStatus("error");
       }
-    }, 20_000);
+    } catch {
+      setStatus("error");
+    }
+  }, [agent.id, agent.name, prompt, pHash]);
 
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [visible, url, alreadyLoaded, alreadyFailed]);
+  // Trigger load when visible
+  useEffect(() => {
+    if (visible && status === "idle") {
+      loadPortrait();
+    }
+  }, [visible, status, loadPortrait]);
 
-  // Unique filter ID (avoids SVG id collisions in the DOM)
+  // SVG filter for vector-art posterisation
   const filterId = useMemo(
-    () => `pvec-${hashCode(agent.id) % 99999}`,
-    [agent.id],
+    () => `pvec-${(pHash % 99999)}`,
+    [pHash],
   );
 
   return (
@@ -188,9 +208,7 @@ export function AgentPortrait({
       >
         <defs>
           <filter id={filterId} colorInterpolationFilters="sRGB">
-            {/* Light blur to soften before quantisation */}
-            <feGaussianBlur in="SourceGraphic" stdDeviation="0.6" result="b" />
-            {/* Posterize — discrete steps reduce tonal range */}
+            <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" result="b" />
             <feComponentTransfer in="b" result="p">
               <feFuncR
                 type="discrete"
@@ -205,7 +223,6 @@ export function AgentPortrait({
                 tableValues="0.05 0.2 0.38 0.55 0.72 0.88 1"
               />
             </feComponentTransfer>
-            {/* Slight contrast boost */}
             <feComponentTransfer in="p">
               <feFuncR type="linear" slope="1.1" intercept="-0.04" />
               <feFuncG type="linear" slope="1.1" intercept="-0.04" />
@@ -216,7 +233,7 @@ export function AgentPortrait({
       </svg>
 
       {/* ── Loading skeleton ── */}
-      {status === "loading" && visible && (
+      {status === "loading" && (
         <div
           className="agent-portrait__skeleton"
           style={{
@@ -242,10 +259,10 @@ export function AgentPortrait({
         </div>
       )}
 
-      {/* ── Loaded image with vector filter ── */}
-      {status === "loaded" && (
+      {/* ── Generated portrait image ── */}
+      {status === "loaded" && imageUrl && (
         <img
-          src={url}
+          src={imageUrl}
           alt={`${agent.name} portrait`}
           className="agent-portrait__image"
           draggable={false}
@@ -259,8 +276,8 @@ export function AgentPortrait({
         />
       )}
 
-      {/* ── Fallback: initials ── */}
-      {(status === "error" || (!visible && !alreadyLoaded)) && (
+      {/* ── Fallback: role-colored initials ── */}
+      {(status === "error" || status === "idle") && (
         <div
           className="agent-portrait__fallback"
           style={{

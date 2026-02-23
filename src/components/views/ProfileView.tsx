@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { AlertTriangle, Key, Bot, Download, Upload, Check } from "lucide-react";
+import { AlertTriangle, Key, Bot, Download, Upload, Check, Image as ImageIcon } from "lucide-react";
 import { CopyableId } from "../shared/CopyableId";
 import { GradientIcon } from "../shared/GradientIcon";
 import { useAuth } from "../../context/AuthContext";
 import { ANTHROPIC_MODELS } from "../../constants";
 import { getSelectedModel, setSelectedModel } from "../../services/ai";
+import { getGeminiApiKey, setGeminiApiKey as saveGeminiKey } from "../../services/imageGen";
 import { GemAvatar } from "../shared/GemAvatar";
 import { useDataManagement } from "../../hooks/useDataManagement";
 import type { Agent, Channel, Group, Message, Network, Bridge } from "../../types";
@@ -34,6 +35,9 @@ export function ProfileView({
     const [status, setStatus] = useState("");
     const [selectedModelId, setSelectedModelId] = useState(getSelectedModel());
     const [hasKey, setHasKey] = useState(false);
+    const [geminiKey, setGeminiKey] = useState("");
+    const [showGeminiKey, setShowGeminiKey] = useState(false);
+    const [hasGeminiKey, setHasGeminiKey] = useState(false);
     const [importStatus, setImportStatus] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,6 +58,11 @@ export function ProfileView({
             setApiKey(storedKey);
             setHasKey(true);
         }
+        const storedGemini = getGeminiApiKey();
+        if (storedGemini) {
+            setGeminiKey(storedGemini);
+            setHasGeminiKey(true);
+        }
     }, []);
 
     const handleSaveKey = () => {
@@ -68,6 +77,18 @@ export function ProfileView({
             setStatus("API Key removed.");
             setTimeout(() => setStatus(""), 3000);
         }
+    };
+
+    const handleSaveGeminiKey = () => {
+        saveGeminiKey(geminiKey);
+        if (geminiKey.trim()) {
+            setHasGeminiKey(true);
+            setStatus("Gemini API Key saved! Agent portraits will generate on next load.");
+        } else {
+            setHasGeminiKey(false);
+            setStatus("Gemini API Key removed.");
+        }
+        setTimeout(() => setStatus(""), 3000);
     };
 
     const handleSelectModel = (modelId: string) => {
@@ -209,6 +230,48 @@ export function ProfileView({
                                 Required for agents using Claude models. Get yours at{" "}
                                 <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">
                                     console.anthropic.com
+                                </a>
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Gemini API Key for Image Generation */}
+                    <div className="profile__api-field" style={{ marginTop: "var(--space-xl)" }}>
+                        <label className="profile__api-label">
+                            <ImageIcon size={14} style={{ marginRight: 6, opacity: 0.7 }} />
+                            Google AI (Gemini) API Key
+                            <span style={{ fontSize: "var(--text-xs)", opacity: 0.5, marginLeft: 8 }}>for agent portraits</span>
+                        </label>
+                        <div className="profile__api-input-row">
+                            <div className="profile__api-input-wrapper">
+                                <input
+                                    type={showGeminiKey ? "text" : "password"}
+                                    value={geminiKey}
+                                    onChange={(e) => setGeminiKey(e.target.value)}
+                                    placeholder="AIza..."
+                                    className={`profile__api-input${hasGeminiKey ? " profile__api-input--active" : ""}`}
+                                />
+                                <button
+                                    onClick={() => setShowGeminiKey(!showGeminiKey)}
+                                    className="profile__api-toggle"
+                                >
+                                    {showGeminiKey ? "Hide" : "Show"}
+                                </button>
+                            </div>
+                            <button onClick={handleSaveGeminiKey} className="btn btn-primary profile__api-save">
+                                Save
+                            </button>
+                        </div>
+                        {hasGeminiKey && (
+                            <div className="profile__key-active">
+                                <span>●</span> Gemini key configured — agent portrait generation active
+                            </div>
+                        )}
+                        {!hasGeminiKey && (
+                            <p className="profile__key-hint">
+                                Powers AI-generated agent portraits via Imagen 3. Get a key at{" "}
+                                <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">
+                                    aistudio.google.com
                                 </a>
                             </p>
                         )}
