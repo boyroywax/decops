@@ -242,6 +242,28 @@
   background: rgba(120, 80, 20, 0.08);
 }
 
+/* Sidebar collapsed badges */
+[data-theme="solar"] .sidebar-badge.accent {
+  background: rgba(0, 160, 100, 0.15);
+  color: #268060;
+}
+[data-theme="solar"] .sidebar-badge.warning {
+  background: rgba(180, 120, 0, 0.15);
+  color: #8a6000;
+}
+[data-theme="solar"] .sidebar-badge.info {
+  background: rgba(30, 120, 180, 0.15);
+  color: #1a7ab0;
+}
+[data-theme="solar"] .sidebar-badge.channel {
+  background: rgba(110, 70, 200, 0.15);
+  color: #6a40b0;
+}
+[data-theme="solar"] .sidebar-badge.group {
+  background: rgba(200, 60, 130, 0.15);
+  color: #b83068;
+}
+
 /* Header */
 [data-theme="solar"] .app-header {
   background: rgba(253, 246, 227, 0.85);

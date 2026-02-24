@@ -126,6 +126,51 @@
   color: var(--color-group);
 }
 
+/* Collapsed badge — small notification-style overlay */
+.sidebar-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  min-width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  padding: 0 4px;
+  border-radius: var(--radius-xl);
+  pointer-events: none;
+}
+
+.app-sidebar.collapsed .sidebar-nav-item {
+  position: relative;
+}
+
+.sidebar-badge.accent {
+  background: rgba(0, 229, 160, 0.18);
+  color: var(--color-accent);
+}
+
+.sidebar-badge.warning {
+  background: rgba(251, 191, 36, 0.18);
+  color: var(--color-warning);
+}
+
+.sidebar-badge.info {
+  background: rgba(56, 189, 248, 0.18);
+  color: var(--color-info);
+}
+
+.sidebar-badge.channel {
+  background: rgba(167, 139, 250, 0.18);
+  color: var(--color-channel);
+}
+
+.sidebar-badge.group {
+  background: rgba(244, 114, 182, 0.18);
+  color: var(--color-group);
+}
+
 /* Top nav group */
 .sidebar-nav-top {
   display: flex;

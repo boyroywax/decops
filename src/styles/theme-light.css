@@ -241,6 +241,28 @@
   background: rgba(0, 0, 0, 0.06);
 }
 
+/* Sidebar collapsed badges */
+[data-theme="light"] .sidebar-badge.accent {
+  background: rgba(0, 180, 130, 0.14);
+  color: #008060;
+}
+[data-theme="light"] .sidebar-badge.warning {
+  background: rgba(200, 140, 0, 0.14);
+  color: #9a6700;
+}
+[data-theme="light"] .sidebar-badge.info {
+  background: rgba(20, 140, 200, 0.14);
+  color: #0969a8;
+}
+[data-theme="light"] .sidebar-badge.channel {
+  background: rgba(120, 80, 220, 0.14);
+  color: #6e40c9;
+}
+[data-theme="light"] .sidebar-badge.group {
+  background: rgba(220, 60, 140, 0.14);
+  color: #c4286e;
+}
+
 /* Header */
 [data-theme="light"] .app-header {
   background: rgba(255, 255, 255, 0.8);

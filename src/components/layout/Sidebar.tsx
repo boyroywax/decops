@@ -96,7 +96,16 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
       className={`app-sidebar ${isMobile ? 'mobile' : ''} ${collapsed && !isMobile ? 'collapsed' : ''}`}
     >
       <div className="sidebar-nav-top">
-        {NAV_ITEMS.map((tab) => (
+        {NAV_ITEMS.map((tab) => {
+        const badgeCount =
+          tab.id === "networks" ? ecosystems.length :
+          tab.id === "agents" ? agents.length :
+          tab.id === "channels" ? channels.length :
+          tab.id === "groups" ? groups.length :
+          tab.id === "messages" ? messages.length + bridgeMessages.length :
+          0;
+
+        return (
         <button
           key={tab.id}
           onClick={() => setView(tab.id)}
@@ -109,6 +118,10 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
             ? <GradientIcon icon={tab.icon} size={14} gradient={tab.gradient} />
             : <tab.icon size={14} />
           }
+          {/* Collapsed badge — small overlay near icon */}
+          {collapsed && !isMobile && badgeCount > 0 && (
+            <span className={`sidebar-badge ${getAccentType(tab.id)}`}>{badgeCount}</span>
+          )}
           {(!collapsed || isMobile) && (
             <>
               {tab.label}
@@ -130,7 +143,8 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
             </>
           )}
         </button>
-      ))}
+        );
+      })}
       </div>
 
       <div className="sidebar-nav-bottom">
