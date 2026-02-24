@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "../../types";
-import { Bot, ArrowLeftRight, Hexagon, MessageSquare, Globe, Network as NetworkIcon, MessageCircle, ListTodo, Zap, WifiOff, Terminal, Gem, Sun, Moon, Sunrise } from "lucide-react";
+import { MessageCircle, Zap, WifiOff, Terminal, Gem, Sun, Moon, Sunrise } from "lucide-react";
 import { ChatPanel } from "./ChatPanel";
 import { ActionManager } from "../actions/ActionManager";
 import { ArtifactsPanel } from "./ArtifactsPanel";
@@ -157,28 +157,22 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
 
             <footer className="app-footer">
                 <div className="footer__stats">
-                    <button onClick={() => setView("agents")} className="footer__stat-btn" title="View Agents">
-                        <Bot size={10} color="#00e5a0" /> {agents.length} {!jobsProps.isMobile && "agents"}
+                    <button
+                        onClick={() => toggle("llm")}
+                        className={`footer__llm-btn${panel === "llm" ? " footer__llm-btn--active" : ""}`}
+                        title={`LLM: ${llm.overallStatus} — ${llmModel?.label || llm.globalModel}`}
+                    >
+                        <span
+                            className={`llm-dot${llm.overallStatus === "checking" ? " llm-dot--pulse" : ""}`}
+                            style={{ width: 6, height: 6, background: dotColors[llm.overallStatus] }}
+                        />
+                        <Zap size={10} />
+                        {!jobsProps.isMobile && (
+                            <span className="footer__llm-label">
+                                {llmModel?.label || "LLM"}
+                            </span>
+                        )}
                     </button>
-                    <button onClick={() => setView("channels")} className="footer__stat-btn" title="View Channels">
-                        <ArrowLeftRight size={10} color="#a78bfa" /> {channels.length} {!jobsProps.isMobile && "ch"}
-                    </button>
-                    <button onClick={() => setView("groups")} className="footer__stat-btn" title="View Groups">
-                        <Hexagon size={10} color="#f472b6" /> {groups.length} {!jobsProps.isMobile && "groups"}
-                    </button>
-                    <button onClick={() => setView("messages")} className="footer__stat-btn" title="View Messages">
-                        <MessageSquare size={10} color="#fbbf24" /> {messages.length} {!jobsProps.isMobile && "msgs"}
-                    </button>
-                    {ecosystems.length > 0 && (
-                        <button onClick={() => setView("ecosystem")} className="footer__stat-btn" title="View Ecosystems">
-                            <Globe size={10} color="#38bdf8" /> {ecosystems.length} {!jobsProps.isMobile && "nets"}
-                        </button>
-                    )}
-                    {bridges.length > 0 && (
-                        <button onClick={() => setView("network")} className="footer__stat-btn" title="View Topology">
-                            <NetworkIcon size={10} color="#fb923c" /> {bridges.length} {!jobsProps.isMobile && "bridges"}
-                        </button>
-                    )}
                 </div>
 
                 <div className="footer__controls">
@@ -227,24 +221,6 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                             </div>
                         </>
                     )}
-
-                    <span className="footer__separator">│</span>
-                    <button
-                        onClick={() => toggle("llm")}
-                        className={`footer__llm-btn${panel === "llm" ? " footer__llm-btn--active" : ""}`}
-                        title={`LLM: ${llm.overallStatus} — ${llmModel?.label || llm.globalModel}`}
-                    >
-                        <span
-                            className={`llm-dot${llm.overallStatus === "checking" ? " llm-dot--pulse" : ""}`}
-                            style={{ width: 6, height: 6, background: dotColors[llm.overallStatus] }}
-                        />
-                        <Zap size={10} />
-                        {!jobsProps.isMobile && (
-                            <span className="footer__llm-label">
-                                {llmModel?.label || "LLM"}
-                            </span>
-                        )}
-                    </button>
 
                     <span className="footer__separator">│</span>
                     <button
