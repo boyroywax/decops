@@ -65,6 +65,11 @@ import {
 } from "./definitions/jobs";
 
 import { createWorkspaceCommand, switchWorkspaceCommand, deleteWorkspaceCommand, duplicateWorkspaceCommand } from "./definitions/workspace";
+import {
+    generateImageCommand,
+    generateAllImagesCommand,
+    clearImageCacheCommand
+} from "./definitions/imageGen";
 
 export function initializeRegistry() {
     // Workspace
@@ -138,4 +143,9 @@ export function initializeRegistry() {
     registry.register(listCatalogJobsCommand);
     registry.register(saveJobDefinitionCommand);
     registry.register(deleteJobDefinitionCommand);
+
+    // Image Generation
+    registry.register(generateImageCommand);
+    registry.register(generateAllImagesCommand);
+    registry.register(clearImageCacheCommand);
 }
