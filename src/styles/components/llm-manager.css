@@ -1,96 +1,137 @@
 /**
- * LLM Manager — modal + footer badge styles
+ * LLM Manager — footer drawer panel + footer badge styles
  */
 
-/* ── Backdrop ── */
-.llm-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: llm-fade-in 0.15s ease;
-}
+/* ═══════════════════════════════════════════════════════════════════════════
+ * DRAWER PANEL CONTAINER
+ * ═══════════════════════════════════════════════════════════════════════════ */
 
-@keyframes llm-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* ── Modal ── */
-.llm-modal {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xl);
-  width: min(560px, 92vw);
-  max-height: 80vh;
+.llm-panel {
+  background: rgba(0, 0, 0, 0.8);
+  border-top: 1px solid var(--border-accent);
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  animation: llm-slide-up 0.2s ease;
+  font-family: inherit;
+  backdrop-filter: blur(12px);
+  position: relative;
+  transition: height 0.1s ease-out;
 }
 
-@keyframes llm-slide-up {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+.llm-panel--resizing {
+  transition: none;
 }
 
-/* ── Header ── */
-.llm-header {
+/* ═══════════════════════════════════════════════════════════════════════════
+ * RESIZE HANDLE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.llm-panel__resize-handle {
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  cursor: ns-resize;
+  z-index: 10;
   display: flex;
+  justify-content: center;
   align-items: center;
-  justify-content: space-between;
-  padding: var(--space-md) var(--space-lg);
-  border-bottom: 1px solid var(--border-subtle);
 }
 
-.llm-header-left {
+.llm-panel__resize-grip {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HEADER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.llm-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
+}
+
+.llm-panel__header-left {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
 }
 
-.llm-header-title {
-  font-size: var(--text-base);
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-/* ── Tabs ── */
-.llm-tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid var(--border-subtle);
-  padding: 0 var(--space-md);
-}
-
-.llm-tab {
+.llm-panel__header-actions {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-md);
+  gap: var(--space-sm);
+}
+
+.llm-panel__title {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.llm-panel__separator {
+  color: var(--text-ghost);
+  opacity: 0.3;
+  font-size: var(--text-xs);
+  margin: 0 2px;
+}
+
+.llm-panel__icon-btn {
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
-  color: var(--text-subtle);
-  font-size: var(--text-sm);
+  color: var(--text-ghost);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.llm-panel__icon-btn:hover {
+  color: var(--text-muted);
+  background: var(--bg-surface-hover);
+}
+
+/* ── Inline Tabs (in header) ── */
+
+.llm-panel__tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-ghost);
+  font-size: 11px;
   font-family: inherit;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
-.llm-tab:hover {
+.llm-panel__tab:hover {
   color: var(--text-muted);
+  background: var(--bg-surface-hover);
 }
 
-.llm-tab--active {
+.llm-panel__tab--active {
   color: var(--color-accent);
-  border-bottom-color: var(--color-accent);
+  background: rgba(0, 229, 160, 0.08);
 }
 
-.llm-tab-badge {
+.llm-panel__tab-badge {
   font-size: 9px;
   background: rgba(0, 229, 160, 0.15);
   color: var(--color-accent);
@@ -100,11 +141,14 @@
   text-align: center;
 }
 
-/* ── Body ── */
-.llm-body {
+/* ═══════════════════════════════════════════════════════════════════════════
+ * BODY
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.llm-panel__body {
   flex: 1;
   overflow-y: auto;
-  padding: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
 }
 
 .llm-section-desc {
@@ -491,6 +535,11 @@
 .footer__llm-btn:hover {
   color: var(--text-muted);
   background: var(--bg-surface-hover);
+}
+
+.footer__llm-btn--active {
+  color: var(--color-accent);
+  background: rgba(0, 229, 160, 0.08);
 }
 
 .footer__llm-label {

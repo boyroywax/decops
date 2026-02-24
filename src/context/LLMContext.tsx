@@ -69,10 +69,9 @@ export interface LLMContextType {
   // All models flat
   allModels: LLMModel[];
   getModelById: (id: string) => LLMModel | undefined;
-  // UI state
-  isManagerOpen: boolean;
+  // Open-request counter — Footer watches this to sync panel state
+  managerOpenRequest: number;
   openManager: () => void;
-  closeManager: () => void;
 }
 
 // ── Constants ──────────────────────────────────────
@@ -171,8 +170,8 @@ export function LLMProvider({ children }: { children: ReactNode }) {
     try { return JSON.parse(localStorage.getItem(LS_KEYS.commandModels) || "{}"); } catch { return {}; }
   });
 
-  // Manager modal open state
-  const [isManagerOpen, setIsManagerOpen] = useState(false);
+  // Manager open-request counter (Footer watches this)
+  const [managerOpenRequest, setManagerOpenRequest] = useState(0);
 
   // Guards against double-probe on mount
   const probeRan = useRef(false);
@@ -344,9 +343,8 @@ export function LLMProvider({ children }: { children: ReactNode }) {
     getCommandModel,
     allModels,
     getModelById,
-    isManagerOpen,
-    openManager: () => setIsManagerOpen(true),
-    closeManager: () => setIsManagerOpen(false),
+    managerOpenRequest,
+    openManager: () => setManagerOpenRequest(c => c + 1),
   };
 
   return <LLMContext.Provider value={value}>{children}</LLMContext.Provider>;

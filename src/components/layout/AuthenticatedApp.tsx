@@ -20,7 +20,6 @@ import { EcosystemContext } from "../../context/EcosystemContext";
 import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
 import { useRouteSync } from "../../hooks/useRouteSync";
 import { ProfileModal } from "./ProfileModal";
-import { LLMManager } from "./LLMManager";
 import { ArchitectPopup } from "./ArchitectPopup";
 import { ActivityModal } from "./ActivityModal";
 import "../../styles/components/authenticated-app.css";
@@ -372,9 +371,6 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
 
         {/* Profile Modal (overlay) */}
         <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
-
-        {/* LLM Manager (overlay) */}
-        <LLMManager />
 
         {/* Activity Modal (overlay) */}
         <ActivityModal

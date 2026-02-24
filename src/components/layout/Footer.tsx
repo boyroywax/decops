@@ -4,6 +4,7 @@ import { Bot, ArrowLeftRight, Hexagon, MessageSquare, Globe, Network as NetworkI
 import { ChatPanel } from "./ChatPanel";
 import { ActionManager } from "../actions/ActionManager";
 import { ArtifactsPanel } from "./ArtifactsPanel";
+import { LLMManager } from "./LLMManager";
 import { useTheme } from "../../context/ThemeContext";
 import { useLLM, type LivenessStatus } from "../../context/LLMContext";
 import "../../styles/components/footer.css";
@@ -39,7 +40,7 @@ interface FooterProps {
     deleteJob: (id: string) => void;
 }
 
-type PanelMode = "none" | "chat" | "jobs" | "artifacts";
+type PanelMode = "none" | "chat" | "jobs" | "artifacts" | "llm";
 
 const DEFAULT_PANEL_HEIGHT = 420;
 
@@ -92,6 +93,13 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
 
     const toggle = (mode: PanelMode) => setPanel(prev => prev === mode ? "none" : mode);
 
+    // Watch for external open requests (e.g. from ProfileModal → llm.openManager())
+    useEffect(() => {
+        if (llm.managerOpenRequest > 0) {
+            setPanel("llm");
+        }
+    }, [llm.managerOpenRequest]);
+
     const workspaceContext = { agents, channels, groups, messages, ecosystems, bridges, addJob, jobs };
 
     return (
@@ -129,6 +137,16 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                     importArtifact={importArtifact}
                     removeArtifact={removeArtifact}
                     updateArtifact={updateArtifact}
+                    onClose={() => setPanel("none")}
+                    height={panelHeight}
+                    setHeight={handleSetHeight}
+                    isExpanded={isExpanded}
+                    onToggleExpand={handleToggleExpand}
+                />
+            )}
+
+            {panel === "llm" && (
+                <LLMManager
                     onClose={() => setPanel("none")}
                     height={panelHeight}
                     setHeight={handleSetHeight}
@@ -212,8 +230,8 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
 
                     <span className="footer__separator">│</span>
                     <button
-                        onClick={llm.openManager}
-                        className="footer__llm-btn"
+                        onClick={() => toggle("llm")}
+                        className={`footer__llm-btn${panel === "llm" ? " footer__llm-btn--active" : ""}`}
                         title={`LLM: ${llm.overallStatus} — ${llmModel?.label || llm.globalModel}`}
                     >
                         <span

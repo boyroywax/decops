@@ -1,5 +1,9 @@
 /**
- * LLM Manager Modal — centralised provider, model & override management
+ * LLM Manager Drawer — footer panel for provider, model & override management
+ *
+ * Same UI/UX pattern as ChatPanel, ActionManager, and ArtifactsPanel:
+ *   - Resize handle, header with close/expand, scrollable body
+ *   - Receives height/setHeight/isExpanded/onToggleExpand/onClose props from Footer
  *
  * Tabs:
  *  1. Providers   — API keys + liveness per provider
@@ -8,15 +12,26 @@
  *  4. Commands    — Per-command model overrides
  */
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
-  X, Key, Bot, Cpu, Zap, RefreshCw, Trash2, Check,
+  X, Key, Bot, Cpu, Zap, RefreshCw, Trash2,
   ChevronDown, ChevronUp, Terminal, Eye, EyeOff,
+  ChevronsUp, ChevronsDown,
 } from "lucide-react";
 import { useLLM, type ProviderId, type LivenessStatus, type LLMModel } from "../../context/LLMContext";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { registry } from "../../services/commands/registry";
 import "../../styles/components/llm-manager.css";
+
+// ── Props (same shape as other footer drawers) ──
+
+interface LLMManagerProps {
+  onClose: () => void;
+  height: number;
+  setHeight: (h: number) => void;
+  isExpanded: boolean;
+  onToggleExpand: () => void;
+}
 
 type Tab = "providers" | "models" | "agents" | "commands";
 
@@ -318,103 +333,126 @@ function CommandsTab() {
   );
 }
 
-// ── Main Modal ──
+// ── Main Drawer Panel ──
 
-export function LLMManager() {
+export function LLMManager({ onClose, height, setHeight, isExpanded, onToggleExpand }: LLMManagerProps) {
   const llm = useLLM();
   const [tab, setTab] = useState<Tab>("providers");
-  const backdropRef = useRef<HTMLDivElement>(null);
+
+  // ── Resize (same pattern as ChatPanel / ArtifactsPanel) ──
+  const [isResizing, setIsResizing] = useState(false);
+
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const stopResizing = useCallback(() => setIsResizing(false), []);
+
+  const resize = useCallback((e: MouseEvent) => {
+    if (isResizing) {
+      const newHeight = window.innerHeight - e.clientY;
+      if (newHeight > 200 && newHeight < window.innerHeight - 100) {
+        setHeight(newHeight);
+      }
+    }
+  }, [isResizing, setHeight]);
 
   useEffect(() => {
-    if (!llm.isManagerOpen) return;
-    const handleKey = (e: KeyboardEvent) => { if (e.key === "Escape") llm.closeManager(); };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [llm.isManagerOpen, llm.closeManager]);
+    if (isResizing) {
+      window.addEventListener("mousemove", resize);
+      window.addEventListener("mouseup", stopResizing);
+    }
+    return () => {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+    };
+  }, [isResizing, resize, stopResizing]);
 
-  if (!llm.isManagerOpen) return null;
-
-  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "providers", label: "Providers", icon: <Key size={13} /> },
-    { id: "models", label: "Models", icon: <Cpu size={13} /> },
-    { id: "agents", label: "Agents", icon: <Bot size={13} /> },
-    { id: "commands", label: "Commands", icon: <Terminal size={13} /> },
-  ];
-
-  // Count overrides for badges
+  // Count overrides for tab badges
   const agentOverrideCount = Object.keys(llm.agentModels).length;
   const commandOverrideCount = Object.keys(llm.commandModels).length;
 
-  return (
-    <div
-      ref={backdropRef}
-      className="llm-backdrop"
-      onClick={e => { if (e.target === backdropRef.current) llm.closeManager(); }}
-    >
-      <div className="llm-modal">
-        {/* Header */}
-        <div className="llm-header">
-          <div className="llm-header-left">
-            <Zap size={16} color="#00e5a0" />
-            <span className="llm-header-title">LLM Manager</span>
-            <LiveDot status={llm.overallStatus} size={6} />
-          </div>
-          <button onClick={llm.closeManager} className="btn-icon">
-            <X size={16} />
-          </button>
-        </div>
+  const tabs: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
+    { id: "providers", label: "Providers", icon: <Key size={11} /> },
+    { id: "models", label: "Models", icon: <Cpu size={11} /> },
+    { id: "agents", label: "Agents", icon: <Bot size={11} />, badge: agentOverrideCount },
+    { id: "commands", label: "Commands", icon: <Terminal size={11} />, badge: commandOverrideCount },
+  ];
 
-        {/* Tabs */}
-        <div className="llm-tabs">
+  return (
+    <div className={`llm-panel${isResizing ? " llm-panel--resizing" : ""}`} style={{ height }}>
+      {/* Resize Handle */}
+      <div onMouseDown={startResizing} className="llm-panel__resize-handle">
+        <div className="llm-panel__resize-grip" />
+      </div>
+
+      {/* Header */}
+      <div className="llm-panel__header">
+        <div className="llm-panel__header-left">
+          <Zap size={10} color="#00e5a0" />
+          <span className="llm-panel__title">LLM MANAGER</span>
+          <LiveDot status={llm.overallStatus} size={6} />
+          <span className="llm-panel__separator">│</span>
+          {/* Inline tabs */}
           {tabs.map(t => (
             <button
               key={t.id}
-              className={`llm-tab ${tab === t.id ? "llm-tab--active" : ""}`}
+              className={`llm-panel__tab ${tab === t.id ? "llm-panel__tab--active" : ""}`}
               onClick={() => setTab(t.id)}
             >
               {t.icon}
               {t.label}
-              {t.id === "agents" && agentOverrideCount > 0 && (
-                <span className="llm-tab-badge">{agentOverrideCount}</span>
-              )}
-              {t.id === "commands" && commandOverrideCount > 0 && (
-                <span className="llm-tab-badge">{commandOverrideCount}</span>
-              )}
+              {t.badge ? <span className="llm-panel__tab-badge">{t.badge}</span> : null}
             </button>
           ))}
         </div>
-
-        {/* Body */}
-        <div className="llm-body">
-          {tab === "providers" && (
-            <div className="llm-providers">
-              <p className="llm-section-desc">
-                API keys are stored in your browser's localStorage. Not sent anywhere except the provider's API.
-              </p>
-              {llm.providers.map(p => <ProviderCard key={p.id} providerId={p.id} />)}
-              <div className="llm-probe-all">
-                <button className="btn btn-ghost" onClick={() => llm.checkLiveness()}>
-                  <RefreshCw size={12} /> Test All Connections
-                </button>
-              </div>
-            </div>
-          )}
-
-          {tab === "models" && (
-            <div className="llm-models">
-              <p className="llm-section-desc">
-                Global default model for all agent conversations and mesh generation. Agents and commands can override this.
-              </p>
-              <ModelPicker
-                selectedId={llm.globalModel}
-                onSelect={id => llm.setGlobalModel(id)}
-              />
-            </div>
-          )}
-
-          {tab === "agents" && <AgentsTab />}
-          {tab === "commands" && <CommandsTab />}
+        <div className="llm-panel__header-actions">
+          <button
+            className="llm-panel__icon-btn"
+            onClick={() => llm.checkLiveness()}
+            title="Test all connections"
+          >
+            <RefreshCw size={12} />
+          </button>
+          <button
+            onClick={onToggleExpand}
+            className="llm-panel__icon-btn"
+            title={isExpanded ? "Collapse panel" : "Expand panel"}
+          >
+            {isExpanded ? <ChevronsDown size={14} /> : <ChevronsUp size={14} />}
+          </button>
+          <button onClick={onClose} className="llm-panel__icon-btn" title="Close LLM Manager">
+            <X size={14} />
+          </button>
         </div>
+      </div>
+
+      {/* Body */}
+      <div className="llm-panel__body">
+        {tab === "providers" && (
+          <div className="llm-providers">
+            <p className="llm-section-desc">
+              API keys stored in localStorage. Only sent to the provider's API.
+            </p>
+            {llm.providers.map(p => <ProviderCard key={p.id} providerId={p.id} />)}
+          </div>
+        )}
+
+        {tab === "models" && (
+          <div className="llm-models">
+            <p className="llm-section-desc">
+              Global default model. Agents and commands can override this individually.
+            </p>
+            <ModelPicker
+              selectedId={llm.globalModel}
+              onSelect={id => llm.setGlobalModel(id)}
+            />
+          </div>
+        )}
+
+        {tab === "agents" && <AgentsTab />}
+        {tab === "commands" && <CommandsTab />}
       </div>
     </div>
   );
