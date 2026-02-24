@@ -218,8 +218,9 @@ function AgentsTab() {
     <div className="llm-agents-list">
       {agents.map(agent => {
         const override = llm.agentModels[agent.id];
-        const effectiveModel = llm.getAgentModel(agent.id);
+        const effectiveModel = llm.getAgentModel(agent.id, agent.recommendedModel);
         const model = llm.getModelById(effectiveModel);
+        const recModel = agent.recommendedModel ? llm.getModelById(agent.recommendedModel) : undefined;
         const isExpanded = expandedAgent === agent.id;
 
         return (
@@ -236,6 +237,8 @@ function AgentsTab() {
               <div className="llm-agent-model-badge">
                 {override ? (
                   <span className="llm-override-badge">{model?.label || effectiveModel}</span>
+                ) : agent.recommendedModel ? (
+                  <span className="llm-recommended-badge">{recModel?.label || agent.recommendedModel}</span>
                 ) : (
                   <span className="llm-default-badge">Global default</span>
                 )}
@@ -246,11 +249,16 @@ function AgentsTab() {
               <div className="llm-agent-picker">
                 <div className="llm-agent-picker-header">
                   <span>Model for <strong>{agent.name}</strong></span>
-                  {override && (
-                    <button className="btn btn-ghost btn-xs" onClick={() => llm.clearAgentModel(agent.id)}>
-                      <Trash2 size={10} /> Reset to global
-                    </button>
-                  )}
+                  <div style={{ display: "flex", gap: "var(--space-sm)", alignItems: "center" }}>
+                    {agent.recommendedModel && (
+                      <span className="llm-recommended-hint">Rec: {recModel?.label || agent.recommendedModel}</span>
+                    )}
+                    {override && (
+                      <button className="btn btn-ghost btn-xs" onClick={() => llm.clearAgentModel(agent.id)}>
+                        <Trash2 size={10} /> Reset{agent.recommendedModel ? " to recommended" : " to global"}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <ModelPicker
                   selectedId={effectiveModel}
@@ -287,8 +295,9 @@ function CommandsTab() {
     <div className="llm-commands-list">
       {aiCommands.map(cmd => {
         const override = llm.commandModels[cmd.id];
-        const effectiveModel = llm.getCommandModel(cmd.id);
+        const effectiveModel = llm.getCommandModel(cmd.id, cmd.recommendedModel);
         const model = llm.getModelById(effectiveModel);
+        const recModel = cmd.recommendedModel ? llm.getModelById(cmd.recommendedModel) : undefined;
         const isExpanded = expandedCmd === cmd.id;
 
         return (
@@ -304,6 +313,8 @@ function CommandsTab() {
               <div className="llm-command-model-badge">
                 {override ? (
                   <span className="llm-override-badge">{model?.label || effectiveModel}</span>
+                ) : cmd.recommendedModel ? (
+                  <span className="llm-recommended-badge">{recModel?.label || cmd.recommendedModel}</span>
                 ) : (
                   <span className="llm-default-badge">Global default</span>
                 )}
@@ -314,11 +325,16 @@ function CommandsTab() {
               <div className="llm-command-picker">
                 <div className="llm-command-picker-header">
                   <span>{cmd.description}</span>
-                  {override && (
-                    <button className="btn btn-ghost btn-xs" onClick={() => llm.clearCommandModel(cmd.id)}>
-                      <Trash2 size={10} /> Reset to global
-                    </button>
-                  )}
+                  <div style={{ display: "flex", gap: "var(--space-sm)", alignItems: "center" }}>
+                    {cmd.recommendedModel && (
+                      <span className="llm-recommended-hint">Rec: {recModel?.label || cmd.recommendedModel}</span>
+                    )}
+                    {override && (
+                      <button className="btn btn-ghost btn-xs" onClick={() => llm.clearCommandModel(cmd.id)}>
+                        <Trash2 size={10} /> Reset{cmd.recommendedModel ? " to recommended" : " to global"}
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <ModelPicker
                   selectedId={effectiveModel}

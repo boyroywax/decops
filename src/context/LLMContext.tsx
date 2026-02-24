@@ -60,12 +60,12 @@ export interface LLMContextType {
   agentModels: AgentModelMap;
   setAgentModel: (agentId: string, modelId: string) => void;
   clearAgentModel: (agentId: string) => void;
-  getAgentModel: (agentId: string) => string; // returns override or globalModel
+  getAgentModel: (agentId: string, recommendedModel?: string) => string; // override → recommended → global
   // Per-command
   commandModels: CommandModelMap;
   setCommandModel: (commandId: string, modelId: string) => void;
   clearCommandModel: (commandId: string) => void;
-  getCommandModel: (commandId: string) => string;
+  getCommandModel: (commandId: string, recommendedModel?: string) => string;
   // All models flat
   allModels: LLMModel[];
   getModelById: (id: string) => LLMModel | undefined;
@@ -225,8 +225,8 @@ export function LLMProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const getAgentModel = useCallback((agentId: string) => {
-    return agentModels[agentId] || globalModel;
+  const getAgentModel = useCallback((agentId: string, recommendedModel?: string) => {
+    return agentModels[agentId] || recommendedModel || globalModel;
   }, [agentModels, globalModel]);
 
   // ── Per-command ──
@@ -248,8 +248,8 @@ export function LLMProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const getCommandModel = useCallback((commandId: string) => {
-    return commandModels[commandId] || globalModel;
+  const getCommandModel = useCallback((commandId: string, recommendedModel?: string) => {
+    return commandModels[commandId] || recommendedModel || globalModel;
   }, [commandModels, globalModel]);
 
   // ── Liveness probes ──

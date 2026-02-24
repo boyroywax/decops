@@ -15,6 +15,7 @@ export const generateImageCommand: CommandDefinition = {
     description: "Generates an AI image via Imagen 4.0. Supports agent portraits, group badges, and custom prompts. Results are cached in IndexedDB.",
     tags: ["image", "agent", "workspace"],
     rbac: ["orchestrator", "builder", "curator"],
+    recommendedModel: "imagen-4.0-generate-001",
     args: {
         target: {
             name: "target",
@@ -165,6 +166,7 @@ export const generateAllImagesCommand: CommandDefinition = {
     description: "Batch-generates images for all agents and/or groups that don't have cached images yet.",
     tags: ["image", "agent", "workspace"],
     rbac: ["orchestrator", "builder", "curator"],
+    recommendedModel: "imagen-4.0-generate-001",
     args: {
         targets: {
             name: "targets",
@@ -301,6 +303,7 @@ export const clearImageCacheCommand: CommandDefinition = {
     description: "Clears all cached AI-generated images from IndexedDB. Portraits and badges will regenerate on next view.",
     tags: ["image", "maintenance"],
     rbac: ["orchestrator", "builder", "curator"],
+    recommendedModel: "imagen-4.0-generate-001",
     args: {},
     output: "Confirmation message.",
     execute: async (_args, context) => {

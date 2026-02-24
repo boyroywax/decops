@@ -856,6 +856,19 @@
   color: #a89882;
 }
 
+[data-theme="solar"] .llm-default-badge {
+  color: #a89882;
+}
+
+[data-theme="solar"] .llm-recommended-badge {
+  background: rgba(38, 139, 210, 0.10);
+  color: #268bd2;
+}
+
+[data-theme="solar"] .llm-recommended-hint {
+  color: #268bd2;
+}
+
 /* Footer LLM button */
 [data-theme="solar"] .footer__llm-btn {
   color: #8a7c68;

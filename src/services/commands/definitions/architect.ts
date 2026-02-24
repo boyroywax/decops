@@ -10,6 +10,7 @@ export const promptArchitectCommand: CommandDefinition = {
     description: "Generate a new network design using the AI Architect.",
     tags: ["architect", "create", "ai"],
     rbac: ["builder", "orchestrator"],
+    recommendedModel: "claude-sonnet-4-20250514",
     args: {
         prompt: {
             name: "prompt",

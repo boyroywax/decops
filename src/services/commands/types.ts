@@ -107,5 +107,6 @@ export interface CommandDefinition<TArgs = any> {
     tags: string[];
     output: string; // Description of the output format/content
     outputSchema?: Record<string, any>; // Optional JSON schema of the output object
+    recommendedModel?: string; // Suggested LLM model id (fallback between user override and global default)
     execute: (args: TArgs, context: CommandContext) => Promise<any>;
 }

@@ -23,26 +23,26 @@ export function getSelectedModel(): string {
   return localStorage.getItem("anthropic_model") || DEFAULT_MODEL;
 }
 
-/** Get model for a specific agent (checks per-agent override, then global) */
-export function getAgentModel(agentId?: string): string {
+/** Get model for a specific agent (checks per-agent override → recommended → global) */
+export function getAgentModel(agentId?: string, recommendedModel?: string): string {
   if (agentId) {
     try {
       const map = JSON.parse(localStorage.getItem("llm_agent_models") || "{}");
       if (map[agentId]) return map[agentId];
     } catch { /* ignore parse errors */ }
   }
-  return getSelectedModel();
+  return recommendedModel || getSelectedModel();
 }
 
-/** Get model for a specific command (checks per-command override, then global) */
-export function getCommandModel(commandId?: string): string {
+/** Get model for a specific command (checks per-command override → recommended → global) */
+export function getCommandModel(commandId?: string, recommendedModel?: string): string {
   if (commandId) {
     try {
       const map = JSON.parse(localStorage.getItem("llm_command_models") || "{}");
       if (map[commandId]) return map[commandId];
     } catch { /* ignore parse errors */ }
   }
-  return getSelectedModel();
+  return recommendedModel || getSelectedModel();
 }
 
 /** Save the selected model to localStorage */

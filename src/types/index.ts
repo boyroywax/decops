@@ -274,6 +274,7 @@ export interface Agent {
   status: "active";
   networkId?: string;  // Which network this agent belongs to
   aieos: AieosEntity;  // AIEOS v1.1.0 portable entity spec (always created on agent init)
+  recommendedModel?: string; // Suggested LLM model id (e.g. "claude-sonnet-4-20250514")
 }
 
 export interface Channel {

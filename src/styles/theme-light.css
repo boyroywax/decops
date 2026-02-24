@@ -787,6 +787,19 @@
   color: #9999aa;
 }
 
+[data-theme="light"] .llm-default-badge {
+  color: #9999aa;
+}
+
+[data-theme="light"] .llm-recommended-badge {
+  background: rgba(2, 132, 199, 0.08);
+  color: #0284c7;
+}
+
+[data-theme="light"] .llm-recommended-hint {
+  color: #0284c7;
+}
+
 /* Footer LLM button */
 [data-theme="light"] .footer__llm-btn {
   color: #7a7a90;
