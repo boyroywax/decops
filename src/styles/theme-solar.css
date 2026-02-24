@@ -733,6 +733,144 @@
   color: #2e7d32;
 }
 
+/* ─── LLM Manager Panel — Solar ─── */
+[data-theme="solar"] .llm-panel {
+  background: rgba(253, 246, 227, 0.95);
+  border-top-color: rgba(120, 80, 20, 0.10);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="solar"] .llm-panel__resize-grip {
+  background: rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .llm-panel__header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .llm-panel__separator {
+  color: rgba(120, 80, 20, 0.25);
+}
+
+[data-theme="solar"] .llm-panel__icon-btn {
+  color: #8a7c68;
+}
+
+[data-theme="solar"] .llm-panel__icon-btn:hover {
+  color: #3b2e1a;
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .llm-panel__tab {
+  color: #8a7c68;
+}
+
+[data-theme="solar"] .llm-panel__tab:hover {
+  color: #5c5040;
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .llm-panel__tab--active {
+  color: #8b6914;
+  background: rgba(184, 134, 11, 0.08);
+}
+
+[data-theme="solar"] .llm-panel__tab-badge {
+  background: rgba(184, 134, 11, 0.12);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .llm-panel__body {
+  scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
+}
+
+[data-theme="solar"] .llm-panel__body::-webkit-scrollbar-thumb {
+  background: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .llm-panel__body::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 80, 20, 0.28);
+}
+
+/* Provider cards */
+[data-theme="solar"] .llm-provider-card {
+  border-color: rgba(120, 80, 20, 0.10);
+  background: rgba(120, 80, 20, 0.02);
+}
+
+[data-theme="solar"] .llm-provider-input-wrap input {
+  background: #fdf6e3;
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .llm-provider-model-tag {
+  color: #6b5b4a;
+}
+
+/* Model picker */
+[data-theme="solar"] .llm-model-option {
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #504030;
+}
+
+[data-theme="solar"] .llm-model-option:hover {
+  background: rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .llm-model-radio {
+  border-color: rgba(120, 80, 20, 0.25);
+}
+
+[data-theme="solar"] .llm-model-desc {
+  color: #a89882;
+}
+
+[data-theme="solar"] .llm-model-group-label {
+  color: #a89882;
+}
+
+/* Agent / Command rows */
+[data-theme="solar"] .llm-agent-row,
+[data-theme="solar"] .llm-command-row {
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .llm-agent-header:hover,
+[data-theme="solar"] .llm-command-header:hover {
+  background: rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .llm-agent-picker,
+[data-theme="solar"] .llm-command-picker {
+  background: rgba(120, 80, 20, 0.03);
+  border-top-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .llm-override-badge {
+  background: rgba(184, 134, 11, 0.10);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .llm-default-badge {
+  color: #a89882;
+}
+
+/* Footer LLM button */
+[data-theme="solar"] .footer__llm-btn {
+  color: #8a7c68;
+}
+
+[data-theme="solar"] .footer__llm-btn:hover {
+  color: #504030;
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .footer__llm-btn--active {
+  color: #8b6914;
+  background: rgba(184, 134, 11, 0.08);
+}
+
 /* Panel modal */
 [data-theme="solar"] .ap-modal {
   background: #fefaf0;

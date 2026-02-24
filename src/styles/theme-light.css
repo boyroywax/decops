@@ -664,6 +664,144 @@
   background: rgba(220, 38, 38, 0.12);
 }
 
+/* ─── LLM Manager Panel — Light ─── */
+[data-theme="light"] .llm-panel {
+  background: #ffffff;
+  border-top-color: rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="light"] .llm-panel__resize-grip {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .llm-panel__header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .llm-panel__separator {
+  color: rgba(0, 0, 0, 0.20);
+}
+
+[data-theme="light"] .llm-panel__icon-btn {
+  color: #7a7a90;
+}
+
+[data-theme="light"] .llm-panel__icon-btn:hover {
+  color: #1a1a2e;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .llm-panel__tab {
+  color: #7a7a90;
+}
+
+[data-theme="light"] .llm-panel__tab:hover {
+  color: #444460;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .llm-panel__tab--active {
+  color: #00875a;
+  background: rgba(0, 180, 120, 0.06);
+}
+
+[data-theme="light"] .llm-panel__tab-badge {
+  background: rgba(0, 180, 120, 0.10);
+  color: #00875a;
+}
+
+[data-theme="light"] .llm-panel__body {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+[data-theme="light"] .llm-panel__body::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .llm-panel__body::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Provider cards */
+[data-theme="light"] .llm-provider-card {
+  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.015);
+}
+
+[data-theme="light"] .llm-provider-input-wrap input {
+  background: #fafafa;
+  border-color: rgba(0, 0, 0, 0.10);
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .llm-provider-model-tag {
+  color: #555570;
+}
+
+/* Model picker */
+[data-theme="light"] .llm-model-option {
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #2d2d44;
+}
+
+[data-theme="light"] .llm-model-option:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .llm-model-radio {
+  border-color: rgba(0, 0, 0, 0.20);
+}
+
+[data-theme="light"] .llm-model-desc {
+  color: #9999aa;
+}
+
+[data-theme="light"] .llm-model-group-label {
+  color: #9999aa;
+}
+
+/* Agent / Command rows */
+[data-theme="light"] .llm-agent-row,
+[data-theme="light"] .llm-command-row {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .llm-agent-header:hover,
+[data-theme="light"] .llm-command-header:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .llm-agent-picker,
+[data-theme="light"] .llm-command-picker {
+  background: rgba(0, 0, 0, 0.02);
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .llm-override-badge {
+  background: rgba(0, 180, 120, 0.08);
+  color: #00875a;
+}
+
+[data-theme="light"] .llm-default-badge {
+  color: #9999aa;
+}
+
+/* Footer LLM button */
+[data-theme="light"] .footer__llm-btn {
+  color: #7a7a90;
+}
+
+[data-theme="light"] .footer__llm-btn:hover {
+  color: #2d2d44;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .footer__llm-btn--active {
+  color: #00875a;
+  background: rgba(0, 180, 120, 0.06);
+}
+
 /* Modals */
 [data-theme="light"] .modal-overlay {
   background: rgba(0, 0, 0, 0.3);
