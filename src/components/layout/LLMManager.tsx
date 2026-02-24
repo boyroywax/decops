@@ -16,9 +16,9 @@ import { useState, useCallback, useEffect } from "react";
 import {
   X, Key, Bot, Cpu, Zap, RefreshCw, Trash2,
   ChevronDown, ChevronUp, Terminal, Eye, EyeOff,
-  ChevronsUp, ChevronsDown,
+  ChevronsUp, ChevronsDown, Plus, Server, Globe,
 } from "lucide-react";
-import { useLLM, type ProviderId, type LivenessStatus, type LLMModel } from "../../context/LLMContext";
+import { useLLM, type ProviderId, type LivenessStatus, type LLMModel, type OllamaInstance } from "../../context/LLMContext";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { registry } from "../../services/commands/registry";
 import "../../styles/components/llm-manager.css";
@@ -63,6 +63,7 @@ const tierColors: Record<string, string> = {
   fast: "#fbbf24",
   standard: "#38bdf8",
   image: "#f472b6",
+  local: "#fb923c",
 };
 
 // ── Provider Card ──
@@ -151,6 +152,170 @@ function ProviderCard({ providerId }: { providerId: ProviderId }) {
   );
 }
 
+// ── Ollama Instance Card ──
+
+function OllamaInstanceCard({ instance }: { instance: OllamaInstance }) {
+  const llm = useLLM();
+  const [editing, setEditing] = useState(false);
+  const [labelInput, setLabelInput] = useState(instance.label);
+  const [urlInput, setUrlInput] = useState(instance.baseUrl);
+
+  const handleSave = () => {
+    llm.updateOllamaInstance(instance.id, labelInput, urlInput);
+    setEditing(false);
+    // Auto-probe after save
+    setTimeout(() => llm.checkOllamaLiveness(instance.id), 300);
+  };
+
+  const handleRemove = () => {
+    llm.removeOllamaInstance(instance.id);
+  };
+
+  return (
+    <div className="llm-provider-card llm-ollama-card">
+      <div className="llm-provider-header">
+        <div className="llm-provider-name">
+          <LiveDot status={instance.liveness} />
+          <Server size={12} style={{ opacity: 0.6 }} />
+          {editing ? (
+            <input
+              type="text"
+              value={labelInput}
+              onChange={e => setLabelInput(e.target.value)}
+              className="input llm-ollama-name-input"
+              placeholder="Instance name"
+            />
+          ) : (
+            <span>{instance.label}</span>
+          )}
+        </div>
+        <div className="llm-provider-actions">
+          <button
+            className="btn btn-ghost btn-xs"
+            onClick={() => llm.checkOllamaLiveness(instance.id)}
+            disabled={instance.liveness === "checking"}
+            title="Test connection & fetch models"
+          >
+            <RefreshCw size={12} className={instance.liveness === "checking" ? "spin" : ""} />
+          </button>
+          <button
+            className="btn btn-ghost btn-xs"
+            onClick={() => setEditing(!editing)}
+            title="Edit instance"
+          >
+            {editing ? "Cancel" : "Edit"}
+          </button>
+          <button
+            className="btn btn-ghost btn-xs"
+            onClick={handleRemove}
+            title="Remove instance"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+      </div>
+      {editing ? (
+        <div className="llm-provider-key-row">
+          <div className="llm-provider-input-wrap">
+            <input
+              type="text"
+              value={urlInput}
+              onChange={e => setUrlInput(e.target.value)}
+              placeholder="http://localhost:11434"
+              className="input"
+            />
+          </div>
+          <button onClick={handleSave} className="btn btn-primary btn-xs">Save</button>
+        </div>
+      ) : (
+        <div className="llm-ollama-url">
+          <Globe size={10} style={{ opacity: 0.5 }} />
+          <span>{instance.baseUrl}</span>
+        </div>
+      )}
+      {instance.lastChecked && (
+        <div className="llm-provider-last-checked">
+          Last checked {new Date(instance.lastChecked).toLocaleTimeString()}
+        </div>
+      )}
+      {instance.models.length > 0 ? (
+        <div className="llm-provider-models-list">
+          {instance.models.map(m => (
+            <span key={m.id} className="llm-provider-model-tag" style={{ borderColor: "#a78bfa" }}>
+              {m.label}
+            </span>
+          ))}
+        </div>
+      ) : instance.liveness === "online" ? (
+        <div className="llm-provider-hint">No models found. Pull models with <code>ollama pull</code></div>
+      ) : null}
+    </div>
+  );
+}
+
+// ── Ollama Section (add new instances) ──
+
+function OllamaSection() {
+  const llm = useLLM();
+  const [showAdd, setShowAdd] = useState(false);
+  const [newLabel, setNewLabel] = useState("");
+  const [newUrl, setNewUrl] = useState("http://localhost:11434");
+
+  const handleAdd = () => {
+    if (!newLabel.trim() || !newUrl.trim()) return;
+    llm.addOllamaInstance(newLabel.trim(), newUrl.trim());
+    setNewLabel("");
+    setNewUrl("http://localhost:11434");
+    setShowAdd(false);
+  };
+
+  return (
+    <div className="llm-ollama-section">
+      <div className="llm-ollama-section-header">
+        <div className="llm-ollama-section-title">
+          <Server size={12} />
+          <span>Ollama Instances</span>
+          <span className="llm-ollama-count">{llm.ollamaInstances.length}</span>
+        </div>
+        <button className="btn btn-ghost btn-xs" onClick={() => setShowAdd(!showAdd)}>
+          <Plus size={12} /> Add
+        </button>
+      </div>
+      {showAdd && (
+        <div className="llm-ollama-add-form">
+          <input
+            type="text"
+            value={newLabel}
+            onChange={e => setNewLabel(e.target.value)}
+            placeholder="Instance name (e.g. Home Server)"
+            className="input"
+          />
+          <div className="llm-ollama-add-row">
+            <input
+              type="text"
+              value={newUrl}
+              onChange={e => setNewUrl(e.target.value)}
+              placeholder="http://localhost:11434"
+              className="input"
+            />
+            <button onClick={handleAdd} className="btn btn-primary btn-xs" disabled={!newLabel.trim() || !newUrl.trim()}>
+              Add Instance
+            </button>
+          </div>
+        </div>
+      )}
+      {llm.ollamaInstances.length === 0 && !showAdd && (
+        <div className="llm-ollama-empty">
+          No Ollama instances configured. Add one to use local models.
+        </div>
+      )}
+      {llm.ollamaInstances.map(inst => (
+        <OllamaInstanceCard key={inst.id} instance={inst} />
+      ))}
+    </div>
+  );
+}
+
 // ── Model Picker (used in Models, Agents, Commands tabs) ──
 
 function ModelPicker({
@@ -165,18 +330,23 @@ function ModelPicker({
   const llm = useLLM();
   const models = filter ? llm.allModels.filter(filter) : llm.allModels;
 
-  // Group by provider
-  const grouped = models.reduce<Record<string, LLMModel[]>>((acc, m) => {
-    (acc[m.provider] ??= []).push(m);
+  // Group by groupKey (defaults to provider)
+  const grouped = models.reduce<Record<string, { label: string; models: LLMModel[] }>>((acc, m) => {
+    const key = m.groupKey ?? m.provider;
+    if (!acc[key]) {
+      const providerLabels: Record<string, string> = { anthropic: "Anthropic", google: "Google AI", openai: "OpenAI", ollama: "Ollama" };
+      acc[key] = { label: m.groupLabel ?? providerLabels[m.provider] ?? m.provider, models: [] };
+    }
+    acc[key].models.push(m);
     return acc;
   }, {});
 
   return (
     <div className="llm-model-picker">
-      {Object.entries(grouped).map(([provider, pModels]) => (
-        <div key={provider} className="llm-model-group">
-          <div className="llm-model-group-label">{provider === "anthropic" ? "Anthropic" : "Google AI"}</div>
-          {pModels.map(m => {
+      {Object.entries(grouped).map(([key, group]) => (
+        <div key={key} className="llm-model-group">
+          <div className="llm-model-group-label">{group.label}</div>
+          {group.models.map(m => {
             const active = m.id === selectedId;
             const tc = tierColors[m.tier] || "#71717a";
             return (
@@ -452,6 +622,7 @@ export function LLMManager({ onClose, height, setHeight, isExpanded, onToggleExp
               API keys stored in localStorage. Only sent to the provider's API.
             </p>
             {llm.providers.map(p => <ProviderCard key={p.id} providerId={p.id} />)}
+            <OllamaSection />
           </div>
         )}
 

@@ -761,6 +761,25 @@
   color: #555570;
 }
 
+/* Ollama section */
+[data-theme="light"] .llm-ollama-section {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .llm-ollama-card {
+  border-color: rgba(120, 80, 220, 0.12);
+}
+
+[data-theme="light"] .llm-ollama-add-form {
+  border-color: rgba(0, 0, 0, 0.10);
+  background: rgba(0, 0, 0, 0.01);
+}
+
+[data-theme="light"] .llm-ollama-count {
+  background: rgba(0, 0, 0, 0.04);
+  color: #9999aa;
+}
+
 /* Model picker */
 [data-theme="light"] .llm-model-option {
   border-color: rgba(0, 0, 0, 0.08);

@@ -531,6 +531,84 @@
   to { transform: rotate(360deg); }
 }
 
+/* ── Ollama Section ── */
+.llm-ollama-section {
+  margin-top: var(--space-lg);
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-md);
+}
+
+.llm-ollama-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.llm-ollama-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.llm-ollama-count {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0 5px;
+  border-radius: var(--radius-lg);
+  color: var(--text-ghost);
+}
+
+.llm-ollama-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.llm-ollama-add-row {
+  display: flex;
+  gap: var(--space-xs);
+  align-items: center;
+}
+
+.llm-ollama-add-row .input {
+  flex: 1;
+}
+
+.llm-ollama-empty {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  text-align: center;
+  padding: var(--space-md);
+}
+
+.llm-ollama-card {
+  border-color: rgba(167, 139, 250, 0.15);
+}
+
+.llm-ollama-url {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  font-family: var(--font-mono, monospace);
+  margin-top: var(--space-xs);
+}
+
+.llm-ollama-name-input {
+  max-width: 160px;
+  font-size: var(--text-sm) !important;
+  padding: 2px var(--space-sm) !important;
+}
+
 /* ── Footer LLM Badge ── */
 .footer__llm-btn {
   background: none;

@@ -4,8 +4,17 @@ import { repairJSON } from "../utils/json";
 import { sanitizeJSONString } from "../utils/json";
 
 const API_URL = "https://api.anthropic.com/v1/messages";
+const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const DEFAULT_MODEL = "claude-sonnet-4-20250514";
 const ANTHROPIC_VERSION = "2023-06-01";
+
+/** Detect provider from model ID */
+export function getModelProvider(modelId: string): "anthropic" | "google" | "openai" | "ollama" {
+  if (modelId.startsWith("ollama:")) return "ollama";
+  if (modelId.startsWith("gpt-") || modelId.startsWith("o3") || modelId.startsWith("o4")) return "openai";
+  if (modelId.startsWith("gemini") || modelId.startsWith("imagen")) return "google";
+  return "anthropic";
+}
 
 /** Read the user's saved API key from localStorage */
 function getApiKey(): string {
@@ -16,6 +25,34 @@ function getApiKey(): string {
     );
   }
   return key;
+}
+
+/** Read the OpenAI API key from localStorage */
+export function getOpenAIApiKey(): string {
+  const key = localStorage.getItem("openai_api_key");
+  if (!key) {
+    throw new Error(
+      "No OpenAI API key configured. Go to LLM Manager → Providers to add your API key."
+    );
+  }
+  return key;
+}
+
+/** Get Ollama base URL for a model ID (format: ollama:instanceId:modelName) */
+export function getOllamaEndpoint(modelId: string): { baseUrl: string; model: string } {
+  const parts = modelId.split(":");
+  if (parts.length < 3) throw new Error("Invalid Ollama model ID format");
+  const instanceId = parts[1];
+  const modelName = parts.slice(2).join(":");
+  try {
+    const instances = JSON.parse(localStorage.getItem("ollama_instances") || "[]");
+    const inst = instances.find((i: any) => i.id === instanceId);
+    if (!inst) throw new Error(`Ollama instance ${instanceId} not found`);
+    return { baseUrl: inst.baseUrl, model: modelName };
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("not found")) throw e;
+    throw new Error("Failed to read Ollama instances from storage");
+  }
 }
 
 /** Read the user's selected model from localStorage, or fall back to default */

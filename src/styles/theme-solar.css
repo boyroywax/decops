@@ -830,6 +830,25 @@
   color: #6b5b4a;
 }
 
+/* Ollama section */
+[data-theme="solar"] .llm-ollama-section {
+  border-top-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .llm-ollama-card {
+  border-color: rgba(130, 80, 200, 0.12);
+}
+
+[data-theme="solar"] .llm-ollama-add-form {
+  border-color: rgba(120, 80, 20, 0.12);
+  background: rgba(120, 80, 20, 0.02);
+}
+
+[data-theme="solar"] .llm-ollama-count {
+  background: rgba(120, 80, 20, 0.06);
+  color: #8a7b6a;
+}
+
 /* Model picker */
 [data-theme="solar"] .llm-model-option {
   border-color: rgba(120, 80, 20, 0.10);
