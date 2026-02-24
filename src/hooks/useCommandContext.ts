@@ -4,6 +4,7 @@ import { CommandContext } from "../services/commands/types";
 import { type WorkspaceContextType } from "../context/WorkspaceContext";
 import { type User } from "../types";
 import { useAutomations } from "../context/AutomationsContext";
+import { getAgentModel, getCommandModel } from "../services/ai";
 
 // Interfaces for props that are usually passed from other hooks
 // We are mimicking the dependencies required to build the context.
@@ -74,7 +75,9 @@ export function useCommandContext({
             },
             system: {
                 setApiKey: (key: string) => localStorage.setItem("anthropic_api_key", key),
-                setModel: (model: string) => localStorage.setItem("anthropic_model", model)
+                setModel: (model: string) => localStorage.setItem("anthropic_model", model),
+                getModelForCommand: (commandId: string) => getCommandModel(commandId),
+                getModelForAgent: (agentId: string) => getAgentModel(agentId),
             },
             architect: {
                 generateNetwork: architect.generateNetwork,

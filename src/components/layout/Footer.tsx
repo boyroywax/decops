@@ -5,7 +5,9 @@ import { ChatPanel } from "./ChatPanel";
 import { ActionManager } from "../actions/ActionManager";
 import { ArtifactsPanel } from "./ArtifactsPanel";
 import { useTheme } from "../../context/ThemeContext";
+import { useLLM, type LivenessStatus } from "../../context/LLMContext";
 import "../../styles/components/footer.css";
+import "../../styles/components/llm-manager.css";
 
 // Update interface
 interface FooterProps {
@@ -48,6 +50,14 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
     const savedHeightRef = useRef(DEFAULT_PANEL_HEIGHT);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const { theme, toggleTheme } = useTheme();
+    const llm = useLLM();
+
+    // LLM status dot color
+    const dotColors: Record<LivenessStatus, string> = {
+        online: "#00e5a0", offline: "#ef4444", checking: "#fbbf24",
+        unknown: "#71717a", "no-key": "#71717a",
+    };
+    const llmModel = llm.getModelById(llm.globalModel);
 
     // Resize handler: sets height and clears expanded state
     const handleSetHeight = (h: number) => {
@@ -199,6 +209,24 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                             </div>
                         </>
                     )}
+
+                    <span className="footer__separator">│</span>
+                    <button
+                        onClick={llm.openManager}
+                        className="footer__llm-btn"
+                        title={`LLM: ${llm.overallStatus} — ${llmModel?.label || llm.globalModel}`}
+                    >
+                        <span
+                            className={`llm-dot${llm.overallStatus === "checking" ? " llm-dot--pulse" : ""}`}
+                            style={{ width: 6, height: 6, background: dotColors[llm.overallStatus] }}
+                        />
+                        <Zap size={10} />
+                        {!jobsProps.isMobile && (
+                            <span className="footer__llm-label">
+                                {llmModel?.label || "LLM"}
+                            </span>
+                        )}
+                    </button>
 
                     <span className="footer__separator">│</span>
                     <button

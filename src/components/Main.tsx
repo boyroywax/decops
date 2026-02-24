@@ -4,6 +4,7 @@ import { WorkspaceProvider } from "../context/WorkspaceContext";
 import { AuthenticatedApp } from "./layout/AuthenticatedApp";
 import { LoginView } from "./views/LoginView";
 import { AutomationsProvider } from "../context/AutomationsContext";
+import { LLMProvider } from "../context/LLMContext";
 import { useNotebook } from "../hooks/useNotebook";
 
 function InternalApp() {
@@ -11,11 +12,13 @@ function InternalApp() {
     const notebook = useNotebook();
 
     return (
-        <WorkspaceProvider addJob={addJob}>
-            <AutomationsProvider addLog={notebook.addLog}>
-                <AuthenticatedApp notebook={notebook} />
-            </AutomationsProvider>
-        </WorkspaceProvider>
+        <LLMProvider>
+            <WorkspaceProvider addJob={addJob}>
+                <AutomationsProvider addLog={notebook.addLog}>
+                    <AuthenticatedApp notebook={notebook} />
+                </AutomationsProvider>
+            </WorkspaceProvider>
+        </LLMProvider>
     );
 }
 

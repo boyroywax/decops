@@ -74,6 +74,10 @@ export interface CommandContext {
     system: {
         setApiKey: (key: string) => void;
         setModel: (model: string) => void;
+        /** Resolve the model to use for a given command (checks per-command override → global) */
+        getModelForCommand: (commandId: string) => string;
+        /** Resolve the model to use for a given agent (checks per-agent override → global) */
+        getModelForAgent: (agentId: string) => string;
     };
     architect: {
         generateNetwork: (prompt: string) => void;

@@ -1,0 +1,520 @@
+/**
+ * LLM Manager — modal + footer badge styles
+ */
+
+/* ── Backdrop ── */
+.llm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: llm-fade-in 0.15s ease;
+}
+
+@keyframes llm-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Modal ── */
+.llm-modal {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  width: min(560px, 92vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  animation: llm-slide-up 0.2s ease;
+}
+
+@keyframes llm-slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ── */
+.llm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.llm-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.llm-header-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ── Tabs ── */
+.llm-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 var(--space-md);
+}
+
+.llm-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-subtle);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.llm-tab:hover {
+  color: var(--text-muted);
+}
+
+.llm-tab--active {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+.llm-tab-badge {
+  font-size: 9px;
+  background: rgba(0, 229, 160, 0.15);
+  color: var(--color-accent);
+  padding: 0 5px;
+  border-radius: 8px;
+  min-width: 14px;
+  text-align: center;
+}
+
+/* ── Body ── */
+.llm-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-lg);
+}
+
+.llm-section-desc {
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+  margin-bottom: var(--space-lg);
+  line-height: 1.5;
+}
+
+.llm-empty {
+  text-align: center;
+  color: var(--text-ghost);
+  padding: var(--space-2xl);
+  font-size: var(--text-sm);
+}
+
+/* ── Liveness dot ── */
+.llm-dot {
+  display: inline-block;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.llm-dot--pulse {
+  animation: llm-pulse 1s ease-in-out infinite;
+}
+
+@keyframes llm-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ── Provider Card ── */
+.llm-provider-card {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+
+.llm-provider-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.llm-provider-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.llm-provider-actions {}
+
+.llm-provider-key-row {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+.llm-provider-input-wrap {
+  flex: 1;
+  position: relative;
+}
+
+.llm-provider-input-wrap input {
+  width: 100%;
+  padding-right: 36px;
+}
+
+.llm-provider-eye {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-ghost);
+  cursor: pointer;
+  padding: 2px;
+}
+
+.llm-provider-saved {
+  font-size: var(--text-xs);
+  color: var(--color-accent);
+  margin-top: var(--space-xs);
+}
+
+.llm-provider-hint {
+  margin-top: var(--space-xs);
+  font-size: var(--text-xs);
+}
+
+.llm-provider-hint a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.llm-provider-hint a:hover {
+  text-decoration: underline;
+}
+
+.llm-provider-last-checked {
+  font-size: 10px;
+  color: var(--text-ghost);
+  margin-top: var(--space-xs);
+}
+
+.llm-provider-models-list {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin-top: var(--space-sm);
+}
+
+.llm-provider-model-tag {
+  font-size: 10px;
+  color: var(--text-subtle);
+  border: 1px solid;
+  padding: 1px 7px;
+  border-radius: var(--radius-md);
+}
+
+/* ── Model Picker ── */
+.llm-model-picker {}
+
+.llm-model-group {
+  margin-bottom: var(--space-md);
+}
+
+.llm-model-group-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-ghost);
+  margin-bottom: var(--space-xs);
+  padding-left: 2px;
+}
+
+.llm-model-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+  transition: all var(--transition-fast);
+}
+
+.llm-model-option:hover {
+  background: var(--bg-surface-hover);
+}
+
+.llm-model-option--active {
+  border-width: 1.5px;
+}
+
+.llm-model-radio {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--text-ghost);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.llm-model-radio.active {
+  border-width: 2px;
+}
+
+.llm-model-radio-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.llm-model-info {
+  flex: 1;
+  text-align: left;
+}
+
+.llm-model-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.llm-model-desc {
+  font-size: 10px;
+  color: var(--text-ghost);
+}
+
+.llm-model-tier {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+/* ── Agents Tab ── */
+.llm-agents-list {}
+
+.llm-agent-row {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-xs);
+  overflow: hidden;
+}
+
+.llm-agent-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+}
+
+.llm-agent-header:hover {
+  background: var(--bg-surface-hover);
+}
+
+.llm-agent-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.llm-agent-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.llm-agent-role {
+  font-size: 10px;
+  color: var(--text-ghost);
+  text-transform: capitalize;
+}
+
+.llm-agent-model-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+}
+
+.llm-override-badge {
+  color: var(--color-accent);
+  background: rgba(0, 229, 160, 0.1);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+}
+
+.llm-default-badge {
+  color: var(--text-ghost);
+  font-size: 10px;
+}
+
+.llm-agent-picker {
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.llm-agent-picker-header,
+.llm-command-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+/* ── Commands Tab ── */
+.llm-commands-list {}
+
+.llm-command-row {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-xs);
+  overflow: hidden;
+}
+
+.llm-command-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text-primary);
+  transition: background var(--transition-fast);
+}
+
+.llm-command-header:hover {
+  background: var(--bg-surface-hover);
+}
+
+.llm-command-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.llm-command-name {
+  font-size: var(--text-sm);
+  font-family: var(--font-mono, monospace);
+}
+
+.llm-command-model-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+}
+
+.llm-command-picker {
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.llm-command-picker-header span {
+  font-size: 11px;
+  color: var(--text-ghost);
+  line-height: 1.4;
+}
+
+.llm-probe-all {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-sm);
+}
+
+/* ── Spinner util ── */
+.spin {
+  animation: spin-anim 1s linear infinite;
+}
+
+@keyframes spin-anim {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── Footer LLM Badge ── */
+.footer__llm-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.footer__llm-btn:hover {
+  color: var(--text-muted);
+  background: var(--bg-surface-hover);
+}
+
+.footer__llm-label {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── btn-xs utility ── */
+.btn-xs {
+  padding: 2px 8px !important;
+  font-size: 11px !important;
+  gap: 4px;
+}
+
+/* ── btn-link utility ── */
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  text-decoration: underline;
+  padding: 0;
+}

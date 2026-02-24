@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { X, AlertTriangle, Clipboard, Key, Bot, Download, Upload, Check, Image as ImageIcon } from "lucide-react";
+import { X, AlertTriangle, Clipboard, Download, Upload, Check, Zap } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { useEcosystemContext } from "../../context/EcosystemContext";
-import { ANTHROPIC_MODELS } from "../../constants";
-import { getSelectedModel, setSelectedModel } from "../../services/ai";
-import { getGeminiApiKey, setGeminiApiKey as saveGeminiKey } from "../../services/imageGen";
+import { useLLM } from "../../context/LLMContext";
 import { GemAvatar } from "../shared/GemAvatar";
 import { CopyableId } from "../shared/CopyableId";
 import "../../styles/components/profile-modal.css";
@@ -19,25 +17,12 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { user } = useAuth();
   const workspace = useWorkspaceContext();
   const ecosystem = useEcosystemContext();
+  const llm = useLLM();
 
-  const [apiKey, setApiKey] = useState("");
-  const [showKey, setShowKey] = useState(false);
   const [status, setStatus] = useState("");
-  const [selectedModelId, setSelectedModelId] = useState(getSelectedModel());
-  const [hasKey, setHasKey] = useState(false);
-  const [geminiKey, setGeminiKey] = useState("");
-  const [showGeminiKey, setShowGeminiKey] = useState(false);
-  const [hasGeminiKey, setHasGeminiKey] = useState(false);
   const [importStatus, setImportStatus] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const storedKey = localStorage.getItem("anthropic_api_key");
-    if (storedKey) { setApiKey(storedKey); setHasKey(true); }
-    const storedGemini = getGeminiApiKey();
-    if (storedGemini) { setGeminiKey(storedGemini); setHasGeminiKey(true); }
-  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -47,38 +32,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   }, [isOpen, onClose]);
 
   if (!isOpen || !user) return null;
-
-  const handleSaveKey = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem("anthropic_api_key", apiKey.trim());
-      setHasKey(true);
-      setStatus("API Key saved successfully!");
-    } else {
-      localStorage.removeItem("anthropic_api_key");
-      setHasKey(false);
-      setStatus("API Key removed.");
-    }
-    setTimeout(() => setStatus(""), 3000);
-  };
-
-  const handleSaveGeminiKey = () => {
-    saveGeminiKey(geminiKey);
-    if (geminiKey.trim()) {
-      setHasGeminiKey(true);
-      setStatus("Gemini key saved! Portraits will generate on next load.");
-    } else {
-      setHasGeminiKey(false);
-      setStatus("Gemini key removed.");
-    }
-    setTimeout(() => setStatus(""), 3000);
-  };
-
-  const handleSelectModel = (modelId: string) => {
-    setSelectedModelId(modelId);
-    setSelectedModel(modelId);
-    setStatus(`Model switched to ${ANTHROPIC_MODELS.find(m => m.id === modelId)?.label}`);
-    setTimeout(() => setStatus(""), 3000);
-  };
 
   const downloadJSON = (data: any, filename: string) => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -163,12 +116,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     }
   };
 
-  const tierColors: Record<string, string> = {
-    recommended: "#00e5a0", premium: "#a78bfa", fast: "#fbbf24", standard: "#38bdf8",
-  };
-  const tierLabels: Record<string, string> = {
-    recommended: "RECOMMENDED", premium: "PREMIUM", fast: "FAST", standard: "STANDARD",
-  };
+  const hasAnyKey = llm.hasProviderKey("anthropic") || llm.hasProviderKey("google");
 
   return (
     <div
@@ -197,14 +145,14 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
         <div className="profile-modal-body">
           <div className="profile-modal-sections">
 
-            {/* API Key Warning */}
-            {!hasKey && (
+            {/* No API Key Warning → points to LLM Manager */}
+            {!hasAnyKey && (
               <div className="profile-api-warning">
                 <AlertTriangle size={16} />
                 <div>
-                  <div className="profile-api-warning-title">No API Key</div>
+                  <div className="profile-api-warning-title">No API Keys</div>
                   <div className="profile-api-warning-description">
-                    Agent AI features require an Anthropic API key.
+                    Open the <button className="btn-link" onClick={() => { onClose(); llm.openManager(); }}>LLM Manager</button> to configure API keys and models.
                   </div>
                 </div>
               </div>
@@ -231,113 +179,26 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               </div>
             </section>
 
-            {/* API Key */}
+            {/* LLM Manager link (replaces old API Key + Model Selection sections) */}
             <section className="profile-section">
               <div className="profile-section-header">
-                <Key size={14} color="#00e5a0" /> API Configuration
+                <Zap size={14} color="#00e5a0" /> AI & Models
               </div>
               <p className="profile-section-description">
-                Anthropic API key for agent capabilities. Stored locally.
+                API keys, model selection, per-agent and per-command overrides.
               </p>
-              <div className="profile-form-row">
-                <div className="profile-form-input-wrapper">
-                  <input
-                    type={showKey ? "text" : "password"}
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="sk-ant-..."
-                    className={`input ${hasKey ? 'input-success' : ''}`}
-                  />
-                  <button onClick={() => setShowKey(!showKey)} className="profile-form-toggle">
-                    {showKey ? "Hide" : "Show"}
-                  </button>
+              <button
+                onClick={() => { onClose(); llm.openManager(); }}
+                className="btn btn-primary"
+                style={{ width: "100%" }}
+              >
+                <Zap size={13} /> Open LLM Manager
+              </button>
+              {hasAnyKey && (
+                <div className="profile-key-status" style={{ marginTop: "var(--space-sm)" }}>
+                  ● {llm.providers.filter(p => p.apiKey).map(p => p.label).join(", ")} configured
                 </div>
-                <button onClick={handleSaveKey} className="btn btn-primary">
-                  Save
-                </button>
-              </div>
-              {status && <div className={`profile-status ${status.includes("removed") ? "warning" : "success"}`}>{status}</div>}
-              {hasKey && <div className="profile-key-status">● Key configured</div>}
-              {!hasKey && (
-                <p className="profile-hint">
-                  Get yours at{" "}
-                  <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer">console.anthropic.com</a>
-                </p>
               )}
-              {/* Gemini API Key for Image Generation */}
-              <div style={{ marginTop: "var(--space-lg)", paddingTop: "var(--space-md)", borderTop: "1px solid var(--border-subtle)" }}>
-                <label className="label" style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <ImageIcon size={12} style={{ opacity: 0.6 }} /> Google AI (Gemini) Key
-                  <span style={{ fontSize: "10px", opacity: 0.45, marginLeft: 4 }}>portraits</span>
-                </label>
-                <div className="profile-form-row">
-                  <div className="profile-form-input-wrapper">
-                    <input
-                      type={showGeminiKey ? "text" : "password"}
-                      value={geminiKey}
-                      onChange={(e) => setGeminiKey(e.target.value)}
-                      placeholder="AIza..."
-                      className={`input ${hasGeminiKey ? "input-success" : ""}`}
-                    />
-                    <button onClick={() => setShowGeminiKey(!showGeminiKey)} className="profile-form-toggle">
-                      {showGeminiKey ? "Hide" : "Show"}
-                    </button>
-                  </div>
-                  <button onClick={handleSaveGeminiKey} className="btn btn-primary">Save</button>
-                </div>
-                {hasGeminiKey && <div className="profile-key-status">● Gemini key configured</div>}
-                {!hasGeminiKey && (
-                  <p className="profile-hint">
-                    For AI portraits.{" "}
-                    <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer">aistudio.google.com</a>
-                  </p>
-                )}
-              </div>
-            </section>
-
-            {/* Model Selection */}
-            <section className="profile-section">
-              <div className="profile-section-header">
-                <Bot size={14} color="#a78bfa" /> Model Selection
-              </div>
-              <p className="profile-section-description">
-                Claude model for agent conversations and mesh generation.
-              </p>
-              <div className="profile-model-grid">
-                {ANTHROPIC_MODELS.map((model) => {
-                  const isSelected = selectedModelId === model.id;
-                  const tierColor = tierColors[model.tier] || "#71717a";
-                  return (
-                    <button
-                      key={model.id}
-                      onClick={() => handleSelectModel(model.id)}
-                      className={`profile-model-btn ${isSelected ? 'selected' : ''}`}
-                      style={isSelected ? { background: `${tierColor}08` } : undefined}
-                    >
-                      <div className={`profile-model-radio ${isSelected ? 'selected' : ''}`} style={isSelected ? { borderColor: tierColor } : undefined}>
-                        {isSelected && <div className="profile-model-radio-inner" style={{ background: tierColor }} />}
-                      </div>
-                      <div className="profile-model-info">
-                        <div className="profile-model-header">
-                          <span className={`profile-model-name ${isSelected ? 'selected' : ''}`}>
-                            {model.label}
-                          </span>
-                          <span 
-                            className="profile-model-tier"
-                            style={{ background: `${tierColor}18`, color: tierColor }}
-                          >
-                            {tierLabels[model.tier]}
-                          </span>
-                        </div>
-                        <div className="profile-model-desc">{model.desc}</div>
-                      </div>
-                      <div className="profile-model-id">
-                        {model.id.length > 20 ? model.id.slice(0, 18) + "…" : model.id}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
             </section>
 
             {/* Export */}

@@ -23,6 +23,28 @@ export function getSelectedModel(): string {
   return localStorage.getItem("anthropic_model") || DEFAULT_MODEL;
 }
 
+/** Get model for a specific agent (checks per-agent override, then global) */
+export function getAgentModel(agentId?: string): string {
+  if (agentId) {
+    try {
+      const map = JSON.parse(localStorage.getItem("llm_agent_models") || "{}");
+      if (map[agentId]) return map[agentId];
+    } catch { /* ignore parse errors */ }
+  }
+  return getSelectedModel();
+}
+
+/** Get model for a specific command (checks per-command override, then global) */
+export function getCommandModel(commandId?: string): string {
+  if (commandId) {
+    try {
+      const map = JSON.parse(localStorage.getItem("llm_command_models") || "{}");
+      if (map[commandId]) return map[commandId];
+    } catch { /* ignore parse errors */ }
+  }
+  return getSelectedModel();
+}
+
 /** Save the selected model to localStorage */
 export function setSelectedModel(modelId: string): void {
   localStorage.setItem("anthropic_model", modelId);
@@ -118,7 +140,7 @@ export async function callAgentAI(
   crossNetworkCtx?: string,
 ): Promise<string> {
   const apiKey = getApiKey();
-  const model = getSelectedModel();
+  const model = getAgentModel(agent.id);
 
   const systemPrompt = [
     `You are "${agent.name}", a ${ROLES.find(r => r.id === agent.role)?.label} agent in a decentralized mesh workspace.`,
@@ -170,7 +192,7 @@ export async function chatWithAgent(
   history: ChatMessage[],
 ): Promise<string> {
   const apiKey = getApiKey();
-  const model = getSelectedModel();
+  const model = getAgentModel(agent.id);
 
   const role = ROLES.find(r => r.id === agent.role);
   const systemPrompt = [

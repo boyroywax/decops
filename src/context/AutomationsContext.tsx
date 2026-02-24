@@ -97,7 +97,9 @@ const AutomationsProviderInner = ({ children, addLog }: { children: ReactNode, a
             },
             system: {
                 setApiKey: () => { },
-                setModel: () => { }
+                setModel: () => { },
+                getModelForCommand: () => "",
+                getModelForAgent: () => "",
             },
             architect: {
                 generateNetwork: () => { },

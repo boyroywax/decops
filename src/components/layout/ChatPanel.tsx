@@ -3,7 +3,7 @@ import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown } from "lucide
 import { GradientIcon } from "../shared/GradientIcon";
 import { chatWithWorkspace, getSelectedModel } from "../../services/ai";
 import type { ChatMessage, WorkspaceContext } from "../../services/ai";
-import { ANTHROPIC_MODELS } from "../../constants";
+import { useLLM } from "../../context/LLMContext";
 import MessageBubble from "../chat/MessageBubble";
 import { loadConversations, saveConversations, loadActiveId, saveActiveId, makeId, deriveTitle } from "../chat/utils";
 import type { Conversation } from "../chat/types";
@@ -232,7 +232,8 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     }, [isResizing, resize, stopResizing]);
 
     const modelId = getSelectedModel();
-    const modelLabel = ANTHROPIC_MODELS.find(m => m.id === modelId)?.label || modelId;
+    const llm = useLLM();
+    const modelLabel = llm.getModelById(modelId)?.label || modelId;
 
     const isReady = !!input.trim() && !loading;
 

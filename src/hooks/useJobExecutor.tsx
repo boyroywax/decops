@@ -3,6 +3,7 @@ import { Rocket, CheckCircle, XCircle } from "lucide-react";
 import { GradientIcon } from "../components/shared/GradientIcon";
 import { useNotebook } from "./useNotebook";
 import { registry } from "../services/commands/registry";
+import { getAgentModel, getCommandModel } from "../services/ai";
 import type { CommandContext } from "../services/commands/types";
 import type { WorkspaceContextType } from "../context/WorkspaceContext";
 import type { User } from "../types";
@@ -147,7 +148,9 @@ export function useJobExecutor({
                         },
                         system: {
                             setApiKey: (key: string) => localStorage.setItem("anthropic_api_key", key),
-                            setModel: (model: string) => localStorage.setItem("anthropic_model", model)
+                            setModel: (model: string) => localStorage.setItem("anthropic_model", model),
+                            getModelForCommand: (commandId: string) => getCommandModel(commandId),
+                            getModelForAgent: (agentId: string) => getAgentModel(agentId),
                         },
                         architect: {
                             generateNetwork: architect.generateNetwork,
