@@ -64,6 +64,10 @@
   --shadow-md: 0 4px 12px rgba(120, 80, 20, 0.10);
   --shadow-lg: 0 8px 24px rgba(120, 80, 20, 0.12);
   --shadow-xl: 0 25px 60px rgba(120, 80, 20, 0.14);
+
+  /* Scrollbar */
+  --scrollbar-thumb: rgba(120, 80, 20, 0.18);
+  --scrollbar-thumb-hover: rgba(120, 80, 20, 0.28);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

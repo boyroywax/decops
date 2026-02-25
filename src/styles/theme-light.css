@@ -63,6 +63,10 @@
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
   --shadow-xl: 0 25px 60px rgba(0, 0, 0, 0.12);
+
+  /* Scrollbar */
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -712,7 +716,7 @@
   background: rgba(99, 102, 241, 0.14);
 }
 
-[data-theme="light"] .artifacts-panel__grid {
+[data-theme="light"] .artifacts-panel__grid-area {
   scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
