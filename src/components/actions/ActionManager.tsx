@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { X, Terminal, Zap, BookOpen, Activity, ChevronsUp, ChevronsDown, Briefcase, TerminalSquare } from "lucide-react";
+import { X, Terminal, Zap, BookOpen, Activity, ChevronsUp, ChevronsDown, Briefcase, TerminalSquare, Clock } from "lucide-react";
 import { ActionsMonitor } from "./ActionsMonitor";
+import { AutomationsPanel } from "./AutomationsPanel";
+import { HistoryPanel } from "./HistoryPanel";
 import { UnifiedBuilder } from "./UnifiedBuilder";
 import { CommandsPanel } from "./CommandsPanel";
 import { JobCatalog } from "../jobs/JobCatalog";
@@ -25,7 +27,7 @@ interface ActionManagerProps {
 
 export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob, height, setHeight, isExpanded, onToggleExpand }: ActionManagerProps) {
     const [isResizing, setIsResizing] = useState(false);
-    const [activeTab, setActiveTab] = useState<"monitor" | "catalog" | "commands" | "builder">("monitor");
+    const [activeTab, setActiveTab] = useState<"monitor" | "automations" | "history" | "catalog" | "commands" | "builder">("monitor");
 
     // Contexts
     const { jobs, addJob, removeJob, stopJob, clearJobs } = useJobsContext();
@@ -99,6 +101,18 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
                             <Activity size={9} /> Monitor
                         </button>
                         <button
+                            onClick={() => setActiveTab("automations")}
+                            className={`action-manager__tab${activeTab === "automations" ? " action-manager__tab--active" : ""}`}
+                        >
+                            <Zap size={9} /> Automations
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("history")}
+                            className={`action-manager__tab${activeTab === "history" ? " action-manager__tab--active" : ""}`}
+                        >
+                            <Clock size={9} /> History
+                        </button>
+                        <button
                             onClick={() => setActiveTab("catalog")}
                             className={`action-manager__tab${activeTab === "catalog" ? " action-manager__tab--active" : ""}`}
                         >
@@ -114,7 +128,7 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
                             onClick={() => setActiveTab("builder")}
                             className={`action-manager__tab${activeTab === "builder" ? " action-manager__tab--active" : ""}`}
                         >
-                            <Zap size={9} /> Builder
+                            <BookOpen size={9} /> Builder
                         </button>
                     </div>
                 </div>
@@ -138,6 +152,16 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
                 {activeTab === "monitor" && (
                     <div className="action-manager__tab-content">
                         <ActionsMonitor />
+                    </div>
+                )}
+                {activeTab === "automations" && (
+                    <div className="action-manager__tab-content">
+                        <AutomationsPanel />
+                    </div>
+                )}
+                {activeTab === "history" && (
+                    <div className="action-manager__tab-content">
+                        <HistoryPanel />
                     </div>
                 )}
                 {activeTab === "catalog" && (

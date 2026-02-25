@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 import { useJobsContext } from "../../context/JobsContext";
-import { useAutomations } from "../../context/AutomationsContext";
-import { AutomationCard } from "../automations/AutomationCard";
 import {
-    CheckCircle, Clock, PlayCircle, AlertCircle, Trash2,
-    ChevronDown, ChevronUp, Terminal, FileText, Timer,
+    CheckCircle, Clock, AlertCircle, Timer,
+    ChevronDown, ChevronUp, Terminal, FileText,
 } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { CopyableId } from "../shared/CopyableId";
@@ -39,13 +37,17 @@ function renderRequestParams(request: Record<string, any>) {
     );
 }
 
+const RECENT_OPTIONS = [5, 10, 20, 50];
+
 export function ActionsMonitor() {
     const { jobs, isPaused, toggleQueuePause } = useJobsContext();
-    const { automations, runs, runAutomation, deleteAutomation } = useAutomations();
     const [expandedJob, setExpandedJob] = useState<string | null>(null);
+    const [recentCount, setRecentCount] = useState(5);
 
     const activeJobs = jobs.filter(j => j.status === "queued" || j.status === "running");
-    const historyJobs = jobs.filter(j => j.status === "completed" || j.status === "failed").slice(0, 20);
+    const recentCompleted = jobs
+        .filter(j => j.status === "completed" || j.status === "failed")
+        .slice(0, recentCount);
 
     const toggleExpand = (id: string) => {
         setExpandedJob(prev => prev === id ? null : id);
@@ -93,51 +95,28 @@ export function ActionsMonitor() {
                 </div>
             </div>
 
-            {/* Automations Section */}
+            {/* Recent Completed Section */}
             <div>
-                <h3 className="actions-monitor__section-title actions-monitor__section-title--spaced">Active Automations</h3>
-                <div className="actions-monitor__auto-grid">
-                    {automations.map(auto => {
-                        const lastRun = runs.find(r => r.automationId === auto.id);
-                        return (
-                            <div key={auto.id} className="actions-monitor__auto-card">
-                                <div className="actions-monitor__auto-header">
-                                    <span className="actions-monitor__auto-name">{auto.name}</span>
-                                    {auto.schedule && <span className="actions-monitor__auto-schedule">{auto.schedule}</span>}
-                                </div>
-                                <p className="actions-monitor__auto-desc">{auto.description}</p>
-                                <div className="actions-monitor__auto-footer">
-                                    <div className="actions-monitor__auto-time">
-                                        <Clock size={12} />
-                                        {lastRun ? new Date(lastRun.startTime).toLocaleTimeString() : "Never run"}
-                                    </div>
-                                    <button
-                                        onClick={() => runAutomation(auto.id)}
-                                        className="actions-monitor__auto-action actions-monitor__auto-action--run"
-                                    >
-                                        <PlayCircle size={14} /> Run Now
-                                    </button>
-                                    <button
-                                        onClick={() => deleteAutomation(auto.id)}
-                                        className="actions-monitor__auto-action actions-monitor__auto-action--delete"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            </div>
-                        );
-                    })}
+                <div className="actions-monitor__section-header">
+                    <h3 className="actions-monitor__section-title">Recently Completed</h3>
+                    <div className="actions-monitor__controls">
+                        <select
+                            className="actions-monitor__recent-select"
+                            value={recentCount}
+                            onChange={e => setRecentCount(Number(e.target.value))}
+                        >
+                            {RECENT_OPTIONS.map(n => (
+                                <option key={n} value={n}>Last {n}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
-            </div>
 
-            {/* Recent History Section */}
-            <div>
-                <h3 className="actions-monitor__section-title actions-monitor__section-title--spaced">Recent History</h3>
                 <div className="actions-monitor__history-list">
-                    {historyJobs.length === 0 && (
+                    {recentCompleted.length === 0 && (
                         <div className="actions-monitor__empty">No completed jobs yet.</div>
                     )}
-                    {historyJobs.map(job => {
+                    {recentCompleted.map(job => {
                         const isExpanded = expandedJob === job.id;
                         const duration = job.updatedAt && job.createdAt
                             ? formatDuration(job.updatedAt - job.createdAt)
@@ -153,7 +132,6 @@ export function ActionsMonitor() {
                                     borderLeft: `3px solid ${job.status === 'completed' ? '#10b981' : '#ef4444'}`,
                                 }}
                             >
-                                {/* Header row */}
                                 <div
                                     className="actions-monitor__history-header"
                                     onClick={() => toggleExpand(job.id)}
@@ -184,25 +162,18 @@ export function ActionsMonitor() {
                                     </div>
                                 </div>
 
-                                {/* ID row */}
                                 <div className="actions-monitor__history-id">
                                     <CopyableId value={job.id} label="ID" truncate={32} />
                                 </div>
 
-                                {/* Result summary (always visible) */}
                                 {job.result && (
-                                    <div className="actions-monitor__history-result">
-                                        {job.result}
-                                    </div>
+                                    <div className="actions-monitor__history-result">{job.result}</div>
                                 )}
 
-                                {/* Expanded details */}
                                 {isExpanded && (
                                     <>
-                                        {/* Request params */}
                                         {renderRequestParams(job.request)}
 
-                                        {/* Steps / commands ran */}
                                         {hasSteps && (
                                             <div className="actions-monitor__history-steps">
                                                 <div className="actions-monitor__history-steps-title">
@@ -239,9 +210,7 @@ export function ActionsMonitor() {
                                                                 </div>
                                                             )}
                                                             {step.result && (
-                                                                <div className="actions-monitor__step-result">
-                                                                    {step.result}
-                                                                </div>
+                                                                <div className="actions-monitor__step-result">{step.result}</div>
                                                             )}
                                                         </div>
                                                     </div>
@@ -249,7 +218,6 @@ export function ActionsMonitor() {
                                             </div>
                                         )}
 
-                                        {/* Artifacts */}
                                         {hasArtifacts && (
                                             <div className="actions-monitor__history-artifacts">
                                                 {job.artifacts.map(a => (

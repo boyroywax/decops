@@ -695,6 +695,125 @@
   border-color: rgba(239, 68, 68, 0.18);
 }
 
+[data-theme="solar"] .actions-monitor__recent-select {
+  background: rgba(120, 80, 20, 0.05);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #5c5040;
+}
+
+/* ─── Automations Panel — Solar ─── */
+[data-theme="solar"] .automations-panel__search {
+  background: var(--bg-input);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: var(--text-primary);
+}
+
+[data-theme="solar"] .automations-panel__view-toggle {
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .automations-panel__view-btn:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .automations-panel__view-btn--active {
+  background: rgba(184, 134, 11, 0.08);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .automations-panel__th {
+  border-bottom-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .automations-panel__row:hover {
+  background: rgba(120, 80, 20, 0.03);
+}
+
+[data-theme="solar"] .automations-panel__td {
+  border-bottom-color: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .automations-panel__action-btn:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+/* ─── History Panel — Solar ─── */
+[data-theme="solar"] .history-panel__search {
+  background: var(--bg-input);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: var(--text-primary);
+}
+
+[data-theme="solar"] .history-panel__status-filter {
+  background: var(--bg-input);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: var(--text-primary);
+}
+
+[data-theme="solar"] .history-panel__view-toggle {
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .history-panel__view-btn:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .history-panel__view-btn--active {
+  background: rgba(184, 134, 11, 0.08);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .history-panel__card {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.10);
+  box-shadow: 0 1px 3px rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .history-panel__card:hover {
+  border-color: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .history-panel__step {
+  background: rgba(253, 246, 227, 0.6);
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .history-panel__step-result {
+  background: rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .history-panel__request-param {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.08);
+  color: #5c5040;
+}
+
+[data-theme="solar"] .history-panel__request-param-key {
+  color: #7c6f5b;
+}
+
+[data-theme="solar"] .history-panel__status-pill--completed {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.18);
+}
+
+[data-theme="solar"] .history-panel__status-pill--failed {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.18);
+}
+
+[data-theme="solar"] .history-panel__th {
+  border-bottom-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .history-panel__row:hover {
+  background: rgba(120, 80, 20, 0.03);
+}
+
+[data-theme="solar"] .history-panel__td {
+  border-bottom-color: rgba(120, 80, 20, 0.05);
+}
+
 /* ─── Command Cards — Solar ─── */
 [data-theme="solar"] {
   --cmd-card-back-bg: #fdf6e3;

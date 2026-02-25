@@ -661,6 +661,125 @@
   border-color: rgba(239, 68, 68, 0.18);
 }
 
+[data-theme="light"] .actions-monitor__recent-select {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: #52525b;
+}
+
+/* ─── Automations Panel — Light ─── */
+[data-theme="light"] .automations-panel__search {
+  background: var(--bg-input);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .automations-panel__view-toggle {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .automations-panel__view-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .automations-panel__view-btn--active {
+  background: rgba(0, 180, 120, 0.06);
+  color: #00875a;
+}
+
+[data-theme="light"] .automations-panel__th {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .automations-panel__row:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .automations-panel__td {
+  border-bottom-color: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .automations-panel__action-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* ─── History Panel — Light ─── */
+[data-theme="light"] .history-panel__search {
+  background: var(--bg-input);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .history-panel__status-filter {
+  background: var(--bg-input);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .history-panel__view-toggle {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .history-panel__view-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .history-panel__view-btn--active {
+  background: rgba(0, 180, 120, 0.06);
+  color: #00875a;
+}
+
+[data-theme="light"] .history-panel__card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .history-panel__card:hover {
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .history-panel__step {
+  background: #f9fafb;
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .history-panel__step-result {
+  background: #f4f4f5;
+}
+
+[data-theme="light"] .history-panel__request-param {
+  background: #f4f4f5;
+  border-color: rgba(0, 0, 0, 0.06);
+  color: #3f3f46;
+}
+
+[data-theme="light"] .history-panel__request-param-key {
+  color: #71717a;
+}
+
+[data-theme="light"] .history-panel__status-pill--completed {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.18);
+}
+
+[data-theme="light"] .history-panel__status-pill--failed {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.18);
+}
+
+[data-theme="light"] .history-panel__th {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .history-panel__row:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .history-panel__td {
+  border-bottom-color: rgba(0, 0, 0, 0.04);
+}
+
 /* ─── Command Cards — Light ─── */
 [data-theme="light"] {
   --cmd-card-back-bg: #ffffff;

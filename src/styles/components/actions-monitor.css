@@ -64,6 +64,23 @@
   color: black;
 }
 
+/* Recently completed count selector */
+.actions-monitor__recent-select {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-surface-hover, rgba(255,255,255,0.04));
+  color: var(--text-muted);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-md);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.actions-monitor__recent-select:hover {
+  border-color: var(--border-medium);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * JOB LISTS
  * ═══════════════════════════════════════════════════════════════════════════ */
