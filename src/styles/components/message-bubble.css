@@ -116,6 +116,16 @@
   font-family: var(--font-mono, "JetBrains Mono", monospace);
 }
 
+.tool-call-card__job-id {
+  font-size: 9px;
+  color: var(--text-muted, rgba(255, 255, 255, 0.3));
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 1px 4px;
+  border-radius: 3px;
+  letter-spacing: 0.3px;
+}
+
 .tool-call-card__args {
   font-size: 10px;
   color: var(--text-muted, rgba(255, 255, 255, 0.45));

@@ -427,6 +427,11 @@
   color: rgba(0, 0, 0, 0.45);
 }
 
+[data-theme="light"] .tool-call-card__job-id {
+  color: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.04);
+}
+
 [data-theme="light"] .tool-call-card__status--success {
   color: #00b478;
 }

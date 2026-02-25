@@ -1,9 +1,10 @@
 /**
  * Tool Use Bridge — converts CommandDefinitions to Anthropic tool schemas
- * and executes tool calls via the command registry.
+ * and queues tool calls as jobs for the job executor.
  *
  * This bridges the existing command system with Anthropic's tool_use API,
  * allowing the AI to natively call any registered command as a tool.
+ * Tool calls are routed through the job queue for tracking, artifacts, and notebook logging.
  */
 
 import type { CommandDefinition, CommandArg, CommandArgType, CommandContext } from "./types";
@@ -38,6 +39,42 @@ export interface ToolCallResult {
   result: any;
   error?: string;
   duration_ms: number;
+  jobId?: string;
+}
+
+// ── Pending Tool Job Registry ──────────────────────
+// Module-level promise map so the job executor can signal completion
+// back to the awaiting tool call.
+
+interface PendingToolJob {
+  resolve: (result: any) => void;
+  reject: (err: Error) => void;
+}
+
+const pendingToolJobs = new Map<string, PendingToolJob>();
+
+const TOOL_JOB_TIMEOUT_MS = 30_000; // 30 second timeout
+
+/** Called by the job executor when a tool-initiated job completes */
+export function resolveToolJob(jobId: string, result: any): boolean {
+  const pending = pendingToolJobs.get(jobId);
+  if (pending) {
+    pending.resolve(result);
+    pendingToolJobs.delete(jobId);
+    return true;
+  }
+  return false;
+}
+
+/** Called by the job executor when a tool-initiated job fails */
+export function rejectToolJob(jobId: string, error: string): boolean {
+  const pending = pendingToolJobs.get(jobId);
+  if (pending) {
+    pending.reject(new Error(error));
+    pendingToolJobs.delete(jobId);
+    return true;
+  }
+  return false;
 }
 
 // ── Type Mapping ───────────────────────────────────
@@ -147,7 +184,11 @@ export function getToolsByTags(tags: string[]): AnthropicTool[] {
 
 // ── Execution ──────────────────────────────────────
 
-/** Execute a tool call from the AI and return a result */
+/**
+ * Execute a tool call by queuing it as a job.
+ * The job executor picks it up, runs the command, and resolves the promise.
+ * Falls back to direct execution if addJob is unavailable.
+ */
 export async function executeToolCall(
   toolUseId: string,
   toolName: string,
@@ -162,7 +203,40 @@ export async function executeToolCall(
       throw new Error(`Command "${toolName}" is not available for AI tool use.`);
     }
 
-    const result = await registry.execute(toolName, toolInput, context);
+    // Queue the tool call as a job
+    const job = context.jobs.addJob({
+      type: toolName,
+      request: { ...toolInput, _toolUseId: toolUseId },
+    });
+
+    const jobId: string | undefined = job?.id;
+
+    if (!jobId) {
+      // Fallback: if addJob didn't return a job (shouldn't happen), execute directly
+      const result = await registry.execute(toolName, toolInput, context);
+      const duration_ms = Math.round(performance.now() - start);
+      return {
+        tool_use_id: toolUseId,
+        name: toolName,
+        input: toolInput,
+        result: result ?? { success: true },
+        duration_ms,
+      };
+    }
+
+    // Wait for the job executor to complete this job
+    const result = await new Promise<any>((resolve, reject) => {
+      pendingToolJobs.set(jobId, { resolve, reject });
+
+      // Timeout safety — don't block the tool loop forever
+      setTimeout(() => {
+        if (pendingToolJobs.has(jobId)) {
+          pendingToolJobs.delete(jobId);
+          resolve({ _timeout: true, message: `Job ${jobId.slice(0, 8)} is still running after ${TOOL_JOB_TIMEOUT_MS / 1000}s` });
+        }
+      }, TOOL_JOB_TIMEOUT_MS);
+    });
+
     const duration_ms = Math.round(performance.now() - start);
 
     return {
@@ -171,6 +245,7 @@ export async function executeToolCall(
       input: toolInput,
       result: result ?? { success: true },
       duration_ms,
+      jobId,
     };
   } catch (err) {
     const duration_ms = Math.round(performance.now() - start);

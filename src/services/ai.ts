@@ -230,6 +230,7 @@ export interface ToolCallDisplay {
   result: any;
   error?: string;
   duration_ms: number;
+  jobId?: string;
 }
 
 /**
@@ -445,6 +446,7 @@ export async function chatWithWorkspace(
           result: result.result,
           error: result.error,
           duration_ms: result.duration_ms,
+          jobId: result.jobId,
         });
 
         // Build tool_result message for Anthropic

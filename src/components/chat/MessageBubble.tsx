@@ -22,6 +22,11 @@ function ToolCallCard({ tc }: { tc: ToolCallDisplay }) {
             <div className="tool-call-card__header">
                 <Wrench size={12} className="tool-call-card__icon" />
                 <span className="tool-call-card__name">{tc.name}</span>
+                {tc.jobId && (
+                    <span className="tool-call-card__job-id" title={tc.jobId}>
+                        {tc.jobId.slice(0, 12)}
+                    </span>
+                )}
                 {isError
                     ? <AlertTriangle size={12} className="tool-call-card__status tool-call-card__status--error" />
                     : <CheckCircle size={12} className="tool-call-card__status tool-call-card__status--success" />

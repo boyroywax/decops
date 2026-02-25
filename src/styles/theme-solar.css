@@ -428,6 +428,11 @@
   color: rgba(80, 64, 48, 0.5);
 }
 
+[data-theme="solar"] .tool-call-card__job-id {
+  color: rgba(80, 64, 48, 0.4);
+  background: rgba(120, 80, 20, 0.05);
+}
+
 [data-theme="solar"] .tool-call-card__status--success {
   color: #b8860b;
 }

@@ -3,6 +3,7 @@ import { Rocket, CheckCircle, XCircle } from "lucide-react";
 import { GradientIcon } from "../components/shared/GradientIcon";
 import { useNotebook } from "./useNotebook";
 import { registry } from "../services/commands/registry";
+import { resolveToolJob, rejectToolJob } from "../services/commands/tools";
 import { getAgentModel, getCommandModel } from "../services/ai";
 import type { CommandContext } from "../services/commands/types";
 import type { WorkspaceContextType } from "../context/WorkspaceContext";
@@ -322,6 +323,10 @@ export function useJobExecutor({
                     }
 
                     updateJobStatus(queuedJob.id, "completed", typeof finalResult === 'string' ? finalResult : JSON.stringify(finalResult));
+
+                    // Signal tool call promise (if this job was created by a tool call)
+                    resolveToolJob(queuedJob.id, finalResult);
+
                     addNotebookEntry({
                         category: "output",
                         icon: <GradientIcon icon={CheckCircle} size={16} gradient={["#00e5a0", "#10b981"]} />,
@@ -357,6 +362,10 @@ export function useJobExecutor({
                 } catch (err: any) {
                     console.error("Job Failed", err);
                     updateJobStatus(queuedJob.id, "failed", err.message || "Unknown error");
+
+                    // Signal tool call promise (if this job was created by a tool call)
+                    rejectToolJob(queuedJob.id, err.message || "Unknown error");
+
                     addNotebookEntry({
                         category: "system",
                         icon: <GradientIcon icon={XCircle} size={16} gradient={["#ef4444", "#dc2626"]} />,

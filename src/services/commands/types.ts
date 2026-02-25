@@ -36,7 +36,7 @@ export interface CommandContext {
         importArtifact: (artifact: any) => void;
         allArtifacts: any[];
         // Queue Management
-        addJob: (job: JobRequest) => void;
+        addJob: (job: JobRequest) => any;
         removeJob: (id: string) => void;
         pauseQueue: () => void;
         resumeQueue: () => void;
