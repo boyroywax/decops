@@ -169,25 +169,6 @@
   flex: 1;
   overflow: auto;
   padding: 8px 10px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-
-.chat-panel__convos-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-panel__convos-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.chat-panel__convos-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
-}
-
-.chat-panel__convos-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
 }
 
 .chat-panel__empty-state {
@@ -281,25 +262,6 @@
   flex: 1;
   overflow: auto;
   padding: 12px 14px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-
-.chat-panel__messages::-webkit-scrollbar {
-  width: 6px;
-}
-
-.chat-panel__messages::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.chat-panel__messages::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
-}
-
-.chat-panel__messages::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
 }
 
 .chat-panel__chat-empty {

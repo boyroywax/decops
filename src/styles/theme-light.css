@@ -81,6 +81,9 @@
 [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.25);
 }
+[data-theme="light"] * {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
 
 /* Select options */
 [data-theme="light"] select option {
@@ -312,10 +315,6 @@
   background: rgba(0, 0, 0, 0.05);
 }
 
-[data-theme="light"] .chat-panel__convos-list {
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
-}
-
 [data-theme="light"] .chat-panel__loading-bubble {
   background: rgba(0, 0, 0, 0.03);
 }
@@ -326,20 +325,6 @@
 
 [data-theme="light"] .chat-panel__send-btn {
   background: rgba(0, 0, 0, 0.02);
-}
-
-[data-theme="light"] .chat-panel__messages {
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
-}
-
-[data-theme="light"] .chat-panel__convos-list::-webkit-scrollbar-thumb,
-[data-theme="light"] .chat-panel__messages::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-}
-
-[data-theme="light"] .chat-panel__convos-list::-webkit-scrollbar-thumb:hover,
-[data-theme="light"] .chat-panel__messages::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
 }
 
 [data-theme="light"] .chat-panel__convo-item--active {
@@ -503,24 +488,6 @@
 
 [data-theme="light"] .action-manager__tab--active .action-manager__tab-count {
   background: rgba(0, 180, 120, 0.12);
-}
-
-[data-theme="light"] .action-manager__tab-content {
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
-}
-
-[data-theme="light"] .action-manager__library {
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
-}
-
-[data-theme="light"] .action-manager__tab-content::-webkit-scrollbar-thumb,
-[data-theme="light"] .action-manager__library::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-}
-
-[data-theme="light"] .action-manager__tab-content::-webkit-scrollbar-thumb:hover,
-[data-theme="light"] .action-manager__library::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
 }
 
 [data-theme="light"] .action-manager__section-title {
@@ -712,10 +679,6 @@
   background: rgba(99, 102, 241, 0.14);
 }
 
-[data-theme="light"] .artifacts-panel__grid {
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
-}
-
 [data-theme="light"] .artifacts-panel__preview {
   background: rgba(0, 0, 0, 0.02);
   border-left-color: rgba(0, 0, 0, 0.06);
@@ -723,10 +686,6 @@
 
 [data-theme="light"] .artifacts-panel__preview-header {
   border-bottom-color: rgba(0, 0, 0, 0.06);
-}
-
-[data-theme="light"] .artifacts-panel__preview-body {
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
 [data-theme="light"] .artifacts-panel__preview-actions {
@@ -797,18 +756,6 @@
 [data-theme="light"] .llm-panel__tab-badge {
   background: rgba(0, 180, 120, 0.10);
   color: #00875a;
-}
-
-[data-theme="light"] .llm-panel__body {
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
-}
-
-[data-theme="light"] .llm-panel__body::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
-}
-
-[data-theme="light"] .llm-panel__body::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
 }
 
 /* Provider cards */

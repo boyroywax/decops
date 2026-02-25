@@ -82,6 +82,9 @@
 [data-theme="solar"] ::-webkit-scrollbar-thumb:hover {
   background: rgba(120, 80, 20, 0.28);
 }
+[data-theme="solar"] * {
+  scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
+}
 
 /* Select options */
 [data-theme="solar"] select option {
@@ -313,10 +316,6 @@
   background: rgba(120, 80, 20, 0.06);
 }
 
-[data-theme="solar"] .chat-panel__convos-list {
-  scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
-}
-
 [data-theme="solar"] .chat-panel__loading-bubble {
   background: rgba(120, 80, 20, 0.04);
 }
@@ -327,20 +326,6 @@
 
 [data-theme="solar"] .chat-panel__send-btn {
   background: rgba(120, 80, 20, 0.03);
-}
-
-[data-theme="solar"] .chat-panel__messages {
-  scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
-}
-
-[data-theme="solar"] .chat-panel__convos-list::-webkit-scrollbar-thumb,
-[data-theme="solar"] .chat-panel__messages::-webkit-scrollbar-thumb {
-  background: rgba(120, 80, 20, 0.18);
-}
-
-[data-theme="solar"] .chat-panel__convos-list::-webkit-scrollbar-thumb:hover,
-[data-theme="solar"] .chat-panel__messages::-webkit-scrollbar-thumb:hover {
-  background: rgba(120, 80, 20, 0.28);
 }
 
 [data-theme="solar"] .chat-panel__convo-item--active {
@@ -538,24 +523,6 @@
 
 [data-theme="solar"] .action-manager__tab--active .action-manager__tab-count {
   background: rgba(184, 134, 11, 0.15);
-}
-
-[data-theme="solar"] .action-manager__tab-content {
-  scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
-}
-
-[data-theme="solar"] .action-manager__library {
-  scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
-}
-
-[data-theme="solar"] .action-manager__tab-content::-webkit-scrollbar-thumb,
-[data-theme="solar"] .action-manager__library::-webkit-scrollbar-thumb {
-  background: rgba(120, 80, 20, 0.18);
-}
-
-[data-theme="solar"] .action-manager__tab-content::-webkit-scrollbar-thumb:hover,
-[data-theme="solar"] .action-manager__library::-webkit-scrollbar-thumb:hover {
-  background: rgba(120, 80, 20, 0.28);
 }
 
 [data-theme="solar"] .action-manager__section-title {
@@ -868,17 +835,7 @@
   color: #8b6914;
 }
 
-[data-theme="solar"] .llm-panel__body {
-  scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
-}
 
-[data-theme="solar"] .llm-panel__body::-webkit-scrollbar-thumb {
-  background: rgba(120, 80, 20, 0.18);
-}
-
-[data-theme="solar"] .llm-panel__body::-webkit-scrollbar-thumb:hover {
-  background: rgba(120, 80, 20, 0.28);
-}
 
 /* Provider cards */
 [data-theme="solar"] .llm-provider-card {

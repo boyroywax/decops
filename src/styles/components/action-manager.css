@@ -185,26 +185,6 @@
   flex: 1;
   overflow: auto;
   padding: 12px 14px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-
-.action-manager__tab-content::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.action-manager__tab-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.action-manager__tab-content::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
-}
-
-.action-manager__tab-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
 }
 
 .action-manager__library {
@@ -214,26 +194,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4xl);
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-}
-
-.action-manager__library::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.action-manager__library::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.action-manager__library::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
-}
-
-.action-manager__library::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
 }
 
 .action-manager__section-title {
