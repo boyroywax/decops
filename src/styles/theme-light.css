@@ -556,11 +556,37 @@
   color: #00875a;
 }
 
-/* Action library search in light mode */
-[data-theme="light"] .action-library__search {
+/* Action library / commands panel search in light mode */
+[data-theme="light"] .action-library__search,
+[data-theme="light"] .commands-panel__search {
   background: var(--bg-input);
   border-color: rgba(0, 0, 0, 0.10);
   color: var(--text-primary);
+}
+
+[data-theme="light"] .commands-panel__view-toggle {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .commands-panel__view-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .commands-panel__view-btn--active {
+  background: rgba(0, 180, 120, 0.06);
+  color: #00875a;
+}
+
+[data-theme="light"] .commands-panel__th {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .commands-panel__row:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .commands-panel__td {
+  border-bottom-color: rgba(0, 0, 0, 0.04);
 }
 
 /* ─── Actions Monitor — Light ─── */

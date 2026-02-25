@@ -591,10 +591,36 @@
   color: #8b6914;
 }
 
-[data-theme="solar"] .action-library__search {
+[data-theme="solar"] .action-library__search,
+[data-theme="solar"] .commands-panel__search {
   background: var(--bg-input);
   border-color: rgba(120, 80, 20, 0.12);
   color: var(--text-primary);
+}
+
+[data-theme="solar"] .commands-panel__view-toggle {
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .commands-panel__view-btn:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .commands-panel__view-btn--active {
+  background: rgba(184, 134, 11, 0.08);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .commands-panel__th {
+  border-bottom-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .commands-panel__row:hover {
+  background: rgba(120, 80, 20, 0.03);
+}
+
+[data-theme="solar"] .commands-panel__td {
+  border-bottom-color: rgba(120, 80, 20, 0.05);
 }
 
 /* ─── Actions Monitor — Solar ─── */

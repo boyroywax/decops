@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { X, LayoutGrid, List, Terminal, Play, Trash2, Plus, Zap, BookOpen, Activity, ChevronsUp, ChevronsDown } from "lucide-react";
+import { X, Terminal, Zap, BookOpen, Activity, ChevronsUp, ChevronsDown, Briefcase, TerminalSquare } from "lucide-react";
 import { ActionsMonitor } from "./ActionsMonitor";
 import { UnifiedBuilder } from "./UnifiedBuilder";
-import { ActionLibrary } from "./ActionLibrary";
+import { CommandsPanel } from "./CommandsPanel";
 import { JobCatalog } from "../jobs/JobCatalog";
 import { useJobsContext } from "../../context/JobsContext";
 import { useAutomations } from "../../context/AutomationsContext";
@@ -25,7 +25,7 @@ interface ActionManagerProps {
 
 export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob, height, setHeight, isExpanded, onToggleExpand }: ActionManagerProps) {
     const [isResizing, setIsResizing] = useState(false);
-    const [activeTab, setActiveTab] = useState<"monitor" | "library" | "builder">("monitor");
+    const [activeTab, setActiveTab] = useState<"monitor" | "catalog" | "commands" | "builder">("monitor");
 
     // Contexts
     const { jobs, addJob, removeJob, stopJob, clearJobs } = useJobsContext();
@@ -99,10 +99,16 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
                             <Activity size={9} /> Monitor
                         </button>
                         <button
-                            onClick={() => setActiveTab("library")}
-                            className={`action-manager__tab${activeTab === "library" ? " action-manager__tab--active" : ""}`}
+                            onClick={() => setActiveTab("catalog")}
+                            className={`action-manager__tab${activeTab === "catalog" ? " action-manager__tab--active" : ""}`}
                         >
-                            <BookOpen size={9} /> Library
+                            <Briefcase size={9} /> Job Catalog
+                        </button>
+                        <button
+                            onClick={() => setActiveTab("commands")}
+                            className={`action-manager__tab${activeTab === "commands" ? " action-manager__tab--active" : ""}`}
+                        >
+                            <TerminalSquare size={9} /> Commands
                         </button>
                         <button
                             onClick={() => setActiveTab("builder")}
@@ -134,43 +140,42 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
                         <ActionsMonitor />
                     </div>
                 )}
-                {activeTab === "library" && (
-                    <div className="action-manager__library">
-                        <div>
-                            <h3 className="action-manager__section-title">Saved Jobs</h3>
-                            <JobCatalog
-                                jobs={savedJobs}
-                                onRun={handleRunJob}
-                                onEdit={(job) => {
-                                    setEditingJob(job);
-                                    setActiveTab("builder");
-                                }}
-                                onDelete={deleteJob}
-                            />
-                        </div>
-                        <div>
-                            <h3 className="action-manager__section-title">Command Library</h3>
-                            <ActionLibrary onRunCommand={(commandId, command) => {
-                                const step: import("../../types").JobStep = {
-                                    id: `step-${Date.now()}`,
-                                    commandId,
-                                    args: Object.fromEntries(
-                                        Object.values(command.args)
-                                            .filter(a => a.defaultValue !== undefined)
-                                            .map(a => [a.name, a.defaultValue])
-                                    ),
-                                    name: command.description,
-                                    status: "pending",
-                                };
-                                addJob({
-                                    type: commandId,
-                                    request: { description: command.description },
-                                    steps: [step],
-                                    mode: "serial",
-                                });
-                                setActiveTab("monitor");
-                            }} />
-                        </div>
+                {activeTab === "catalog" && (
+                    <div className="action-manager__tab-content">
+                        <h3 className="action-manager__section-title">Saved Jobs</h3>
+                        <JobCatalog
+                            jobs={savedJobs}
+                            onRun={handleRunJob}
+                            onEdit={(job) => {
+                                setEditingJob(job);
+                                setActiveTab("builder");
+                            }}
+                            onDelete={deleteJob}
+                        />
+                    </div>
+                )}
+                {activeTab === "commands" && (
+                    <div className="action-manager__tab-content">
+                        <CommandsPanel onRunCommand={(commandId, command) => {
+                            const step: import("../../types").JobStep = {
+                                id: `step-${Date.now()}`,
+                                commandId,
+                                args: Object.fromEntries(
+                                    Object.values(command.args)
+                                        .filter(a => a.defaultValue !== undefined)
+                                        .map(a => [a.name, a.defaultValue])
+                                ),
+                                name: command.description,
+                                status: "pending",
+                            };
+                            addJob({
+                                type: commandId,
+                                request: { description: command.description },
+                                steps: [step],
+                                mode: "serial",
+                            });
+                            setActiveTab("monitor");
+                        }} />
                     </div>
                 )}
                 {activeTab === "builder" && (
