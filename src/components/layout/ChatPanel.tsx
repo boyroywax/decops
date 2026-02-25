@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
-import { chatWithWorkspace, getSelectedModel } from "../../services/ai";
-import type { ChatMessage, ToolCallDisplay, WorkspaceContext } from "../../services/ai";
+import { chatWithWorkspace, streamChatWithWorkspace, getSelectedModel } from "../../services/ai";
+import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "../../services/ai";
 import { useLLM } from "../../context/LLMContext";
 import MessageBubble from "../chat/MessageBubble";
 import { loadConversations, saveConversations, loadActiveId, saveActiveId, makeId, deriveTitle } from "../chat/utils";
@@ -33,6 +33,8 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const [activeId, setActiveId] = useState<string | null>(loadActiveId);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
+    const [streamingText, setStreamingText] = useState<string | null>(null);
+    const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallDisplay[]>([]);
     const [showConvos, setShowConvos] = useState(false);
     const endRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -52,7 +54,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
 
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages.length, loading]);
+    }, [messages.length, loading, streamingText]);
 
     useEffect(() => {
         if (!showConvos) inputRef.current?.focus();
@@ -187,8 +189,49 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                 const successMsg = [...updatedMsgs, { role: "assistant" as const, content: `✅ Command \`/${commandId}\` executed successfully.` }];
                 updateConversation(currentId, successMsg);
             } else {
-                const { text: response, toolCalls } = await chatWithWorkspace(text, currentMessages, context, commandContext);
-                const finalMsgs = [...updatedMsgs, { role: "assistant" as const, content: response, toolCalls: toolCalls.length > 0 ? toolCalls : undefined }];
+                // Streaming chat
+                setStreamingText("");
+                setStreamingToolCalls([]);
+
+                const streamCallbacks: StreamCallbacks = {
+                    onToken: (token) => {
+                        setStreamingText(prev => (prev ?? "") + token);
+                    },
+                    onToolCallStart: (name) => {
+                        setStreamingToolCalls(prev => [
+                            ...prev,
+                            { name, input: {}, result: null, duration_ms: 0 },
+                        ]);
+                    },
+                    onToolCallComplete: (display) => {
+                        setStreamingToolCalls(prev => {
+                            const updated = [...prev];
+                            // Replace the last pending tool call with the completed one
+                            const idx = updated.findLastIndex(tc => tc.name === display.name && tc.duration_ms === 0);
+                            if (idx >= 0) {
+                                updated[idx] = display;
+                            } else {
+                                updated.push(display);
+                            }
+                            return updated;
+                        });
+                        // After tool execution, clear streaming text for next round
+                        setStreamingText("");
+                    },
+                };
+
+                const { text: response, toolCalls } = await streamChatWithWorkspace(
+                    text, currentMessages, context, streamCallbacks, commandContext,
+                );
+
+                setStreamingText(null);
+                setStreamingToolCalls([]);
+
+                const finalMsgs = [...updatedMsgs, {
+                    role: "assistant" as const,
+                    content: response,
+                    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+                }];
                 updateConversation(currentId, finalMsgs);
                 addLog?.(`Chat: "${text.slice(0, 40)}${text.length > 40 ? "…" : ""}"`);
             }
@@ -328,7 +371,18 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                         </div>
                     )}
                     {messages.map((m, i) => <MessageBubble key={i} msg={m} context={context} />)}
-                    {loading && (
+                    {streamingText !== null && (
+                        <MessageBubble
+                            msg={{
+                                role: "assistant",
+                                content: streamingText || "",
+                                toolCalls: streamingToolCalls.length > 0 ? streamingToolCalls : undefined,
+                            }}
+                            context={context}
+                            isStreaming
+                        />
+                    )}
+                    {loading && streamingText === null && (
                         <div className="chat-panel__loading">
                             <div className="chat-panel__loading-bubble">
                                 <span style={{ animation: "pulse 1.5s ease-in-out infinite" }}>●</span>

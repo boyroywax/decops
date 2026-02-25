@@ -141,3 +141,38 @@
   color: #ff6464;
   margin-top: 2px;
 }
+
+/* ── Streaming ── */
+
+.mb-bubble--streaming {
+  border-color: rgba(0, 229, 160, 0.15);
+}
+
+.mb-streaming-cursor {
+  display: inline;
+  color: #00e5a0;
+  animation: blink-cursor 0.8s step-end infinite;
+  font-weight: bold;
+  margin-left: 1px;
+}
+
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* Pending tool call (currently executing) */
+.tool-call-card--pending {
+  background: rgba(56, 189, 248, 0.06);
+  border: 1px solid rgba(56, 189, 248, 0.18);
+}
+
+.tool-call-card__status--pending {
+  color: #38bdf8;
+  animation: spin-loader 1.2s linear infinite;
+}
+
+@keyframes spin-loader {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

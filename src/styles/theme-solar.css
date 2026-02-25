@@ -445,6 +445,23 @@
   color: #b4321e;
 }
 
+[data-theme="solar"] .mb-bubble--streaming {
+  border-color: rgba(184, 134, 11, 0.2);
+}
+
+[data-theme="solar"] .mb-streaming-cursor {
+  color: #b8860b;
+}
+
+[data-theme="solar"] .tool-call-card--pending {
+  background: rgba(184, 134, 11, 0.05);
+  border-color: rgba(184, 134, 11, 0.15);
+}
+
+[data-theme="solar"] .tool-call-card__status--pending {
+  color: #b8860b;
+}
+
 /* Chat markdown in solar mode */
 [data-theme="solar"] .chat-md {
   color: #504030;

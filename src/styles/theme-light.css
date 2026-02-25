@@ -444,6 +444,23 @@
   color: #dc3232;
 }
 
+[data-theme="light"] .mb-bubble--streaming {
+  border-color: rgba(0, 180, 120, 0.18);
+}
+
+[data-theme="light"] .mb-streaming-cursor {
+  color: #00b478;
+}
+
+[data-theme="light"] .tool-call-card--pending {
+  background: rgba(59, 130, 246, 0.05);
+  border-color: rgba(59, 130, 246, 0.18);
+}
+
+[data-theme="light"] .tool-call-card__status--pending {
+  color: #3b82f6;
+}
+
 /* Ensure chat-md text is readable in light mode */
 [data-theme="light"] .chat-md {
   color: #2d2d44;
