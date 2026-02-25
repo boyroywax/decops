@@ -636,6 +636,7 @@ export async function streamChatWithWorkspace(
 
   const allToolCalls: ToolCallDisplay[] = [];
   const MAX_TOOL_ROUNDS = 8;
+  let fullText = ""; // Accumulate text across all rounds
 
   try {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -682,9 +683,11 @@ export async function streamChatWithWorkspace(
       // Check for tool use blocks
       const toolUseBlocks = contentBlocks.filter((b: any) => b.type === "tool_use");
 
+      fullText += roundText;
+
       if (toolUseBlocks.length === 0 || !commandContext) {
         // No tool calls — streaming is complete
-        const text = roundText || "[No response]";
+        const text = fullText || "[No response]";
         return { text, toolCalls: allToolCalls };
       }
 
@@ -726,16 +729,18 @@ export async function streamChatWithWorkspace(
       }
 
       apiMessages.push({ role: "user", content: toolResults });
+      // Separate rounds with newline if there was text before the tool calls
+      if (roundText) fullText += "\n\n";
       // Loop continues — next round will stream the AI's response to tool results
     }
 
-    return { text: "[Tool call loop limit reached]", toolCalls: allToolCalls };
+    return { text: fullText || "[Tool call loop limit reached]", toolCalls: allToolCalls };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes("No Anthropic API key")) {
       return { text: "⚠️ No API key configured. Go to **Profile & Settings** to add your Anthropic API key.", toolCalls: [] };
     }
-    return { text: `[Chat error: ${msg}]`, toolCalls: [] };
+    return { text: fullText || `[Chat error: ${msg}]`, toolCalls: allToolCalls };
   }
 }
 

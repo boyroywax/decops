@@ -215,8 +215,6 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             }
                             return updated;
                         });
-                        // After tool execution, clear streaming text for next round
-                        setStreamingText("");
                     },
                 };
 
