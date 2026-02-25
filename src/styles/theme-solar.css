@@ -396,6 +396,50 @@
   color: #504030;
 }
 
+/* Tool call cards in chat */
+[data-theme="solar"] .tool-calls-section {
+  border-top-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .tool-calls-section__label {
+  color: rgba(80, 64, 48, 0.45);
+}
+
+[data-theme="solar"] .tool-call-card--success {
+  background: rgba(184, 134, 11, 0.06);
+  border-color: rgba(184, 134, 11, 0.18);
+}
+
+[data-theme="solar"] .tool-call-card--error {
+  background: rgba(180, 50, 30, 0.05);
+  border-color: rgba(180, 50, 30, 0.18);
+}
+
+[data-theme="solar"] .tool-call-card__name {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .tool-call-card__icon,
+[data-theme="solar"] .tool-call-card__duration {
+  color: rgba(80, 64, 48, 0.4);
+}
+
+[data-theme="solar"] .tool-call-card__args {
+  color: rgba(80, 64, 48, 0.5);
+}
+
+[data-theme="solar"] .tool-call-card__status--success {
+  color: #b8860b;
+}
+
+[data-theme="solar"] .tool-call-card__status--error {
+  color: #b4321e;
+}
+
+[data-theme="solar"] .tool-call-card__error {
+  color: #b4321e;
+}
+
 /* Chat markdown in solar mode */
 [data-theme="solar"] .chat-md {
   color: #504030;

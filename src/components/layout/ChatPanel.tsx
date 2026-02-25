@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { chatWithWorkspace, getSelectedModel } from "../../services/ai";
-import type { ChatMessage, WorkspaceContext } from "../../services/ai";
+import type { ChatMessage, ToolCallDisplay, WorkspaceContext } from "../../services/ai";
 import { useLLM } from "../../context/LLMContext";
 import MessageBubble from "../chat/MessageBubble";
 import { loadConversations, saveConversations, loadActiveId, saveActiveId, makeId, deriveTitle } from "../chat/utils";
@@ -187,8 +187,8 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                 const successMsg = [...updatedMsgs, { role: "assistant" as const, content: `✅ Command \`/${commandId}\` executed successfully.` }];
                 updateConversation(currentId, successMsg);
             } else {
-                const response = await chatWithWorkspace(text, currentMessages, context);
-                const finalMsgs = [...updatedMsgs, { role: "assistant" as const, content: response }];
+                const { text: response, toolCalls } = await chatWithWorkspace(text, currentMessages, context, commandContext);
+                const finalMsgs = [...updatedMsgs, { role: "assistant" as const, content: response, toolCalls: toolCalls.length > 0 ? toolCalls : undefined }];
                 updateConversation(currentId, finalMsgs);
                 addLog?.(`Chat: "${text.slice(0, 40)}${text.length > 40 ? "…" : ""}"`);
             }

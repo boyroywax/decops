@@ -395,6 +395,50 @@
   color: #2d2d44;
 }
 
+/* Tool call cards in chat */
+[data-theme="light"] .tool-calls-section {
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .tool-calls-section__label {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .tool-call-card--success {
+  background: rgba(0, 180, 120, 0.06);
+  border-color: rgba(0, 180, 120, 0.18);
+}
+
+[data-theme="light"] .tool-call-card--error {
+  background: rgba(220, 50, 50, 0.05);
+  border-color: rgba(220, 50, 50, 0.18);
+}
+
+[data-theme="light"] .tool-call-card__name {
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .tool-call-card__icon,
+[data-theme="light"] .tool-call-card__duration {
+  color: rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="light"] .tool-call-card__args {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="light"] .tool-call-card__status--success {
+  color: #00b478;
+}
+
+[data-theme="light"] .tool-call-card__status--error {
+  color: #dc3232;
+}
+
+[data-theme="light"] .tool-call-card__error {
+  color: #dc3232;
+}
+
 /* Ensure chat-md text is readable in light mode */
 [data-theme="light"] .chat-md {
   color: #2d2d44;

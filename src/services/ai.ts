@@ -2,6 +2,8 @@ import type { Agent, Channel, Group, Message, Network, Bridge, MeshConfig, Bridg
 import { ROLES } from "../constants";
 import { repairJSON } from "../utils/json";
 import { sanitizeJSONString } from "../utils/json";
+import { getAllTools, executeToolCall, type ToolCallResult } from "./commands/tools";
+import type { CommandContext } from "./commands/types";
 
 const API_URL = "https://api.anthropic.com/v1/messages";
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
@@ -217,6 +219,17 @@ export async function callAgentAI(
 export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
+  /** Tool calls the AI made (stored for display) */
+  toolCalls?: ToolCallDisplay[];
+}
+
+/** Lightweight representation of a tool call for display in chat */
+export interface ToolCallDisplay {
+  name: string;
+  input: Record<string, any>;
+  result: any;
+  error?: string;
+  duration_ms: number;
 }
 
 /**
@@ -332,22 +345,15 @@ Bridges: ${ctx.bridges.length}
 
 You can help the user with:
 - Answering questions about their workspace (agents, channels, groups, messages, topology)
-- Suggesting workspace operations (creating agents, channels, groups, sending messages)
+- Executing workspace operations using tools (creating agents, channels, groups, sending messages, querying state, managing ecosystems)
 - Analyzing agent relationships and communication patterns
 - Recommending governance models and mesh configurations
 - Explaining decentralized identity concepts (DIDs, verifiable credentials)
 
-When you want to suggest a workspace action, include a JSON action block like:
-\`\`\`action
-{"type": "create_agent", "name": "Scout", "role": "researcher", "prompt": "You research and report findings."}
-\`\`\`
+TOOL USE:
+You have access to workspace tools that directly modify or query the workspace. Use them whenever the user asks to create, delete, list, or modify workspace entities. Prefer using tools over suggesting manual actions. When you use a tool, explain what you did after getting the result.
 
-Available action types:
-- create_agent: {name, role, prompt} — roles: researcher, builder, curator, validator, orchestrator
-- create_channel: {from_agent_name, to_agent_name, type} — types: data, task, consensus  
-- create_group: {name, governance, member_agent_names, threshold} — governance: majority, threshold, delegated, unanimous
-- send_message: {from_agent_name, to_agent_name, message}
-- generate_mesh: {description} — generate an entire mesh network from description
+When suggesting complex multi-step operations, you can chain multiple tool calls. For example, to set up a research team: create agents, then channels between them, then a group.
 
 Be concise, helpful, and in-character as a workspace management AI. Use markdown formatting for readability. Keep responses under 300 words unless the user asks for detailed analysis.`;
 }
@@ -356,34 +362,119 @@ export async function chatWithWorkspace(
   userMessage: string,
   history: ChatMessage[],
   ctx: WorkspaceContext,
-): Promise<string> {
+  commandContext?: CommandContext,
+): Promise<{ text: string; toolCalls: ToolCallDisplay[] }> {
   const apiKey = getApiKey();
   const model = getSelectedModel();
   const systemPrompt = buildWorkspaceSystemPrompt(ctx);
 
-  const messages = [
+  // Build Anthropic tools from command registry
+  const tools = commandContext ? getAllTools() : [];
+
+  // Build message history for the API (flatten to Anthropic format)
+  const apiMessages: any[] = [
     ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
     { role: "user" as const, content: userMessage },
   ];
 
+  const allToolCalls: ToolCallDisplay[] = [];
+  const MAX_TOOL_ROUNDS = 8; // Safety limit for tool call loops
+
   try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify({ model, max_tokens: 2048, system: systemPrompt, messages }),
-    });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
+    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      const body: any = {
+        model,
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: apiMessages,
+      };
+
+      // Only include tools if we have them and a command context
+      if (tools.length > 0 && commandContext) {
+        body.tools = tools;
+        // Let the AI decide when to use tools
+        body.tool_choice = { type: "auto" };
+      }
+
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: buildHeaders(apiKey),
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
+      }
+
+      const data = await response.json();
+      const contentBlocks: any[] = data.content || [];
+      const stopReason = data.stop_reason;
+
+      // Extract text from content blocks
+      const textParts = contentBlocks
+        .filter((b: any) => b.type === "text")
+        .map((b: any) => b.text || "");
+
+      // Check if the AI wants to use tools
+      const toolUseBlocks = contentBlocks.filter((b: any) => b.type === "tool_use");
+
+      if (toolUseBlocks.length === 0 || !commandContext) {
+        // No tool calls — return the text response
+        const text = textParts.join("\n") || "[No response]";
+        return { text, toolCalls: allToolCalls };
+      }
+
+      // AI wants to use tools — execute them
+      // First, append the assistant message to the API messages (must include full content)
+      apiMessages.push({ role: "assistant", content: contentBlocks });
+
+      // Execute each tool call
+      const toolResults: any[] = [];
+      for (const block of toolUseBlocks) {
+        const result = await executeToolCall(
+          block.id,
+          block.name,
+          block.input || {},
+          commandContext,
+        );
+
+        allToolCalls.push({
+          name: result.name,
+          input: result.input,
+          result: result.result,
+          error: result.error,
+          duration_ms: result.duration_ms,
+        });
+
+        // Build tool_result message for Anthropic
+        const content = result.error
+          ? JSON.stringify({ error: result.error })
+          : JSON.stringify(result.result ?? { success: true });
+
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: block.id,
+          content,
+          ...(result.error ? { is_error: true } : {}),
+        });
+      }
+
+      // Append tool results as a user message (Anthropic API format)
+      apiMessages.push({ role: "user", content: toolResults });
+
+      // The loop will continue — the AI will see the tool results and respond
+      // (or make more tool calls)
     }
-    const data = await response.json();
-    return data.content?.map((b: { text?: string }) => b.text || "").join("\n") || "[No response]";
+
+    // If we exhausted the loop, return whatever we have
+    return { text: "[Tool call loop limit reached]", toolCalls: allToolCalls };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes("No Anthropic API key")) {
-      return "⚠️ No API key configured. Go to **Profile & Settings** to add your Anthropic API key.";
+      return { text: "⚠️ No API key configured. Go to **Profile & Settings** to add your Anthropic API key.", toolCalls: [] };
     }
-    return `[Chat error: ${msg}]`;
+    return { text: `[Chat error: ${msg}]`, toolCalls: [] };
   }
 }
 
