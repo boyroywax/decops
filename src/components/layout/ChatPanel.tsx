@@ -57,7 +57,10 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     }, [messages.length, loading, streamingText]);
 
     useEffect(() => {
-        if (!showConvos) inputRef.current?.focus();
+        // Only focus when the panel is actually visible (not display:none)
+        if (!showConvos && inputRef.current?.offsetParent !== null) {
+            inputRef.current?.focus();
+        }
     }, [showConvos, activeId]);
 
     const updateConversation = useCallback((id: string, msgs: ChatMessage[]) => {

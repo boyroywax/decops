@@ -104,7 +104,8 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
 
     return (
         <>
-            {panel === "chat" && (
+            {/* ChatPanel stays mounted to preserve streaming state across panel switches */}
+            <div style={panel !== "chat" ? { display: "none" } : undefined}>
                 <ChatPanel
                     context={workspaceContext}
                     ecosystem={ecosystem}
@@ -115,7 +116,7 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                     isExpanded={isExpanded}
                     onToggleExpand={handleToggleExpand}
                 />
-            )}
+            </div>
 
             {panel === "jobs" && (
                 <ActionManager
