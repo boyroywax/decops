@@ -141,11 +141,15 @@ input, textarea, select {
 
 /* Scrollable container gutter — prevents layout shift when scrollbar appears */
 .app-main,
-.chat-panel__messages,
-.action-manager__tab-content,
-.profile-modal-body,
-.activity-modal__content,
-.ws-modal__content
+.chat-messages,
+.action-manager__body,
+.eco-detail-content,
+.artifact-detail-content,
+.profile-modal__body,
+.activity-modal__body,
+.workspace-modal__body {
+  scrollbar-gutter: stable;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * SELECT OPTION STYLING
