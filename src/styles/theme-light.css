@@ -1419,9 +1419,19 @@
   color: #334155;
 }
 
+[data-theme="light"] .builder__schedule-select {
+  background: #f1f5f9;
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #334155;
+}
+
 [data-theme="light"] .builder__schedule-input:focus,
 [data-theme="light"] .builder__desc-input:focus {
   background: #e8ecf1;
+}
+
+[data-theme="light"] .builder__schedule-select:focus {
+  border-color: rgba(0, 100, 200, 0.3);
 }
 
 [data-theme="light"] .builder__search-input {

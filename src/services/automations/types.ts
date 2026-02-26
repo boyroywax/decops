@@ -40,6 +40,9 @@ export interface CodeAutomationDefinition extends BaseAutomationDefinition {
 export interface DeclarativeAutomationDefinition extends BaseAutomationDefinition {
     type: "declarative";
     steps: AutomationStep[];
+    mode?: "serial" | "parallel";
+    deliverables?: import("../../types").JobDeliverable[];
+    storageDefaults?: Record<string, any>;
 }
 
 export type AutomationDefinition = CodeAutomationDefinition | DeclarativeAutomationDefinition;

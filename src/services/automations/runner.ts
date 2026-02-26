@@ -54,23 +54,36 @@ export class AutomationRunner {
                     }
                 };
 
-                for (const step of def.steps) {
+                // Initialize shared storage from defaults
+                const storage: Record<string, any> = { ...(def.storageDefaults || {}) };
+
+                const executeStep = async (step: typeof def.steps[0]) => {
                     if (step.condition) {
                         const shouldRun = evaluateCondition(step.condition, this.context, results);
                         if (!shouldRun) {
                             this.log(run, "info", `Skipping step ${step.id} (${step.commandId}): Condition not met`);
                             results.push({ stepId: step.id, commandId: step.commandId, status: "skipped", result: "Condition not met" });
-                            continue;
+                            return;
                         }
                     }
 
                     this.log(run, "info", `Executing step: ${step.commandId}`);
                     try {
-                        const stepResult = await registry.execute(step.commandId, step.args, this.context);
+                        const stepResult = await registry.execute(step.commandId, { ...step.args, _storage: storage }, this.context);
                         results.push({ stepId: step.id, commandId: step.commandId, status: "completed", result: stepResult });
                     } catch (e) {
                         this.log(run, "error", `Step ${step.id} (${step.commandId}) failed: ${e}`);
-                        throw e; // Stop automation on failure
+                        results.push({ stepId: step.id, commandId: step.commandId, status: "failed", result: String(e) });
+                        if (def.mode !== "parallel") throw e; // Stop on failure in serial mode
+                    }
+                };
+
+                if (def.mode === "parallel") {
+                    this.log(run, "info", `Running ${def.steps.length} steps in parallel`);
+                    await Promise.all(def.steps.map(step => executeStep(step)));
+                } else {
+                    for (const step of def.steps) {
+                        await executeStep(step);
                     }
                 }
                 result = results;

@@ -1486,9 +1486,19 @@
   color: #5a4a32;
 }
 
+[data-theme="solar"] .builder__schedule-select {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #5a4a32;
+}
+
 [data-theme="solar"] .builder__schedule-input:focus,
 [data-theme="solar"] .builder__desc-input:focus {
   background: rgba(120, 80, 20, 0.07);
+}
+
+[data-theme="solar"] .builder__schedule-select:focus {
+  border-color: rgba(180, 130, 40, 0.3);
 }
 
 [data-theme="solar"] .builder__search-input {

@@ -24,11 +24,14 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
     const [name, setName] = useState(initialJob?.name || initialAutomation?.name || "");
     const [description, setDescription] = useState(initialJob?.description || initialAutomation?.description || "");
 
-    // Job Specific
-    const [jobMode, setJobMode] = useState<"serial" | "parallel">(initialJob?.mode || "serial");
+    // Execution mode (shared across job & automation)
+    const [execMode, setExecMode] = useState<"serial" | "parallel">(
+        initialJob?.mode || (initialAutomation as any)?.mode || "serial"
+    );
 
     // Automation Specific
     const [schedule, setSchedule] = useState(initialAutomation?.schedule || "");
+    const [customSchedule, setCustomSchedule] = useState(false);
 
     // Steps
     const [steps, setSteps] = useState<any[]>((initialJob?.steps || initialAutomation?.steps || []).map(s => ({
@@ -41,23 +44,21 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
-    // Deliverables
-    const [deliverables, setDeliverables] = useState<JobDeliverable[]>(
-        initialJob?.deliverables || []
-    );
-    const [showDeliverables, setShowDeliverables] = useState(
-        (initialJob?.deliverables?.length ?? 0) > 0
-    );
+    // Deliverables (shared across job & automation)
+    const initDeliverables = initialJob?.deliverables || (initialAutomation as any)?.deliverables || [];
+    const [deliverables, setDeliverables] = useState<JobDeliverable[]>(initDeliverables);
+    const [showDeliverables, setShowDeliverables] = useState(initDeliverables.length > 0);
 
-    // Inter-step Storage Defaults
+    // Inter-step Storage Defaults (shared across job & automation)
+    const initStorage = initialJob?.storageDefaults || (initialAutomation as any)?.storageDefaults || {};
     const [storageEntries, setStorageEntries] = useState<Array<{ key: string; value: string }>>(
-        Object.entries(initialJob?.storageDefaults || {}).map(([key, value]) => ({
+        Object.entries(initStorage).map(([key, value]) => ({
             key,
             value: typeof value === "string" ? value : JSON.stringify(value)
         }))
     );
     const [showStorage, setShowStorage] = useState(
-        Object.keys(initialJob?.storageDefaults || {}).length > 0
+        Object.keys(initStorage).length > 0
     );
 
     const commands = registry.getAll();
@@ -175,7 +176,7 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
             id: initialJob?.id || `job-def-${Date.now()}`,
             name,
             description,
-            mode: jobMode,
+            mode: execMode,
             steps: steps as JobStep[],
             deliverables: validDeliverables.length > 0 ? validDeliverables : undefined,
             storageDefaults: buildStorageDefaults(),
@@ -189,6 +190,8 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
         if (!name.trim()) return alert("Name is required");
         if (steps.length === 0) return alert("Add at least one step");
 
+        const validDeliverables2 = deliverables.filter(d => d.key.trim() && d.label.trim());
+
         const automation: DeclarativeAutomationDefinition = {
             id: initialAutomation?.id || crypto.randomUUID(),
             type: "declarative",
@@ -196,7 +199,10 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
             description,
             schedule: schedule || undefined,
             tags: ["custom"],
-            steps: steps as AutomationStep[]
+            steps: steps as AutomationStep[],
+            mode: execMode,
+            deliverables: validDeliverables2.length > 0 ? validDeliverables2 : undefined,
+            storageDefaults: buildStorageDefaults(),
         };
         onSaveAutomation(automation);
     };
@@ -245,31 +251,57 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
                         </button>
                     </div>
 
-                    {mode === "job" && (
-                        <div className="builder__exec-group">
-                            <label className="builder__exec-label">Execution:</label>
-                            <div className="builder__exec-toggle">
-                                <button
-                                    onClick={() => setJobMode("serial")}
-                                    className={`builder__exec-btn ${jobMode === "serial" ? "builder__exec-btn--active" : ""}`}
-                                >Serial</button>
-                                <button
-                                    onClick={() => setJobMode("parallel")}
-                                    className={`builder__exec-btn ${jobMode === "parallel" ? "builder__exec-btn--active" : ""}`}
-                                >Parallel</button>
-                            </div>
+                    {/* Execution mode — available for both Job and Automation */}
+                    <div className="builder__exec-group">
+                        <label className="builder__exec-label">Execution:</label>
+                        <div className="builder__exec-toggle">
+                            <button
+                                onClick={() => setExecMode("serial")}
+                                className={`builder__exec-btn ${execMode === "serial" ? "builder__exec-btn--active" : ""}`}
+                            >Serial</button>
+                            <button
+                                onClick={() => setExecMode("parallel")}
+                                className={`builder__exec-btn ${execMode === "parallel" ? "builder__exec-btn--active" : ""}`}
+                            >Parallel</button>
                         </div>
-                    )}
+                    </div>
 
                     {mode === "automation" && (
                         <div className="builder__schedule-group">
                             <Clock size={12} className="builder__schedule-icon" />
-                            <input
-                                value={schedule}
-                                onChange={e => setSchedule(e.target.value)}
-                                placeholder="Schedule (e.g. every 10m)"
-                                className="builder__schedule-input"
-                            />
+                            {customSchedule ? (
+                                <input
+                                    value={schedule}
+                                    onChange={e => setSchedule(e.target.value)}
+                                    placeholder="e.g. every 2h, cron(0 */6 * * *)"
+                                    className="builder__schedule-input"
+                                    autoFocus
+                                />
+                            ) : (
+                                <select
+                                    value={schedule}
+                                    onChange={e => {
+                                        if (e.target.value === "__custom__") {
+                                            setCustomSchedule(true);
+                                            setSchedule("");
+                                        } else {
+                                            setSchedule(e.target.value);
+                                        }
+                                    }}
+                                    className="builder__schedule-select"
+                                >
+                                    <option value="">Manual (no schedule)</option>
+                                    <option value="every 1m">Every 1 minute</option>
+                                    <option value="every 5m">Every 5 minutes</option>
+                                    <option value="every 10m">Every 10 minutes</option>
+                                    <option value="every 30m">Every 30 minutes</option>
+                                    <option value="every 1h">Every 1 hour</option>
+                                    <option value="every 6h">Every 6 hours</option>
+                                    <option value="every 12h">Every 12 hours</option>
+                                    <option value="every 24h">Every 24 hours</option>
+                                    <option value="__custom__">Custom...</option>
+                                </select>
+                            )}
                         </div>
                     )}
 
@@ -282,9 +314,8 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
                     />
                 </div>
 
-                {/* ── Deliverables & Storage collapsibles ──────────────── */}
-                {mode === "job" && (
-                    <div className="builder__meta-sections">
+                {/* ── Deliverables & Storage collapsibles (both modes) ── */}
+                <div className="builder__meta-sections">
                         {/* Deliverables */}
                         <div className="builder__meta-section">
                             <button
@@ -378,8 +409,7 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
                                 </div>
                             </div>
                         )}
-                    </div>
-                )}
+                </div>
             </div>
 
             <div className="builder__body">
