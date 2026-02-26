@@ -63,9 +63,14 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
                 className="command-arg__select"
             >
                 <option value="">Select a Channel</option>
-                {channels.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
+                {channels.map(c => {
+                    const fromAgent = agents.find(a => a.id === c.from);
+                    const toAgent = agents.find(a => a.id === c.to);
+                    const label = `${fromAgent?.name || c.from.slice(0, 8)} → ${toAgent?.name || c.to.slice(0, 8)} (${c.type})`;
+                    return (
+                        <option key={c.id} value={c.id}>{label}</option>
+                    );
+                })}
             </select>
         );
     }
