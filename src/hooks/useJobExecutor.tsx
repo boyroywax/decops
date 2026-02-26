@@ -346,7 +346,7 @@ export function useJobExecutor({
                     };
 
                     addArtifact(queuedJob.id, {
-                        id: `art-${Date.now()}`,
+                        id: `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
                         type: "json",
                         name: "result.json",
                         content: JSON.stringify(resultArtifact, null, 2),

@@ -5,7 +5,7 @@ import { sanitizeJSONString } from "../utils/json";
 import { getAllTools, executeToolCall, type ToolCallResult } from "./commands/tools";
 import type { CommandContext } from "./commands/types";
 
-const API_URL = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 const DEFAULT_MODEL = "claude-sonnet-4-20250514";
 const ANTHROPIC_VERSION = "2023-06-01";
@@ -38,6 +38,178 @@ export function getOpenAIApiKey(): string {
     );
   }
   return key;
+}
+
+/** Read the Google (Gemini) API key from localStorage */
+function getGoogleApiKey(): string {
+  const key = localStorage.getItem("gemini_api_key");
+  if (!key) {
+    throw new Error(
+      "No Google API key configured. Go to LLM Manager → Providers to add your API key."
+    );
+  }
+  return key;
+}
+
+/** Get the API key for the detected provider of a model */
+function getApiKeyForModel(model: string): string {
+  const provider = getModelProvider(model);
+  switch (provider) {
+    case "openai": return getOpenAIApiKey();
+    case "google": return getGoogleApiKey();
+    case "anthropic": return getApiKey();
+    case "ollama": return ""; // Ollama doesn't need a key
+  }
+}
+
+// ── Provider-aware request helpers ─────────────────
+
+interface ProviderRequest {
+  url: string;
+  headers: Record<string, string>;
+  body: any;
+}
+
+/** Build a non-streaming request for any provider */
+function buildProviderRequest(
+  model: string,
+  systemPrompt: string,
+  messages: { role: string; content: string }[],
+  maxTokens: number,
+  tools?: any[],
+): ProviderRequest {
+  const provider = getModelProvider(model);
+
+  if (provider === "openai") {
+    const apiKey = getOpenAIApiKey();
+    return {
+      url: OPENAI_API_URL,
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+      body: {
+        model,
+        max_tokens: maxTokens,
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        ...(tools && tools.length > 0 ? {
+          tools: tools.map(t => ({
+            type: "function",
+            function: { name: t.name, description: t.description, parameters: t.input_schema },
+          })),
+          tool_choice: "auto",
+        } : {}),
+      },
+    };
+  }
+
+  if (provider === "google") {
+    const apiKey = getGoogleApiKey();
+    const geminiModel = model.startsWith("models/") ? model : model;
+    return {
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`,
+      headers: { "Content-Type": "application/json" },
+      body: {
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: messages.map(m => ({
+          role: m.role === "assistant" ? "model" : "user",
+          parts: [{ text: m.content }],
+        })),
+        generationConfig: { maxOutputTokens: maxTokens },
+      },
+    };
+  }
+
+  if (provider === "ollama") {
+    const { baseUrl, model: ollamaModel } = getOllamaEndpoint(model);
+    return {
+      url: `${baseUrl}/api/chat`,
+      headers: { "Content-Type": "application/json" },
+      body: {
+        model: ollamaModel,
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        stream: false,
+      },
+    };
+  }
+
+  // Default: Anthropic
+  const apiKey = getApiKey();
+  return {
+    url: ANTHROPIC_API_URL,
+    headers: buildHeaders(apiKey),
+    body: {
+      model,
+      max_tokens: maxTokens,
+      system: systemPrompt,
+      messages,
+      ...(tools && tools.length > 0 ? { tools, tool_choice: { type: "auto" } } : {}),
+    },
+  };
+}
+
+/** Extract text from a provider response */
+function parseProviderResponse(model: string, data: any): string {
+  const provider = getModelProvider(model);
+
+  if (provider === "openai") {
+    return data.choices?.[0]?.message?.content || "[No response]";
+  }
+  if (provider === "google") {
+    return data.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "[No response]";
+  }
+  if (provider === "ollama") {
+    return data.message?.content || "[No response]";
+  }
+  // Anthropic
+  return data.content?.map((b: { text?: string }) => b.text || "").join("") || "[No response]";
+}
+
+/** Check if a response contains tool use (returns blocks for Anthropic/OpenAI, empty for others) */
+function parseToolUseBlocks(model: string, data: any): any[] {
+  const provider = getModelProvider(model);
+  if (provider === "anthropic") {
+    return (data.content || []).filter((b: any) => b.type === "tool_use");
+  }
+  if (provider === "openai") {
+    const toolCalls = data.choices?.[0]?.message?.tool_calls || [];
+    // Normalize to Anthropic-like format for compatibility
+    return toolCalls.map((tc: any) => ({
+      type: "tool_use",
+      id: tc.id,
+      name: tc.function?.name,
+      input: JSON.parse(tc.function?.arguments || "{}"),
+    }));
+  }
+  return []; // Google/Ollama: no tool support in this layer
+}
+
+/** Build tool result messages for the next API round */
+function buildToolResultMessages(model: string, assistantContent: any, toolResults: { id: string; content: string; isError?: boolean }[]): any[] {
+  const provider = getModelProvider(model);
+
+  if (provider === "openai") {
+    // OpenAI: assistant message with tool_calls, then individual tool messages
+    return [
+      { role: "assistant", content: null, tool_calls: assistantContent },
+      ...toolResults.map(tr => ({
+        role: "tool",
+        tool_call_id: tr.id,
+        content: tr.content,
+      })),
+    ];
+  }
+
+  // Anthropic: assistant message with content blocks, then user message with tool_results
+  return [
+    { role: "assistant", content: assistantContent },
+    {
+      role: "user",
+      content: toolResults.map(tr => ({
+        type: "tool_result",
+        tool_use_id: tr.id,
+        content: tr.content,
+        ...(tr.isError ? { is_error: true } : {}),
+      })),
+    },
+  ];
 }
 
 /** Get Ollama base URL for a model ID (format: ollama:instanceId:modelName) */
@@ -99,7 +271,6 @@ function buildHeaders(apiKey: string): Record<string, string> {
 }
 
 export async function generateMeshConfig(description: string): Promise<MeshConfig> {
-  const apiKey = getApiKey();
   const model = getSelectedModel();
 
   const systemPrompt = `You are a Mesh Workspace Architect. Given a description, output a JSON mesh network config.
@@ -125,15 +296,12 @@ Example output format (multi-network with bridge):
 {"networks":[{"name":"Research Hub","description":"Data gathering network","agents":[0,1]},{"name":"Build Hub","description":"Development network","agents":[2,3]}],"agents":[{"name":"Scout","role":"researcher","prompt":"Gather data"},{"name":"Analyst","role":"curator","prompt":"Analyze data"},{"name":"Forge","role":"builder","prompt":"Build solutions"},{"name":"Lead","role":"orchestrator","prompt":"Coordinate builds"}],"channels":[{"from":0,"to":1,"type":"data"},{"from":2,"to":3,"type":"task"}],"groups":[],"bridges":[{"fromNetwork":0,"toNetwork":1,"fromAgent":1,"toAgent":2,"type":"data"}],"exampleMessages":[]}`;
 
   try {
-    const response = await fetch(API_URL, {
+    const userMsg = `Design a mesh network for: ${description}\n\nRespond with ONLY the JSON object. Keep all strings under 30 words. No markdown.`;
+    const req = buildProviderRequest(model, systemPrompt, [{ role: "user", content: userMsg }], 4096);
+    const response = await fetch(req.url, {
       method: "POST",
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify({
-        model,
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [{ role: "user", content: `Design a mesh network for: ${description}\n\nRespond with ONLY the JSON object. Keep all strings under 30 words. No markdown.` }],
-      }),
+      headers: req.headers,
+      body: JSON.stringify(req.body),
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -141,8 +309,8 @@ Example output format (multi-network with bridge):
     }
     const data = await response.json();
     if (data.error) throw new Error(data.error.message || "API error");
-    const text = data.content?.map((b: { text?: string }) => b.text || "").join("") || "";
-    if (!text.trim()) throw new Error("Empty response from AI");
+    const text = parseProviderResponse(model, data);
+    if (!text.trim() || text === "[No response]") throw new Error("Empty response from AI");
     const config = repairJSON(text);
     if (!config.agents || !Array.isArray(config.agents) || config.agents.length === 0) {
       throw new Error("Generated config has no agents");
@@ -178,7 +346,6 @@ export async function callAgentAI(
   conversationHistory: (Message | BridgeMessage)[],
   crossNetworkCtx?: string,
 ): Promise<string> {
-  const apiKey = getApiKey();
   const model = getAgentModel(agent.id);
 
   const systemPrompt = [
@@ -199,17 +366,18 @@ export async function callAgentAI(
   messages.push({ role: "user", content: message });
 
   try {
-    const response = await fetch(API_URL, {
+    const req = buildProviderRequest(model, systemPrompt, messages, 1000);
+    const response = await fetch(req.url, {
       method: "POST",
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify({ model, max_tokens: 1000, system: systemPrompt, messages }),
+      headers: req.headers,
+      body: JSON.stringify(req.body),
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
     }
     const data = await response.json();
-    return data.content?.map((b: { text?: string }) => b.text || "").join("\n") || "[No response]";
+    return parseProviderResponse(model, data);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return `[Agent error: ${msg}]`;
@@ -242,7 +410,6 @@ export async function chatWithAgent(
   userMessage: string,
   history: ChatMessage[],
 ): Promise<string> {
-  const apiKey = getApiKey();
   const model = getAgentModel(agent.id);
 
   const role = ROLES.find(r => r.id === agent.role);
@@ -260,21 +427,22 @@ export async function chatWithAgent(
   ];
 
   try {
-    const response = await fetch(API_URL, {
+    const req = buildProviderRequest(model, systemPrompt, messages, 1000);
+    const response = await fetch(req.url, {
       method: "POST",
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify({ model, max_tokens: 1000, system: systemPrompt, messages }),
+      headers: req.headers,
+      body: JSON.stringify(req.body),
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
     }
     const data = await response.json();
-    return data.content?.map((b: { text?: string }) => b.text || "").join("\n") || "[No response]";
+    return parseProviderResponse(model, data);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("No Anthropic API key")) {
-      return "⚠️ No API key configured. Go to **Profile & Settings** to add your Anthropic API key.";
+    if (msg.includes("No Anthropic API key") || msg.includes("No OpenAI API key") || msg.includes("No Google API key")) {
+      return `⚠️ No API key configured. Go to **LLM Manager → Providers** to add your API key.`;
     }
     return `[Agent error: ${msg}]`;
   }
@@ -390,42 +558,29 @@ export async function chatWithWorkspace(
   ctx: WorkspaceContext,
   commandContext?: CommandContext,
 ): Promise<{ text: string; toolCalls: ToolCallDisplay[] }> {
-  const apiKey = getApiKey();
   const model = getSelectedModel();
+  const provider = getModelProvider(model);
   const systemPrompt = buildWorkspaceSystemPrompt(ctx);
 
-  // Build Anthropic tools from command registry
-  const tools = commandContext ? getAllTools() : [];
+  // Build tools from command registry (tool use supported for anthropic + openai)
+  const tools = commandContext && (provider === "anthropic" || provider === "openai") ? getAllTools() : [];
 
-  // Build message history for the API (flatten to Anthropic format)
+  // Build message history
   const apiMessages: any[] = [
     ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
     { role: "user" as const, content: userMessage },
   ];
 
   const allToolCalls: ToolCallDisplay[] = [];
-  const MAX_TOOL_ROUNDS = 8; // Safety limit for tool call loops
+  const MAX_TOOL_ROUNDS = 8;
 
   try {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const body: any = {
-        model,
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: apiMessages,
-      };
-
-      // Only include tools if we have them and a command context
-      if (tools.length > 0 && commandContext) {
-        body.tools = tools;
-        // Let the AI decide when to use tools
-        body.tool_choice = { type: "auto" };
-      }
-
-      const response = await fetch(API_URL, {
+      const req = buildProviderRequest(model, systemPrompt, apiMessages, 4096, tools.length > 0 ? tools : undefined);
+      const response = await fetch(req.url, {
         method: "POST",
-        headers: buildHeaders(apiKey),
-        body: JSON.stringify(body),
+        headers: req.headers,
+        body: JSON.stringify(req.body),
       });
 
       if (!response.ok) {
@@ -434,29 +589,22 @@ export async function chatWithWorkspace(
       }
 
       const data = await response.json();
-      const contentBlocks: any[] = data.content || [];
-      const stopReason = data.stop_reason;
 
-      // Extract text from content blocks
-      const textParts = contentBlocks
-        .filter((b: any) => b.type === "text")
-        .map((b: any) => b.text || "");
-
-      // Check if the AI wants to use tools
-      const toolUseBlocks = contentBlocks.filter((b: any) => b.type === "tool_use");
+      // Check for tool use
+      const toolUseBlocks = parseToolUseBlocks(model, data);
 
       if (toolUseBlocks.length === 0 || !commandContext) {
-        // No tool calls — return the text response
-        const text = textParts.join("\n") || "[No response]";
+        const text = parseProviderResponse(model, data);
         return { text, toolCalls: allToolCalls };
       }
 
-      // AI wants to use tools — execute them
-      // First, append the assistant message to the API messages (must include full content)
-      apiMessages.push({ role: "assistant", content: contentBlocks });
+      // Tool use round — execute tools then loop
+      // Get raw assistant content for the tool result message
+      const rawAssistant = provider === "openai"
+        ? data.choices?.[0]?.message?.tool_calls
+        : data.content;
 
-      // Execute each tool call
-      const toolResults: any[] = [];
+      const toolResults: { id: string; content: string; isError?: boolean }[] = [];
       for (const block of toolUseBlocks) {
         const result = await executeToolCall(
           block.id,
@@ -474,32 +622,27 @@ export async function chatWithWorkspace(
           jobId: result.jobId,
         });
 
-        // Build tool_result message for Anthropic
         const content = result.error
           ? JSON.stringify({ error: result.error })
           : JSON.stringify(result.result ?? { success: true });
 
         toolResults.push({
-          type: "tool_result",
-          tool_use_id: block.id,
+          id: block.id,
           content,
-          ...(result.error ? { is_error: true } : {}),
+          isError: !!result.error,
         });
       }
 
-      // Append tool results as a user message (Anthropic API format)
-      apiMessages.push({ role: "user", content: toolResults });
-
-      // The loop will continue — the AI will see the tool results and respond
-      // (or make more tool calls)
+      // Append assistant + tool results in provider-specific format
+      const resultMsgs = buildToolResultMessages(model, rawAssistant, toolResults);
+      apiMessages.push(...resultMsgs);
     }
 
-    // If we exhausted the loop, return whatever we have
     return { text: "[Tool call loop limit reached]", toolCalls: allToolCalls };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("No Anthropic API key")) {
-      return { text: "⚠️ No API key configured. Go to **Profile & Settings** to add your Anthropic API key.", toolCalls: [] };
+    if (msg.includes("No Anthropic API key") || msg.includes("No OpenAI API key") || msg.includes("No Google API key")) {
+      return { text: "⚠️ No API key configured. Go to **LLM Manager → Providers** to add your API key.", toolCalls: [] };
     }
     return { text: `[Chat error: ${msg}]`, toolCalls: [] };
   }
@@ -648,9 +791,17 @@ export async function streamChatWithWorkspace(
   callbacks: StreamCallbacks,
   commandContext?: CommandContext,
 ): Promise<{ text: string; toolCalls: ToolCallDisplay[] }> {
-  const apiKey = getApiKey();
   const model = getSelectedModel();
+  const provider = getModelProvider(model);
   const systemPrompt = buildWorkspaceSystemPrompt(ctx);
+
+  // For non-Anthropic providers, fall back to non-streaming (emit all at once)
+  if (provider !== "anthropic") {
+    const result = await chatWithWorkspace(userMessage, history, ctx, commandContext);
+    // Emit the full text as a single token burst
+    if (result.text) callbacks.onToken(result.text);
+    return result;
+  }
 
   const tools = commandContext ? getAllTools() : [];
 
@@ -661,9 +812,10 @@ export async function streamChatWithWorkspace(
 
   const allToolCalls: ToolCallDisplay[] = [];
   const MAX_TOOL_ROUNDS = 8;
-  let fullText = ""; // Accumulate text across all rounds
+  let fullText = "";
 
   try {
+    const apiKey = getApiKey();
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const body: any = {
         model,
@@ -678,7 +830,7 @@ export async function streamChatWithWorkspace(
         body.tool_choice = { type: "auto" };
       }
 
-      const response = await fetch(API_URL, {
+      const response = await fetch(ANTHROPIC_API_URL, {
         method: "POST",
         headers: buildHeaders(apiKey),
         body: JSON.stringify(body),
@@ -762,8 +914,8 @@ export async function streamChatWithWorkspace(
     return { text: fullText || "[Tool call loop limit reached]", toolCalls: allToolCalls };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("No Anthropic API key")) {
-      return { text: "⚠️ No API key configured. Go to **Profile & Settings** to add your Anthropic API key.", toolCalls: [] };
+    if (msg.includes("No Anthropic API key") || msg.includes("No OpenAI API key") || msg.includes("No Google API key")) {
+      return { text: "⚠️ No API key configured. Go to **LLM Manager → Providers** to add your API key.", toolCalls: [] };
     }
     return { text: fullText || `[Chat error: ${msg}]`, toolCalls: allToolCalls };
   }
@@ -772,7 +924,6 @@ export async function streamChatWithWorkspace(
 
 /** Generate a complete AIEOS entity from a natural language personality description */
 export async function generateAieosFromPrompt(description: string): Promise<AieosEntity> {
-  const apiKey = getApiKey();
   const model = getSelectedModel();
 
   const systemPrompt = `You generate AIEOS v1.1.0 (AI Entity Object Specification) JSON profiles from personality descriptions.
@@ -901,15 +1052,12 @@ Rules:
 - Target 100% schema coverage — every field populated`;
 
   try {
-    const response = await fetch(API_URL, {
+    const userMsg = `Create a complete AIEOS personality profile for:\n\n${description}\n\nRespond with ONLY the JSON object.`;
+    const req = buildProviderRequest(model, systemPrompt, [{ role: "user", content: userMsg }], 4096);
+    const response = await fetch(req.url, {
       method: "POST",
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify({
-        model,
-        max_tokens: 4096,
-        system: systemPrompt,
-        messages: [{ role: "user", content: `Create a complete AIEOS personality profile for:\n\n${description}\n\nRespond with ONLY the JSON object.` }],
-      }),
+      headers: req.headers,
+      body: JSON.stringify(req.body),
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -917,8 +1065,8 @@ Rules:
     }
     const data = await response.json();
     if (data.error) throw new Error(data.error.message || "API error");
-    const text = data.content?.map((b: { text?: string }) => b.text || "").join("") || "";
-    if (!text.trim()) throw new Error("Empty response from AI");
+    const text = parseProviderResponse(model, data);
+    if (!text.trim() || text === "[No response]") throw new Error("Empty response from AI");
 
     // Parse the JSON (with sanitization for markdown fences etc.)
     let entity: AieosEntity;
