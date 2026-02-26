@@ -55,19 +55,9 @@ export function SettingsView({
             version: "1.0",
             type: "workspace",
             exportedAt: new Date().toISOString(),
-            data: { agents, channels, groups, messages },
+            data: { agents, channels, groups, messages, networks: ecosystems, bridges },
         };
         downloadJSON(data, `decops-workspace-${new Date().getTime()}.json`);
-    };
-
-    const handleExportEcosystem = () => {
-        const data = {
-            version: "1.0",
-            type: "ecosystem",
-            exportedAt: new Date().toISOString(),
-            data: { ecosystems, bridges },
-        };
-        downloadJSON(data, `decops-ecosystem-${new Date().getTime()}.json`);
     };
 
     const handleFullBackup = () => {
@@ -76,8 +66,8 @@ export function SettingsView({
             type: "full-backup",
             exportedAt: new Date().toISOString(),
             data: {
-                workspace: { agents, channels, groups, messages },
-                ecosystem: { ecosystems, bridges },
+                agents, channels, groups, messages,
+                networks: ecosystems, bridges,
             },
         };
         downloadJSON(data, `decops-full-backup-${new Date().getTime()}.json`);
@@ -117,16 +107,17 @@ export function SettingsView({
 
         // Handle full backup or individual types
         if (json.type === "full-backup") {
-            if (json.data.workspace) {
-                setAgents(json.data.workspace.agents || []);
-                setChannels(json.data.workspace.channels || []);
-                setGroups(json.data.workspace.groups || []);
-                setMessages(json.data.workspace.messages || []);
-                count++;
-            }
-            if (json.data.ecosystem && setEcosystems && setBridges) {
-                setEcosystems(json.data.ecosystem.ecosystems || []);
-                setBridges(json.data.ecosystem.bridges || []);
+            // Support both old nested format and new flat format
+            const ws = json.data.workspace || json.data;
+            const eco = json.data.ecosystem || json.data;
+            setAgents(ws.agents || []);
+            setChannels(ws.channels || []);
+            setGroups(ws.groups || []);
+            setMessages(ws.messages || []);
+            count++;
+            if (setEcosystems && setBridges) {
+                setEcosystems(eco.networks || eco.ecosystems || []);
+                setBridges(eco.bridges || []);
                 count++;
             }
         } else if (json.type === "workspace") {
@@ -134,9 +125,16 @@ export function SettingsView({
             setChannels(json.data.channels || []);
             setGroups(json.data.groups || []);
             setMessages(json.data.messages || []);
+            if (setEcosystems && (json.data.networks || json.data.ecosystems)) {
+                setEcosystems(json.data.networks || json.data.ecosystems || []);
+            }
+            if (setBridges && json.data.bridges) {
+                setBridges(json.data.bridges || []);
+            }
             count++;
         } else if (json.type === "ecosystem" && setEcosystems && setBridges) {
-            setEcosystems(json.data.ecosystems || []);
+            // Legacy ecosystem-only imports
+            setEcosystems(json.data.networks || json.data.ecosystems || []);
             setBridges(json.data.bridges || []);
             count++;
         } else {
@@ -173,8 +171,7 @@ export function SettingsView({
                         <span className="btn-icon"><Download size={18} color="#fbbf24" /></span> Export Data
                     </h3>
                     <p className="section-desc">
-                        Download your current workspace or full ecosystem state as a JSON
-                        file.
+                        Download your workspace ecosystem as a JSON file.
                     </p>
                     <div className="settings__btn-row">
                         <button
@@ -182,12 +179,6 @@ export function SettingsView({
                             className="btn btn-surface"
                         >
                             Export Workspace
-                        </button>
-                        <button
-                            onClick={handleExportEcosystem}
-                            className="btn btn-surface"
-                        >
-                            Export Ecosystem
                         </button>
                         <button
                             onClick={handleFullBackup}

@@ -100,7 +100,7 @@ export function useArchitect(addLog: (msg: string) => void, addJob: (job: JobReq
 
       setTimeout(() => {
         setArchPhase("done");
-        setDeployProgress({ step: "Ecosystem Deployment Started", count: 100, total: 100 });
+        setDeployProgress({ step: "Network Deployment Started", count: 100, total: 100 });
       }, 1000);
 
     } else {

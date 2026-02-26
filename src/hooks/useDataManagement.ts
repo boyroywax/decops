@@ -39,18 +39,9 @@ export function useDataManagement(deps: DataManagementDeps) {
       version: "1.0",
       type: "workspace",
       exportedAt: new Date().toISOString(),
-      data: { agents, channels, groups, messages },
+      data: { agents, channels, groups, messages, networks: ecosystems, bridges },
     }, `decops-workspace-${Date.now()}.json`);
-  }, [agents, channels, groups, messages]);
-
-  const exportEcosystem = useCallback(() => {
-    downloadJSON({
-      version: "1.0",
-      type: "ecosystem",
-      exportedAt: new Date().toISOString(),
-      data: { ecosystems, bridges },
-    }, `decops-ecosystem-${Date.now()}.json`);
-  }, [ecosystems, bridges]);
+  }, [agents, channels, groups, messages, ecosystems, bridges]);
 
   const fullBackup = useCallback(() => {
     downloadJSON({
@@ -58,8 +49,12 @@ export function useDataManagement(deps: DataManagementDeps) {
       type: "full-backup",
       exportedAt: new Date().toISOString(),
       data: {
-        workspace: { agents, channels, groups, messages },
-        ecosystem: { ecosystems, bridges },
+        agents,
+        channels,
+        groups,
+        messages,
+        networks: ecosystems,
+        bridges,
       },
     }, `decops-full-backup-${Date.now()}.json`);
   }, [agents, channels, groups, messages, ecosystems, bridges]);
@@ -70,23 +65,32 @@ export function useDataManagement(deps: DataManagementDeps) {
     }
 
     if (json.type === "full-backup") {
-      if (json.data.workspace) {
-        setAgents(json.data.workspace.agents || []);
-        setChannels(json.data.workspace.channels || []);
-        setGroups(json.data.workspace.groups || []);
-        setMessages(json.data.workspace.messages || []);
-      }
-      if (json.data.ecosystem && setEcosystems && setBridges) {
-        setEcosystems(json.data.ecosystem.ecosystems || []);
-        setBridges(json.data.ecosystem.bridges || []);
+      // Support both old nested format and new flat format
+      const ws = json.data.workspace || json.data;
+      const eco = json.data.ecosystem || json.data;
+      setAgents(ws.agents || []);
+      setChannels(ws.channels || []);
+      setGroups(ws.groups || []);
+      setMessages(ws.messages || []);
+      if (setEcosystems && setBridges) {
+        setEcosystems(eco.networks || eco.ecosystems || []);
+        setBridges(eco.bridges || []);
       }
     } else if (json.type === "workspace") {
       setAgents(json.data.agents || []);
       setChannels(json.data.channels || []);
       setGroups(json.data.groups || []);
       setMessages(json.data.messages || []);
+      // New workspace exports include networks/bridges
+      if (setEcosystems && (json.data.networks || json.data.ecosystems)) {
+        setEcosystems(json.data.networks || json.data.ecosystems || []);
+      }
+      if (setBridges && json.data.bridges) {
+        setBridges(json.data.bridges || []);
+      }
     } else if (json.type === "ecosystem" && setEcosystems && setBridges) {
-      setEcosystems(json.data.ecosystems || []);
+      // Legacy ecosystem-only imports
+      setEcosystems(json.data.networks || json.data.ecosystems || []);
       setBridges(json.data.bridges || []);
     } else {
       return { success: false, message: "Unknown or unsupported file type" };
@@ -104,7 +108,6 @@ export function useDataManagement(deps: DataManagementDeps) {
 
   return {
     exportWorkspace,
-    exportEcosystem,
     fullBackup,
     processImport,
     resetAllData,

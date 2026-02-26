@@ -43,7 +43,6 @@ export function ProfileView({
 
     const {
         exportWorkspace: handleExportWorkspace,
-        exportEcosystem: handleExportEcosystem,
         fullBackup: handleFullBackup,
         processImport,
         resetAllData: handleReset,
@@ -353,11 +352,10 @@ export function ProfileView({
                         <span className="btn-icon"><Download size={18} color="#fbbf24" /></span> Export Data
                     </h3>
                     <p className="section-desc">
-                        Download your current workspace or full ecosystem state as a JSON file.
+                        Download your workspace ecosystem as a JSON file.
                     </p>
                     <div className="profile__export-row">
                         <button onClick={handleExportWorkspace} className="btn btn-surface">Export Workspace</button>
-                        <button onClick={handleExportEcosystem} className="btn btn-surface">Export Ecosystem</button>
                         <button onClick={handleFullBackup} className="btn btn-primary profile__backup-btn--dark">Full Backup (.json)</button>
                     </div>
                 </section>

@@ -41,7 +41,7 @@ export function TopologyPanel({ ecosystems, bridges, activeBridges }: TopologyPa
           Topology requires at least 2 networks
         </div>
         <div style={{ fontSize: 11, color: "#3f3f46" }}>
-          Save or create networks to visualize the ecosystem topology.
+          Save or create networks to visualize the network topology.
         </div>
       </div>
     </div>

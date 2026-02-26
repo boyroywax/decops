@@ -3,11 +3,11 @@ import type { CommandDefinition, CommandContext } from "../types";
 
 export const exportFullBackupCommand: CommandDefinition = {
     id: "export_full_backup",
-    description: "Export the entire application state (workspace and ecosystem) as a JSON backup.",
+    description: "Export the entire workspace ecosystem (agents, channels, groups, messages, networks, bridges) as a JSON backup.",
     tags: ["data", "export", "backup"],
     rbac: ["orchestrator"],
     args: {},
-    output: "A complete JSON backup of the system.",
+    output: "A complete JSON backup of the workspace ecosystem.",
     outputSchema: {
         type: "object",
         properties: {
@@ -25,8 +25,12 @@ export const exportFullBackupCommand: CommandDefinition = {
             type: "full-backup",
             exportedAt: new Date().toISOString(),
             data: {
-                workspace: { agents, channels, groups, messages },
-                ecosystem: { ecosystems, bridges },
+                agents,
+                channels,
+                groups,
+                messages,
+                networks: ecosystems,
+                bridges,
             },
         };
 
@@ -45,11 +49,11 @@ export const exportFullBackupCommand: CommandDefinition = {
 
 export const exportWorkspaceCommand: CommandDefinition = {
     id: "export_workspace",
-    description: "Export the active workspace configuration (agents, channels, groups, messages).",
+    description: "Export the workspace ecosystem (agents, channels, groups, messages, networks, bridges).",
     tags: ["data", "export", "workspace"],
     rbac: ["orchestrator", "curator"],
     args: {},
-    output: "JSON export of the current workspace.",
+    output: "JSON export of the workspace ecosystem.",
     outputSchema: {
         type: "object",
         properties: {
@@ -60,12 +64,13 @@ export const exportWorkspaceCommand: CommandDefinition = {
     },
     execute: async (args, context: CommandContext) => {
         const { agents, channels, groups, messages } = context.workspace;
+        const { ecosystems, bridges } = context.ecosystem;
 
         const data = {
             version: "1.0",
             type: "workspace",
             exportedAt: new Date().toISOString(),
-            data: { agents, channels, groups, messages },
+            data: { agents, channels, groups, messages, networks: ecosystems, bridges },
         };
 
         // Produce deliverable
@@ -83,9 +88,10 @@ export const exportWorkspaceCommand: CommandDefinition = {
 
 export const exportEcosystemCommand: CommandDefinition = {
     id: "export_ecosystem",
-    description: "Export all saved ecosystems and bridges.",
+    description: "(Deprecated) Use export_workspace instead. Ecosystem and workspace are now unified.",
     tags: ["data", "export", "ecosystem"],
     rbac: ["orchestrator", "curator"],
+    hidden: true,
     args: {},
     output: "JSON export of saved ecosystems.",
     outputSchema: {
@@ -128,7 +134,7 @@ export const exportDataCommand: CommandDefinition = {
         type: {
             name: "type",
             type: "string",
-            description: "Type of entity: agent, channel, group, message, ecosystem, bridge",
+            description: "Type of entity: agent, channel, group, message, network, bridge",
             required: true
         },
         id: {
@@ -160,6 +166,7 @@ export const exportDataCommand: CommandDefinition = {
             case "message":
                 result = messages.find((m: any) => m.id === id);
                 break;
+            case "network":
             case "ecosystem":
                 result = ecosystems.find((e: any) => e.id === id);
                 break;

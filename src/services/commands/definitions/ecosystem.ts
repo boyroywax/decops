@@ -8,7 +8,7 @@ import { createAieosEntity } from "../../../utils/aieos";
 
 export const createNetworkCommand: CommandDefinition = {
     id: "create_network",
-    description: "Create a new network in the ecosystem, optionally populated via the AI Architect.",
+    description: "Create a new network in the workspace, optionally populated via the AI Architect.",
     tags: ["ecosystem", "network", "create"],
     rbac: ["orchestrator", "builder"],
     args: {
@@ -126,9 +126,10 @@ export const createNetworkCommand: CommandDefinition = {
 
 export const saveEcosystemCommand: CommandDefinition = {
     id: "save_ecosystem",
-    description: "Save the current agent, channel, and group configuration as a named network within the ecosystem.",
+    description: "(Deprecated) Save the current workspace entities as a named network. Use create_network instead.",
     tags: ["ecosystem", "save"],
     rbac: ["orchestrator", "curator"],
+    hidden: true,
     args: {
         name: {
             name: "name",
@@ -172,9 +173,10 @@ export const saveEcosystemCommand: CommandDefinition = {
 
 export const loadEcosystemCommand: CommandDefinition = {
     id: "load_ecosystem",
-    description: "Load a network configuration from the ecosystem into the active workspace.",
+    description: "(Deprecated) Load a network into the workspace. Networks are now part of the workspace ecosystem.",
     tags: ["ecosystem", "load"],
     rbac: ["orchestrator", "curator"],
+    hidden: true,
     args: {
         id: {
             name: "id",
@@ -204,12 +206,13 @@ export const loadEcosystemCommand: CommandDefinition = {
 
 export const listEcosystemsCommand: CommandDefinition = {
     id: "list_ecosystems",
-    description: "List all networks in the ecosystem.",
+    description: "(Deprecated) Use list_networks instead.",
     tags: ["ecosystem", "query"],
     rbac: ["researcher", "builder", "curator", "orchestrator"],
+    hidden: true,
     args: {},
-    output: "List of all networks in the ecosystem.",
-    outputSchema: { type: "object", properties: { ecosystems: { type: "array", items: { type: "object" } } } },
+    output: "List of all networks.",
+    outputSchema: { type: "object", properties: { networks: { type: "array", items: { type: "object" } } } },
     execute: async (args, context: CommandContext) => {
         const list = context.ecosystem.ecosystems.map((e: any) => ({
             id: e.id,
@@ -218,13 +221,38 @@ export const listEcosystemsCommand: CommandDefinition = {
             channelCount: e.channels?.length || 0,
             groupCount: e.groups?.length || 0,
         }));
-        return { ecosystems: list };
+        return { networks: list };
+    }
+};
+
+export const listNetworksCommand: CommandDefinition = {
+    id: "list_networks",
+    description: "List all networks in the workspace ecosystem.",
+    tags: ["ecosystem", "network", "query"],
+    rbac: ["researcher", "builder", "curator", "orchestrator"],
+    args: {},
+    output: "List of all networks in the ecosystem.",
+    outputSchema: { type: "object", properties: { networks: { type: "array", items: { type: "object" } } } },
+    execute: async (args, context: CommandContext) => {
+        const list = context.ecosystem.ecosystems.map((n: any) => ({
+            id: n.id,
+            name: n.name,
+            description: n.description || "",
+            color: n.color,
+            agentCount: n.agents?.length || 0,
+            channelCount: n.channels?.length || 0,
+            groupCount: n.groups?.length || 0,
+            createdAt: n.createdAt,
+        }));
+
+        context.storage.networks = list;
+        return { networks: list };
     }
 };
 
 export const updateNetworkCommand: CommandDefinition = {
     id: "update_network",
-    description: "Update properties of an existing network (name, description, color).",
+    description: "Update properties of an existing network in the workspace (name, description, color).",
     tags: ["ecosystem", "network", "update"],
     rbac: ["orchestrator", "builder"],
     args: {
@@ -288,7 +316,7 @@ export const updateNetworkCommand: CommandDefinition = {
 
 export const destroyNetworkCommand: CommandDefinition = {
     id: "destroy_network",
-    description: "Destroy a network, removing it from the ecosystem along with its bridges. Use cascade to also remove workspace agents, channels, and groups belonging to the network.",
+    description: "Destroy a network, removing it from the workspace along with its bridges. Use cascade to also remove agents, channels, and groups belonging to the network.",
     tags: ["ecosystem", "network", "destroy", "delete"],
     rbac: ["orchestrator"],
     args: {

@@ -528,9 +528,12 @@ Jobs (recent ${Math.min(ctx.jobs.length, 8)} of ${ctx.jobs.length}):
 ${jobSummary}
 ═══════════════════════
 
+HIERARCHY: Ecosystem (= Workspace) → Network → Group → Agent/Channel
+Each workspace IS a single ecosystem. Networks contain groups, agents, and channels. Bridges connect agents across networks.
+
 You can help the user with:
-- Answering questions about their workspace (agents, channels, groups, messages, topology)
-- Executing workspace operations using tools (creating agents, channels, groups, sending messages, querying state, managing ecosystems)
+- Answering questions about their workspace (agents, channels, groups, messages, networks, topology)
+- Executing workspace operations using tools (creating agents, channels, groups, networks, bridges, sending messages, querying state)
 - Analyzing agent relationships and communication patterns
 - Recommending governance models and mesh configurations
 - Explaining decentralized identity concepts (DIDs, verifiable credentials)
@@ -554,6 +557,7 @@ Key commands write to shared storage automatically:
 - create_channel → \`channel_{from}_{to}\`, \`lastChannelId\`
 - create_group → \`group_{name}\`, \`lastGroupId\`
 - list_agents/channels/groups/messages → \`agents\`, \`channels\`, \`groups\`, \`messages\`
+- list_networks → \`networks\`
 - prompt_architect → \`lastConfig\`, \`lastArchitectPrompt\`
 
 NETWORK DEPLOYMENT:

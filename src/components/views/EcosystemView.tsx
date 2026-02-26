@@ -36,10 +36,7 @@ interface EcosystemViewProps {
   selBridgeToNet: Network | null | undefined;
   bridgeFromNet: Network | null | undefined;
   bridgeToNet: Network | null | undefined;
-  saveCurrentNetwork: () => void;
-  loadNetwork: (id: string) => void;
   dissolveNetwork: (id: string) => void;
-  clearWorkspace: () => void;
   createBridge: () => void;
   removeBridge: (id: string) => void;
   sendBridgeMessage: () => void;
@@ -54,7 +51,7 @@ export function EcosystemView({
   bridgeSending, msgEndRef,
   selBridgeFrom, selBridgeTo, selBridgeFromNet, selBridgeToNet,
   bridgeFromNet, bridgeToNet,
-  saveCurrentNetwork, loadNetwork, dissolveNetwork, clearWorkspace,
+  dissolveNetwork,
   createBridge, removeBridge, sendBridgeMessage, setView,
 }: EcosystemViewProps) {
   return (
@@ -63,23 +60,10 @@ export function EcosystemView({
         <GradientIcon icon={Globe} size={18} gradient={["#38bdf8", "#60a5fa"]} /> Ecosystem
       </h2>
       <div className="eco-subtitle">
-        Save networks as independent entities. Bridge agents across networks for cross-mesh communication.
+        Your workspace ecosystem. Networks contain groups, agents, and channels. Bridge agents across networks for cross-mesh communication.
       </div>
 
-      {/* Save Current Workspace */}
-      {agents.length > 0 && (
-        <div className="eco-save-section">
-          <SectionTitle text="Save Current Workspace as Network" />
-          <div className="eco-save-row">
-            <input placeholder="Network name..." value={ecoSaveName} onChange={(e) => setEcoSaveName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && saveCurrentNetwork()} className="input eco-save-input" />
-            <button onClick={saveCurrentNetwork} disabled={!ecoSaveName.trim()} className="btn btn-sm eco-save-btn">Save</button>
-            <button onClick={clearWorkspace} className="btn btn-sm eco-clear-btn">Clear Workspace</button>
-          </div>
-          <div className="eco-save-meta">Snapshots {agents.length} agents, {channels.length} channels, {groups.length} groups</div>
-        </div>
-      )}
-
-      {/* Saved Networks Grid */}
+      {/* Networks Grid */}
       {ecosystems.length > 0 && (
         <>
           <SectionTitle text="Networks" />
@@ -102,8 +86,7 @@ export function EcosystemView({
                   {net.agents.length > 6 && <span className="eco-agent-badge--overflow">+{net.agents.length - 6}</span>}
                 </div>
                 <div className="eco-network-card__actions">
-                  <button onClick={() => loadNetwork(net.id)} className="btn btn-sm eco-load-btn" style={{ background: net.color + "12", borderColor: net.color + "30", color: net.color }}>Load into Workspace</button>
-                  <button onClick={() => dissolveNetwork(net.id)} className="btn btn-sm btn-danger">Dissolve</button>
+                  <button onClick={() => dissolveNetwork(net.id)} className="btn btn-sm btn-danger">Destroy</button>
                 </div>
               </div>
             ))}
@@ -257,7 +240,7 @@ export function EcosystemView({
       {/* Ecosystem Topology Canvas */}
       {ecosystems.length >= 2 && (
         <>
-          <SectionTitle text="Ecosystem Topology" />
+          <SectionTitle text="Network Topology" />
           <div className="eco-canvas">
             <EcosystemCanvas networks={ecosystems} bridges={bridges} activeBridges={activeBridges} />
           </div>
@@ -268,7 +251,7 @@ export function EcosystemView({
       {ecosystems.length === 0 && agents.length === 0 && (
         <div className="eco-empty">
           <GradientIcon icon={Globe} size={32} gradient={["#38bdf8", "#60a5fa"]} />
-          <div className="eco-empty__text">Build networks with the Architect, then save them here to form an ecosystem.</div>
+          <div className="eco-empty__text">Create networks with the Architect to build your ecosystem.</div>
           <button onClick={() => setView("architect")} className="btn eco-empty__btn"><Sparkles size={14} /> Open Architect</button>
         </div>
       )}

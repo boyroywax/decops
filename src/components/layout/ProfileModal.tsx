@@ -46,23 +46,16 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const handleExportWorkspace = () => {
     downloadJSON({
       version: "1.0", type: "workspace", exportedAt: new Date().toISOString(),
-      data: { agents: workspace.agents, channels: workspace.channels, groups: workspace.groups, messages: workspace.messages },
+      data: { agents: workspace.agents, channels: workspace.channels, groups: workspace.groups, messages: workspace.messages, networks: ecosystem.ecosystems, bridges: ecosystem.bridges },
     }, `decops-workspace-${Date.now()}.json`);
-  };
-
-  const handleExportEcosystem = () => {
-    downloadJSON({
-      version: "1.0", type: "ecosystem", exportedAt: new Date().toISOString(),
-      data: { ecosystems: ecosystem.ecosystems, bridges: ecosystem.bridges },
-    }, `decops-ecosystem-${Date.now()}.json`);
   };
 
   const handleFullBackup = () => {
     downloadJSON({
       version: "1.0", type: "full-backup", exportedAt: new Date().toISOString(),
       data: {
-        workspace: { agents: workspace.agents, channels: workspace.channels, groups: workspace.groups, messages: workspace.messages },
-        ecosystem: { ecosystems: ecosystem.ecosystems, bridges: ecosystem.bridges },
+        agents: workspace.agents, channels: workspace.channels, groups: workspace.groups, messages: workspace.messages,
+        networks: ecosystem.ecosystems, bridges: ecosystem.bridges,
       },
     }, `decops-full-backup-${Date.now()}.json`);
   };
@@ -86,23 +79,29 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const processImport = (json: any) => {
     if (!json.data) { setImportStatus("Error: Invalid file format"); return; }
     if (json.type === "full-backup") {
-      if (json.data.workspace) {
-        workspace.setAgents(json.data.workspace.agents || []);
-        workspace.setChannels(json.data.workspace.channels || []);
-        workspace.setGroups(json.data.workspace.groups || []);
-        workspace.setMessages(json.data.workspace.messages || []);
-      }
-      if (json.data.ecosystem) {
-        ecosystem.setEcosystems(json.data.ecosystem.ecosystems || []);
-        ecosystem.setBridges(json.data.ecosystem.bridges || []);
-      }
+      // Support both old nested format and new flat format
+      const ws = json.data.workspace || json.data;
+      const eco = json.data.ecosystem || json.data;
+      workspace.setAgents(ws.agents || []);
+      workspace.setChannels(ws.channels || []);
+      workspace.setGroups(ws.groups || []);
+      workspace.setMessages(ws.messages || []);
+      ecosystem.setEcosystems(eco.networks || eco.ecosystems || []);
+      ecosystem.setBridges(eco.bridges || []);
     } else if (json.type === "workspace") {
       workspace.setAgents(json.data.agents || []);
       workspace.setChannels(json.data.channels || []);
       workspace.setGroups(json.data.groups || []);
       workspace.setMessages(json.data.messages || []);
+      if (json.data.networks || json.data.ecosystems) {
+        ecosystem.setEcosystems(json.data.networks || json.data.ecosystems || []);
+      }
+      if (json.data.bridges) {
+        ecosystem.setBridges(json.data.bridges || []);
+      }
     } else if (json.type === "ecosystem") {
-      ecosystem.setEcosystems(json.data.ecosystems || []);
+      // Legacy ecosystem-only imports
+      ecosystem.setEcosystems(json.data.networks || json.data.ecosystems || []);
       ecosystem.setBridges(json.data.bridges || []);
     } else { setImportStatus("Error: Unknown file type"); return; }
     setImportStatus(`Loaded from ${json.type || "file"}`);
@@ -208,7 +207,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               </div>
               <div className="profile-actions-row">
                 <button onClick={handleExportWorkspace} className="btn btn-ghost">Export Workspace</button>
-                <button onClick={handleExportEcosystem} className="btn btn-ghost">Export Ecosystem</button>
                 <button onClick={handleFullBackup} className="btn btn-primary">Full Backup</button>
               </div>
             </section>

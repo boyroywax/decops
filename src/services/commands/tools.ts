@@ -116,7 +116,7 @@ function descriptionForType(arg: CommandArg): string {
       desc += " (group ID)";
       break;
     case "network":
-      desc += " (network/ecosystem ID)";
+      desc += " (network ID)";
       break;
     case "workspace":
       desc += " (workspace ID)";

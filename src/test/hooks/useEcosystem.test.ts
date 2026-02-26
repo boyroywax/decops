@@ -28,7 +28,7 @@ describe('useEcosystem', () => {
         expect(result.current.bridges).toEqual([]);
     });
 
-    it('queues save_ecosystem job', () => {
+    it('queues save_ecosystem job (deprecated)', () => {
         const { result } = renderHook(() => useEcosystem({ ...mockDeps, agents: [{ id: 'a1' } as any] }, mockAddJob));
 
         act(() => {
@@ -45,7 +45,7 @@ describe('useEcosystem', () => {
         }));
     });
 
-    it('queues load_ecosystem job', () => {
+    it('queues load_ecosystem job (deprecated)', () => {
         const { result } = renderHook(() => useEcosystem(mockDeps, mockAddJob));
 
         act(() => {
@@ -57,6 +57,19 @@ describe('useEcosystem', () => {
             request: { id: 'net-1' }
         }));
         expect(mockDeps.setView).toHaveBeenCalledWith('agents');
+    });
+
+    it('queues destroy_network job', () => {
+        const { result } = renderHook(() => useEcosystem(mockDeps, mockAddJob));
+
+        act(() => {
+            result.current.dissolveNetwork('net-1');
+        });
+
+        expect(mockAddJob).toHaveBeenCalledWith(expect.objectContaining({
+            type: 'destroy_network',
+            request: { id: 'net-1' }
+        }));
     });
 
     it('creates bridge via job', () => {

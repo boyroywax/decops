@@ -39,6 +39,7 @@ import {
     createNetworkCommand,
     updateNetworkCommand,
     destroyNetworkCommand,
+    listNetworksCommand,
     saveEcosystemCommand,
     loadEcosystemCommand,
     listEcosystemsCommand,
@@ -118,10 +119,11 @@ export function initializeRegistry() {
     registry.register(editArtifactCommand);
     registry.register(deleteArtifactCommand);
 
-    // Ecosystem
+    // Ecosystem / Networks
     registry.register(createNetworkCommand);
     registry.register(updateNetworkCommand);
     registry.register(destroyNetworkCommand);
+    registry.register(listNetworksCommand);
     registry.register(saveEcosystemCommand);
     registry.register(loadEcosystemCommand);
     registry.register(listEcosystemsCommand);
