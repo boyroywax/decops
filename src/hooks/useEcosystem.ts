@@ -143,7 +143,7 @@ export function useEcosystem({
   const dissolveNetwork = (id: string) => {
     if (addJob) {
       addJob({
-        type: "delete_ecosystem",
+        type: "destroy_network",
         request: { id }
       });
     }

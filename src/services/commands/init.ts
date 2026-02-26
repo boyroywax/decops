@@ -37,6 +37,8 @@ import {
 } from "./definitions/artifact";
 import {
     createNetworkCommand,
+    updateNetworkCommand,
+    destroyNetworkCommand,
     saveEcosystemCommand,
     loadEcosystemCommand,
     listEcosystemsCommand,
@@ -118,6 +120,8 @@ export function initializeRegistry() {
 
     // Ecosystem
     registry.register(createNetworkCommand);
+    registry.register(updateNetworkCommand);
+    registry.register(destroyNetworkCommand);
     registry.register(saveEcosystemCommand);
     registry.register(loadEcosystemCommand);
     registry.register(listEcosystemsCommand);

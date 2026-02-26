@@ -222,11 +222,145 @@ export const listEcosystemsCommand: CommandDefinition = {
     }
 };
 
+export const updateNetworkCommand: CommandDefinition = {
+    id: "update_network",
+    description: "Update properties of an existing network (name, description, color).",
+    tags: ["ecosystem", "network", "update"],
+    rbac: ["orchestrator", "builder"],
+    args: {
+        id: {
+            name: "id",
+            type: "network",
+            description: "ID of the network to update",
+            required: true
+        },
+        name: {
+            name: "name",
+            type: "string",
+            description: "New name for the network",
+            required: false
+        },
+        description: {
+            name: "description",
+            type: "string",
+            description: "New description for the network",
+            required: false
+        },
+        color: {
+            name: "color",
+            type: "string",
+            description: "New color hex value for the network (e.g. #ff6600)",
+            required: false
+        }
+    },
+    output: "The updated network object.",
+    outputSchema: { type: "object", properties: { success: { type: "boolean" }, network: { type: "object" } } },
+    execute: async (args, context: CommandContext) => {
+        const id = args.id;
+        const existing = context.ecosystem.ecosystems.find((n: any) => n.id === id);
+        if (!existing) throw new Error("Network not found in ecosystem");
+
+        const updates: Record<string, any> = {};
+        if (args.name !== undefined && args.name !== "") updates.name = args.name;
+        if (args.description !== undefined) updates.description = args.description;
+        if (args.color !== undefined && args.color !== "") updates.color = args.color;
+
+        if (Object.keys(updates).length === 0) {
+            throw new Error("No update fields provided. Specify at least one of: name, description, color.");
+        }
+
+        let updatedNet: any = null;
+        context.ecosystem.setEcosystems((prev: any[]) =>
+            prev.map((n: any) => {
+                if (n.id === id) {
+                    updatedNet = { ...n, ...updates };
+                    return updatedNet;
+                }
+                return n;
+            })
+        );
+
+        context.workspace.addLog(`Network "${updatedNet?.name || id}" updated: ${Object.keys(updates).join(", ")}`);
+        context.storage.lastNetworkId = id;
+        return { success: true, network: updatedNet || { ...existing, ...updates } };
+    }
+};
+
+export const destroyNetworkCommand: CommandDefinition = {
+    id: "destroy_network",
+    description: "Destroy a network, removing it from the ecosystem along with its bridges. Use cascade to also remove workspace agents, channels, and groups belonging to the network.",
+    tags: ["ecosystem", "network", "destroy", "delete"],
+    rbac: ["orchestrator"],
+    args: {
+        id: {
+            name: "id",
+            type: "network",
+            description: "ID of the network to destroy",
+            required: true
+        },
+        cascade: {
+            name: "cascade",
+            type: "boolean",
+            description: "Also remove workspace agents, channels, and groups belonging to this network (default: false)",
+            required: false,
+            defaultValue: false
+        }
+    },
+    output: "Summary of what was destroyed.",
+    outputSchema: { type: "object", properties: { success: { type: "boolean" }, removed: { type: "object" } } },
+    execute: async (args, context: CommandContext) => {
+        const id = args.id;
+        const { setEcosystems, setBridges, ecosystems } = context.ecosystem;
+
+        const net = ecosystems.find((n: any) => n.id === id);
+        if (!net) throw new Error("Network not found in ecosystem");
+
+        const removed: Record<string, number> = { networks: 1, bridges: 0 };
+
+        // Remove the network from the ecosystem
+        setEcosystems((prev: any[]) => prev.filter((n: any) => n.id !== id));
+
+        // Remove bridges that reference this network
+        setBridges((prev: any[]) => {
+            const before = prev.length;
+            const after = prev.filter((b: any) => b.fromNetworkId !== id && b.toNetworkId !== id);
+            removed.bridges = before - after.length;
+            return after;
+        });
+
+        // Cascade: also remove workspace-level entities tied to this network
+        if (args.cascade) {
+            const { setAgents, setChannels, setGroups, agents, channels, groups } = context.workspace;
+
+            const agentsBefore = agents.length;
+            setAgents((prev: any[]) => prev.filter((a: any) => a.networkId !== id));
+            removed.agents = agentsBefore - agents.filter((a: any) => a.networkId !== id).length;
+
+            const channelsBefore = channels.length;
+            setChannels((prev: any[]) => prev.filter((c: any) => c.networkId !== id));
+            removed.channels = channelsBefore - channels.filter((c: any) => c.networkId !== id).length;
+
+            const groupsBefore = groups.length;
+            setGroups((prev: any[]) => prev.filter((g: any) => g.networkId !== id));
+            removed.groups = groupsBefore - groups.filter((g: any) => g.networkId !== id).length;
+        }
+
+        const summary = Object.entries(removed)
+            .filter(([, v]) => v > 0)
+            .map(([k, v]) => `${v} ${k}`)
+            .join(", ");
+
+        context.workspace.addLog(`Network "${net.name}" destroyed: ${summary}`);
+        return { success: true, removed };
+    }
+};
+
 export const deleteEcosystemCommand: CommandDefinition = {
     id: "delete_ecosystem",
-    description: "Remove a network from the ecosystem.",
+    description: "Remove a network from the ecosystem (alias for destroy_network without cascade).",
     tags: ["ecosystem", "delete"],
     rbac: ["orchestrator"],
+    hidden: true,
     args: {
         id: {
             name: "id",
