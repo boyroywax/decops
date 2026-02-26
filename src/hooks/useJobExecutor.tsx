@@ -188,6 +188,21 @@ export function useJobExecutor({
                         },
                     };
 
+                    /** Recursively resolve $storage.key references in step args */
+                    const resolveStorageRefs = (value: any): any => {
+                        if (typeof value === 'string' && value.startsWith('$storage.')) {
+                            const key = value.slice('$storage.'.length);
+                            return key in jobStorage ? jobStorage[key] : value;
+                        }
+                        if (Array.isArray(value)) return value.map(resolveStorageRefs);
+                        if (value && typeof value === 'object') {
+                            const out: any = {};
+                            for (const [k, v] of Object.entries(value)) out[k] = resolveStorageRefs(v);
+                            return out;
+                        }
+                        return value;
+                    };
+
                     let finalResult;
 
                     if (queuedJob.steps && queuedJob.steps.length > 0) {
@@ -211,7 +226,8 @@ export function useJobExecutor({
 
                             const promises = queuedJob.steps.map(async (step: any, idx: number) => {
                                 try {
-                                    const res = await registry.execute(step.commandId, step.args, context);
+                                    const resolvedArgs = resolveStorageRefs(step.args);
+                                    const res = await registry.execute(step.commandId, resolvedArgs, context);
                                     if (updateJob) {
                                         // We need latest steps? No, just update this specific step.
                                         // But updateJob merges updates? No, usually it sets the whole object or partial.
@@ -331,7 +347,8 @@ export function useJobExecutor({
                                 if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
 
                                 try {
-                                    const res = await registry.execute(steps[i].commandId, steps[i].args, context);
+                                    const resolvedArgs = resolveStorageRefs(steps[i].args);
+                                    const res = await registry.execute(steps[i].commandId, resolvedArgs, context);
                                     steps[i] = { ...steps[i], status: 'completed', result: typeof res === 'string' ? res : JSON.stringify(res) };
                                 } catch (e: any) {
                                     steps[i] = { ...steps[i], status: 'failed', result: e.message };

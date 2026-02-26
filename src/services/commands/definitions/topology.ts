@@ -37,6 +37,10 @@ export const createBridgeCommand: CommandDefinition = {
 
         context.ecosystem.setBridges((prev: any[]) => [...prev, bridge]);
         context.workspace.addLog("Bridge created successfully.");
+
+        // Write to shared storage for downstream steps
+        context.storage.lastBridgeId = bridge.id;
+
         return { success: true, bridge };
     }
 };

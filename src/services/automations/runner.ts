@@ -78,6 +78,21 @@ export class AutomationRunner {
                     this.log(run, "info", `Deliverable produced: ${deliverable.name}`);
                 };
 
+                /** Recursively resolve $storage.key references in step args */
+                const resolveStorageRefs = (value: any): any => {
+                    if (typeof value === 'string' && value.startsWith('$storage.')) {
+                        const key = value.slice('$storage.'.length);
+                        return key in storage ? storage[key] : value;
+                    }
+                    if (Array.isArray(value)) return value.map(resolveStorageRefs);
+                    if (value && typeof value === 'object') {
+                        const out: any = {};
+                        for (const [k, v] of Object.entries(value)) out[k] = resolveStorageRefs(v);
+                        return out;
+                    }
+                    return value;
+                };
+
                 const executeStep = async (step: typeof def.steps[0]) => {
                     if (step.condition) {
                         const shouldRun = evaluateCondition(step.condition, this.context, results);
@@ -90,7 +105,8 @@ export class AutomationRunner {
 
                     this.log(run, "info", `Executing step: ${step.commandId}`);
                     try {
-                        const stepResult = await registry.execute(step.commandId, step.args || {}, this.context);
+                        const resolvedArgs = resolveStorageRefs(step.args || {});
+                        const stepResult = await registry.execute(step.commandId, resolvedArgs, this.context);
                         results.push({ stepId: step.id, commandId: step.commandId, status: "completed", result: stepResult });
                     } catch (e) {
                         this.log(run, "error", `Step ${step.id} (${step.commandId}) failed: ${e}`);

@@ -546,6 +546,20 @@ Jobs support these features:
 - **Steps**: ordered list of command invocations (serial or parallel execution)
 - **Deliverables**: declared outputs the job is expected to produce. Each deliverable has a key, label, type (markdown|json|yaml|csv|image|code), and optional description.
 - **Shared Storage**: key-value pairs (storageDefaults) that provide inter-step shared state. Steps can read/write these keys at runtime via the storage object. Use this to pass data between steps without hardcoding.
+- **Storage References**: Step args can use \`$storage.keyName\` to reference values written by earlier steps. For example, create_network writes \`storage.network_NetName\` with the UUID, and a subsequent create_agent step can use \`networkId: "$storage.network_NetName"\` to reference it. This enables dynamic ID passing between steps.
+
+Key commands write to shared storage automatically:
+- create_network → \`network_{name}\`, \`lastNetworkId\`
+- create_agent → \`agent_{name}\`, \`lastAgentId\`
+- create_channel → \`channel_{from}_{to}\`, \`lastChannelId\`
+- create_group → \`group_{name}\`, \`lastGroupId\`
+- list_agents/channels/groups/messages → \`agents\`, \`channels\`, \`groups\`, \`messages\`
+- prompt_architect → \`lastConfig\`, \`lastArchitectPrompt\`
+
+NETWORK DEPLOYMENT:
+The deploy_network command is a **job factory** — it reads a MeshConfig (from args or storage.lastConfig), generates atomic steps (create_network, create_agent, create_channel, create_group, create_bridge, send_message, print_topology), and queues them as a multi-step serial job. Each step is visible with progress tracking. The typical workflow is:
+1. prompt_architect (generates config → stores in storage.lastConfig)
+2. deploy_network (reads config → generates steps → queues deployment job)
 
 When helping users build jobs, suggest appropriate deliverables and storage keys. For save_job_definition, include deliverables and storageDefaults when relevant.
 

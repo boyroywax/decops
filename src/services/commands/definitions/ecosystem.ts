@@ -115,6 +115,11 @@ export const createNetworkCommand: CommandDefinition = {
 
         context.ecosystem.setEcosystems((prev: any[]) => [...prev, net]);
         context.workspace.addLog(`Network "${args.name}" created in ecosystem.`);
+
+        // Write to shared storage for downstream steps
+        context.storage.lastNetworkId = networkId;
+        context.storage[`network_${args.name}`] = networkId;
+
         return { success: true, network: net };
     }
 };

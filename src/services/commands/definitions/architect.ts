@@ -1,9 +1,6 @@
 
 import type { CommandDefinition, CommandContext } from "../types";
-import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, GROUP_COLORS, NETWORK_COLORS } from "../../../constants";
-import { generateDID, generateKeyPair, generateGroupDID } from "../../../utils/identity";
-import { createAieosEntity } from "../../../utils/aieos";
-import { callAgentAI, generateMeshConfig } from "../../ai";
+import { generateMeshConfig } from "../../ai";
 
 export const promptArchitectCommand: CommandDefinition = {
     id: "prompt_architect",
@@ -44,73 +41,33 @@ export const promptArchitectCommand: CommandDefinition = {
 
 export const deployNetworkCommand: CommandDefinition = {
     id: "deploy_network",
-    description: "Deploy a generated network configuration (networks, agents, channels, groups, bridges).",
-    tags: ["architect", "deploy", "provision"],
+    description: "Deploy a generated network configuration as a multi-step job using atomic commands (create_network, create_agent, create_channel, create_group, create_bridge, send_message).",
+    tags: ["architect", "deploy", "provision", "job"],
     rbac: ["builder", "orchestrator"],
     args: {
         config: {
             name: "config",
             type: "object",
-            description: "The MeshConfig object used to deploy the network",
-            required: true
+            description: "The MeshConfig object used to deploy the network (or reads from storage.lastConfig)",
+            required: false
         }
     },
-    output: "Summary of deployed resources.",
-    outputSchema: { type: "object", properties: { success: { type: "boolean" }, summary: { type: "string" } } },
+    output: "Summary of the generated deployment job with step list.",
+    outputSchema: { type: "object", properties: { success: { type: "boolean" }, jobId: { type: "string" }, stepCount: { type: "number" }, steps: { type: "array" } } },
     execute: async (args, context: CommandContext) => {
-        // Allow reading config from shared storage (set by prompt_architect)
+        // Read config from args or shared storage (set by prompt_architect)
         const config = args.config || context.storage.lastConfig;
         if (!config) throw new Error("No config provided and no lastConfig in storage. Run prompt_architect first.");
-        const { addLog, setAgents, setChannels, setGroups, setMessages, setActiveChannels } = context.workspace;
-        const { setEcosystems, setBridges } = context.ecosystem;
 
-        // Track created resources for summary
-        let networkCount = 0;
-        let agentCount = 0;
-        let channelCount = 0;
-        let groupCount = 0;
-        let bridgeCount = 0;
+        const { addLog } = context.workspace;
+        addLog("Generating deployment plan from config...");
 
-        // Map from config indices to created IDs
-        const networkIdMap: string[] = []; // networkIdMap[configIdx] = realId
-        const agentIdMap: string[] = []; // agentIdMap[configIdx] = realId
+        // Normalize networks — ensure at least a default
+        const configNetworks = config.networks && config.networks.length > 0
+            ? [...config.networks]
+            : [{ name: "Default Network", description: "Auto-generated network", agents: config.agents.map((_: any, i: number) => i) }];
 
-        // 0. Create networks first
-        const newNetworks: any[] = [];
-        const configNetworks = config.networks || [];
-        
-        // If no networks in config, create a default one
-        if (configNetworks.length === 0) {
-            configNetworks.push({
-                name: "Default Network",
-                description: "Auto-generated network",
-                agents: config.agents.map((_: any, i: number) => i)
-            });
-        }
-
-        for (let i = 0; i < configNetworks.length; i++) {
-            const n = configNetworks[i];
-            if (!n || !n.name) continue;
-            const network = {
-                id: crypto.randomUUID(),
-                name: n.name,
-                did: generateDID(),
-                color: NETWORK_COLORS[i % NETWORK_COLORS.length],
-                agents: [], // Live data model - agents referenced by networkId
-                channels: [],
-                groups: [],
-                messages: [],
-                createdAt: new Date().toISOString(),
-                description: n.description || "",
-            };
-            newNetworks.push(network);
-            networkIdMap[i] = network.id;
-            networkCount++;
-            addLog(`Created network "${n.name}" -> ${network.did.slice(0, 20)}…`);
-        }
-        setEcosystems((prev: any[]) => [...prev, ...newNetworks]);
-
-        // Build agent-to-network mapping from config
+        // Build agent-to-network index mapping
         const agentToNetworkIdx: (number | undefined)[] = [];
         for (let netIdx = 0; netIdx < configNetworks.length; netIdx++) {
             const net = configNetworks[netIdx];
@@ -121,219 +78,142 @@ export const deployNetworkCommand: CommandDefinition = {
             }
         }
 
-        // 1. Create agents (with networkId)
-        const newAgents: any[] = [];
+        // --- Generate steps ---
+        const steps: any[] = [];
+        let stepIdx = 0;
+
+        // 1. Create networks
+        for (const net of configNetworks) {
+            if (!net?.name) continue;
+            steps.push({
+                id: `step-${stepIdx++}`,
+                commandId: "create_network",
+                name: `Create Network: ${net.name}`,
+                args: { name: net.name, description: net.description || "" },
+            });
+        }
+
+        // 2. Create agents (reference network by $storage.network_Name)
         for (let i = 0; i < config.agents.length; i++) {
             const a = config.agents[i];
-            if (!a || !a.name) continue;
-            const validRole = ROLES.find((r: any) => r.id === a.role) ? a.role : "researcher";
+            if (!a?.name) continue;
             const networkIdx = a.network ?? agentToNetworkIdx[i] ?? 0;
-            const networkId = networkIdMap[networkIdx] || networkIdMap[0];
-            
-            const agent = {
-                id: crypto.randomUUID(),
-                name: a.name,
-                role: validRole,
-                prompt: a.prompt || "",
-                did: generateDID(),
-                keys: generateKeyPair(),
-                createdAt: new Date().toISOString(),
-                status: "active",
-                networkId,
-                aieos: createAieosEntity(a.name, validRole, a.prompt || ""),
-            };
-            newAgents.push(agent);
-            agentIdMap[i] = agent.id;
-            agentCount++;
-            addLog(`Deployed agent "${a.name}" -> ${agent.did.slice(0, 20)}… [${configNetworks[networkIdx]?.name || 'Default'}]`);
-            await new Promise(r => setTimeout(r, 50));
+            const networkName = configNetworks[networkIdx]?.name || configNetworks[0]?.name;
+            steps.push({
+                id: `step-${stepIdx++}`,
+                commandId: "create_agent",
+                name: `Create Agent: ${a.name}`,
+                args: {
+                    name: a.name,
+                    role: a.role || "researcher",
+                    prompt: a.prompt || "",
+                    networkId: `$storage.network_${networkName}`,
+                },
+            });
         }
-        setAgents((prev: any[]) => [...prev, ...newAgents]);
 
-        // 2. Create channels (with networkId from 'from' agent)
-        const newChannels: any[] = [];
-        for (const c of config.channels) {
+        // 3. Create channels (reference agents by name — create_channel resolves names)
+        for (const c of config.channels || []) {
             if (c.from == null || c.to == null) continue;
-            const fromAgent = newAgents[c.from];
-            const toAgent = newAgents[c.to];
-            if (!fromAgent || !toAgent) continue;
-            const validType = CHANNEL_TYPES.find((t: any) => t.id === c.type) ? c.type : "data";
-            
-            // Use the from agent's networkId (or shared if both in same network)
-            const networkId = fromAgent.networkId;
-            
-            const ch = {
-                id: crypto.randomUUID(),
-                from: fromAgent.id,
-                to: toAgent.id,
-                type: validType,
-                offset: Math.random() * 120,
-                createdAt: new Date().toISOString(),
-                networkId,
-            };
-            newChannels.push(ch);
-            channelCount++;
-            addLog(`Channel: ${fromAgent.name} <-> ${toAgent.name} [${validType}]`);
+            const fromName = config.agents[c.from]?.name;
+            const toName = config.agents[c.to]?.name;
+            if (!fromName || !toName) continue;
+            steps.push({
+                id: `step-${stepIdx++}`,
+                commandId: "create_channel",
+                name: `Channel: ${fromName} ↔ ${toName}`,
+                args: { from: fromName, to: toName, type: c.type || "data" },
+            });
         }
-        setChannels((prev: any[]) => [...prev, ...newChannels]);
 
-        // 3. Create groups (with networkId from first member)
-        const newGroups: any[] = [];
-        if (config.groups) {
-            for (const g of config.groups) {
-                if (!g || !g.name) continue;
-                const memberIds = (g.members || []).map((idx: number) => agentIdMap[idx]).filter(Boolean);
-                if (memberIds.length < 2) continue;
-                const validGov = GOVERNANCE_MODELS.find((m: any) => m.id === g.governance) ? g.governance : "majority";
-                
-                // Use first member's networkId
-                const firstMember = newAgents.find((a: any) => a.id === memberIds[0]);
-                const networkId = firstMember?.networkId;
-                
-                const group = {
-                    id: crypto.randomUUID(),
+        // 4. Create groups (reference agents by name — create_group resolves names)
+        for (const g of config.groups || []) {
+            if (!g?.name) continue;
+            const memberNames = (g.members || []).map((idx: number) => config.agents[idx]?.name).filter(Boolean);
+            if (memberNames.length < 2) continue;
+            const firstMemberNetIdx = agentToNetworkIdx[g.members[0]] ?? 0;
+            const networkName = configNetworks[firstMemberNetIdx]?.name || configNetworks[0]?.name;
+            steps.push({
+                id: `step-${stepIdx++}`,
+                commandId: "create_group",
+                name: `Create Group: ${g.name}`,
+                args: {
                     name: g.name,
-                    governance: validGov,
-                    members: memberIds,
-                    threshold: g.threshold || 2,
-                    did: generateGroupDID(),
-                    color: GROUP_COLORS[newGroups.length % GROUP_COLORS.length],
-                    createdAt: new Date().toISOString(),
-                    networkId,
-                };
-                newGroups.push(group);
-                groupCount++;
-                addLog(`Group "${g.name}" formed -> ${group.did.slice(0, 22)}…`);
-
-                // Auto-create consensus channels within group
-                for (let i = 0; i < memberIds.length; i++) {
-                    for (let j = i + 1; j < memberIds.length; j++) {
-                        const exists = newChannels.some(c =>
-                            (c.from === memberIds[i] && c.to === memberIds[j]) ||
-                            (c.from === memberIds[j] && c.to === memberIds[i])
-                        );
-                        if (!exists) {
-                            const ch = {
-                                id: crypto.randomUUID(),
-                                from: memberIds[i],
-                                to: memberIds[j],
-                                type: "consensus",
-                                offset: Math.random() * 120,
-                                createdAt: new Date().toISOString(),
-                                networkId,
-                            };
-                            newChannels.push(ch);
-                            setChannels((prev: any[]) => [...prev, ch]);
-                        }
-                    }
-                }
-            }
-        }
-        setGroups((prev: any[]) => [...prev, ...newGroups]);
-
-        // 4. Create bridges between networks
-        const newBridges: any[] = [];
-        if (config.bridges && config.bridges.length > 0) {
-            for (const b of config.bridges) {
-                if (b.fromNetwork == null || b.toNetwork == null || 
-                    b.fromAgent == null || b.toAgent == null) continue;
-                
-                const fromNetworkId = networkIdMap[b.fromNetwork];
-                const toNetworkId = networkIdMap[b.toNetwork];
-                const fromAgentId = agentIdMap[b.fromAgent];
-                const toAgentId = agentIdMap[b.toAgent];
-                
-                if (!fromNetworkId || !toNetworkId || !fromAgentId || !toAgentId) continue;
-                if (fromNetworkId === toNetworkId) continue; // Bridges connect different networks
-                
-                const validType = CHANNEL_TYPES.find((t: any) => t.id === b.type) ? b.type : "data";
-                
-                const bridge = {
-                    id: crypto.randomUUID(),
-                    fromNetworkId,
-                    toNetworkId,
-                    fromAgentId,
-                    toAgentId,
-                    type: validType,
-                    offset: Math.random() * 100,
-                    createdAt: new Date().toISOString(),
-                };
-                newBridges.push(bridge);
-                bridgeCount++;
-                
-                const fromAgent = newAgents.find((a: any) => a.id === fromAgentId);
-                const toAgent = newAgents.find((a: any) => a.id === toAgentId);
-                const fromNet = configNetworks[b.fromNetwork];
-                const toNet = configNetworks[b.toNetwork];
-                addLog(`Bridge: ${fromAgent?.name} (${fromNet?.name}) <-> ${toAgent?.name} (${toNet?.name})`);
-            }
-            setBridges((prev: any[]) => [...prev, ...newBridges]);
+                    members: memberNames,
+                    governance: g.governance || "majority",
+                    networkId: `$storage.network_${networkName}`,
+                },
+            });
         }
 
-        // 5. Send example messages
-        if (config.exampleMessages && config.exampleMessages.length > 0) {
-            for (const em of config.exampleMessages) {
-                if (em.channelIdx == null || !em.message) continue;
-                const ch = newChannels[em.channelIdx];
-                if (!ch) continue;
-                const fromAgent = newAgents.find((a: any) => a.id === ch.from);
-                const toAgent = newAgents.find((a: any) => a.id === ch.to);
-                if (!fromAgent || !toAgent) continue;
-
-                addLog(`Example msg: ${fromAgent.name} -> ${toAgent.name}`);
-
-                const msgId = crypto.randomUUID();
-                const msg = {
-                    id: msgId,
-                    channelId: ch.id,
-                    fromId: ch.from,
-                    toId: ch.to,
-                    content: em.message,
-                    response: null,
-                    status: "sending",
-                    ts: Date.now(),
-                };
-                setMessages((prev: any[]) => [...prev, msg]);
-                if (setActiveChannels) {
-                    setActiveChannels((prev: Set<string>) => new Set([...prev, ch.id]));
-                }
-
-                if (toAgent.prompt) {
-                    const response = await callAgentAI(toAgent, fromAgent, em.message, ch.type, []);
-                    setMessages((prev: any[]) => prev.map((m: any) => m.id === msgId ? { ...m, response, status: "delivered" } : m));
-                    addLog(`${toAgent.name} responded (${response.length} chars)`);
-                } else {
-                    setMessages((prev: any[]) => prev.map((m: any) => m.id === msgId ? { ...m, response: "[No prompt]", status: "no-prompt" } : m));
-                }
-
-                if (setActiveChannels) {
-                    setTimeout(() => setActiveChannels((prev: Set<string>) => { const n = new Set(prev); n.delete(ch.id); return n; }), 3000);
-                }
-            }
+        // 5. Create bridges (reference agents & networks by storage keys)
+        for (const b of config.bridges || []) {
+            if (b.fromNetwork == null || b.toNetwork == null || b.fromAgent == null || b.toAgent == null) continue;
+            const fromAgentName = config.agents[b.fromAgent]?.name;
+            const toAgentName = config.agents[b.toAgent]?.name;
+            const fromNetworkName = configNetworks[b.fromNetwork]?.name;
+            const toNetworkName = configNetworks[b.toNetwork]?.name;
+            if (!fromAgentName || !toAgentName || !fromNetworkName || !toNetworkName) continue;
+            if (fromNetworkName === toNetworkName) continue; // Bridges connect different networks
+            steps.push({
+                id: `step-${stepIdx++}`,
+                commandId: "create_bridge",
+                name: `Bridge: ${fromAgentName} ↔ ${toAgentName}`,
+                args: {
+                    from_network: `$storage.network_${fromNetworkName}`,
+                    to_network: `$storage.network_${toNetworkName}`,
+                    from_agent: `$storage.agent_${fromAgentName}`,
+                    to_agent: `$storage.agent_${toAgentName}`,
+                    type: b.type || "data",
+                },
+            });
         }
 
-        const summary = [
-            `${networkCount} network${networkCount !== 1 ? 's' : ''}`,
-            `${agentCount} agent${agentCount !== 1 ? 's' : ''}`,
-            `${channelCount} channel${channelCount !== 1 ? 's' : ''}`,
-            `${groupCount} group${groupCount !== 1 ? 's' : ''}`,
-            bridgeCount > 0 ? `${bridgeCount} bridge${bridgeCount !== 1 ? 's' : ''}` : null,
-        ].filter(Boolean).join(', ');
+        // 6. Example messages (send_message uses agent names)
+        for (const em of config.exampleMessages || []) {
+            if (em.channelIdx == null || !em.message) continue;
+            const ch = (config.channels || [])[em.channelIdx];
+            if (!ch) continue;
+            const fromName = config.agents[ch.from]?.name;
+            const toName = config.agents[ch.to]?.name;
+            if (!fromName || !toName) continue;
+            steps.push({
+                id: `step-${stepIdx++}`,
+                commandId: "send_message",
+                name: `Message: ${fromName} → ${toName}`,
+                args: { from_agent_name: fromName, to_agent_name: toName, message: em.message },
+            });
+        }
 
-        // Write deployment results to shared storage
-        context.storage.lastDeployment = { networkCount, agentCount, channelCount, groupCount, bridgeCount, summary };
-        context.storage.deployedAgentIds = newAgents.map((a: any) => a.id);
-        context.storage.deployedChannelIds = newChannels.map((c: any) => c.id);
-
-        // Produce deployment summary deliverable
-        context.addDeliverable({
-            key: 'deployment-summary',
-            name: 'Deployment Summary',
-            type: 'markdown',
-            content: `# Network Deployment\n\nDeployed ${summary}.\n\n## Agents\n${newAgents.map((a: any) => `- **${a.name}** (${a.role}) — \`${a.id.slice(0, 8)}\``).join('\n')}\n\n## Channels\n${newChannels.map((c: any) => `- ${newAgents.find((a: any) => a.id === c.from)?.name || c.from} ↔ ${newAgents.find((a: any) => a.id === c.to)?.name || c.to} [${c.type}]`).join('\n')}`,
-            tags: ['deployment', 'architect'],
+        // 7. Final step: print topology as a deliverable
+        steps.push({
+            id: `step-${stepIdx++}`,
+            commandId: "print_topology",
+            name: "Generate Topology Report",
+            args: {},
         });
 
-        return { success: true, summary: `Deployed ${summary}.` };
+        // --- Queue the multi-step deployment job ---
+        const networkNames = configNetworks.map((n: any) => n.name).join(", ");
+        const jobPayload: any = {
+            type: `deploy: ${networkNames}`,
+            request: { config, generatedAt: new Date().toISOString() },
+            steps,
+            mode: "serial",
+            deliverables: [
+                { key: "topology", label: "Network Topology", type: "json", description: "Final topology after deployment" },
+            ],
+            storageDefaults: {},
+        };
+
+        const job = context.jobs.addJob(jobPayload);
+        addLog(`Deployment job queued: ${steps.length} steps → ${job.id.slice(0, 12)}`);
+
+        return {
+            success: true,
+            jobId: job.id,
+            stepCount: steps.length,
+            steps: steps.map((s: any) => ({ id: s.id, command: s.commandId, name: s.name })),
+        };
     }
 };
