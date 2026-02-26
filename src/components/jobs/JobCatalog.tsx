@@ -1,5 +1,6 @@
-import { Play, Edit, Trash2, Briefcase } from "lucide-react";
+import { Play, Edit, Trash2, Briefcase, Lock } from "lucide-react";
 import type { JobDefinition } from "../../types";
+import { isSeedJob } from "../../services/jobs/seedCatalog";
 import "../../styles/components/job-catalog.css";
 
 interface JobCatalogProps {
@@ -22,15 +23,20 @@ export function JobCatalog({ jobs, onRun, onEdit, onDelete }: JobCatalogProps) {
 
     return (
         <div className="job-catalog__grid">
-            {jobs.map(job => (
-                <div key={job.id} className="job-catalog__card">
+            {jobs.map(job => {
+                const isBuiltIn = isSeedJob(job.id);
+                return (
+                <div key={job.id} className={`job-catalog__card${isBuiltIn ? ' job-catalog__card--seed' : ''}`}>
                     <div className="job-catalog__card-header">
                         <div className="job-catalog__card-info">
                             <div className="job-catalog__icon">
                                 <Briefcase size={16} />
                             </div>
                             <div>
-                                <div className="job-catalog__name">{job.name}</div>
+                                <div className="job-catalog__name">
+                                    {job.name}
+                                    {isBuiltIn && <span className="job-catalog__badge">Built-in</span>}
+                                </div>
                                 <div className="job-catalog__meta">
                                     <span>{job.steps.length} steps</span>
                                     <span>•</span>
@@ -58,6 +64,7 @@ export function JobCatalog({ jobs, onRun, onEdit, onDelete }: JobCatalogProps) {
                         >
                             <Edit size={12} />
                         </button>
+                        {!isBuiltIn && (
                         <button
                             onClick={() => {
                                 if (confirm("Are you sure you want to delete this job definition?")) {
@@ -69,9 +76,11 @@ export function JobCatalog({ jobs, onRun, onEdit, onDelete }: JobCatalogProps) {
                         >
                             <Trash2 size={12} />
                         </button>
+                        )}
                     </div>
                 </div>
-            ))}
+                );
+            })}
         </div>
     );
 }

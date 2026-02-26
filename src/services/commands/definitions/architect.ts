@@ -44,6 +44,7 @@ export const deployNetworkCommand: CommandDefinition = {
     description: "Deploy a generated network configuration as a multi-step job using atomic commands (create_network, create_agent, create_channel, create_group, create_bridge, send_message).",
     tags: ["architect", "deploy", "provision", "job"],
     rbac: ["builder", "orchestrator"],
+    hidden: true, // Exposed via Job Catalog, not the Commands panel
     args: {
         config: {
             name: "config",

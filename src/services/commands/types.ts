@@ -119,5 +119,7 @@ export interface CommandDefinition<TArgs = any> {
     output: string; // Description of the output format/content
     outputSchema?: Record<string, any>; // Optional JSON schema of the output object
     recommendedModel?: string; // Suggested LLM model id (fallback between user override and global default)
+    /** Hide from Commands panel & AI tools — still executable by job executor */
+    hidden?: boolean;
     execute: (args: TArgs, context: CommandContext) => Promise<any>;
 }

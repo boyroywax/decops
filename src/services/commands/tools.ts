@@ -173,7 +173,7 @@ export function commandToTool(cmd: CommandDefinition): AnthropicTool {
 export function getAllTools(): AnthropicTool[] {
   return registry
     .getAll()
-    .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id))
+    .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id) && !cmd.hidden)
     .map(commandToTool);
 }
 
@@ -181,7 +181,7 @@ export function getAllTools(): AnthropicTool[] {
 export function getToolsByTags(tags: string[]): AnthropicTool[] {
   return registry
     .getAll()
-    .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id))
+    .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id) && !cmd.hidden)
     .filter(cmd => tags.some(t => cmd.tags.includes(t)))
     .map(commandToTool);
 }

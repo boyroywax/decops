@@ -25,7 +25,7 @@ const getCommandColor = (tags: string[]) => {
 };
 
 export function CommandsPanel({ onRunCommand }: CommandsPanelProps) {
-    const commands = registry.getAll();
+    const commands = registry.getAll().filter(c => !c.hidden);
     const [filter, setFilter] = useState("");
     const [view, setView] = useState<"cards" | "table">("cards");
 

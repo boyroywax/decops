@@ -42,7 +42,9 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
             type: jobDef.name,
             request: { description: jobDef.description },
             steps: jobDef.steps,
-            mode: jobDef.mode
+            mode: jobDef.mode,
+            ...(jobDef.storageDefaults ? { storageDefaults: jobDef.storageDefaults } : {}),
+            ...(jobDef.deliverables ? { deliverables: jobDef.deliverables } : {}),
         });
         setActiveTab("monitor");
     };

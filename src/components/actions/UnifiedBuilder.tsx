@@ -61,7 +61,7 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
         Object.keys(initStorage).length > 0
     );
 
-    const commands = registry.getAll();
+    const commands = registry.getAll().filter(c => !c.hidden);
     const filteredCommands = commands.filter(c =>
         c.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.description.toLowerCase().includes(searchTerm.toLowerCase())
