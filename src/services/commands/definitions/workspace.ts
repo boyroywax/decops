@@ -36,7 +36,7 @@ export const switchWorkspaceCommand: CommandDefinition = {
     args: {
         id: {
             name: "id",
-            type: "string", // We don't have a "workspace" type yet, string ID is fine
+            type: "workspace",
             description: "ID of the workspace to switch to",
             required: true
         }
@@ -57,7 +57,7 @@ export const deleteWorkspaceCommand: CommandDefinition = {
     args: {
         id: {
             name: "id",
-            type: "string",
+            type: "workspace",
             description: "ID of the workspace to delete",
             required: true
         }
@@ -79,7 +79,7 @@ export const duplicateWorkspaceCommand: CommandDefinition = {
     args: {
         sourceId: {
             name: "sourceId",
-            type: "string",
+            type: "workspace",
             description: "ID of the workspace to duplicate",
             required: true
         },

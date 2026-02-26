@@ -1,7 +1,7 @@
 
 import type { RoleId, JobRequest } from "../../types";
 
-export type CommandArgType = "string" | "number" | "boolean" | "object" | "array" | "group" | "agent" | "channel" | "network";
+export type CommandArgType = "string" | "number" | "boolean" | "object" | "array" | "group" | "agent" | "channel" | "network" | "workspace";
 
 export interface CommandArg {
     name: string;

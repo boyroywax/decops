@@ -2,6 +2,7 @@ import React from "react";
 import { CommandArg, CommandArgType } from "../../services/commands/types";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { useEcosystemContext } from "../../context/EcosystemContext";
+import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
 import "../../styles/components/command-arg-input.css";
 
 interface CommandArgInputProps {
@@ -13,6 +14,7 @@ interface CommandArgInputProps {
 export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) {
     const { agents, channels, groups } = useWorkspaceContext();
     const { ecosystems } = useEcosystemContext();
+    const { workspaces } = useWorkspaceManager();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         let newValue: any = e.target.value;
@@ -93,6 +95,21 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
                 <option value="">Select a Network</option>
                 {ecosystems.map(n => (
                     <option key={n.id} value={n.id}>{n.name}</option>
+                ))}
+            </select>
+        );
+    }
+
+    if (arg.type === "workspace") {
+        return (
+            <select
+                value={value || ""}
+                onChange={handleChange}
+                className="command-arg__select"
+            >
+                <option value="">Select a Workspace</option>
+                {workspaces.map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
                 ))}
             </select>
         );

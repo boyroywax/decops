@@ -87,6 +87,7 @@ function argTypeToJsonSchema(type: CommandArgType): { type: string; items?: { ty
     case "channel":
     case "group":
     case "network":
+    case "workspace":
       return { type: "string" };
     case "number":
       return { type: "number" };
@@ -116,6 +117,9 @@ function descriptionForType(arg: CommandArg): string {
       break;
     case "network":
       desc += " (network/ecosystem ID)";
+      break;
+    case "workspace":
+      desc += " (workspace ID)";
       break;
   }
   if (arg.defaultValue !== undefined) {
