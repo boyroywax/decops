@@ -10,13 +10,13 @@ export const sendMessageCommand: CommandDefinition = {
     args: {
         from_agent_name: {
             name: "from_agent_name",
-            type: "string",
+            type: "agent",
             description: "Name of the sender agent",
             required: true,
         },
         to_agent_name: {
             name: "to_agent_name",
-            type: "string",
+            type: "agent",
             description: "Name of the recipient agent",
             required: true,
         },
