@@ -76,6 +76,11 @@ export const createAgentCommand: CommandDefinition = {
         workspace.setAgents((prev: any[]) => [...prev, newAgent]);
         workspace.addLog(`Created agent: ${name} (${role})`);
 
+        // Write to shared storage for downstream steps
+        context.storage.lastAgentId = newAgent.id;
+        context.storage.lastAgentName = newAgent.name;
+        context.storage[`agent_${name}`] = newAgent.id;
+
         return { agentId: newAgent.id, did: newAgent.did };
     },
 };

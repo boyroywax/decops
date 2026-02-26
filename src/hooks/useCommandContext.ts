@@ -46,6 +46,7 @@ export function useCommandContext({
                 addArtifact: jobs.addArtifact,
                 removeArtifact: jobs.removeArtifact,
                 importArtifact: jobs.importArtifact,
+                updateArtifact: jobs.updateArtifact || (() => {}),
                 allArtifacts: jobs.allArtifacts,
                 // Queue Management
                 addJob: jobs.addJob,
@@ -60,6 +61,9 @@ export function useCommandContext({
                 deleteDefinition: jobs.deleteJob
             },
             ecosystem: {
+                ecosystem: ecosystem.ecosystem,
+                setEcosystem: ecosystem.setEcosystem,
+                activeNetworkId: ecosystem.activeNetworkId ?? null,
                 ecosystems: ecosystem.ecosystems,
                 bridges: ecosystem.bridges,
                 bridgeMessages: ecosystem.bridgeMessages,
@@ -86,7 +90,25 @@ export function useCommandContext({
             automations: {
                 runAutomation: automations.runAutomation,
                 runs: automations.runs
-            }
+            },
+            // Chat-panel context has no job storage — provide empty defaults
+            storage: {},
+            addDeliverable: (deliverable) => {
+                const artifact = {
+                    id: `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                    name: deliverable.name,
+                    type: deliverable.type,
+                    content: deliverable.content,
+                    tags: [
+                        `type:${deliverable.type}`,
+                        `source:chat`,
+                        `deliverable:${deliverable.key}`,
+                        ...(deliverable.tags || []),
+                    ],
+                    source: "command" as const,
+                };
+                jobs.importArtifact(artifact);
+            },
         };
     }, [workspace, user, jobs, ecosystem, architect, addLog, automations]);
 

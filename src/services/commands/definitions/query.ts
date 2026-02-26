@@ -10,7 +10,9 @@ export const listAgentsCommand: CommandDefinition = {
     output: "List of active agents.",
     outputSchema: { type: "object", properties: { agents: { type: "array" } } },
     execute: async (args, context: CommandContext) => {
-        return { agents: context.workspace.agents };
+        const result = { agents: context.workspace.agents };
+        context.storage.agents = result.agents;
+        return result;
     }
 };
 
@@ -23,7 +25,9 @@ export const listGroupsCommand: CommandDefinition = {
     output: "List of groups.",
     outputSchema: { type: "object", properties: { groups: { type: "array" } } },
     execute: async (args, context: CommandContext) => {
-        return { groups: context.workspace.groups };
+        const result = { groups: context.workspace.groups };
+        context.storage.groups = result.groups;
+        return result;
     }
 };
 
@@ -36,7 +40,9 @@ export const listChannelsCommand: CommandDefinition = {
     output: "List of channels.",
     outputSchema: { type: "object", properties: { channels: { type: "array" } } },
     execute: async (args, context: CommandContext) => {
-        return { channels: context.workspace.channels };
+        const result = { channels: context.workspace.channels };
+        context.storage.channels = result.channels;
+        return result;
     }
 };
 
@@ -52,6 +58,8 @@ export const listMessagesCommand: CommandDefinition = {
     outputSchema: { type: "object", properties: { messages: { type: "array" } } },
     execute: async (args, context: CommandContext) => {
         const limit = args.limit || 50;
-        return { messages: context.workspace.messages.slice(-limit) };
+        const result = { messages: context.workspace.messages.slice(-limit) };
+        context.storage.messages = result.messages;
+        return result;
     }
 };

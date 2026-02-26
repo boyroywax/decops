@@ -111,6 +111,11 @@ export const createGroupCommand: CommandDefinition = {
             addLog(`Created ${newCh.length} consensus channels for group`);
         }
 
+        // Write to shared storage for downstream steps
+        context.storage.lastGroupId = newGroup.id;
+        context.storage.lastGroupName = newGroup.name;
+        context.storage[`group_${name}`] = newGroup.id;
+
         return { status: "created", groupId: newGroup.id, channelCount: newCh.length };
     },
 };

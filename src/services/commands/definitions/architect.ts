@@ -24,6 +24,20 @@ export const promptArchitectCommand: CommandDefinition = {
     execute: async (args, context: CommandContext) => {
         context.workspace.addLog(`Architect triggered with prompt: ${args.prompt}`);
         const config = await generateMeshConfig(args.prompt);
+
+        // Write config to shared storage so deploy_network can read it
+        context.storage.lastConfig = config;
+        context.storage.lastArchitectPrompt = args.prompt;
+
+        // Produce deliverable
+        context.addDeliverable({
+            key: 'mesh-config',
+            name: 'Architect Config',
+            type: 'json',
+            content: JSON.stringify(config, null, 2),
+            tags: ['architect', 'config'],
+        });
+
         return config;
     }
 };
@@ -44,7 +58,9 @@ export const deployNetworkCommand: CommandDefinition = {
     output: "Summary of deployed resources.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" }, summary: { type: "string" } } },
     execute: async (args, context: CommandContext) => {
-        const config = args.config;
+        // Allow reading config from shared storage (set by prompt_architect)
+        const config = args.config || context.storage.lastConfig;
+        if (!config) throw new Error("No config provided and no lastConfig in storage. Run prompt_architect first.");
         const { addLog, setAgents, setChannels, setGroups, setMessages, setActiveChannels } = context.workspace;
         const { setEcosystems, setBridges } = context.ecosystem;
 
@@ -303,6 +319,20 @@ export const deployNetworkCommand: CommandDefinition = {
             `${groupCount} group${groupCount !== 1 ? 's' : ''}`,
             bridgeCount > 0 ? `${bridgeCount} bridge${bridgeCount !== 1 ? 's' : ''}` : null,
         ].filter(Boolean).join(', ');
+
+        // Write deployment results to shared storage
+        context.storage.lastDeployment = { networkCount, agentCount, channelCount, groupCount, bridgeCount, summary };
+        context.storage.deployedAgentIds = newAgents.map((a: any) => a.id);
+        context.storage.deployedChannelIds = newChannels.map((c: any) => c.id);
+
+        // Produce deployment summary deliverable
+        context.addDeliverable({
+            key: 'deployment-summary',
+            name: 'Deployment Summary',
+            type: 'markdown',
+            content: `# Network Deployment\n\nDeployed ${summary}.\n\n## Agents\n${newAgents.map((a: any) => `- **${a.name}** (${a.role}) — \`${a.id.slice(0, 8)}\``).join('\n')}\n\n## Channels\n${newChannels.map((c: any) => `- ${newAgents.find((a: any) => a.id === c.from)?.name || c.from} ↔ ${newAgents.find((a: any) => a.id === c.to)?.name || c.to} [${c.type}]`).join('\n')}`,
+            tags: ['deployment', 'architect'],
+        });
 
         return { success: true, summary: `Deployed ${summary}.` };
     }

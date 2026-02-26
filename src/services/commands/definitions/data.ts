@@ -29,6 +29,16 @@ export const exportFullBackupCommand: CommandDefinition = {
                 ecosystem: { ecosystems, bridges },
             },
         };
+
+        // Produce deliverable
+        context.addDeliverable({
+            key: 'full-backup',
+            name: `Full Backup ${new Date().toISOString().slice(0, 10)}`,
+            type: 'json',
+            content: JSON.stringify(data, null, 2),
+        });
+        context.storage.lastBackup = data;
+
         return data;
     }
 };
@@ -57,6 +67,16 @@ export const exportWorkspaceCommand: CommandDefinition = {
             exportedAt: new Date().toISOString(),
             data: { agents, channels, groups, messages },
         };
+
+        // Produce deliverable
+        context.addDeliverable({
+            key: 'workspace-export',
+            name: `Workspace Export ${new Date().toISOString().slice(0, 10)}`,
+            type: 'json',
+            content: JSON.stringify(data, null, 2),
+        });
+        context.storage.lastExport = data;
+
         return data;
     }
 };
@@ -85,6 +105,16 @@ export const exportEcosystemCommand: CommandDefinition = {
             exportedAt: new Date().toISOString(),
             data: { ecosystems, bridges },
         };
+
+        // Produce deliverable
+        context.addDeliverable({
+            key: 'ecosystem-export',
+            name: `Ecosystem Export ${new Date().toISOString().slice(0, 10)}`,
+            type: 'json',
+            content: JSON.stringify(data, null, 2),
+        });
+        context.storage.lastExport = data;
+
         return data;
     }
 };

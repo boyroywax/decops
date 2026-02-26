@@ -1,5 +1,5 @@
 
-import type { RoleId, JobRequest } from "../../types";
+import type { RoleId, JobRequest, JobDeliverable } from "../../types";
 
 export type CommandArgType = "string" | "number" | "boolean" | "object" | "array" | "group" | "agent" | "channel" | "network" | "workspace";
 
@@ -34,6 +34,7 @@ export interface CommandContext {
         addArtifact: (jobId: string, artifact: any) => void;
         removeArtifact: (id: string) => void;
         importArtifact: (artifact: any) => void;
+        updateArtifact: (id: string, updates: Record<string, any>) => void;
         allArtifacts: any[];
         // Queue Management
         addJob: (job: JobRequest) => any;
@@ -51,6 +52,16 @@ export interface CommandContext {
         setStandaloneArtifacts?: (artifacts: any[]) => void;
         clearJobs?: () => void;
     };
+    /** Mutable shared storage for inter-step data passing within jobs/automations */
+    storage: Record<string, any>;
+    /** Produce a deliverable (auto-creates artifact and tags it with the job) */
+    addDeliverable: (deliverable: {
+        key: string;
+        name: string;
+        type: string;
+        content: string;
+        tags?: string[];
+    }) => void;
     ecosystem: {
         // First-class ecosystem object
         ecosystem: any; // Ecosystem object

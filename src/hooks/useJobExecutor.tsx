@@ -100,6 +100,12 @@ export function useJobExecutor({
                         tags: ["job", queuedJob.type],
                     });
 
+                    // Initialize shared storage from job's storageDefaults
+                    const jobStorage: Record<string, any> = { ...(queuedJob.request?.storageDefaults || queuedJob.storageDefaults || {}) };
+
+                    // Track deliverables produced during execution
+                    const producedDeliverables: any[] = [];
+
                     const context: CommandContext = {
                         workspace: {
                             ...workspace,
@@ -113,6 +119,7 @@ export function useJobExecutor({
                             addArtifact,
                             removeArtifact,
                             importArtifact,
+                            updateArtifact,
                             allArtifacts,
                             // Queue Management
                             addJob,
@@ -158,7 +165,27 @@ export function useJobExecutor({
                             deployNetwork: architect.deployNetwork
                         },
                         automations: automations || { runAutomation: async () => { }, runs: [] },
-                        workspaceManager
+                        workspaceManager,
+                        storage: jobStorage,
+                        addDeliverable: (deliverable) => {
+                            const artifact = {
+                                id: `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                                name: deliverable.name,
+                                type: deliverable.type,
+                                content: deliverable.content,
+                                tags: [
+                                    `type:${deliverable.type}`,
+                                    `source:job`,
+                                    `deliverable:${deliverable.key}`,
+                                    `job:${queuedJob.type}`,
+                                    ...(deliverable.tags || []),
+                                ],
+                                source: "job" as const,
+                            };
+                            importArtifact(artifact);
+                            producedDeliverables.push({ key: deliverable.key, artifactId: artifact.id });
+                            addLog(`Deliverable produced: ${deliverable.name}`);
+                        },
                     };
 
                     let finalResult;

@@ -83,6 +83,10 @@ export const createChannelCommand: CommandDefinition = {
         setChannels((prev: any[]) => [...prev, newChannel]);
         addLog(`Channel created: ${fromAgent.name} ⟷ ${toAgent.name}`);
 
+        // Write to shared storage for downstream steps
+        context.storage.lastChannelId = newChannel.id;
+        context.storage[`channel_${fromAgent.name}_${toAgent.name}`] = newChannel.id;
+
         return { status: "created", channelId: newChannel.id };
     },
 };

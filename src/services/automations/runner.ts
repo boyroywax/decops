@@ -57,6 +57,27 @@ export class AutomationRunner {
                 // Initialize shared storage from defaults
                 const storage: Record<string, any> = { ...(def.storageDefaults || {}) };
 
+                // Wire storage and deliverables into the context for this run
+                this.context.storage = storage;
+                this.context.addDeliverable = (deliverable) => {
+                    const artifact = {
+                        id: `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                        name: deliverable.name,
+                        type: deliverable.type,
+                        content: deliverable.content,
+                        tags: [
+                            `type:${deliverable.type}`,
+                            `source:automation`,
+                            `deliverable:${deliverable.key}`,
+                            `automation:${automationId}`,
+                            ...(deliverable.tags || []),
+                        ],
+                        source: "automation" as const,
+                    };
+                    this.context.jobs.importArtifact(artifact);
+                    this.log(run, "info", `Deliverable produced: ${deliverable.name}`);
+                };
+
                 const executeStep = async (step: typeof def.steps[0]) => {
                     if (step.condition) {
                         const shouldRun = evaluateCondition(step.condition, this.context, results);
@@ -69,7 +90,7 @@ export class AutomationRunner {
 
                     this.log(run, "info", `Executing step: ${step.commandId}`);
                     try {
-                        const stepResult = await registry.execute(step.commandId, { ...step.args, _storage: storage }, this.context);
+                        const stepResult = await registry.execute(step.commandId, step.args || {}, this.context);
                         results.push({ stepId: step.id, commandId: step.commandId, status: "completed", result: stepResult });
                     } catch (e) {
                         this.log(run, "error", `Step ${step.id} (${step.commandId}) failed: ${e}`);

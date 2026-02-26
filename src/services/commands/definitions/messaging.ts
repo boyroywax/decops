@@ -95,6 +95,11 @@ export const sendMessageCommand: CommandDefinition = {
                 setMessages(prev => prev.map(m => m.id === msgId ? { ...m, response, status: "delivered" } : m));
                 addLog(`${toAgent.name} responded to command message`);
 
+                // Write to shared storage for downstream steps
+                context.storage.lastMessageId = msgId;
+                context.storage.lastResponse = response;
+                context.storage[`response_${to_agent_name}`] = response;
+
                 return {
                     status: "delivered",
                     messageId: msgId,

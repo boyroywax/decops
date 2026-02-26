@@ -87,6 +87,20 @@ export const broadcastMessageCommand: CommandDefinition = {
         }));
 
         addLog("Broadcast complete");
+
+        // Write responses to shared storage
+        context.storage.lastBroadcastResponses = results;
+        context.storage.lastBroadcastCount = newMessages.length;
+
+        // Produce deliverable with broadcast results
+        context.addDeliverable({
+            key: 'broadcast-results',
+            name: `Broadcast to ${group.name}`,
+            type: 'json',
+            content: JSON.stringify({ group: group.name, message, responses: results }, null, 2),
+            tags: ['broadcast', `group:${group.name}`],
+        });
+
         return { success: true, count: newMessages.length };
     }
 };

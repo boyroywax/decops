@@ -89,6 +89,16 @@ export const printTopologyCommand: CommandDefinition = {
             })),
             bridges: context.ecosystem.bridges
         };
+        // Write to storage and produce deliverable
+        context.storage.lastTopology = topology;
+        context.addDeliverable({
+            key: 'topology',
+            name: 'Network Topology',
+            type: 'json',
+            content: JSON.stringify(topology, null, 2),
+            tags: ['topology', 'report'],
+        });
+
         return topology;
     }
 };
