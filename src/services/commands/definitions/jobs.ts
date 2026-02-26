@@ -4,20 +4,26 @@ import { CommandDefinition } from "../types";
 
 export const queueNewJobCommand: CommandDefinition = {
     id: "queue_new_job",
-    description: "Adds a new job to the execution queue.",
+    description: "Adds a new job to the execution queue. Supports single-command or multi-step jobs with deliverables and shared storage.",
     tags: ["job", "system"],
-    rbac: ["orchestrator", "builder", "researcher"], // Open to most
+    rbac: ["orchestrator", "builder", "researcher"],
     args: {
-        type: { name: "type", type: "string", description: "Command ID to run", required: true },
+        type: { name: "type", type: "string", description: "Command ID to run (or job name for multi-step)", required: true },
         request: { name: "request", type: "object", description: "Arguments for the command", required: true, defaultValue: {} },
-        // Optional multi-step support args could go here but keeping simple for now
+        steps: { name: "steps", type: "array", description: "Optional list of JobSteps for multi-step jobs", required: false },
+        mode: { name: "mode", type: "string", description: "Execution mode: serial | parallel (default: serial)", required: false, defaultValue: "serial" },
+        deliverables: { name: "deliverables", type: "array", description: "Declared outputs: [{key, label, type, description?}]", required: false },
+        storageDefaults: { name: "storageDefaults", type: "object", description: "Initial shared storage key-value pairs for inter-step data", required: false },
     },
     output: "The ID of the queued job.",
     execute: async (args, context) => {
-        const { type, request } = args;
-        context.jobs.addJob({ type, request });
-        // We don't get the ID back synchronously from addJob easily unless we change the hook signature, 
-        // but for now we trust it's added.
+        const { type, request, steps, mode, deliverables, storageDefaults } = args;
+        const jobPayload: any = { type, request };
+        if (steps) jobPayload.steps = steps;
+        if (mode) jobPayload.mode = mode;
+        if (deliverables) jobPayload.deliverables = deliverables;
+        if (storageDefaults) jobPayload.storage = storageDefaults;
+        context.jobs.addJob(jobPayload);
         return "Job queued";
     }
 };
@@ -91,24 +97,31 @@ export const listCatalogJobsCommand: CommandDefinition = {
 
 export const saveJobDefinitionCommand: CommandDefinition = {
     id: "save_job_definition",
-    description: "Saves a job definition to the catalog.",
+    description: "Saves a job definition to the catalog. Supports deliverables (declared outputs) and storageDefaults (inter-step shared state).",
     tags: ["job", "catalog"],
     rbac: ["orchestrator", "builder"],
     args: {
         name: { name: "name", type: "string", description: "Job Name", required: true },
         description: { name: "description", type: "string", description: "Job Description", required: false, defaultValue: "" },
         mode: { name: "mode", type: "string", description: "serial | parallel", required: false, defaultValue: "serial" },
-        steps: { name: "steps", type: "array", description: "List of JobSteps", required: true }
+        steps: { name: "steps", type: "array", description: "List of JobSteps (each with commandId, args, optional condition)", required: true },
+        deliverables: { name: "deliverables", type: "array", description: "Declared outputs: [{key, label, type (markdown|json|yaml|csv|image|code), description?}]", required: false },
+        storageDefaults: { name: "storageDefaults", type: "object", description: "Default inter-step shared storage key-value pairs", required: false }
     },
     output: "ID of saved definition",
     execute: async (args, context) => {
         const id = `job-def-${Date.now()}`;
+        const now = Date.now();
         const def = {
             id,
             name: args.name,
             description: args.description,
             mode: args.mode,
             steps: args.steps,
+            deliverables: args.deliverables || undefined,
+            storageDefaults: args.storageDefaults || undefined,
+            createdAt: now,
+            updatedAt: now,
         };
         context.jobs.saveDefinition(def);
         return id;

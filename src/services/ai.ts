@@ -322,6 +322,19 @@ function buildWorkspaceSystemPrompt(ctx: WorkspaceContext): string {
     ? ctx.ecosystems.map(n => `  - "${n.name}" (${n.agents.length} agents, ${n.channels.length} channels)`).join("\n")
     : "  (none)";
 
+  const jobSummary = ctx.jobs.length > 0
+    ? ctx.jobs.slice(-8).map(j => {
+      const stepCount = j.steps?.length || 0;
+      const delivCount = j.deliverables?.length || 0;
+      const hasStorage = j.storage && Object.keys(j.storage).length > 0;
+      let info = `  - [${j.status}] "${j.type}" (${j.id.slice(0, 8)}…)`;
+      if (stepCount > 0) info += ` — ${stepCount} steps (${j.mode || 'serial'})`;
+      if (delivCount > 0) info += `, ${delivCount} deliverables`;
+      if (hasStorage) info += `, storage: {${Object.keys(j.storage!).join(', ')}}`;
+      return info;
+    }).join("\n")
+    : "  (none)";
+
   return `You are the Mesh Workspace AI Assistant. You help the user manage their decentralized agent collaboration workspace.
 
 CURRENT WORKSPACE STATE:
@@ -342,6 +355,9 @@ Ecosystem Networks (${ctx.ecosystems.length}):
 ${netSummary}
 
 Bridges: ${ctx.bridges.length}
+
+Jobs (recent ${Math.min(ctx.jobs.length, 8)} of ${ctx.jobs.length}):
+${jobSummary}
 ═══════════════════════
 
 You can help the user with:
@@ -350,11 +366,20 @@ You can help the user with:
 - Analyzing agent relationships and communication patterns
 - Recommending governance models and mesh configurations
 - Explaining decentralized identity concepts (DIDs, verifiable credentials)
+- Building and managing multi-step jobs with the Job Builder
 
 TOOL USE:
 You have access to workspace tools that directly modify or query the workspace. Use them whenever the user asks to create, delete, list, or modify workspace entities. Prefer using tools over suggesting manual actions. When you use a tool, explain what you did after getting the result.
 
 When suggesting complex multi-step operations, you can chain multiple tool calls. For example, to set up a research team: create agents, then channels between them, then a group.
+
+JOB BUILDER:
+Jobs support these features:
+- **Steps**: ordered list of command invocations (serial or parallel execution)
+- **Deliverables**: declared outputs the job is expected to produce. Each deliverable has a key, label, type (markdown|json|yaml|csv|image|code), and optional description.
+- **Shared Storage**: key-value pairs (storageDefaults) that provide inter-step shared state. Steps can read/write these keys at runtime via the storage object. Use this to pass data between steps without hardcoding.
+
+When helping users build jobs, suggest appropriate deliverables and storage keys. For save_job_definition, include deliverables and storageDefaults when relevant.
 
 Be concise, helpful, and in-character as a workspace management AI. Use markdown formatting for readability. Keep responses under 300 words unless the user asks for detailed analysis.`;
 }
