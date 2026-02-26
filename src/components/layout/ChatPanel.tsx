@@ -38,6 +38,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const [showConvos, setShowConvos] = useState(false);
     const endRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
+    const initialScrollDone = useRef(false);
 
     // Derive active conversation
     const active = conversations.find(c => c.id === activeId) || null;
@@ -52,8 +53,26 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         saveActiveId(activeId);
     }, [activeId]);
 
+    // Instant scroll to bottom on initial mount / conversation switch
     useEffect(() => {
-        endRef.current?.scrollIntoView({ behavior: "smooth" });
+        initialScrollDone.current = false;
+    }, [activeId]);
+
+    useEffect(() => {
+        if (!initialScrollDone.current && messages.length > 0) {
+            // Use requestAnimationFrame to ensure DOM has rendered
+            requestAnimationFrame(() => {
+                endRef.current?.scrollIntoView({ behavior: "instant" });
+            });
+            initialScrollDone.current = true;
+        }
+    }, [messages.length]);
+
+    // Smooth scroll for new messages / streaming updates
+    useEffect(() => {
+        if (initialScrollDone.current) {
+            endRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
     }, [messages.length, loading, streamingText]);
 
     useEffect(() => {
