@@ -1385,6 +1385,150 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ * UNIFIED BUILDER (Job/Automation) — Light Mode
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .builder__header {
+  background: #fafbfc;
+}
+
+[data-theme="light"] .builder__name-input {
+  color: #1a1a2e;
+  border-bottom-color: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .builder__name-input::placeholder {
+  color: #94a3b8;
+}
+
+[data-theme="light"] .builder__toggle-group,
+[data-theme="light"] .builder__exec-toggle {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .builder__toggle-btn--active,
+[data-theme="light"] .builder__exec-btn--active {
+  background: #ffffff;
+  color: #1a1a2e;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .builder__schedule-input,
+[data-theme="light"] .builder__desc-input {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+[data-theme="light"] .builder__schedule-input:focus,
+[data-theme="light"] .builder__desc-input:focus {
+  background: #e8ecf1;
+}
+
+[data-theme="light"] .builder__search-input {
+  background: #f1f5f9;
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #1a1a2e;
+}
+
+[data-theme="light"] .builder__command {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .builder__command:hover {
+  background: #f1f5f9;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .builder__command-name {
+  color: #1e293b;
+}
+
+[data-theme="light"] .builder__command-desc {
+  color: #64748b;
+}
+
+[data-theme="light"] .builder__steps {
+  background: #f8fafc;
+}
+
+[data-theme="light"] .builder__step {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .builder__step--selected {
+  background: rgba(0, 180, 120, 0.06);
+  border-color: rgba(0, 180, 120, 0.25);
+}
+
+[data-theme="light"] .builder__step-name {
+  color: #1e293b;
+}
+
+[data-theme="light"] .builder__step-meta {
+  color: #64748b;
+}
+
+[data-theme="light"] .builder__config {
+  background: #fafbfc;
+}
+
+[data-theme="light"] .builder__config-header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+  color: #64748b;
+}
+
+[data-theme="light"] .builder__config-title {
+  color: #1e293b;
+}
+
+[data-theme="light"] .builder__config-desc {
+  color: #64748b;
+}
+
+[data-theme="light"] .builder__arg-label {
+  color: #334155;
+}
+
+[data-theme="light"] .builder__condition-input {
+  background: #f1f5f9;
+  border-color: rgba(0, 0, 0, 0.10);
+  color: #1e293b;
+}
+
+[data-theme="light"] .builder__icon-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.06);
+  color: #1e293b;
+}
+
+/* Deliverables & Storage sections */
+[data-theme="light"] .builder__meta-toggle {
+  color: #334155;
+}
+
+[data-theme="light"] .builder__meta-toggle:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .builder__meta-add {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #64748b;
+}
+
+[data-theme="light"] .builder__kv-input,
+[data-theme="light"] .builder__kv-select {
+  background: #f1f5f9;
+  border-color: rgba(0, 0, 0, 0.10);
+  color: #1e293b;
+}
+
+[data-theme="light"] .builder__storage-hint code {
+  background: rgba(0, 0, 0, 0.04);
+  color: #334155;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  * PROFILE MODAL — Light Mode
  * ═══════════════════════════════════════════════════════════════════════════ */
 

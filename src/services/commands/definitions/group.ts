@@ -29,7 +29,7 @@ export const createGroupCommand: CommandDefinition = {
         },
         networkId: {
             name: "networkId",
-            type: "string",
+            type: "network",
             description: "ID of the network this group belongs to",
             required: false,
         }

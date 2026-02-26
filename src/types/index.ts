@@ -577,12 +577,22 @@ export interface JobStep {
   condition?: string; // JS expression string
 }
 
+/** A named deliverable the job is expected to produce */
+export interface JobDeliverable {
+  key: string;          // Unique key to reference this deliverable (e.g. "report", "result")
+  label: string;        // Human-readable label
+  type: ArtifactType;   // Expected artifact type
+  description?: string; // What this deliverable contains
+}
+
 export interface JobDefinition {
   id: string;
   name: string;
   description: string;
   mode: 'serial' | 'parallel';
   steps: JobStep[];
+  deliverables?: JobDeliverable[];         // Declared deliverables
+  storageDefaults?: Record<string, any>;   // Default inter-step shared storage values
   createdAt: number;
   updatedAt: number;
 }
@@ -685,6 +695,10 @@ export interface Job {
   currentStepIndex?: number;
   stepResults?: Record<string, any>;
   mode?: 'serial' | 'parallel';
+
+  // Inter-step shared storage & deliverables
+  storage?: Record<string, any>;
+  deliverables?: JobDeliverable[];
 }
 
 

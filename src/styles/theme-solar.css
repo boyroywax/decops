@@ -1452,6 +1452,150 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ * UNIFIED BUILDER (Job/Automation) — Solar
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .builder__header {
+  background: #fdf8ee;
+}
+
+[data-theme="solar"] .builder__name-input {
+  color: #3b2e1a;
+  border-bottom-color: rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .builder__name-input::placeholder {
+  color: #a89882;
+}
+
+[data-theme="solar"] .builder__toggle-group,
+[data-theme="solar"] .builder__exec-toggle {
+  background: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .builder__toggle-btn--active,
+[data-theme="solar"] .builder__exec-btn--active {
+  background: #fefaf0;
+  color: #3b2e1a;
+  box-shadow: 0 1px 3px rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .builder__schedule-input,
+[data-theme="solar"] .builder__desc-input {
+  background: rgba(120, 80, 20, 0.04);
+  color: #5a4a32;
+}
+
+[data-theme="solar"] .builder__schedule-input:focus,
+[data-theme="solar"] .builder__desc-input:focus {
+  background: rgba(120, 80, 20, 0.07);
+}
+
+[data-theme="solar"] .builder__search-input {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .builder__command {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .builder__command:hover {
+  background: #fdf5e6;
+  border-color: rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .builder__command-name {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .builder__command-desc {
+  color: #8a7a62;
+}
+
+[data-theme="solar"] .builder__steps {
+  background: #faf5ea;
+}
+
+[data-theme="solar"] .builder__step {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .builder__step--selected {
+  background: rgba(184, 134, 11, 0.06);
+  border-color: rgba(184, 134, 11, 0.25);
+}
+
+[data-theme="solar"] .builder__step-name {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .builder__step-meta {
+  color: #8a7a62;
+}
+
+[data-theme="solar"] .builder__config {
+  background: #fdf8ee;
+}
+
+[data-theme="solar"] .builder__config-header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+  color: #8a7a62;
+}
+
+[data-theme="solar"] .builder__config-title {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .builder__config-desc {
+  color: #8a7a62;
+}
+
+[data-theme="solar"] .builder__arg-label {
+  color: #5a4a32;
+}
+
+[data-theme="solar"] .builder__condition-input {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .builder__icon-btn:hover:not(:disabled) {
+  background: rgba(120, 80, 20, 0.08);
+  color: #3b2e1a;
+}
+
+/* Deliverables & Storage sections */
+[data-theme="solar"] .builder__meta-toggle {
+  color: #5a4a32;
+}
+
+[data-theme="solar"] .builder__meta-toggle:hover {
+  background: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .builder__meta-add {
+  border-color: rgba(120, 80, 20, 0.18);
+  color: #8a7a62;
+}
+
+[data-theme="solar"] .builder__kv-input,
+[data-theme="solar"] .builder__kv-select {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .builder__storage-hint code {
+  background: rgba(120, 80, 20, 0.06);
+  color: #5a4a32;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  * PROFILE MODAL — Solar
  * ═══════════════════════════════════════════════════════════════════════════ */
 

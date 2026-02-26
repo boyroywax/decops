@@ -33,7 +33,7 @@ export const createAgentCommand: CommandDefinition = {
         },
         networkId: {
             name: "networkId",
-            type: "string",
+            type: "network",
             description: "ID of the network this agent belongs to",
             required: false,
         }
@@ -88,7 +88,7 @@ export const pingAgentCommand: CommandDefinition = {
     args: {
         agentId: {
             name: "agentId",
-            type: "string",
+            type: "agent",
             description: "Target Agent ID",
             required: true
         }

@@ -9,13 +9,13 @@ export const createChannelCommand: CommandDefinition = {
     args: {
         from: {
             name: "from",
-            type: "string",
+            type: "agent",
             description: "ID or Name of first agent",
             required: true,
         },
         to: {
             name: "to",
-            type: "string",
+            type: "agent",
             description: "ID or Name of second agent",
             required: true,
         },
@@ -28,7 +28,7 @@ export const createChannelCommand: CommandDefinition = {
         },
         networkId: {
             name: "networkId",
-            type: "string",
+            type: "network",
             description: "ID of the network this channel belongs to",
             required: false,
         }

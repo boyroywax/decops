@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Plus, X, Play, Save, Settings, ArrowUp, ArrowDown, Trash2, Search, Briefcase, Clock, Zap } from "lucide-react";
+import { Plus, X, Play, Save, Settings, ArrowUp, ArrowDown, Trash2, Search, Briefcase, Clock, Zap, Package, Database, ChevronDown, ChevronRight } from "lucide-react";
 import { registry } from "../../services/commands/registry";
 import { CommandDefinition } from "../../services/commands/types";
 import { CommandArgInput } from "../automations/CommandArgInput";
-import type { JobDefinition, JobStep } from "../../types";
+import type { JobDefinition, JobStep, JobDeliverable, ArtifactType } from "../../types";
 import type { DeclarativeAutomationDefinition, AutomationStep } from "../../services/automations/types";
+
+const ARTIFACT_TYPES: ArtifactType[] = ["markdown", "json", "yaml", "csv", "image", "code"];
 
 interface UnifiedBuilderProps {
     onRunJob: (job: JobDefinition) => void;
@@ -31,7 +33,7 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
     // Steps
     const [steps, setSteps] = useState<any[]>((initialJob?.steps || initialAutomation?.steps || []).map(s => ({
         ...s,
-        id: s.id || crypto.randomUUID(), // Ensure ID
+        id: s.id || crypto.randomUUID(),
         args: s.args || {},
         condition: (s as any).condition || ""
     })));
@@ -39,17 +41,36 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
+    // Deliverables
+    const [deliverables, setDeliverables] = useState<JobDeliverable[]>(
+        initialJob?.deliverables || []
+    );
+    const [showDeliverables, setShowDeliverables] = useState(
+        (initialJob?.deliverables?.length ?? 0) > 0
+    );
+
+    // Inter-step Storage Defaults
+    const [storageEntries, setStorageEntries] = useState<Array<{ key: string; value: string }>>(
+        Object.entries(initialJob?.storageDefaults || {}).map(([key, value]) => ({
+            key,
+            value: typeof value === "string" ? value : JSON.stringify(value)
+        }))
+    );
+    const [showStorage, setShowStorage] = useState(
+        Object.keys(initialJob?.storageDefaults || {}).length > 0
+    );
+
     const commands = registry.getAll();
     const filteredCommands = commands.filter(c =>
         c.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         c.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // ── Step CRUD ──────────────────────────────────────────────────────────
     const addStep = (commandId: string) => {
         const command = registry.get(commandId);
         if (!command) return;
 
-        // Initialize default args
         const args: Record<string, any> = {};
         Object.entries(command.args).forEach(([key, def]) => {
             if (def.defaultValue !== undefined) args[key] = def.defaultValue;
@@ -104,9 +125,51 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
         });
     };
 
+    // ── Deliverables CRUD ─────────────────────────────────────────────────
+    const addDeliverable = () => {
+        setDeliverables(prev => [...prev, { key: "", label: "", type: "json", description: "" }]);
+        setShowDeliverables(true);
+    };
+
+    const updateDeliverable = (index: number, field: keyof JobDeliverable, value: any) => {
+        setDeliverables(prev => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
+    };
+
+    const removeDeliverable = (index: number) => {
+        setDeliverables(prev => prev.filter((_, i) => i !== index));
+    };
+
+    // ── Storage CRUD ──────────────────────────────────────────────────────
+    const addStorageEntry = () => {
+        setStorageEntries(prev => [...prev, { key: "", value: "" }]);
+        setShowStorage(true);
+    };
+
+    const updateStorageEntry = (index: number, field: "key" | "value", val: string) => {
+        setStorageEntries(prev => prev.map((e, i) => i === index ? { ...e, [field]: val } : e));
+    };
+
+    const removeStorageEntry = (index: number) => {
+        setStorageEntries(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const buildStorageDefaults = (): Record<string, any> | undefined => {
+        const entries = storageEntries.filter(e => e.key.trim());
+        if (entries.length === 0) return undefined;
+        const obj: Record<string, any> = {};
+        entries.forEach(({ key, value }) => {
+            try { obj[key] = JSON.parse(value); }
+            catch { obj[key] = value; }
+        });
+        return obj;
+    };
+
+    // ── Submit handlers ───────────────────────────────────────────────────
     const handleRun = () => {
         if (!name.trim()) return alert("Name is required");
         if (steps.length === 0) return alert("Add at least one step");
+
+        const validDeliverables = deliverables.filter(d => d.key.trim() && d.label.trim());
 
         const job: JobDefinition = {
             id: initialJob?.id || `job-def-${Date.now()}`,
@@ -114,6 +177,8 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
             description,
             mode: jobMode,
             steps: steps as JobStep[],
+            deliverables: validDeliverables.length > 0 ? validDeliverables : undefined,
+            storageDefaults: buildStorageDefaults(),
             createdAt: Date.now(),
             updatedAt: Date.now()
         };
@@ -216,6 +281,105 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
                         className="builder__desc-input"
                     />
                 </div>
+
+                {/* ── Deliverables & Storage collapsibles ──────────────── */}
+                {mode === "job" && (
+                    <div className="builder__meta-sections">
+                        {/* Deliverables */}
+                        <div className="builder__meta-section">
+                            <button
+                                className="builder__meta-toggle"
+                                onClick={() => setShowDeliverables(v => !v)}
+                            >
+                                {showDeliverables ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                <Package size={13} />
+                                <span>Deliverables ({deliverables.length})</span>
+                            </button>
+                            <button className="builder__meta-add" onClick={addDeliverable} title="Add deliverable">
+                                <Plus size={12} />
+                            </button>
+                        </div>
+
+                        {showDeliverables && deliverables.length > 0 && (
+                            <div className="builder__deliverables-list">
+                                {deliverables.map((d, i) => (
+                                    <div key={i} className="builder__deliverable-row">
+                                        <input
+                                            className="builder__kv-input builder__kv-input--key"
+                                            placeholder="key"
+                                            value={d.key}
+                                            onChange={e => updateDeliverable(i, "key", e.target.value)}
+                                        />
+                                        <input
+                                            className="builder__kv-input builder__kv-input--label"
+                                            placeholder="Label"
+                                            value={d.label}
+                                            onChange={e => updateDeliverable(i, "label", e.target.value)}
+                                        />
+                                        <select
+                                            className="builder__kv-select"
+                                            value={d.type}
+                                            onChange={e => updateDeliverable(i, "type", e.target.value as ArtifactType)}
+                                        >
+                                            {ARTIFACT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                                        </select>
+                                        <input
+                                            className="builder__kv-input builder__kv-input--desc"
+                                            placeholder="Description (optional)"
+                                            value={d.description || ""}
+                                            onChange={e => updateDeliverable(i, "description", e.target.value)}
+                                        />
+                                        <button className="builder__icon-btn builder__icon-btn--danger" onClick={() => removeDeliverable(i)}>
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Storage Defaults */}
+                        <div className="builder__meta-section">
+                            <button
+                                className="builder__meta-toggle"
+                                onClick={() => setShowStorage(v => !v)}
+                            >
+                                {showStorage ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                <Database size={13} />
+                                <span>Shared Storage ({storageEntries.length})</span>
+                            </button>
+                            <button className="builder__meta-add" onClick={addStorageEntry} title="Add storage entry">
+                                <Plus size={12} />
+                            </button>
+                        </div>
+
+                        {showStorage && storageEntries.length > 0 && (
+                            <div className="builder__storage-list">
+                                {storageEntries.map((entry, i) => (
+                                    <div key={i} className="builder__storage-row">
+                                        <input
+                                            className="builder__kv-input builder__kv-input--key"
+                                            placeholder="key"
+                                            value={entry.key}
+                                            onChange={e => updateStorageEntry(i, "key", e.target.value)}
+                                        />
+                                        <input
+                                            className="builder__kv-input builder__kv-input--value"
+                                            placeholder="default value (JSON or string)"
+                                            value={entry.value}
+                                            onChange={e => updateStorageEntry(i, "value", e.target.value)}
+                                        />
+                                        <button className="builder__icon-btn builder__icon-btn--danger" onClick={() => removeStorageEntry(i)}>
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                                <div className="builder__storage-hint">
+                                    Steps can read/write these keys at runtime via <code>storage</code>.
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="builder__body">

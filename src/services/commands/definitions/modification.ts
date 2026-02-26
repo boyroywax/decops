@@ -7,7 +7,7 @@ export const deleteAgentCommand: CommandDefinition = {
     tags: ["modification", "agent", "delete"],
     rbac: ["orchestrator", "curator"],
     args: {
-        id: { name: "id", type: "string", description: "Agent ID", required: true }
+        id: { name: "id", type: "agent", description: "Agent ID", required: true }
     },
     output: "Confirmation of deletion.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
@@ -40,7 +40,7 @@ export const deleteChannelCommand: CommandDefinition = {
     tags: ["modification", "channel", "delete"],
     rbac: ["orchestrator", "curator"],
     args: {
-        id: { name: "id", type: "string", description: "Channel ID", required: true }
+        id: { name: "id", type: "channel", description: "Channel ID", required: true }
     },
     output: "Confirmation of deletion.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
@@ -67,7 +67,7 @@ export const deleteGroupCommand: CommandDefinition = {
     tags: ["modification", "group", "delete"],
     rbac: ["orchestrator", "curator"],
     args: {
-        id: { name: "id", type: "string", description: "Group ID", required: true }
+        id: { name: "id", type: "group", description: "Group ID", required: true }
     },
     output: "Confirmation of deletion.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
@@ -87,7 +87,7 @@ export const editChannelCommand: CommandDefinition = {
     tags: ["modification", "channel", "edit"],
     rbac: ["orchestrator", "builder"],
     args: {
-        id: { name: "id", type: "string", description: "Channel ID", required: true },
+        id: { name: "id", type: "channel", description: "Channel ID", required: true },
         type: { name: "type", type: "string", description: "New Type: data, task, consensus", required: true }
     },
     output: "Confirmation of update.",
@@ -108,7 +108,7 @@ export const updateAgentPromptCommand: CommandDefinition = {
     tags: ["modification", "agent", "edit"],
     rbac: ["orchestrator", "builder"],
     args: {
-        id: { name: "id", type: "string", description: "Agent ID", required: true },
+        id: { name: "id", type: "agent", description: "Agent ID", required: true },
         prompt: { name: "prompt", type: "string", description: "New Prompt", required: true }
     },
     output: "Confirmation",
@@ -129,8 +129,8 @@ export const toggleGroupMemberCommand: CommandDefinition = {
     tags: ["modification", "group", "edit"],
     rbac: ["orchestrator"],
     args: {
-        group_id: { name: "group_id", type: "string", description: "Group ID", required: true },
-        agent_id: { name: "agent_id", type: "string", description: "Agent ID", required: true }
+        group_id: { name: "group_id", type: "group", description: "Group ID", required: true },
+        agent_id: { name: "agent_id", type: "agent", description: "Agent ID", required: true }
     },
     output: "Confirmation",
     execute: async (args, context: CommandContext) => {
