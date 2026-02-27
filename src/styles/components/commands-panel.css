@@ -210,6 +210,27 @@
   opacity: 0.8;
 }
 
+.commands-panel__studio-btn {
+  padding: 3px 8px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  background: #8b5cf615;
+  border: 1px solid #8b5cf630;
+  color: #8b5cf6;
+  transition: all var(--transition-base);
+  margin-left: 4px;
+}
+.commands-panel__studio-btn:hover {
+  background: #8b5cf625;
+  border-color: #8b5cf650;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * EMPTY STATE
  * ═══════════════════════════════════════════════════════════════════════════ */

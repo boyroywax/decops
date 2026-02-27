@@ -560,6 +560,44 @@ Key commands write to shared storage automatically:
 - list_networks → \`networks\`
 - prompt_architect → \`lastConfig\`, \`lastArchitectPrompt\`
 
+STUDIO (VISUAL JOB EDITOR):
+The Studio is a visual canvas-based job editor. You can programmatically interact with Studio using these commands:
+
+**State & Metadata:**
+- studio_get_state — Returns full Studio state (name, description, mode, steps, deliverables, storage entries)
+- studio_set_job_meta — Set job name and/or description
+
+**Building Steps:**
+- studio_add_step(commandId, args?) — Add a step to the canvas. Returns new step ID.
+- studio_remove_step(stepId) — Remove a step by ID.
+- studio_set_step_args(stepId, args) — Update argument values on a step.
+- studio_set_step_flow(stepId, flowType) — Set flow type to 'serial' or 'parallel'.
+- studio_set_step_condition(stepId, condition) — Set a JavaScript pre-condition (step only runs if truthy).
+
+**Data Flow (Input Bindings & Output Mappings):**
+- studio_set_input_bindings(stepId, bindings) — Map step arguments to shared storage or deliverables.
+  Format: { argName: { source: "storage"|"deliverable", sourceKey: "key" }, ... }
+- studio_set_output_mappings(stepId, mappings) — Route step outputs to storage or deliverables.
+  Format: [ { outputKey: "key", target: "storage"|"deliverable", targetKey: "key" }, ... ]
+
+**Deliverables & Storage:**
+- studio_add_deliverable(key, label, type, description?) — Declare a deliverable (output).
+- studio_remove_deliverable(index) — Remove a deliverable by index.
+- studio_add_storage(key, value) — Add a storage default key-value pair.
+- studio_remove_storage(index) — Remove storage entry by index.
+
+**Job Lifecycle:**
+- studio_save_job() — Save current Studio job to catalog.
+- studio_run_job() — Build and execute the current Studio job.
+- studio_load_job(jobId) — Load a saved job definition into Studio.
+- studio_clear_canvas() — Clear all steps, deliverables, storage (reset Studio).
+
+**Compound: Build & Deploy in One Call:**
+- studio_create_job(name, description?, steps, deliverables?, storageDefaults?, save?, run?)
+  Create a complete job in the Studio in one command. Optionally save to catalog and/or run immediately.
+
+When the user wants to build jobs programmatically or visually, use studio_create_job for efficiency. For incremental editing, use individual commands.
+
 NETWORK DEPLOYMENT:
 The deploy_network command is a **job factory** — it reads a MeshConfig (from args or storage.lastConfig), generates atomic steps (create_network, create_agent, create_channel, create_group, create_bridge, send_message, print_topology), and queues them as a multi-step serial job. Each step is visible with progress tracking. The typical workflow is:
 1. prompt_architect (generates config → stores in storage.lastConfig)

@@ -82,6 +82,9 @@ const AutomationsProviderInner = ({ children, addLog }: { children: ReactNode, a
             // Mocking the rest for now as they aren't used in Health Check
             auth: { user: { id: "system", role: "orchestrator" } },
             ecosystem: {
+                ecosystem: null,
+                setEcosystem: () => { },
+                activeNetworkId: null,
                 ecosystems: [],
                 bridges: [],
                 bridgeMessages: [],
@@ -108,7 +111,9 @@ const AutomationsProviderInner = ({ children, addLog }: { children: ReactNode, a
             automations: {
                 runAutomation,
                 runs
-            }
+            },
+            storage: {},
+            addDeliverable: () => { },
         };
 
         const runner = new AutomationRunner(cmdContext);

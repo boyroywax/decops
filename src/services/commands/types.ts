@@ -1,5 +1,6 @@
 
 import type { RoleId, JobRequest, JobDeliverable } from "../../types";
+import type { StudioAPI } from "../../context/StudioContext";
 
 export type CommandArgType = "string" | "number" | "boolean" | "object" | "array" | "group" | "agent" | "channel" | "network" | "workspace";
 
@@ -9,7 +10,10 @@ export interface CommandArg {
     required?: boolean; // Defaults to true
     description: string;
     defaultValue?: any;
+    enum?: string[]; // Allowed values — surfaced to AI tool schema
     validation?: (value: any) => boolean | string; // Returns true if valid, or error message string
+    /** When type is "agent", also show a "You (Current User)" option that resolves to "user" */
+    includeUserOption?: boolean;
 }
 
 export interface CommandContext {
@@ -108,6 +112,8 @@ export interface CommandContext {
         duplicate: (sourceId: string, name?: string) => Promise<string>;
         currentId: string | null;
     };
+    /** Studio visual job editor — available when the Studio tab is mounted */
+    studio?: StudioAPI | null;
 }
 
 export interface CommandDefinition<TArgs = any> {
@@ -121,5 +127,7 @@ export interface CommandDefinition<TArgs = any> {
     recommendedModel?: string; // Suggested LLM model id (fallback between user override and global default)
     /** Hide from Commands panel & AI tools — still executable by job executor */
     hidden?: boolean;
+    /** Base64 data-URI or URL for a custom icon image */
+    icon?: string;
     execute: (args: TArgs, context: CommandContext) => Promise<any>;
 }

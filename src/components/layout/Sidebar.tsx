@@ -3,9 +3,9 @@ import type { ViewId, Network, Message, BridgeMessage } from "../../types";
 import type { LucideIcon } from "lucide-react";
 import {
   Sparkles, Globe, Bot, ArrowLeftRight,
-  Hexagon, MessageSquare,
+  Hexagon, MessageSquare, Clapperboard,
   ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
-  Activity, Zap,
+  Activity, Zap, FileText,
 } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import "../../styles/components/sidebar.css";
@@ -24,7 +24,9 @@ interface SidebarProps {
   isMobile?: boolean;
 }
 
+const EDITOR_ITEM = { id: "editor" as ViewId, label: "Editor", icon: FileText, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] as [string, string] };
 const ARCHITECT_ITEM = { id: "architect" as ViewId, label: "Architect", icon: Sparkles, accent: "#fbbf24", gradient: ["#fbbf24", "#fb923c"] as [string, string] };
+const STUDIO_ITEM = { id: "jobs" as ViewId, label: "Studio", icon: Clapperboard, accent: "#8b5cf6", gradient: ["#8b5cf6", "#a78bfa"] as [string, string] };
 
 const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; gradient: [string, string] }[] = [
   { id: "networks", label: "Networks", icon: Globe, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] },
@@ -76,6 +78,7 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
       case "messages":
         return "warning";
       case "networks":
+      case "editor":
         return "info";
       case "agents":
       case "network":
@@ -149,6 +152,24 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
 
       <div className="sidebar-nav-bottom">
       <button
+        onClick={() => setView(EDITOR_ITEM.id)}
+        title={collapsed && !isMobile ? EDITOR_ITEM.label : undefined}
+        className={`sidebar-nav-item sidebar-nav-item--editor ${view === EDITOR_ITEM.id ? 'active' : ''}`}
+        data-accent={getAccentType(EDITOR_ITEM.id)}
+        style={view === EDITOR_ITEM.id ? { color: EDITOR_ITEM.accent } : undefined}
+      >
+        {view === EDITOR_ITEM.id
+          ? <GradientIcon icon={EDITOR_ITEM.icon} size={14} gradient={EDITOR_ITEM.gradient} />
+          : <EDITOR_ITEM.icon size={14} />
+        }
+        {(!collapsed || isMobile) && (
+          <>
+            {EDITOR_ITEM.label}
+          </>
+        )}
+      </button>
+
+      <button
         onClick={() => setView(ARCHITECT_ITEM.id)}
         title={collapsed && !isMobile ? ARCHITECT_ITEM.label : undefined}
         className={`sidebar-nav-item sidebar-nav-item--architect ${view === ARCHITECT_ITEM.id ? 'active' : ''}`}
@@ -163,6 +184,24 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
           <>
             {ARCHITECT_ITEM.label}
             <span className="sidebar-shortcut">⌘K</span>
+          </>
+        )}
+      </button>
+
+      <button
+        onClick={() => setView(STUDIO_ITEM.id)}
+        title={collapsed && !isMobile ? STUDIO_ITEM.label : undefined}
+        className={`sidebar-nav-item sidebar-nav-item--studio ${view === STUDIO_ITEM.id ? 'active' : ''}`}
+        data-accent={getAccentType(STUDIO_ITEM.id)}
+        style={view === STUDIO_ITEM.id ? { color: STUDIO_ITEM.accent } : undefined}
+      >
+        {view === STUDIO_ITEM.id
+          ? <GradientIcon icon={STUDIO_ITEM.icon} size={14} gradient={STUDIO_ITEM.gradient} />
+          : <STUDIO_ITEM.icon size={14} />
+        }
+        {(!collapsed || isMobile) && (
+          <>
+            {STUDIO_ITEM.label}
           </>
         )}
       </button>

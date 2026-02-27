@@ -2,9 +2,11 @@
 import { CommandContext } from "../commands/types";
 
 export interface AutomationLog {
+    id?: string;
     timestamp: string;
     level: "info" | "warn" | "error";
     message: string;
+    details?: any;
 }
 
 export interface AutomationRun {
@@ -15,6 +17,7 @@ export interface AutomationRun {
     status: "running" | "completed" | "failed";
     logs: AutomationLog[];
     results?: any;
+    error?: string;
 }
 
 export interface AutomationStep {
@@ -30,6 +33,8 @@ export interface BaseAutomationDefinition {
     description: string;
     tags: string[];
     schedule?: string;
+    /** Base64 data-URI or URL for a custom icon image */
+    icon?: string;
 }
 
 export interface CodeAutomationDefinition extends BaseAutomationDefinition {

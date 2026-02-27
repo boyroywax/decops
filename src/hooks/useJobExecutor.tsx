@@ -8,6 +8,7 @@ import { getAgentModel, getCommandModel } from "../services/ai";
 import type { CommandContext } from "../services/commands/types";
 import type { WorkspaceContextType } from "../context/WorkspaceContext";
 import type { User } from "../types";
+import { useStudioContext } from "../context/StudioContext";
 
 // Define strict types for the complex objects we're passing in
 // Ideally these should be exported from their respective hooks, but for now we'll define the shape or use 'any' for the complex rendering hooks if strict types aren't available easily.
@@ -26,6 +27,7 @@ interface JobExecutorProps {
     removeArtifact: any;
     isPaused: boolean;
     toggleQueuePause: any;
+    updateArtifact: (id: string, updates: Record<string, any>) => void;
 
     savedJobs: any[];
     saveJob: any;
@@ -65,6 +67,7 @@ export function useJobExecutor({
     removeArtifact,
     isPaused,
     toggleQueuePause,
+    updateArtifact,
     savedJobs,
     saveJob,
     deleteJob,
@@ -81,6 +84,7 @@ export function useJobExecutor({
     workspaceManager // [NEW]
 }: JobExecutorProps) {
     const processingRef = useRef(false);
+    const { api: studioApi } = useStudioContext();
 
     useEffect(() => {
         const processJobs = async () => {
@@ -103,8 +107,17 @@ export function useJobExecutor({
                     // Initialize shared storage from job's storageDefaults
                     const jobStorage: Record<string, any> = { ...(queuedJob.request?.storageDefaults || queuedJob.storageDefaults || {}) };
 
+                    // Initialize entity input map from job's inputDefaults
+                    const inputMap: Record<string, string> = {};
+                    const inputDefaults = queuedJob.request?.inputDefaults || queuedJob.inputDefaults || [];
+                    for (const inp of inputDefaults) {
+                        if (inp.name && inp.entityId) inputMap[inp.name] = inp.entityId;
+                    }
+
                     // Track deliverables produced during execution
                     const producedDeliverables: any[] = [];
+                    /** Map of deliverable key → content for $deliverable.key resolution */
+                    const deliverableContents: Record<string, any> = {};
 
                     const context: CommandContext = {
                         workspace: {
@@ -165,7 +178,8 @@ export function useJobExecutor({
                             deployNetwork: architect.deployNetwork
                         },
                         automations: automations || { runAutomation: async () => { }, runs: [] },
-                        workspaceManager,
+                        workspaceManager: workspaceManager as CommandContext['workspaceManager'],
+                        studio: studioApi ?? null,
                         storage: jobStorage,
                         addDeliverable: (deliverable) => {
                             const artifact = {
@@ -184,23 +198,51 @@ export function useJobExecutor({
                             };
                             importArtifact(artifact);
                             producedDeliverables.push({ key: deliverable.key, artifactId: artifact.id });
+                            deliverableContents[deliverable.key] = deliverable.content;
                             addLog(`Deliverable produced: ${deliverable.name}`);
                         },
                     };
 
-                    /** Recursively resolve $storage.key references in step args */
-                    const resolveStorageRefs = (value: any): any => {
-                        if (typeof value === 'string' && value.startsWith('$storage.')) {
-                            const key = value.slice('$storage.'.length);
-                            return key in jobStorage ? jobStorage[key] : value;
+                    /** Recursively resolve $storage.key, $deliverable.key, and $input.name references in step args */
+                    const resolveRefs = (value: any): any => {
+                        if (typeof value === 'string') {
+                            if (value.startsWith('$storage.')) {
+                                const key = value.slice('$storage.'.length);
+                                return key in jobStorage ? jobStorage[key] : value;
+                            }
+                            if (value.startsWith('$deliverable.')) {
+                                const key = value.slice('$deliverable.'.length);
+                                return key in deliverableContents ? deliverableContents[key] : value;
+                            }
+                            if (value.startsWith('$input.')) {
+                                const key = value.slice('$input.'.length);
+                                return key in inputMap ? inputMap[key] : value;
+                            }
                         }
-                        if (Array.isArray(value)) return value.map(resolveStorageRefs);
+                        if (Array.isArray(value)) return value.map(resolveRefs);
                         if (value && typeof value === 'object') {
                             const out: any = {};
-                            for (const [k, v] of Object.entries(value)) out[k] = resolveStorageRefs(v);
+                            for (const [k, v] of Object.entries(value)) out[k] = resolveRefs(v);
                             return out;
                         }
                         return value;
+                    };
+
+                    // Job-level model override (from JobDefinition.modelId)
+                    const jobModelId = (queuedJob as any).request?.modelId || (queuedJob as any).modelId;
+
+                    /** Build a step-scoped context that overrides model resolution if step has modelId */
+                    const getStepContext = (step: any): CommandContext => {
+                        const stepModelId = step.modelId || jobModelId;
+                        if (!stepModelId) return context;
+                        return {
+                            ...context,
+                            system: {
+                                ...context.system,
+                                getModelForCommand: (_commandId: string) => stepModelId,
+                                getModelForAgent: (_agentId: string) => stepModelId,
+                            },
+                        };
                     };
 
                     let finalResult;
@@ -226,8 +268,20 @@ export function useJobExecutor({
 
                             const promises = queuedJob.steps.map(async (step: any, idx: number) => {
                                 try {
-                                    const resolvedArgs = resolveStorageRefs(step.args);
-                                    const res = await registry.execute(step.commandId, resolvedArgs, context);
+                                    // Apply input bindings before resolving refs
+                                    const boundArgs = { ...step.args };
+                                    if (step.inputBindings) {
+                                        for (const [argKey, binding] of Object.entries(step.inputBindings as Record<string, { source: string; sourceKey: string }>)) {
+                                            if (binding.source === 'storage' && binding.sourceKey in jobStorage) {
+                                                boundArgs[argKey] = jobStorage[binding.sourceKey];
+                                            } else if (binding.source === 'deliverable' && binding.sourceKey in deliverableContents) {
+                                                boundArgs[argKey] = deliverableContents[binding.sourceKey];
+                                            }
+                                        }
+                                    }
+                                    const resolvedArgs = resolveRefs(boundArgs);
+                                    const stepCtx = getStepContext(step);
+                                    const res = await registry.execute(step.commandId, resolvedArgs, stepCtx);
                                     if (updateJob) {
                                         // We need latest steps? No, just update this specific step.
                                         // But updateJob merges updates? No, usually it sets the whole object or partial.
@@ -284,9 +338,9 @@ export function useJobExecutor({
 
                                         // Let's just do it for Serial mode properly. Parallel mode might just show all running then all done.
                                     }
-                                    return { stepId: step.id, result: res, status: 'completed' };
+                                    return { stepId: step.id, result: res, status: 'completed', outputMappings: step.outputMappings };
                                 } catch (e: any) {
-                                    return { stepId: step.id, error: e.message, status: 'failed' };
+                                    return { stepId: step.id, error: e.message, status: 'failed', outputMappings: undefined };
                                 }
                             });
 
@@ -299,6 +353,27 @@ export function useJobExecutor({
                                     return res ? { ...s, result: res.result || res.error, status: res.status } : s;
                                 });
                                 updateJob(queuedJob.id, { steps: finalSteps });
+                            }
+
+                            // Apply output mappings from parallel results
+                            for (const r of results) {
+                                if (r.status === 'completed' && r.outputMappings && r.result != null) {
+                                    for (const mapping of r.outputMappings) {
+                                        const outputValue = mapping.outputKey === '*'
+                                            ? r.result
+                                            : (typeof r.result === 'object' ? r.result[mapping.outputKey] : r.result);
+                                        if (mapping.target === 'storage' && mapping.targetKey) {
+                                            jobStorage[mapping.targetKey] = outputValue;
+                                        } else if (mapping.target === 'deliverable' && mapping.targetKey) {
+                                            context.addDeliverable({
+                                                key: mapping.targetKey,
+                                                name: mapping.targetKey,
+                                                type: typeof outputValue === 'string' ? 'markdown' : 'json',
+                                                content: typeof outputValue === 'string' ? outputValue : JSON.stringify(outputValue, null, 2),
+                                            });
+                                        }
+                                    }
+                                }
                             }
 
                             finalResult = "All steps completed";
@@ -347,9 +422,40 @@ export function useJobExecutor({
                                 if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
 
                                 try {
-                                    const resolvedArgs = resolveStorageRefs(steps[i].args);
-                                    const res = await registry.execute(steps[i].commandId, resolvedArgs, context);
+                                    // Apply input bindings before resolving refs
+                                    const boundArgs = { ...steps[i].args };
+                                    if (steps[i].inputBindings) {
+                                        for (const [argKey, binding] of Object.entries(steps[i].inputBindings as Record<string, { source: string; sourceKey: string }>)) {
+                                            if (binding.source === 'storage' && binding.sourceKey in jobStorage) {
+                                                boundArgs[argKey] = jobStorage[binding.sourceKey];
+                                            } else if (binding.source === 'deliverable' && binding.sourceKey in deliverableContents) {
+                                                boundArgs[argKey] = deliverableContents[binding.sourceKey];
+                                            }
+                                        }
+                                    }
+                                    const resolvedArgs = resolveRefs(boundArgs);
+                                    const stepCtx = getStepContext(steps[i]);
+                                    const res = await registry.execute(steps[i].commandId, resolvedArgs, stepCtx);
                                     steps[i] = { ...steps[i], status: 'completed', result: typeof res === 'string' ? res : JSON.stringify(res) };
+
+                                    // Apply output mappings (step.outputMappings → storage / deliverable)
+                                    if (steps[i].outputMappings && res != null) {
+                                        for (const mapping of steps[i].outputMappings!) {
+                                            const outputValue = mapping.outputKey === '*'
+                                                ? res
+                                                : (typeof res === 'object' ? res[mapping.outputKey] : res);
+                                            if (mapping.target === 'storage' && mapping.targetKey) {
+                                                jobStorage[mapping.targetKey] = outputValue;
+                                            } else if (mapping.target === 'deliverable' && mapping.targetKey) {
+                                                context.addDeliverable({
+                                                    key: mapping.targetKey,
+                                                    name: mapping.targetKey,
+                                                    type: typeof outputValue === 'string' ? 'markdown' : 'json',
+                                                    content: typeof outputValue === 'string' ? outputValue : JSON.stringify(outputValue, null, 2),
+                                                });
+                                            }
+                                        }
+                                    }
                                 } catch (e: any) {
                                     steps[i] = { ...steps[i], status: 'failed', result: e.message };
                                     if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });

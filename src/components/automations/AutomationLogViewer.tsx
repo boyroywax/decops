@@ -24,7 +24,7 @@ export function AutomationLogViewer({ run, onClose }: AutomationLogViewerProps) 
     };
 
     const duration = run.endTime
-        ? ((run.endTime - run.startTime) / 1000).toFixed(2) + "s"
+        ? ((new Date(run.endTime).getTime() - new Date(run.startTime).getTime()) / 1000).toFixed(2) + "s"
         : "Running...";
 
     const getMessageClass = (level: string) => {
@@ -59,14 +59,14 @@ export function AutomationLogViewer({ run, onClose }: AutomationLogViewerProps) 
                 {/* Content */}
                 <div className="log-viewer__content">
                     <div className="log-viewer__entries">
-                        {run.logs.map((log) => (
-                            <div key={log.id} className="log-viewer__entry">
+                        {run.logs.map((log, logIdx) => (
+                            <div key={log.id ?? logIdx} className="log-viewer__entry">
                                 <div
-                                    onClick={() => toggleStep(log.id)}
+                                    onClick={() => toggleStep(log.id ?? String(logIdx))}
                                     className="log-viewer__entry-header"
                                 >
                                     <div className="log-viewer__chevron">
-                                        {expandedSteps.has(log.id) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                        {expandedSteps.has(log.id ?? String(logIdx)) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                     </div>
                                     <div className={getMessageClass(log.level)}>
                                         {log.message}
@@ -76,7 +76,7 @@ export function AutomationLogViewer({ run, onClose }: AutomationLogViewerProps) 
                                     </div>
                                 </div>
 
-                                {expandedSteps.has(log.id) && log.details && (
+                                {expandedSteps.has(log.id ?? String(logIdx)) && log.details && (
                                     <div className="log-viewer__details">
                                         {typeof log.details === "string"
                                             ? log.details

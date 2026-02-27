@@ -121,12 +121,12 @@
 }
 
 /* Portrait containers — light */
-[data-theme="light"] .agent-card-portrait {
+[data-theme="light"] .agent-flip__portrait {
   background: rgba(0, 0, 0, 0.02);
   border-color: rgba(0, 0, 0, 0.08);
 }
 
-[data-theme="light"] .agent-card:hover .agent-card-portrait {
+[data-theme="light"] .agent-flip:hover .agent-flip__portrait {
   border-color: rgba(0, 0, 0, 0.15);
 }
 
@@ -1830,5 +1830,73 @@
   background: rgba(16, 185, 129, 0.1);
   border-color: rgba(16, 185, 129, 0.25);
   color: #059669;
+}
+
+/* ─── Display Panel — Light ─── */
+[data-theme="light"] .display-panel {
+  background: #ffffff;
+  border-top-color: rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="light"] .display-panel__resize-grip {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .display-panel__header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .display-panel__expand-btn:hover,
+[data-theme="light"] .display-panel__close-btn:hover {
+  color: #2d2d44;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .display-panel__section-title {
+  color: #6b7280;
+}
+
+[data-theme="light"] .display-panel__theme-btn {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: #4b5563;
+}
+
+[data-theme="light"] .display-panel__theme-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.18);
+  color: #1f2937;
+}
+
+[data-theme="light"] .display-panel__theme-btn--active {
+  background: rgba(0, 184, 116, 0.08);
+  border-color: rgba(0, 184, 116, 0.30);
+  color: #059669;
+}
+
+[data-theme="light"] .display-panel__theme-btn--active:hover {
+  background: rgba(0, 184, 116, 0.14);
+  border-color: rgba(0, 184, 116, 0.40);
+}
+
+[data-theme="light"] .display-panel__theme-icon {
+  color: #6b7280;
+}
+
+[data-theme="light"] .display-panel__theme-btn--active .display-panel__theme-icon {
+  color: #059669;
+}
+
+[data-theme="light"] .display-panel__theme-desc {
+  color: #9ca3af;
+}
+
+[data-theme="light"] .display-panel__theme-btn--active .display-panel__theme-desc {
+  color: rgba(5, 150, 105, 0.6);
+}
+
+[data-theme="light"] .display-panel__body {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 

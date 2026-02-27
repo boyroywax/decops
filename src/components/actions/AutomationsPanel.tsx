@@ -1,12 +1,20 @@
 import { useState } from "react";
-import { LayoutGrid, List, PlayCircle, Trash2, Clock, Activity, Zap } from "lucide-react";
+import { LayoutGrid, List, PlayCircle, Trash2, Edit, Clock, Activity, Zap } from "lucide-react";
 import { useAutomations } from "../../context/AutomationsContext";
+import { useStudioContext } from "../../context/StudioContext";
 import { AutomationCard } from "../automations/AutomationCard";
+import type { AutomationDefinition, DeclarativeAutomationDefinition } from "../../services/automations/types";
+import type { ViewId } from "../../types";
 import "../../styles/components/automations-panel.css";
 
-export function AutomationsPanel() {
+interface AutomationsPanelProps {
+    setView?: (view: ViewId) => void;
+}
+
+export function AutomationsPanel({ setView }: AutomationsPanelProps) {
     const { automations, runs, runAutomation, deleteAutomation } = useAutomations();
-    const [view, setView] = useState<"cards" | "table">("cards");
+    const { api: studioApi } = useStudioContext();
+    const [layoutView, setLayoutView] = useState<"cards" | "table">("cards");
     const [filter, setFilter] = useState("");
     const [logTarget, setLogTarget] = useState<string | null>(null);
 
@@ -24,6 +32,42 @@ export function AutomationsPanel() {
     const isRunning = (autoId: string) =>
         runs.some(r => r.automationId === autoId && r.status === "running");
 
+    /** Convert a declarative automation to a temp job def and load it in Studio */
+    const handleEditInStudio = (auto: AutomationDefinition) => {
+        if (auto.type !== "declarative") return;
+        const decl = auto as DeclarativeAutomationDefinition;
+        // Navigate to Studio view
+        if (setView) setView("jobs" as ViewId);
+        setTimeout(() => {
+            if (studioApi) {
+                studioApi.clearCanvas();
+                studioApi.setName(auto.name);
+                studioApi.setDescription(auto.description);
+                for (const step of decl.steps) {
+                    const stepId = studioApi.addStep(step.commandId);
+                    for (const [argKey, argVal] of Object.entries(step.args)) {
+                        studioApi.updateStepArg(stepId, argKey, argVal);
+                    }
+                    if (step.condition) {
+                        studioApi.updateStepPreCondition(stepId, step.condition);
+                    }
+                }
+                // Add deliverables
+                if (decl.deliverables) {
+                    for (const d of decl.deliverables) {
+                        studioApi.addDeliverableEntry(d);
+                    }
+                }
+                // Add storage
+                if (decl.storageDefaults) {
+                    for (const [k, v] of Object.entries(decl.storageDefaults)) {
+                        studioApi.addStorageEntryWithValues(k, typeof v === "string" ? v : JSON.stringify(v ?? ""));
+                    }
+                }
+            }
+        }, 150);
+    };
+
     return (
         <div className="automations-panel">
             {/* Toolbar */}
@@ -36,15 +80,15 @@ export function AutomationsPanel() {
                 />
                 <div className="automations-panel__view-toggle">
                     <button
-                        onClick={() => setView("cards")}
-                        className={`automations-panel__view-btn${view === "cards" ? " automations-panel__view-btn--active" : ""}`}
+                        onClick={() => setLayoutView("cards")}
+                        className={`automations-panel__view-btn${layoutView === "cards" ? " automations-panel__view-btn--active" : ""}`}
                         title="Card view"
                     >
                         <LayoutGrid size={12} />
                     </button>
                     <button
-                        onClick={() => setView("table")}
-                        className={`automations-panel__view-btn${view === "table" ? " automations-panel__view-btn--active" : ""}`}
+                        onClick={() => setLayoutView("table")}
+                        className={`automations-panel__view-btn${layoutView === "table" ? " automations-panel__view-btn--active" : ""}`}
                         title="Table view"
                     >
                         <List size={12} />
@@ -56,7 +100,7 @@ export function AutomationsPanel() {
             </div>
 
             {/* Card View */}
-            {view === "cards" && (
+            {layoutView === "cards" && (
                 <div className="automations-panel__grid">
                     {filtered.map(auto => (
                         <AutomationCard
@@ -65,6 +109,7 @@ export function AutomationsPanel() {
                             lastRun={getLastRun(auto.id)}
                             onRun={runAutomation}
                             onViewLogs={(id) => setLogTarget(logTarget === id ? null : id)}
+                            onEdit={handleEditInStudio}
                             isRunning={isRunning(auto.id)}
                         />
                     ))}
@@ -72,7 +117,7 @@ export function AutomationsPanel() {
             )}
 
             {/* Table View */}
-            {view === "table" && (
+            {layoutView === "table" && (
                 <div className="automations-panel__table-wrap">
                     <table className="automations-panel__table">
                         <thead>
@@ -134,6 +179,15 @@ export function AutomationsPanel() {
                                         </td>
                                         <td className="automations-panel__td automations-panel__td--actions">
                                             <div className="automations-panel__action-btns">
+                                                {auto.type === "declarative" && (
+                                                    <button
+                                                        onClick={() => handleEditInStudio(auto)}
+                                                        className="automations-panel__action-btn automations-panel__action-btn--edit"
+                                                        title="Edit in Studio"
+                                                    >
+                                                        <Edit size={14} />
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => runAutomation(auto.id)}
                                                     disabled={running}
@@ -164,7 +218,7 @@ export function AutomationsPanel() {
                     <Zap size={32} className="automations-panel__empty-icon" />
                     <div className="automations-panel__empty-title">No Automations</div>
                     <div className="automations-panel__empty-desc">
-                        {filter ? `No automations match "${filter}"` : "Create an automation in the Builder tab."}
+                        {filter ? `No automations match "${filter}"` : "Create an automation in the Studio."}
                     </div>
                 </div>
             )}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutGrid, List, Play } from "lucide-react";
+import { LayoutGrid, List, Play, Plus } from "lucide-react";
 import { registry } from "../../services/commands/registry";
 import { CommandDefinition } from "../../services/commands/types";
 import { CommandCard } from "./CommandCard";
@@ -7,6 +7,7 @@ import "../../styles/components/commands-panel.css";
 
 interface CommandsPanelProps {
     onRunCommand: (commandId: string, command: CommandDefinition) => void;
+    isStudioMode?: boolean;
 }
 
 const getCommandColor = (tags: string[]) => {
@@ -24,7 +25,7 @@ const getCommandColor = (tags: string[]) => {
     return "#71717a";
 };
 
-export function CommandsPanel({ onRunCommand }: CommandsPanelProps) {
+export function CommandsPanel({ onRunCommand, isStudioMode }: CommandsPanelProps) {
     const commands = registry.getAll().filter(c => !c.hidden);
     const [filter, setFilter] = useState("");
     const [view, setView] = useState<"cards" | "table">("cards");
@@ -74,6 +75,9 @@ export function CommandsPanel({ onRunCommand }: CommandsPanelProps) {
                             key={cmd.id}
                             command={cmd}
                             onRun={() => onRunCommand(cmd.id, cmd)}
+                            onAddToStudio={isStudioMode ? () => {
+                                window.dispatchEvent(new CustomEvent("studio:add-command", { detail: { commandId: cmd.id } }));
+                            } : undefined}
                         />
                     ))}
                 </div>
@@ -138,6 +142,15 @@ export function CommandsPanel({ onRunCommand }: CommandsPanelProps) {
                                             >
                                                 <Play size={10} fill={color} />
                                             </button>
+                                            {isStudioMode && (
+                                                <button
+                                                    onClick={() => window.dispatchEvent(new CustomEvent("studio:add-command", { detail: { commandId: cmd.id } }))}
+                                                    className="commands-panel__studio-btn"
+                                                    title="Add to Studio"
+                                                >
+                                                    <Plus size={10} /> Add
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 );

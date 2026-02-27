@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "../../types";
-import { MessageCircle, Zap, WifiOff, Terminal, Gem, Sun, Moon, Sunrise } from "lucide-react";
-import { ChatPanel } from "./ChatPanel";
+import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor } from "lucide-react";
+import type { ChatPosition } from "../../context/ThemeContext";
 import { ActionManager } from "../actions/ActionManager";
 import { ArtifactsPanel } from "./ArtifactsPanel";
 import { LLMManager } from "./LLMManager";
-import { useTheme } from "../../context/ThemeContext";
+import { DisplayPanel } from "./DisplayPanel";
 import { useLLM, type LivenessStatus } from "../../context/LLMContext";
 import "../../styles/components/footer.css";
 import "../../styles/components/llm-manager.css";
@@ -38,20 +38,27 @@ interface FooterProps {
     savedJobs: any[];
     saveJob: (job: any) => void;
     deleteJob: (id: string) => void;
+    view?: ViewId;
+    panel: PanelMode;
+    setPanel: (p: PanelMode) => void;
+    chatPosition: ChatPosition;
+    sideChatVisible: boolean;
+    toggleSideChat: () => void;
 }
 
-type PanelMode = "none" | "chat" | "jobs" | "artifacts" | "llm";
+export type PanelMode = "none" | "chat" | "jobs" | "artifacts" | "llm" | "display";
 
 const DEFAULT_PANEL_HEIGHT = 420;
 
-export function Footer({ agents, channels, groups, messages, ecosystems, bridges, ecosystem, addLog, setView, jobs, removeJob, clearJobs, addJob, allArtifacts, importArtifact, removeArtifact, updateArtifact, savedJobs, saveJob, deleteJob, ...jobsProps }: FooterProps) {
-    const [panel, setPanel] = useState<PanelMode>("none");
+export function Footer({ agents, channels, groups, messages, ecosystems, bridges, ecosystem, addLog, setView, jobs, removeJob, clearJobs, addJob, allArtifacts, importArtifact, removeArtifact, updateArtifact, savedJobs, saveJob, deleteJob, view, panel, setPanel, chatPosition, sideChatVisible, toggleSideChat, ...jobsProps }: FooterProps) {
+    const isSideChat = chatPosition === "left" || chatPosition === "right";
     const [panelHeight, setPanelHeight] = useState(DEFAULT_PANEL_HEIGHT);
     const [isExpanded, setIsExpanded] = useState(false);
     const savedHeightRef = useRef(DEFAULT_PANEL_HEIGHT);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
-    const { theme, toggleTheme } = useTheme();
     const llm = useLLM();
+
+    const isStudioMode = view === "jobs";
 
     // LLM status dot color
     const dotColors: Record<LivenessStatus, string> = {
@@ -91,7 +98,7 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
         };
     }, []);
 
-    const toggle = (mode: PanelMode) => setPanel(prev => prev === mode ? "none" : mode);
+    const toggle = (mode: PanelMode) => setPanel(panel === mode ? "none" : mode);
 
     // Watch for external open requests (e.g. from ProfileModal → llm.openManager())
     useEffect(() => {
@@ -100,24 +107,8 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
         }
     }, [llm.managerOpenRequest]);
 
-    const workspaceContext = { agents, channels, groups, messages, ecosystems, bridges, addJob, jobs };
-
     return (
         <>
-            {/* ChatPanel stays mounted to preserve streaming state across panel switches */}
-            <div style={panel !== "chat" ? { display: "none" } : undefined}>
-                <ChatPanel
-                    context={workspaceContext}
-                    ecosystem={ecosystem}
-                    onClose={() => setPanel("none")}
-                    addLog={addLog}
-                    height={panelHeight}
-                    setHeight={handleSetHeight}
-                    isExpanded={isExpanded}
-                    onToggleExpand={handleToggleExpand}
-                />
-            </div>
-
             {panel === "jobs" && (
                 <ActionManager
                     onClose={() => setPanel("none")}
@@ -129,6 +120,8 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                     setHeight={handleSetHeight}
                     isExpanded={isExpanded}
                     onToggleExpand={handleToggleExpand}
+                    isStudioMode={isStudioMode}
+                    setView={setView}
                 />
             )}
 
@@ -156,6 +149,16 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                 />
             )}
 
+            {panel === "display" && (
+                <DisplayPanel
+                    onClose={() => setPanel("none")}
+                    height={panelHeight}
+                    setHeight={handleSetHeight}
+                    isExpanded={isExpanded}
+                    onToggleExpand={handleToggleExpand}
+                />
+            )}
+
             <footer className="app-footer">
                 <div className="footer__stats">
                     <button
@@ -174,18 +177,35 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                             </span>
                         )}
                     </button>
+
+                    {isSideChat && (
+                        <>
+                            <span className="footer__separator">│</span>
+                            <button
+                                onClick={toggleSideChat}
+                                className={`footer__toggle ${sideChatVisible ? "footer__toggle--active" : ""}`}
+                                title={sideChatVisible ? "Hide chat" : "Show chat"}
+                            >
+                                <MessageCircle size={10} />
+                                Chat
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 <div className="footer__controls">
-                    <button
-                        onClick={() => toggle("chat")}
-                        className={`footer__toggle ${panel === "chat" ? "footer__toggle--active" : ""}`}
-                    >
-                        <MessageCircle size={10} />
-                        Chat
-                    </button>
-
-                    <span className="footer__separator">│</span>
+                    {!isSideChat && (
+                        <>
+                            <button
+                                onClick={() => toggle("chat")}
+                                className={`footer__toggle ${panel === "chat" ? "footer__toggle--active" : ""}`}
+                            >
+                                <MessageCircle size={10} />
+                                Chat
+                            </button>
+                            <span className="footer__separator">│</span>
+                        </>
+                    )}
 
                     <button
                         onClick={() => toggle("jobs")}
@@ -225,12 +245,11 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
 
                     <span className="footer__separator">│</span>
                     <button
-                        onClick={toggleTheme}
-                        className="footer__toggle"
-                        title={theme === "dark" ? "Switch to light" : theme === "light" ? "Switch to solar" : "Switch to dark"}
+                        onClick={() => toggle("display")}
+                        className={`footer__toggle ${panel === "display" ? "footer__toggle--active" : ""}`}
+                        title="Display settings"
                     >
-                        {theme === "dark" ? <Sun size={10} /> : theme === "light" ? <Sunrise size={10} /> : <Moon size={10} />}
-                        {!jobsProps.isMobile && (theme === "dark" ? "Light" : theme === "light" ? "Solar" : "Dark")}
+                        <Monitor size={10} />
                     </button>
                 </div>
             </footer >

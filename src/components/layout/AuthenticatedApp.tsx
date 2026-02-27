@@ -1,18 +1,21 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Compass } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
-import type { ViewId, NavContext } from "../../types";
+import type { ViewId, NavContext, JobDefinition } from "../../types";
 import { useNotebook } from "../../hooks/useNotebook";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { useArchitect } from "../../hooks/useArchitect";
 import { useEcosystem } from "../../hooks/useEcosystem";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
-import { Footer } from "./Footer";
+import { Footer, type PanelMode } from "./Footer";
+import { ChatPanel } from "./ChatPanel";
 import { useAuth } from "../../context/AuthContext";
 import { useJobsContext } from "../../context/JobsContext";
 import { useJobCatalog } from "../../hooks/useJobCatalog";
 import { ViewSwitcher } from "./ViewSwitcher";
+import { StudioView } from "../views/StudioView";
+import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { useJobExecutor } from "../../hooks/useJobExecutor";
 
 import { useAutomations } from "../../context/AutomationsContext";
@@ -22,6 +25,7 @@ import { useRouteSync } from "../../hooks/useRouteSync";
 import { ProfileModal } from "./ProfileModal";
 import { ArchitectPopup } from "./ArchitectPopup";
 import { ActivityModal } from "./ActivityModal";
+import { useTheme } from "../../context/ThemeContext";
 import "../../styles/components/authenticated-app.css";
 import "../../styles/components/global.css";
 
@@ -91,6 +95,18 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   const { savedJobs, saveJob, deleteJob } = useJobCatalog();
   const workspace = useWorkspaceContext();
   const architect = useArchitect(addLog, addJob, jobs);
+
+  /** Convert a JobDefinition into a JobRequest and submit it */
+  const runJobDef = useCallback((jobDef: JobDefinition) => {
+    addJob({
+      type: jobDef.name,
+      request: { description: jobDef.description },
+      steps: jobDef.steps,
+      mode: jobDef.mode,
+      ...(jobDef.storageDefaults ? { storageDefaults: jobDef.storageDefaults } : {}),
+      ...(jobDef.deliverables ? { deliverables: jobDef.deliverables } : {}),
+    });
+  }, [addJob]);
   const automations = useAutomations();
 
   // Workspace Management Logic
@@ -235,6 +251,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     allArtifacts,
     importArtifact,
     removeArtifact,
+    updateArtifact,
     isPaused,
     toggleQueuePause,
     savedJobs,
@@ -255,6 +272,46 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   // Responsive state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Lifted footer panel state (so we can render ChatPanel in different positions)
+  const [footerPanel, setFooterPanel] = useState<PanelMode>("none");
+  const { chatPosition } = useTheme();
+
+  // Chat panel sizing
+  const DEFAULT_CHAT_SIZE = chatPosition === "bottom" ? 420 : 380;
+  const [chatSize, setChatSize] = useState(DEFAULT_CHAT_SIZE);
+  const [chatExpanded, setChatExpanded] = useState(false);
+  const chatSavedRef = useRef(DEFAULT_CHAT_SIZE);
+  const [sideChatVisible, setSideChatVisible] = useState(true);
+  const toggleSideChat = useCallback(() => setSideChatVisible(prev => !prev), []);
+
+  const handleChatSetSize = useCallback((s: number) => {
+    setChatSize(s);
+    setChatExpanded(false);
+  }, []);
+
+  const handleChatToggleExpand = useCallback(() => {
+    setChatExpanded(prev => {
+      if (prev) {
+        setChatSize(chatSavedRef.current);
+        return false;
+      } else {
+        chatSavedRef.current = chatSize;
+        setChatSize(chatPosition === "bottom"
+          ? window.innerHeight - 93
+          : window.innerWidth - 320
+        );
+        return true;
+      }
+    });
+  }, [chatSize, chatPosition]);
+
+  // Auto-open Actions when entering Studio mode
+  useEffect(() => {
+    if (view === "jobs" && footerPanel === "none") {
+      setFooterPanel("jobs");
+    }
+  }, [view === "jobs"]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -281,16 +338,51 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   }, [notebookEntries.length]);
 
   // Ctrl+K / Cmd+K keybinding for Architect popup
+  // Cmd+S / Ctrl+S for Studio, Cmd+L / Ctrl+L for Chat
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
         setShowArchitectPopup(prev => !prev);
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === "j") {
+        e.preventDefault();
+        setView("jobs");
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === ".") {
+        e.preventDefault();
+        setView("channels");
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  const chatWorkspaceContext = useMemo(() => ({
+    agents: workspace.agents, channels: workspace.channels, groups: workspace.groups,
+    messages: workspace.messages, ecosystems: ecosystem.ecosystems, bridges: ecosystem.bridges,
+    addJob, jobs,
+  }), [workspace.agents, workspace.channels, workspace.groups, workspace.messages, ecosystem.ecosystems, ecosystem.bridges, addJob, jobs]);
+
+  const isSideChat = chatPosition === "left" || chatPosition === "right";
+
+  const shouldHideChat = isSideChat ? !sideChatVisible : footerPanel !== "chat";
+
+  const chatPanelNode = (
+    <div style={shouldHideChat ? { display: "none" } : undefined}>
+      <ChatPanel
+        context={chatWorkspaceContext}
+        ecosystem={ecosystem}
+        onClose={() => { if (isSideChat) setSideChatVisible(false); else setFooterPanel("none"); }}
+        addLog={addLog}
+        height={chatSize}
+        setHeight={handleChatSetSize}
+        isExpanded={chatExpanded}
+        onToggleExpand={handleChatToggleExpand}
+        position={chatPosition}
+      />
+    </div>
+  );
 
   return (
     <div className="app-shell">
@@ -316,8 +408,23 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
             />
           </div>
 
-          <main className="app-main">
-            <ViewSwitcher
+          {/* Chat panel: left position (after sidebar) */}
+          {isSideChat && chatPosition === "left" && chatPanelNode}
+
+          <main className={`app-main ${view === "jobs" ? "app-main--studio" : ""}`}>
+            {/* Studio is always mounted to preserve state across navigations */}
+            <div style={{ display: view === "jobs" ? "contents" : "none" }}>
+              <ErrorBoundary>
+                <StudioView
+                  savedJobs={savedJobs}
+                  onSaveJob={saveJob}
+                  onDeleteJob={deleteJob}
+                  onRunJob={runJobDef}
+                />
+              </ErrorBoundary>
+            </div>
+            {view !== "jobs" && (
+              <ViewSwitcher
               view={view}
               setView={setView}
               navContext={navContext}
@@ -334,9 +441,19 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
               exportNotebook={exportNotebook}
               addNotebookEntry={addNotebookEntry}
               addJob={addJob}
+              savedJobs={savedJobs}
+              onSaveJob={saveJob}
+              onDeleteJob={deleteJob}
             />
+            )}
           </main>
+
+          {/* Chat panel: right position */}
+          {isSideChat && chatPosition === "right" && chatPanelNode}
         </div>
+
+        {/* Chat panel: bottom position (below content, above footer) */}
+        {!isSideChat && chatPanelNode}
 
         <Footer
           agents={workspace.agents}
@@ -366,7 +483,12 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           savedJobs={savedJobs}
           saveJob={saveJob}
           deleteJob={deleteJob}
-
+          view={view}
+          panel={footerPanel}
+          setPanel={setFooterPanel}
+          chatPosition={chatPosition}
+          sideChatVisible={sideChatVisible}
+          toggleSideChat={toggleSideChat}
         />
 
         {/* Profile Modal (overlay) */}

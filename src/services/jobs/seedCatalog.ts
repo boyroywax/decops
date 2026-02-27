@@ -13,22 +13,23 @@ export const seedCatalogJobs: JobDefinition[] = [
         name: "Deploy Network",
         description:
             "Generate and deploy a full agent mesh network from a natural-language prompt. " +
-            "Step 1 uses the AI Architect to produce a MeshConfig, then Step 2 decomposes it " +
-            "into atomic create_network / create_agent / create_channel / create_group / " +
-            "create_bridge / send_message steps and queues them as a tracked deployment job.",
+            "The deploy_network command uses the AI Architect to produce a MeshConfig, then " +
+            "decomposes it into atomic create_network / create_agent / create_channel / " +
+            "create_group / create_bridge / send_message steps and queues them as a tracked " +
+            "deployment job. Edit the prompt in Studio before running.",
         mode: "serial",
         steps: [
             {
                 id: "step-0",
-                commandId: "prompt_architect",
-                name: "Generate Network Config",
-                args: { prompt: "" }, // User fills in before running
-            },
-            {
-                id: "step-1",
                 commandId: "deploy_network",
-                name: "Deploy Generated Config",
-                args: {}, // Reads $storage.lastConfig automatically
+                name: "Generate & Deploy Network",
+                args: {
+                    prompt: "Design a research team with 3 agents: a lead researcher who coordinates work, a data analyst who processes information, and a technical writer who produces reports. Connect them with data channels for collaboration.",
+                },
+                outputMappings: [
+                    { outputKey: "*", target: "storage" as const, targetKey: "deployResult" },
+                    { outputKey: "*", target: "deliverable" as const, targetKey: "deploy-summary" },
+                ],
             },
         ],
         deliverables: [
@@ -36,16 +37,25 @@ export const seedCatalogJobs: JobDefinition[] = [
                 key: "mesh-config",
                 label: "Network Config",
                 type: "json",
-                description: "The AI-generated MeshConfig JSON",
+                description: "The AI-generated MeshConfig JSON (produced by deploy_network)",
+            },
+            {
+                key: "deploy-summary",
+                label: "Deployment Summary",
+                type: "json",
+                description: "Summary of the deployment job with step list",
             },
             {
                 key: "topology",
                 label: "Network Topology",
                 type: "json",
-                description: "Final topology snapshot after deployment",
+                description: "Final topology snapshot after deployment (produced by child job)",
             },
         ],
-        storageDefaults: {},
+        storageDefaults: {
+            deployResult: null,
+        },
+        inputDefaults: [],
         createdAt: 0, // Epoch 0 marks built-in
         updatedAt: 0,
     },

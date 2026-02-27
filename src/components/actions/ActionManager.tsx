@@ -1,16 +1,16 @@
 import { useState, useEffect } from "react";
-import { X, Terminal, Zap, BookOpen, Activity, ChevronsUp, ChevronsDown, Briefcase, TerminalSquare, Clock } from "lucide-react";
+import { X, Terminal, Zap, Activity, ChevronsUp, ChevronsDown, Briefcase, TerminalSquare, Clock } from "lucide-react";
 import { ActionsMonitor } from "./ActionsMonitor";
 import { AutomationsPanel } from "./AutomationsPanel";
 import { HistoryPanel } from "./HistoryPanel";
-import { UnifiedBuilder } from "./UnifiedBuilder";
 import { CommandsPanel } from "./CommandsPanel";
 import { JobCatalog } from "../jobs/JobCatalog";
 import { useJobsContext } from "../../context/JobsContext";
 import { useAutomations } from "../../context/AutomationsContext";
 import { useEcosystemContext } from "../../context/EcosystemContext";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
-import { JobDefinition } from "../../types";
+import { useStudioContext } from "../../context/StudioContext";
+import { JobDefinition, ViewId } from "../../types";
 import "../../styles/components/action-manager.css";
 
 interface ActionManagerProps {
@@ -23,18 +23,25 @@ interface ActionManagerProps {
     setHeight: (h: number) => void;
     isExpanded: boolean;
     onToggleExpand: () => void;
+    isStudioMode?: boolean;
+    setView?: (view: ViewId) => void;
 }
 
-export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob, height, setHeight, isExpanded, onToggleExpand }: ActionManagerProps) {
+export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob, height, setHeight, isExpanded, onToggleExpand, isStudioMode, setView }: ActionManagerProps) {
     const [isResizing, setIsResizing] = useState(false);
-    const [activeTab, setActiveTab] = useState<"monitor" | "automations" | "history" | "catalog" | "commands" | "builder">("monitor");
+    const [activeTab, setActiveTab] = useState<"monitor" | "automations" | "history" | "catalog" | "commands">("monitor");
 
     // Contexts
     const { jobs, addJob, removeJob, stopJob, clearJobs } = useJobsContext();
     const { automations, register, deleteAutomation } = useAutomations();
+    const { api: studioApi } = useStudioContext();
 
-    // State to pass to Builder
-    const [editingJob, setEditingJob] = useState<JobDefinition | null>(null);
+    // Auto-switch to commands tab when studio mode activates
+    useEffect(() => {
+        if (isStudioMode) {
+            setActiveTab("commands");
+        }
+    }, [isStudioMode]);
 
     // Handlers
     const handleRunJob = (jobDef: JobDefinition) => {
@@ -45,13 +52,23 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
             mode: jobDef.mode,
             ...(jobDef.storageDefaults ? { storageDefaults: jobDef.storageDefaults } : {}),
             ...(jobDef.deliverables ? { deliverables: jobDef.deliverables } : {}),
+            ...(jobDef.inputDefaults && jobDef.inputDefaults.length > 0 ? { inputDefaults: jobDef.inputDefaults } : {}),
+            ...(jobDef.modelId ? { modelId: jobDef.modelId } : {}),
         });
         setActiveTab("monitor");
     };
 
-    const handleSaveAutomation = (automation: any) => {
-        register(automation);
-        setActiveTab("monitor");
+    /** Open a job in Studio for editing */
+    const handleEditInStudio = (job: JobDefinition) => {
+        // Navigate to Studio view
+        if (setView) setView("jobs" as ViewId);
+        // Load the job into Studio canvas once it's mounted
+        setTimeout(() => {
+            const api = studioApi;
+            if (api) {
+                api.loadJobById(job.id);
+            }
+        }, 100);
     };
 
     const startResizing = (e: React.MouseEvent) => {
@@ -126,12 +143,6 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
                         >
                             <TerminalSquare size={9} /> Commands
                         </button>
-                        <button
-                            onClick={() => setActiveTab("builder")}
-                            className={`action-manager__tab${activeTab === "builder" ? " action-manager__tab--active" : ""}`}
-                        >
-                            <BookOpen size={9} /> Builder
-                        </button>
                     </div>
                 </div>
 
@@ -158,7 +169,7 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
                 )}
                 {activeTab === "automations" && (
                     <div className="action-manager__tab-content">
-                        <AutomationsPanel />
+                        <AutomationsPanel setView={setView} />
                     </div>
                 )}
                 {activeTab === "history" && (
@@ -172,17 +183,14 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
                         <JobCatalog
                             jobs={savedJobs}
                             onRun={handleRunJob}
-                            onEdit={(job) => {
-                                setEditingJob(job);
-                                setActiveTab("builder");
-                            }}
+                            onEdit={handleEditInStudio}
                             onDelete={deleteJob}
                         />
                     </div>
                 )}
                 {activeTab === "commands" && (
                     <div className="action-manager__tab-content">
-                        <CommandsPanel onRunCommand={(commandId, command) => {
+                        <CommandsPanel isStudioMode={isStudioMode} onRunCommand={(commandId, command) => {
                             const step: import("../../types").JobStep = {
                                 id: `step-${Date.now()}`,
                                 commandId,
@@ -203,17 +211,6 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
                             setActiveTab("monitor");
                         }} />
                     </div>
-                )}
-                {activeTab === "builder" && (
-                    <UnifiedBuilder
-                        onRunJob={handleRunJob}
-                        onSaveAutomation={handleSaveAutomation}
-                        onCancel={() => {
-                            setEditingJob(null);
-                            setActiveTab("monitor");
-                        }}
-                        initialJob={editingJob}
-                    />
                 )}
             </div>
         </div>

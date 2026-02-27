@@ -14,6 +14,8 @@ const VIEW_TO_PATH: Record<string, string> = {
   artifacts: "/artifacts",
   activity: "/activity",
   actions: "/actions",
+  jobs: "/jobs",
+  editor: "/editor",
 };
 
 /** Map URL path segment back to ViewId */
@@ -27,6 +29,8 @@ const PATH_TO_VIEW: Record<string, ViewId> = {
   artifacts: "artifacts",
   activity: "activity",
   actions: "actions",
+  jobs: "jobs",
+  editor: "editor",
 };
 
 /**

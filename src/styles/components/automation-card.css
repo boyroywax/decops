@@ -73,6 +73,34 @@
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(56, 189, 248, 0.2);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.automation-card__icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.automation-card__edit-btn {
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+  cursor: pointer;
+  font-size: var(--text-xs);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transition: all var(--transition-fast);
+}
+
+.automation-card__edit-btn:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.5);
 }
 
 .automation-card__name {

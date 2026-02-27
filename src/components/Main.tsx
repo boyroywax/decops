@@ -4,6 +4,7 @@ import { WorkspaceProvider } from "../context/WorkspaceContext";
 import { AuthenticatedApp } from "./layout/AuthenticatedApp";
 import { LoginView } from "./views/LoginView";
 import { AutomationsProvider } from "../context/AutomationsContext";
+import { StudioProvider } from "../context/StudioContext";
 import { LLMProvider } from "../context/LLMContext";
 import { useNotebook } from "../hooks/useNotebook";
 
@@ -15,7 +16,9 @@ function InternalApp() {
         <LLMProvider>
             <WorkspaceProvider addJob={addJob}>
                 <AutomationsProvider addLog={notebook.addLog}>
-                    <AuthenticatedApp notebook={notebook} />
+                    <StudioProvider>
+                        <AuthenticatedApp notebook={notebook} />
+                    </StudioProvider>
                 </AutomationsProvider>
             </WorkspaceProvider>
         </LLMProvider>

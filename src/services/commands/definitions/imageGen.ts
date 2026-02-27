@@ -3,6 +3,7 @@ import { CommandDefinition } from "../types";
 import { generatePortrait, hasGeminiApiKey, type ImageStyle } from "../../imageGen";
 import {
     setCachedPortrait,
+    getCachedPortrait,
     promptHash,
     clearPortraitCache,
     type CachedPortrait,
@@ -310,5 +311,116 @@ export const clearImageCacheCommand: CommandDefinition = {
         await clearPortraitCache();
         context.workspace.addLog("Image cache cleared. Portraits and badges will regenerate on next view.");
         return { cleared: true, message: "All cached images cleared." };
+    },
+};
+
+// ── generate_icon ──
+
+export const generateIconCommand: CommandDefinition = {
+    id: "generate_icon",
+    description:
+        "Generates a unique AI icon/badge for a job, command, or automation via Imagen 4.0. " +
+        "The generated icon is cached in IndexedDB and returned as a base64 data-URI.",
+    tags: ["image", "icon", "job", "command", "automation"],
+    rbac: ["orchestrator", "builder", "curator"],
+    recommendedModel: "imagen-4.0-generate-001",
+    args: {
+        target: {
+            name: "target",
+            type: "string",
+            description: 'What to generate an icon for: "job", "command", or "automation".',
+            required: true,
+            validation: (val) =>
+                ["job", "command", "automation"].includes(val) ||
+                'Must be "job", "command", or "automation"',
+        },
+        name: {
+            name: "name",
+            type: "string",
+            description: "The name of the job/command/automation — used to build the prompt.",
+            required: true,
+        },
+        description: {
+            name: "description",
+            type: "string",
+            description: "Description of the job/command/automation — enriches the prompt for a more relevant icon.",
+            required: false,
+            defaultValue: "",
+        },
+        tags: {
+            name: "tags",
+            type: "string",
+            description: "Comma-separated tags to further describe the subject (e.g. 'deploy,network,ai').",
+            required: false,
+            defaultValue: "",
+        },
+        force: {
+            name: "force",
+            type: "boolean",
+            description: "If true, regenerates even if a cached icon exists.",
+            required: false,
+            defaultValue: false,
+        },
+    },
+    output: "JSON object with the generated icon data-URI and cache metadata.",
+    outputSchema: {
+        type: "object",
+        properties: {
+            dataUri: { type: "string", description: "data:image/png;base64,…  ready to use in <img> or CSS" },
+            cacheKey: { type: "string" },
+            byteSize: { type: "number" },
+            cached: { type: "boolean" },
+        },
+    },
+    execute: async (args, context) => {
+        const { target, name, description: desc, tags: tagsArg, force } = args;
+        const { workspace } = context;
+
+        if (!hasGeminiApiKey()) {
+            throw new Error("No Gemini API key configured. Go to Profile & Settings to add one.");
+        }
+
+        // Build a descriptive prompt
+        const tagList = tagsArg ? tagsArg.split(",").map((t: string) => t.trim()).filter(Boolean) : [];
+        const tagStr = tagList.length ? `, themes: ${tagList.join(", ")}` : "";
+        const descStr = desc ? ` — ${desc}` : "";
+        const prompt = `icon for a ${target} called "${name}"${descStr}${tagStr}`;
+
+        const cacheKey = `icon-${target}-${name.toLowerCase().replace(/\s+/g, "-")}`;
+        const pHash = promptHash(prompt);
+
+        // Check cache
+        if (!force) {
+            const cached = await getCachedPortrait(cacheKey, pHash);
+            if (cached) {
+                workspace.addLog(`Icon for "${name}" loaded from cache.`);
+                return {
+                    dataUri: `data:${cached.mimeType};base64,${cached.data}`,
+                    cacheKey,
+                    byteSize: Math.ceil((cached.data.length * 3) / 4),
+                    cached: true,
+                };
+            }
+        }
+
+        workspace.addLog(`Generating icon for ${target}: "${name}"…`);
+
+        const result = await generatePortrait(prompt, "badge");
+
+        // Cache result
+        const entry: CachedPortrait = {
+            data: result.data,
+            mimeType: result.mimeType,
+            promptHash: pHash,
+            cachedAt: new Date().toISOString(),
+        };
+        await setCachedPortrait(cacheKey, entry);
+
+        const byteSize = Math.ceil((result.data.length * 3) / 4);
+        const dataUri = `data:${result.mimeType};base64,${result.data}`;
+
+        workspace.addLog(`Icon generated for "${name}": ${result.mimeType}, ${(byteSize / 1024).toFixed(0)} KB`);
+
+        return { dataUri, cacheKey, byteSize, cached: false };
     },
 };

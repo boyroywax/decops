@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CommandDefinition } from "../../services/commands/types";
-import { Play } from "lucide-react";
+import { Play, Plus } from "lucide-react";
 import "../../styles/components/command-card.css";
 
 const getCommandColor = (tags: string[]) => {
@@ -21,9 +21,10 @@ const getCommandColor = (tags: string[]) => {
 interface CommandCardProps {
     command: CommandDefinition;
     onRun?: () => void;
+    onAddToStudio?: () => void;
 }
 
-export function CommandCard({ command, onRun }: CommandCardProps) {
+export function CommandCard({ command, onRun, onAddToStudio }: CommandCardProps) {
     const [isFlipped, setIsFlipped] = useState(false);
     const [animationState, setAnimationState] = useState<"idle" | "pressing" | "flipping">("idle");
     const color = getCommandColor(command.tags);
@@ -74,7 +75,11 @@ export function CommandCard({ command, onRun }: CommandCardProps) {
                     <div>
                         <div className="cmd-card__front-header">
                             <div className="cmd-card__name" style={{ color }}>
-                                <span className="cmd-card__slash">/</span>
+                                {command.icon ? (
+                                    <img src={command.icon} alt="" className="cmd-card__icon-img" />
+                                ) : (
+                                    <span className="cmd-card__slash">/</span>
+                                )}
                                 {command.id}
                             </div>
                             <div className="cmd-card__header-right">
@@ -90,6 +95,20 @@ export function CommandCard({ command, onRun }: CommandCardProps) {
                                         title="Run Command"
                                     >
                                         <Play size={10} fill={color} />
+                                    </button>
+                                )}
+                                {onAddToStudio && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onAddToStudio(); }}
+                                        className="cmd-card__studio-btn"
+                                        style={{
+                                            background: "#8b5cf620",
+                                            border: "1px solid #8b5cf640",
+                                            color: "#8b5cf6",
+                                        }}
+                                        title="Add to Studio"
+                                    >
+                                        <Plus size={10} />
                                     </button>
                                 )}
                                 <div className="cmd-card__type-badge" style={{

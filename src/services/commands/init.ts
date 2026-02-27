@@ -71,8 +71,32 @@ import { createWorkspaceCommand, switchWorkspaceCommand, deleteWorkspaceCommand,
 import {
     generateImageCommand,
     generateAllImagesCommand,
-    clearImageCacheCommand
+    clearImageCacheCommand,
+    generateIconCommand
 } from "./definitions/imageGen";
+import {
+    studioGetStateCommand,
+    studioSetJobMetaCommand,
+    studioAddStepCommand,
+    studioRemoveStepCommand,
+    studioSetStepArgsCommand,
+    studioSetStepFlowTypeCommand,
+    studioSetStepConditionCommand,
+    studioSetInputBindingsCommand,
+    studioSetOutputMappingsCommand,
+    studioAddDeliverableCommand,
+    studioRemoveDeliverableCommand,
+    studioAddStorageCommand,
+    studioRemoveStorageCommand,
+    studioAddInputCommand,
+    studioRemoveInputCommand,
+    studioUpdateInputCommand,
+    studioSaveJobCommand,
+    studioRunJobCommand,
+    studioLoadJobCommand,
+    studioClearCanvasCommand,
+    studioCreateJobCommand
+} from "./definitions/studio";
 
 export function initializeRegistry() {
     // Workspace
@@ -154,4 +178,28 @@ export function initializeRegistry() {
     registry.register(generateImageCommand);
     registry.register(generateAllImagesCommand);
     registry.register(clearImageCacheCommand);
+    registry.register(generateIconCommand);
+
+    // Studio (Visual Job Editor)
+    registry.register(studioGetStateCommand);
+    registry.register(studioSetJobMetaCommand);
+    registry.register(studioAddStepCommand);
+    registry.register(studioRemoveStepCommand);
+    registry.register(studioSetStepArgsCommand);
+    registry.register(studioSetStepFlowTypeCommand);
+    registry.register(studioSetStepConditionCommand);
+    registry.register(studioSetInputBindingsCommand);
+    registry.register(studioSetOutputMappingsCommand);
+    registry.register(studioAddDeliverableCommand);
+    registry.register(studioRemoveDeliverableCommand);
+    registry.register(studioAddStorageCommand);
+    registry.register(studioRemoveStorageCommand);
+    registry.register(studioAddInputCommand);
+    registry.register(studioRemoveInputCommand);
+    registry.register(studioUpdateInputCommand);
+    registry.register(studioSaveJobCommand);
+    registry.register(studioRunJobCommand);
+    registry.register(studioLoadJobCommand);
+    registry.register(studioClearCanvasCommand);
+    registry.register(studioCreateJobCommand);
 }

@@ -4,20 +4,21 @@ import { callAgentAI } from "../../ai";
 
 export const sendMessageCommand: CommandDefinition = {
     id: "send_message",
-    description: "Sends a direct message from one agent to another",
+    description: "Sends a direct message from one agent (or the current user) to another agent",
     tags: ["messaging", "interaction"],
     rbac: ["orchestrator"],
     args: {
-        from_agent_name: {
-            name: "from_agent_name",
+        from_agent_id: {
+            name: "from_agent_id",
             type: "agent",
-            description: "Name of the sender agent",
+            description: "The sender — select an agent, or 'You' to send as the current user",
             required: true,
+            includeUserOption: true,
         },
-        to_agent_name: {
-            name: "to_agent_name",
+        to_agent_id: {
+            name: "to_agent_id",
             type: "agent",
-            description: "Name of the recipient agent",
+            description: "The recipient agent",
             required: true,
         },
         message: {
@@ -37,39 +38,38 @@ export const sendMessageCommand: CommandDefinition = {
         }
     },
     execute: async (args, context) => {
-        const { from_agent_name, to_agent_name, message } = args;
+        const { from_agent_id, to_agent_id, message } = args;
         const { agents, channels, setMessages, addLog } = context.workspace;
 
-        // 1. Resolve Agents
-        const fromAgent = agents.find(a => a.name === from_agent_name);
-        const toAgent = agents.find(a => a.name === to_agent_name);
+        // 1. Resolve sender — 'user' keyword maps to the current user's DID
+        const isUserSender = from_agent_id === 'user';
+        const userDid = context.auth?.user?.did;
+        const fromAgent = isUserSender
+            ? { id: userDid || 'user', name: context.auth?.user?.profile?.name || 'User', prompt: '' }
+            : agents.find(a => a.id === from_agent_id);
 
-        if (!fromAgent) throw new Error(`Sender agent '${from_agent_name}' not found`);
-        if (!toAgent) throw new Error(`Recipient agent '${to_agent_name}' not found`);
+        // 2. Resolve recipient by ID
+        const toAgent = agents.find(a => a.id === to_agent_id);
 
-        // 2. Find or Validate Channel (Optional: Auto-create channel if missing? For now, assume it must exist or we find it)
+        if (!fromAgent) throw new Error(`Sender agent '${from_agent_id}' not found`);
+        if (!toAgent) throw new Error(`Recipient agent '${to_agent_id}' not found`);
+
+        // 3. Find or validate channel (skip channel requirement when user is the sender)
         let channel = channels.find(c =>
             (c.from === fromAgent.id && c.to === toAgent.id) ||
             (c.from === toAgent.id && c.to === fromAgent.id)
         );
 
-        if (!channel) {
-            // Optional: Create implicit temporary channel or throw error.
-            // For this specific 'send_message' command, likely initiated by user or orchestrator, 
-            // let's try to find it. If not found, we might need to create it (like in the UI logic).
-            // However, to keep it pure, let's just create a channel ID for tracking if we define one?
-            // Actually, the UI 'createChannel' logic checks for existence.
-            // Let's THROW for now to be strict, or we can auto-create.
-            // Given the "Decentralized" nature, you usually need a channel. 
-            // But for "God mode" commands, maybe we auto-create?
-            throw new Error(`No channel exists between ${from_agent_name} and ${to_agent_name}`);
+        const channelId = channel?.id || (isUserSender ? `user-dm-${toAgent.id}` : null);
+        if (!channelId) {
+            throw new Error(`No channel exists between ${fromAgent.id} and ${toAgent.id}`);
         }
 
-        // 3. Create Message Object
+        // 4. Create Message Object
         const msgId = crypto.randomUUID();
         const newMsg: Message = {
             id: msgId,
-            channelId: channel.id,
+            channelId: channelId,
             fromId: fromAgent.id,
             toId: toAgent.id,
             content: message,
@@ -78,18 +78,18 @@ export const sendMessageCommand: CommandDefinition = {
             ts: Date.now(),
         };
 
-        // 4. Update State (Optimistic UI)
+        // 5. Update State (Optimistic UI)
         setMessages(prev => [...prev, newMsg]);
         addLog(`${fromAgent.name} → ${toAgent.name}: message sent via command`);
 
-        // 5. Trigger AI Response (if recipient has prompt)
+        // 6. Trigger AI Response (if recipient has prompt)
         if (toAgent.prompt) {
             // We need 'messages' history for context, but reading fresh state inside async execute might be tricky 
             // if we rely on the closure 'context.workspace.messages'. 
             // It's a snapshot. Ideally we pass current messages or fetch them.
             // For now, let's just pass empty history or what we have in snapshot.
             try {
-                const response = await callAgentAI(toAgent, fromAgent, message, channel.type, []);
+                const response = await callAgentAI(toAgent, fromAgent, message, channel?.type || 'data', []);
 
                 // Update message with response
                 setMessages(prev => prev.map(m => m.id === msgId ? { ...m, response, status: "delivered" } : m));
@@ -98,7 +98,7 @@ export const sendMessageCommand: CommandDefinition = {
                 // Write to shared storage for downstream steps
                 context.storage.lastMessageId = msgId;
                 context.storage.lastResponse = response;
-                context.storage[`response_${to_agent_name}`] = response;
+                context.storage[`response_${toAgent.id}`] = response;
 
                 return {
                     status: "delivered",

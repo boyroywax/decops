@@ -8,8 +8,10 @@ export const resetWorkspaceCommand: CommandDefinition = {
     args: {},
     output: "Confirmation message",
     execute: async (args, context) => {
-        const { setAgents, setChannels, setGroups, setMessages, addLog } = context.workspace;
-        const { setJobs, setStandaloneArtifacts, clearJobs } = context.jobs;
+        const { setAgents, setChannels, setGroups, setMessages } = context.workspace;
+        const addLog = context.workspace.addLog || (() => { });
+        const { setJobs, setStandaloneArtifacts } = context.jobs;
+        const clearJobs = context.jobs.clearJobs;
         // Automations context access if available in command context
         // Assuming context.automations exists as mocked/typed in some places.
         // It's safer to check existence.
@@ -31,7 +33,7 @@ export const resetWorkspaceCommand: CommandDefinition = {
         // references `useJobExecutor` construction of context.
         if (context.automations && context.automations.setAutomations) {
             context.automations.setAutomations([]);
-            context.automations.setRuns([]);
+            if (context.automations.setRuns) context.automations.setRuns([]);
         }
 
         addLog("Workspace completely reset via command");

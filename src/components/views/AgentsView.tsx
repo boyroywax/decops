@@ -1,8 +1,8 @@
-import type { Agent, Channel, Group, Message, NewAgentForm, Network } from "../../types";
+import type { Agent, Channel, Group, Message, NewAgentForm, Network, ViewId, NavContext } from "../../types";
 import { ROLES, PROMPT_TEMPLATES } from "../../constants";
 import { inputStyle, SectionTitle, PillButton, BulkCheckbox, BulkActionBar } from "../shared/ui";
-import { useState } from "react";
-import { Bot, Hexagon, X, Globe, Download, Sparkles } from "lucide-react";
+import { useState, useCallback } from "react";
+import { Bot, Hexagon, X, Globe, Download, Sparkles, ExternalLink, MessageSquare, GitBranch, Users, Zap } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { CopyableId } from "../shared/CopyableId";
 import { AgentPortrait } from "../shared/AgentPortrait";
@@ -31,6 +31,7 @@ interface AgentsViewProps {
   updateAgentPrompt: (id: string) => void;
   removeAgent: (id: string) => void;
   removeAgents: (ids: Set<string>) => void;
+  navigateTo: (view: ViewId, ctx: NavContext) => void;
 }
 
 export function AgentsView({
@@ -38,10 +39,48 @@ export function AgentsView({
   showCreate, setShowCreate, newAgent, setNewAgent,
   selectedAgent, setSelectedAgent, editingPrompt, setEditingPrompt,
   editPromptText, setEditPromptText,
-  createAgent, updateAgentPrompt, removeAgent, removeAgents,
+  createAgent, updateAgentPrompt, removeAgent, removeAgents, navigateTo,
 }: AgentsViewProps) {
   const bulk = useBulkSelect();
   const [tradingCardAgent, setTradingCardAgent] = useState<Agent | null>(null);
+  const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
+  const [animStates, setAnimStates] = useState<Record<string, "idle" | "pressing" | "flipping">>({});
+
+  const getAnimState = (id: string) => animStates[id] || "idle";
+  const isCardFlipped = (id: string) => flippedCards.has(id);
+
+  const handleCardFlip = useCallback((agentId: string) => {
+    const flipped = flippedCards.has(agentId);
+    const state = animStates[agentId] || "idle";
+
+    if (flipped) {
+      // Flip back
+      setAnimStates(prev => ({ ...prev, [agentId]: "flipping" }));
+      setFlippedCards(prev => { const s = new Set(prev); s.delete(agentId); return s; });
+      setTimeout(() => setAnimStates(prev => ({ ...prev, [agentId]: "idle" })), 600);
+      return;
+    }
+    if (state !== "idle") return;
+    setAnimStates(prev => ({ ...prev, [agentId]: "pressing" }));
+    setTimeout(() => {
+      setFlippedCards(prev => new Set(prev).add(agentId));
+      setAnimStates(prev => ({ ...prev, [agentId]: "flipping" }));
+      setTimeout(() => setAnimStates(prev => ({ ...prev, [agentId]: "idle" })), 600);
+    }, 200);
+  }, [flippedCards, animStates]);
+
+  const getTransform = (id: string) => {
+    if (isCardFlipped(id)) return "rotateY(180deg)";
+    if (getAnimState(id) === "pressing") return "scale(0.92) rotateY(-15deg)";
+    return "scale(1) rotateY(0deg)";
+  };
+
+  const getTransitionClass = (id: string) => {
+    const s = getAnimState(id);
+    if (s === "pressing") return "agent-flip__inner--pressing";
+    if (s === "flipping" || isCardFlipped(id)) return "agent-flip__inner--flipping";
+    return "";
+  };
 
   const getNetworkName = (networkId?: string) => {
     if (!networkId) return null;
@@ -164,118 +203,196 @@ export function AgentsView({
           const agentGroups = groups.filter((g) => g.members.includes(a.id));
           const agentMsgs = messages.filter((m) => m.fromId === a.id || m.toId === a.id);
           const network = getNetworkName(a.networkId);
-          const isSelected = selectedAgent === a.id;
-          const isEditing = editingPrompt === a.id;
           const isChecked = bulk.has(a.id);
-          const cardClasses = `agent-card ${isSelected ? 'agent-card--selected' : ''} ${isChecked ? 'agent-card--checked' : ''} ${isEditing ? 'agent-card--editing' : ''}`;
+          const isEditing = editingPrompt === a.id;
+          const v = validateAieos(a.aieos);
+          const pct = Math.round(v.coverage * 100);
+          const aieosColor = pct > 60 ? "#00e5a0" : pct > 30 ? "#fbbf24" : "#ef4444";
+          const flipped = isCardFlipped(a.id);
+          const elevated = flipped || getAnimState(a.id) !== "idle";
+          const personality = a.aieos?.psychology?.traits;
+          const topSkills = (a.aieos?.capabilities?.skills || []).slice(0, 3);
+          const coreDrive = a.aieos?.motivations?.core_drive;
+
           return (
-            <div 
-              key={a.id} 
-              onClick={() => { if (!isEditing) setSelectedAgent(isSelected ? null : a.id); }} 
-              className={cardClasses}
-              style={isSelected && !isChecked ? { borderColor: role.color + '40' } : undefined}
+            <div
+              key={a.id}
+              className={`agent-flip ${elevated ? "agent-flip--elevated" : ""} ${isChecked ? "agent-flip--checked" : ""}`}
+              onClick={() => { if (!isEditing) handleCardFlip(a.id); }}
             >
-              <div className="agent-card-header">
-                <div className="agent-card-identity">
-                  <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(a.id)} color={role.color} />
-                  <div className="agent-card-portrait" onClick={(e) => { e.stopPropagation(); setTradingCardAgent(a); }}>
-                    <AgentPortrait agent={a} size={42} />
+              <div
+                className={`agent-flip__inner ${getTransitionClass(a.id)}`}
+                style={{ transform: getTransform(a.id) }}
+              >
+                {/* ══════ FRONT FACE ══════ */}
+                <div className="agent-flip__front" style={{ borderColor: `${role.color}30` }}>
+                  {/* Bulk select checkbox (top-left) */}
+                  <div className="agent-flip__bulk" onClick={(e) => e.stopPropagation()}>
+                    <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(a.id)} color={role.color} />
                   </div>
-                  <div className="agent-card-info">
-                    <div className="agent-card-name">{a.name}</div>
-                    <div className="agent-card-role" style={{ color: role.color }}>{role.label}</div>
-                  </div>
-                </div>
-                <div className="agent-card-badges">
-                  {network && (
-                    <span className="agent-card-network-badge" style={{ color: network.color, background: network.color + '15' }}>
-                      <Globe size={9} /> {network.name}
-                    </span>
-                  )}
-                  {a.prompt && <span className="agent-card-prompted-badge">PROMPTED</span>}
-                  <div className="agent-card-status-dot" />
-                </div>
-              </div>
-              {a.prompt && !isEditing && (
-                <div className={`agent-prompt-preview ${isSelected ? 'agent-prompt-preview--expanded' : ''}`}>
-                  <span className="agent-prompt-label">PROMPT </span>{a.prompt}
-                </div>
-              )}
-              {isEditing && (
-                <div className="prompt-edit-section" onClick={(e) => e.stopPropagation()}>
-                  <textarea 
-                    value={editPromptText} 
-                    onChange={(e) => setEditPromptText(e.target.value)} 
-                    rows={5} 
-                    className="input input-accent prompt-edit-textarea" 
-                    autoFocus 
-                  />
-                  <div className="prompt-edit-actions">
-                    <button onClick={() => updateAgentPrompt(a.id)} className="btn-accent btn-sm">Save</button>
-                    <button onClick={() => setEditingPrompt(null)} className="btn-ghost btn-sm">Cancel</button>
-                  </div>
-                </div>
-              )}
-              <div className="agent-did-section">
-                <div className="agent-did-label">DID</div>
-                <div className="agent-did-value"><CopyableId value={a.did} label="DID" truncate={42} /></div>
-              </div>
-              {/* AIEOS Profile */}
-              {(() => {
-                const v = validateAieos(a.aieos);
-                const pct = Math.round(v.coverage * 100);
-                const color = pct > 60 ? "#00e5a0" : pct > 30 ? "#fbbf24" : "#ef4444";
-                return (
-                  <div className="agent-aieos-row">
-                    <div className="agent-aieos-badge">
-                      <Sparkles size={10} color="#fbbf24" />
-                      <span className="agent-aieos-label">AIEOS</span>
-                      <span className="agent-aieos-coverage" style={{ color, borderColor: `${color}40` }}>
-                        {pct}%
-                      </span>
+
+                  {/* Portrait & Identity */}
+                  <div className="agent-flip__identity">
+                    <div className="agent-flip__portrait" onClick={(e) => { e.stopPropagation(); setTradingCardAgent(a); }}>
+                      <AgentPortrait agent={a} size={64} />
                     </div>
-                    {isSelected && (
+                    <div className="agent-flip__name">{a.name}</div>
+                    <div className="agent-flip__role" style={{ color: role.color }}>
+                      {role.icon} {role.label}
+                    </div>
+                  </div>
+
+                  {/* Badges row */}
+                  <div className="agent-flip__badges">
+                    {network && (
+                      <span className="agent-flip__badge" style={{ color: network.color, background: `${network.color}15`, borderColor: `${network.color}30` }}>
+                        <Globe size={9} /> {network.name}
+                      </span>
+                    )}
+                    <span className="agent-flip__badge agent-flip__badge--aieos" style={{ color: aieosColor, borderColor: `${aieosColor}40` }}>
+                      <Sparkles size={9} /> {pct}%
+                    </span>
+                    <div className="agent-flip__status-dot" />
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="agent-flip__stats">
+                    <div className="agent-flip__stat">
+                      <GitBranch size={10} className="agent-flip__stat-icon" />
+                      <span>{agentChannels.length}</span>
+                    </div>
+                    <div className="agent-flip__stat">
+                      <Users size={10} className="agent-flip__stat-icon" />
+                      <span>{agentGroups.length}</span>
+                    </div>
+                    <div className="agent-flip__stat">
+                      <MessageSquare size={10} className="agent-flip__stat-icon" />
+                      <span>{agentMsgs.length}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ══════ BACK FACE ══════ */}
+                <div className="agent-flip__back" style={{ borderColor: `${role.color}50`, boxShadow: `0 0 15px ${role.color}10` }}>
+                  {/* Header */}
+                  <div className="agent-flip__back-header">
+                    <span className="agent-flip__back-name">{a.name}</span>
+                    <span className="agent-flip__back-dot" style={{ color: role.color }}>●</span>
+                  </div>
+
+                  {/* Scrollable content */}
+                  <div className="agent-flip__back-content">
+                    {/* Prompt */}
+                    {a.prompt && !isEditing && (
+                      <div className="agent-flip__prompt">
+                        <div className="agent-flip__section-label">PROMPT</div>
+                        <div className="agent-flip__prompt-text">{a.prompt}</div>
+                      </div>
+                    )}
+
+                    {/* Inline prompt edit */}
+                    {isEditing && (
+                      <div className="agent-flip__prompt-edit" onClick={(e) => e.stopPropagation()}>
+                        <textarea
+                          value={editPromptText}
+                          onChange={(e) => setEditPromptText(e.target.value)}
+                          rows={4}
+                          className="input input-accent agent-flip__prompt-textarea"
+                          autoFocus
+                        />
+                        <div className="agent-flip__prompt-edit-actions">
+                          <button onClick={() => updateAgentPrompt(a.id)} className="btn-accent btn-sm">Save</button>
+                          <button onClick={() => setEditingPrompt(null)} className="btn-ghost btn-sm">Cancel</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* DID */}
+                    <div className="agent-flip__did" onClick={(e) => e.stopPropagation()}>
+                      <div className="agent-flip__section-label">DID</div>
+                      <CopyableId value={a.did} label="DID" truncate={32} />
+                    </div>
+
+                    {/* Personality type */}
+                    {personality?.mbti && (
+                      <div className="agent-flip__personality">
+                        <Zap size={10} className="agent-flip__personality-icon" />
+                        <span>{personality.mbti}</span>
+                        {personality.temperament && <span className="agent-flip__temperament">· {personality.temperament}</span>}
+                      </div>
+                    )}
+
+                    {/* Top skills */}
+                    {topSkills.length > 0 && (
+                      <div className="agent-flip__skills">
+                        <div className="agent-flip__section-label">SKILLS</div>
+                        <div className="agent-flip__skills-list">
+                          {topSkills.map((sk, i) => (
+                            <span key={i} className="agent-flip__skill" style={{ borderColor: `${role.color}30`, color: role.color }}>
+                              {sk.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Groups */}
+                    {agentGroups.length > 0 && (
+                      <div className="agent-flip__groups">
+                        <div className="agent-flip__section-label">GROUPS</div>
+                        <div className="agent-flip__groups-list">
+                          {agentGroups.map((g) => (
+                            <span key={g.id} className="agent-flip__group" style={{ background: `${g.color}15`, color: g.color, borderColor: `${g.color}30` }}>
+                              <Hexagon size={8} /> {g.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Core drive */}
+                    {coreDrive && (
+                      <div className="agent-flip__drive">
+                        <em>"{coreDrive}"</em>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer actions */}
+                  <div className="agent-flip__back-footer">
+                    <div className="agent-flip__actions">
                       <button
-                        className="agent-aieos-export"
+                        onClick={(e) => { e.stopPropagation(); setEditingPrompt(a.id); setEditPromptText(a.prompt || ""); }}
+                        className="btn-accent btn-sm"
+                      >
+                        {a.prompt ? "Edit Prompt" : "Add Prompt"}
+                      </button>
+                      <button
                         onClick={(e) => { e.stopPropagation(); downloadAgentAieos(a); }}
+                        className="agent-flip__export-btn"
                         title="Export .aieos.json"
                       >
                         <Download size={10} /> Export
                       </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); removeAgent(a.id); }}
+                        className="btn-danger btn-sm"
+                      >
+                        Revoke
+                      </button>
+                    </div>
+                    {a.networkId && (
+                      <button
+                        className="agent-flip__detail-link"
+                        onClick={(e) => { e.stopPropagation(); navigateTo("networks", { networkId: a.networkId!, ...(agentGroups.length > 0 ? { groupId: agentGroups[0].id } : {}), agentId: a.id }); }}
+                        title="Go to agent detail page"
+                      >
+                        <ExternalLink size={10} /> View Detail
+                      </button>
                     )}
                   </div>
-                );
-              })()}
-              <div className="agent-stats">
-                <div><span className="agent-stat-label">CH </span><span className="agent-stat-value">{agentChannels.length}</span></div>
-                <div><span className="agent-stat-label">GROUPS </span><span className="agent-stat-value">{agentGroups.length}</span></div>
-                <div><span className="agent-stat-label">MSGS </span><span className="agent-stat-value">{agentMsgs.length}</span></div>
+                </div>
               </div>
-              {agentGroups.length > 0 && (
-                <div className="agent-groups-list">
-                  {agentGroups.map((g) => (
-                    <span key={g.id} className="agent-group-badge" style={{ background: g.color + '15', color: g.color, borderColor: g.color + '30' }}>
-                      <Hexagon size={8} /> {g.name}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {isSelected && !isEditing && (
-                <div className="agent-card-actions">
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setEditingPrompt(a.id); setEditPromptText(a.prompt || ""); }} 
-                    className="btn-accent btn-sm"
-                  >
-                    {a.prompt ? "Edit Prompt" : "Add Prompt"}
-                  </button>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); removeAgent(a.id); }} 
-                    className="btn-danger btn-sm"
-                  >
-                    Revoke
-                  </button>
-                </div>
-              )}
             </div>
           );
         })}

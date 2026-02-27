@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown } from "lucide-react";
+import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { chatWithWorkspace, streamChatWithWorkspace, getSelectedModel } from "../../services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "../../services/ai";
@@ -12,9 +12,11 @@ import { useJobsContext } from "../../context/JobsContext";
 import { useArchitect } from "../../hooks/useArchitect";
 import { useEcosystem } from "../../hooks/useEcosystem"; // This might not be needed if ecosystem is passed as prop
 import { useAuth } from "../../context/AuthContext";
-import { registry } from "../../services/commands/init"; // This import is not used directly here, but might be elsewhere
+// registry is accessed via commandRegistry below
 import { registry as commandRegistry } from "../../services/commands/registry";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
+import { useStudioContext } from "../../context/StudioContext";
+import type { ChatPosition } from "../../context/ThemeContext";
 import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {
@@ -26,9 +28,10 @@ interface ChatPanelProps {
     setHeight: (h: number) => void;
     isExpanded: boolean;
     onToggleExpand: () => void;
+    position?: ChatPosition;
 }
 
-export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeight, isExpanded, onToggleExpand }: ChatPanelProps) {
+export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeight, isExpanded, onToggleExpand, position = "bottom" }: ChatPanelProps) {
     const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
     const [activeId, setActiveId] = useState<string | null>(loadActiveId);
     const [input, setInput] = useState("");
@@ -36,6 +39,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const [streamingText, setStreamingText] = useState<string | null>(null);
     const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallDisplay[]>([]);
     const [showConvos, setShowConvos] = useState(false);
+    const [studioMode, setStudioMode] = useState(true);
     const endRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const initialScrollDone = useRef(false);
@@ -120,7 +124,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     // Build Commmand Context for CLI
     const { user } = useAuth();
     const jobs = useJobsContext();
-    const architect = useArchitect(addLog, jobs.addJob, jobs.jobs);
+    const architect = useArchitect(addLog || (() => {}), jobs.addJob, jobs.jobs);
 
     // We only have access to React Context "workspace" via imported hook, NOT via prop.
     // The prop `context` is `WorkspaceContext` interface (data only), not the Hook result.
@@ -140,7 +144,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         jobs,
         ecosystem: ecosystem || { ecosystems: [], bridges: [] }, // Fallback if missing, some cmds might fail
         architect,
-        addLog: addLog || (() => { })
+        addLog: addLog || (() => { }) as (msg: string) => void
     });
 
     const send = useCallback(async () => {
@@ -225,11 +229,17 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             { name, input: {}, result: null, duration_ms: 0 },
                         ]);
                     },
-                    onToolCallComplete: (display) => {
+                    onToolCallComplete: (display: ToolCallDisplay) => {
                         setStreamingToolCalls(prev => {
                             const updated = [...prev];
-                            // Replace the last pending tool call with the completed one
-                            const idx = updated.findLastIndex(tc => tc.name === display.name && tc.duration_ms === 0);
+                            // Replace the last pending tool call with the completed one (polyfill for findLastIndex)
+                            let idx = -1;
+                            for (let i = updated.length - 1; i >= 0; i--) {
+                                if (updated[i].name === display.name && updated[i].duration_ms === 0) {
+                                    idx = i;
+                                    break;
+                                }
+                            }
                             if (idx >= 0) {
                                 updated[idx] = display;
                             } else {
@@ -264,6 +274,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     }, [input, loading, activeId, conversations, context, addLog, updateConversation, commandContext]);
 
     const [isResizing, setIsResizing] = useState(false);
+    const isSide = position === "left" || position === "right";
 
     const startResizing = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
@@ -276,12 +287,21 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
 
     const resize = useCallback((e: MouseEvent) => {
         if (isResizing) {
-            const newHeight = window.innerHeight - e.clientY;
-            if (newHeight > 200 && newHeight < window.innerHeight - 100) {
-                setHeight(newHeight);
+            if (isSide) {
+                const newWidth = position === "left"
+                    ? e.clientX
+                    : window.innerWidth - e.clientX;
+                if (newWidth > 280 && newWidth < window.innerWidth - 400) {
+                    setHeight(newWidth); // height prop is used as generic "size"
+                }
+            } else {
+                const newHeight = window.innerHeight - e.clientY;
+                if (newHeight > 200 && newHeight < window.innerHeight - 100) {
+                    setHeight(newHeight);
+                }
             }
         }
-    }, [isResizing, setHeight]);
+    }, [isResizing, setHeight, isSide, position]);
 
     useEffect(() => {
         if (isResizing) {
@@ -297,13 +317,36 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const modelId = getSelectedModel();
     const llm = useLLM();
     const modelLabel = llm.getModelById(modelId)?.label || modelId;
+    const { api: studioApi } = useStudioContext();
+    const studioAvailable = !!studioApi;
+    const studioActive = studioAvailable && studioMode;
+
+    // Auto-enable studio mode when studio becomes available
+    useEffect(() => {
+        if (studioAvailable) setStudioMode(true);
+    }, [studioAvailable]);
+
+    // Cmd+J / Ctrl+J to toggle studio mode
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "j") {
+                e.preventDefault();
+                if (studioAvailable) setStudioMode(prev => !prev);
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [studioAvailable]);
 
     const isReady = !!input.trim() && !loading;
 
     return (
-        <div className={`chat-panel${isResizing ? " chat-panel--resizing" : ""}`} style={{ height }}>
+        <div
+            className={`chat-panel${isResizing ? " chat-panel--resizing" : ""}${isSide ? ` chat-panel--${position}` : ""}`}
+            style={isSide ? { width: height, flexShrink: 0 } : { height }}
+        >
             {/* Resize Handle */}
-            <div onMouseDown={startResizing} className="chat-panel__resize-handle">
+            <div onMouseDown={startResizing} className={`chat-panel__resize-handle${isSide ? " chat-panel__resize-handle--side" : ""}`}>
                 <div className="chat-panel__resize-indicator" />
             </div>
 
@@ -312,6 +355,25 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                 <div className="chat-panel__header-left">
                     <span className="chat-panel__title">WORKSPACE CHAT</span>
                     <span className="chat-panel__model-badge">{modelLabel}</span>
+                    {studioActive && (
+                        <span className="chat-panel__studio-badge" title="Studio mode active — AI can build jobs on the canvas (⌘J to toggle)">
+                            <Clapperboard size={10} /> <span className="chat-panel__studio-badge-label">Studio</span>
+                            <button
+                                className="chat-panel__studio-badge-dismiss"
+                                onClick={() => setStudioMode(false)}
+                                title="Disable Studio mode (⌘J)"
+                            ><X size={8} /></button>
+                        </span>
+                    )}
+                    {studioAvailable && !studioMode && (
+                        <button
+                            className="chat-panel__studio-badge chat-panel__studio-badge--off"
+                            onClick={() => setStudioMode(true)}
+                            title="Enable Studio mode (⌘J)"
+                        >
+                            <Clapperboard size={10} /> <span className="chat-panel__studio-badge-label">Studio</span>
+                        </button>
+                    )}
                     <span className="chat-panel__separator">│</span>
                     {/* Conversations toggle */}
                     <button
@@ -418,14 +480,19 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
             {/* Input (always visible) */}
             {!showConvos && (
                 <div className="chat-panel__input-area">
+                    {studioActive && (
+                        <span className="chat-panel__studio-input-badge" title="Studio mode — prompts have canvas context">
+                            <Clapperboard size={13} />
+                        </span>
+                    )}
                     <input
                         ref={inputRef}
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-                        placeholder="Ask about your workspace..."
+                        placeholder={studioActive ? "Ask the AI to build on the Studio canvas..." : "Ask about your workspace..."}
                         disabled={loading}
-                        className="chat-panel__input"
+                        className={`chat-panel__input${studioActive ? " chat-panel__input--studio" : ""}`}
                     />
                     <button
                         onClick={send}

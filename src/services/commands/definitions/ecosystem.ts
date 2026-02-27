@@ -1,5 +1,6 @@
 
 import type { CommandDefinition, CommandContext } from "../types";
+import type { RoleId } from "../../../types";
 import { generateNetworkDID } from "../../../utils/identity";
 import { generateMeshConfig } from "../../ai";
 import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, GROUP_COLORS, NETWORK_COLORS } from "../../../constants";
@@ -55,7 +56,7 @@ export const createNetworkCommand: CommandDefinition = {
                 // Create agents
                 for (const a of (config.agents || [])) {
                     if (!a || !a.name) continue;
-                    const validRole = ROLES.find((r: any) => r.id === a.role) ? a.role : "researcher";
+                    const validRole = (ROLES.find((r: any) => r.id === a.role) ? a.role : "researcher") as RoleId;
                     agents.push({
                         id: crypto.randomUUID(), name: a.name, role: validRole,
                         prompt: a.prompt || "", did: generateDID(), keys: generateKeyPair(),

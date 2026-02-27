@@ -22,7 +22,9 @@ export type ViewId =
   | "profile"
   | "artifacts"
   | "activity"
-  | "actions";
+  | "actions"
+  | "jobs"
+  | "editor";
 
 /** Navigation context for hierarchical drill-down: Ecosystem → Network → Group → Agent → Channel */
 export interface NavContext {
@@ -575,6 +577,16 @@ export interface JobStep {
   status?: "pending" | "running" | "completed" | "failed" | "skipped";
   result?: string;
   condition?: string; // JS expression string
+  modelId?: string;  // LLM model override for this step (overrides command/global default)
+  outputMappings?: Array<{
+    outputKey: string;       // key from command outputSchema, or "*" for entire output
+    target: "storage" | "deliverable";
+    targetKey: string;       // storage key or deliverable key to write to
+  }>;
+  inputBindings?: Record<string, {
+    source: "storage" | "deliverable";
+    sourceKey: string;       // storage key or deliverable key to read from
+  }>;
 }
 
 /** A named deliverable the job is expected to produce */
@@ -585,14 +597,24 @@ export interface JobDeliverable {
   description?: string; // What this deliverable contains
 }
 
+/** A named entity input that maps a friendly name to an entity ID */
+export interface EntityInput {
+  name: string;         // Reference name (e.g. "Scout", "DataChannel") — used as $input.name
+  type: "agent" | "channel" | "group" | "network"; // Entity type for picker filtering
+  entityId: string;     // Resolved entity ID from the workspace
+}
+
 export interface JobDefinition {
   id: string;
   name: string;
   description: string;
   mode: 'serial' | 'parallel';
+  modelId?: string;            // Default LLM model for all steps in this job
+  icon?: string;               // Base64 data-URI or URL for a custom icon image
   steps: JobStep[];
   deliverables?: JobDeliverable[];         // Declared deliverables
   storageDefaults?: Record<string, any>;   // Default inter-step shared storage values
+  inputDefaults?: EntityInput[];           // Named entity inputs (name → ID mappings)
   createdAt: number;
   updatedAt: number;
 }
@@ -623,8 +645,8 @@ export interface CreateGroupRequest {
 }
 
 export interface SendMessageRequest {
-  from_agent_name: string;
-  to_agent_name: string;
+  from_agent_id: string;  // Agent ID or 'user' for the current user's DID
+  to_agent_id: string;    // Recipient agent ID
   message: string;
 }
 
@@ -699,6 +721,7 @@ export interface Job {
   // Inter-step shared storage & deliverables
   storage?: Record<string, any>;
   deliverables?: JobDeliverable[];
+  inputs?: EntityInput[];                  // Named entity inputs for $input.name resolution
 }
 
 

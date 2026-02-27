@@ -34,8 +34,8 @@ export function useMessages(
         addJob({
             type: "send_message",
             request: {
-                from_agent_name: fromAgent.name,
-                to_agent_name: toAgent.name,
+                from_agent_id: fromAgent.id,
+                to_agent_id: toAgent.id,
                 message: msgInput.trim()
             }
         });

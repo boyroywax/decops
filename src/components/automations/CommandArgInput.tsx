@@ -48,8 +48,11 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
                 className="command-arg__select"
             >
                 <option value="">Select an Agent</option>
+                {arg.includeUserOption && (
+                    <option value="user">You (Current User)</option>
+                )}
                 {agents.map(a => (
-                    <option key={a.id} value={a.id}>{a.name}</option>
+                    <option key={a.id} value={a.id}>{a.name} — {a.id.slice(0, 8)}</option>
                 ))}
             </select>
         );

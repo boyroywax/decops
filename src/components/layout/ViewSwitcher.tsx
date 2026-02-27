@@ -11,6 +11,8 @@ import { MessagesView } from "../views/MessagesView";
 import { NetworkView } from "../views/NetworkView";
 import { ArtifactsView } from "../views/ArtifactsView";
 import { ActivityView } from "../views/ActivityView";
+import { StudioView } from "../views/StudioView";
+import { EditorView } from "../views/EditorView";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { Breadcrumb } from "./Breadcrumb";
 import type { WorkspaceContextType } from "../../context/WorkspaceContext";
@@ -32,6 +34,9 @@ interface ViewSwitcherProps {
     exportNotebook: () => void;
     addNotebookEntry: (entry: any) => void;
     addJob: (job: any) => void;
+    savedJobs: any[];
+    onSaveJob: (job: any) => void;
+    onDeleteJob: (id: string) => void;
 }
 
 export function ViewSwitcher({
@@ -50,7 +55,10 @@ export function ViewSwitcher({
     clearNotebook,
     exportNotebook,
     addNotebookEntry,
-    addJob
+    addJob,
+    savedJobs,
+    onSaveJob,
+    onDeleteJob
 }: ViewSwitcherProps) {
     const breadcrumb = (navContext.networkId || navContext.groupId || navContext.agentId || navContext.channelId) ? (
         <Breadcrumb
@@ -169,6 +177,7 @@ export function ViewSwitcher({
                 updateAgentPrompt={workspace.updateAgentPrompt}
                 removeAgent={workspace.removeAgent}
                 removeAgents={workspace.removeAgents}
+                navigateTo={navigateTo}
             />
         );
     }
@@ -318,7 +327,18 @@ export function ViewSwitcher({
         );
     }
 
-
+    if (view === "editor") {
+        return (
+            <ErrorBoundary>
+                <EditorView
+                    artifacts={allArtifacts}
+                    updateArtifact={updateArtifact}
+                    importArtifact={importArtifact}
+                    removeArtifact={removeArtifact}
+                />
+            </ErrorBoundary>
+        );
+    }
 
     return null;
 }

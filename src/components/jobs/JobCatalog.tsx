@@ -30,7 +30,11 @@ export function JobCatalog({ jobs, onRun, onEdit, onDelete }: JobCatalogProps) {
                     <div className="job-catalog__card-header">
                         <div className="job-catalog__card-info">
                             <div className="job-catalog__icon">
-                                <Briefcase size={16} />
+                                {job.icon ? (
+                                    <img src={job.icon} alt="" className="job-catalog__icon-img" />
+                                ) : (
+                                    <Briefcase size={16} />
+                                )}
                             </div>
                             <div>
                                 <div className="job-catalog__name">

@@ -151,6 +151,7 @@ export function commandToTool(cmd: CommandDefinition): AnthropicTool {
       description: descriptionForType(argDef),
       ...(schema.items ? { items: schema.items } : {}),
       ...(argDef.defaultValue !== undefined ? { default: argDef.defaultValue } : {}),
+      ...(argDef.enum ? { enum: argDef.enum } : {}),
     };
 
     if (argDef.required !== false && argDef.defaultValue === undefined) {

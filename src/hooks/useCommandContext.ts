@@ -4,6 +4,7 @@ import { CommandContext } from "../services/commands/types";
 import { type WorkspaceContextType } from "../context/WorkspaceContext";
 import { type User } from "../types";
 import { useAutomations } from "../context/AutomationsContext";
+import { useStudioContext } from "../context/StudioContext";
 import { getAgentModel, getCommandModel } from "../services/ai";
 
 // Interfaces for props that are usually passed from other hooks
@@ -31,12 +32,13 @@ export function useCommandContext({
     addLog
 }: UseCommandContextProps): CommandContext {
     const automations = useAutomations();
+    const { api: studioApi } = useStudioContext();
 
     const context = useMemo<CommandContext>(() => {
         return {
             workspace: {
                 ...workspace,
-                addLog: addLog || workspace.addLog || (() => { }),
+                addLog: addLog || (() => { }),
                 activeChannel: workspace.activeChannel,
                 setActiveChannel: workspace.setActiveChannel,
                 setActiveChannels: workspace.setActiveChannels
@@ -109,8 +111,10 @@ export function useCommandContext({
                 };
                 jobs.importArtifact(artifact);
             },
+            // Studio visual job editor (may be null if tab not yet mounted)
+            studio: studioApi ?? null,
         };
-    }, [workspace, user, jobs, ecosystem, architect, addLog, automations]);
+    }, [workspace, user, jobs, ecosystem, architect, addLog, automations, studioApi]);
 
     return context;
 }

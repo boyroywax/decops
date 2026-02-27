@@ -1,5 +1,5 @@
 
-import { Play, Activity, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Play, Activity, Clock, AlertCircle, CheckCircle2, Edit } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import type { AutomationDefinition, AutomationRun } from "../../services/automations/types";
 import "../../styles/components/automation-card.css";
@@ -9,10 +9,11 @@ interface AutomationCardProps {
     lastRun?: AutomationRun;
     onRun: (id: string) => void;
     onViewLogs: (id: string) => void;
+    onEdit?: (automation: AutomationDefinition) => void;
     isRunning: boolean;
 }
 
-export function AutomationCard({ automation, lastRun, onRun, onViewLogs, isRunning }: AutomationCardProps) {
+export function AutomationCard({ automation, lastRun, onRun, onViewLogs, onEdit, isRunning }: AutomationCardProps) {
     const stripeClass = isRunning
         ? "automation-card__stripe--running"
         : lastRun?.status === "failed"
@@ -29,7 +30,11 @@ export function AutomationCard({ automation, lastRun, onRun, onViewLogs, isRunni
             <div className="automation-card__header">
                 <div className="automation-card__info">
                     <div className="automation-card__icon">
-                        <GradientIcon icon={Activity} size={20} gradient={["#38bdf8", "#818cf8"]} />
+                        {automation.icon ? (
+                            <img src={automation.icon} alt="" className="automation-card__icon-img" />
+                        ) : (
+                            <GradientIcon icon={Activity} size={20} gradient={["#38bdf8", "#818cf8"]} />
+                        )}
                     </div>
                     <div>
                         <div className="automation-card__name">{automation.name}</div>
@@ -38,6 +43,15 @@ export function AutomationCard({ automation, lastRun, onRun, onViewLogs, isRunni
                 </div>
 
                 <div className="automation-card__actions">
+                    {onEdit && automation.type === "declarative" && (
+                        <button
+                            onClick={() => onEdit(automation)}
+                            className="automation-card__edit-btn"
+                            title="Edit in Studio"
+                        >
+                            <Edit size={12} />
+                        </button>
+                    )}
                     <button
                         onClick={() => onViewLogs(automation.id)}
                         className="automation-card__logs-btn"

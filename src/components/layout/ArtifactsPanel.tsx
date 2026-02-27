@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { X, Gem, Plus, FileText, Image, Code, File, Tag, Layers, Clock, Hash, ChevronRight, Search, Upload, PenLine, ChevronsUp, ChevronsDown } from "lucide-react";
-import type { JobArtifact } from "../../types";
+import type { JobArtifact, ArtifactType } from "../../types";
 import "../../styles/components/artifacts-panel.css";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
@@ -45,9 +45,9 @@ function getIconColor(type: string) {
     }
 }
 
-function inferTypeFromName(name: string): string {
+function inferTypeFromName(name: string): ArtifactType {
     const ext = name.split(".").pop()?.toLowerCase() ?? "";
-    const map: Record<string, string> = {
+    const map: Record<string, ArtifactType> = {
         md: "markdown", json: "json", yaml: "yaml", yml: "yaml",
         csv: "csv", ts: "code", js: "code", py: "code", rs: "code",
         png: "image", jpg: "image", jpeg: "image", gif: "image", svg: "image", webp: "image",
@@ -103,7 +103,7 @@ function CreateArtifactModal({ onClose, onCreate }: {
     onCreate: (a: JobArtifact) => void;
 }) {
     const [name, setName] = useState("");
-    const [type, setType] = useState("markdown");
+    const [type, setType] = useState<ArtifactType>("markdown");
     const [content, setContent] = useState("");
     const [description, setDescription] = useState("");
     const [tagInput, setTagInput] = useState("");
@@ -142,7 +142,7 @@ function CreateArtifactModal({ onClose, onCreate }: {
                     </label>
                     <label className="ap-modal__label">
                         Type
-                        <select className="ap-modal__select" value={type} onChange={e => setType(e.target.value)}>
+                        <select className="ap-modal__select" value={type} onChange={e => setType(e.target.value as ArtifactType)}>
                             <option value="markdown">Markdown</option>
                             <option value="json">JSON</option>
                             <option value="yaml">YAML</option>

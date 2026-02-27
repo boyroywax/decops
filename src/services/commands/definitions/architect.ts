@@ -41,26 +41,58 @@ export const promptArchitectCommand: CommandDefinition = {
 
 export const deployNetworkCommand: CommandDefinition = {
     id: "deploy_network",
-    description: "Deploy a generated network configuration as a multi-step job using atomic commands (create_network, create_agent, create_channel, create_group, create_bridge, send_message).",
+    description: "Generate and deploy a full agent mesh network. Provide a natural-language prompt to auto-generate the config, or supply a pre-built MeshConfig directly.",
     tags: ["architect", "deploy", "provision", "job"],
     rbac: ["builder", "orchestrator"],
-    hidden: true, // Exposed via Job Catalog, not the Commands panel
     args: {
+        prompt: {
+            name: "prompt",
+            type: "string",
+            description: "Natural-language description of the network to build (used to generate config when no config is provided)",
+            required: false,
+        },
         config: {
             name: "config",
             type: "object",
-            description: "The MeshConfig object used to deploy the network (or reads from storage.lastConfig)",
+            description: "Pre-built MeshConfig object — overrides prompt-based generation",
             required: false
         }
     },
     output: "Summary of the generated deployment job with step list.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" }, jobId: { type: "string" }, stepCount: { type: "number" }, steps: { type: "array" } } },
     execute: async (args, context: CommandContext) => {
-        // Read config from args or shared storage (set by prompt_architect)
-        const config = args.config || context.storage.lastConfig;
-        if (!config) throw new Error("No config provided and no lastConfig in storage. Run prompt_architect first.");
-
         const { addLog } = context.workspace;
+
+        // ── Resolve config: args.config → storage → generate from prompt ──
+        let config = args.config || context.storage.lastConfig;
+
+        if (!config) {
+            const prompt = args.prompt || context.storage.lastArchitectPrompt;
+            if (!prompt) {
+                throw new Error(
+                    "No config or prompt provided. Either:\n" +
+                    "  • Set the 'prompt' arg to describe the network you want\n" +
+                    "  • Pass a MeshConfig via the 'config' arg\n" +
+                    "  • Run prompt_architect first to store a config"
+                );
+            }
+            addLog(`Architect generating config from prompt: "${String(prompt).slice(0, 60)}…"`);
+            config = await generateMeshConfig(prompt);
+
+            // Store generated config for downstream steps / re-runs
+            context.storage.lastConfig = config;
+            context.storage.lastArchitectPrompt = prompt;
+
+            // Produce config deliverable
+            context.addDeliverable({
+                key: 'mesh-config',
+                name: 'Architect Config',
+                type: 'json',
+                content: JSON.stringify(config, null, 2),
+                tags: ['architect', 'config'],
+            });
+        }
+
         addLog("Generating deployment plan from config...");
 
         // Normalize networks — ensure at least a default
@@ -83,7 +115,7 @@ export const deployNetworkCommand: CommandDefinition = {
         const steps: any[] = [];
         let stepIdx = 0;
 
-        // 1. Create networks
+        // 1. Create networks — output network ID to storage for downstream steps
         for (const net of configNetworks) {
             if (!net?.name) continue;
             steps.push({
@@ -91,10 +123,13 @@ export const deployNetworkCommand: CommandDefinition = {
                 commandId: "create_network",
                 name: `Create Network: ${net.name}`,
                 args: { name: net.name, description: net.description || "" },
+                outputMappings: [
+                    { outputKey: "network", target: "storage", targetKey: `network_${net.name}` },
+                ],
             });
         }
 
-        // 2. Create agents (reference network by $storage.network_Name)
+        // 2. Create agents — bind networkId from storage, output agent ID to storage
         for (let i = 0; i < config.agents.length; i++) {
             const a = config.agents[i];
             if (!a?.name) continue;
@@ -110,10 +145,16 @@ export const deployNetworkCommand: CommandDefinition = {
                     prompt: a.prompt || "",
                     networkId: `$storage.network_${networkName}`,
                 },
+                inputBindings: {
+                    networkId: { source: "storage", sourceKey: `network_${networkName}` },
+                },
+                outputMappings: [
+                    { outputKey: "agentId", target: "storage", targetKey: `agent_${a.name}` },
+                ],
             });
         }
 
-        // 3. Create channels (reference agents by name — create_channel resolves names)
+        // 3. Create channels — output channel ID to storage
         for (const c of config.channels || []) {
             if (c.from == null || c.to == null) continue;
             const fromName = config.agents[c.from]?.name;
@@ -124,10 +165,17 @@ export const deployNetworkCommand: CommandDefinition = {
                 commandId: "create_channel",
                 name: `Channel: ${fromName} ↔ ${toName}`,
                 args: { from: fromName, to: toName, type: c.type || "data" },
+                inputBindings: {
+                    from: { source: "storage", sourceKey: `agent_${fromName}` },
+                    to: { source: "storage", sourceKey: `agent_${toName}` },
+                },
+                outputMappings: [
+                    { outputKey: "channelId", target: "storage", targetKey: `channel_${fromName}_${toName}` },
+                ],
             });
         }
 
-        // 4. Create groups (reference agents by name — create_group resolves names)
+        // 4. Create groups — bind networkId from storage, output group ID to storage
         for (const g of config.groups || []) {
             if (!g?.name) continue;
             const memberNames = (g.members || []).map((idx: number) => config.agents[idx]?.name).filter(Boolean);
@@ -144,10 +192,16 @@ export const deployNetworkCommand: CommandDefinition = {
                     governance: g.governance || "majority",
                     networkId: `$storage.network_${networkName}`,
                 },
+                inputBindings: {
+                    networkId: { source: "storage", sourceKey: `network_${networkName}` },
+                },
+                outputMappings: [
+                    { outputKey: "groupId", target: "storage", targetKey: `group_${g.name}` },
+                ],
             });
         }
 
-        // 5. Create bridges (reference agents & networks by storage keys)
+        // 5. Create bridges — bind network/agent refs from storage
         for (const b of config.bridges || []) {
             if (b.fromNetwork == null || b.toNetwork == null || b.fromAgent == null || b.toAgent == null) continue;
             const fromAgentName = config.agents[b.fromAgent]?.name;
@@ -167,10 +221,19 @@ export const deployNetworkCommand: CommandDefinition = {
                     to_agent: `$storage.agent_${toAgentName}`,
                     type: b.type || "data",
                 },
+                inputBindings: {
+                    from_network: { source: "storage", sourceKey: `network_${fromNetworkName}` },
+                    to_network: { source: "storage", sourceKey: `network_${toNetworkName}` },
+                    from_agent: { source: "storage", sourceKey: `agent_${fromAgentName}` },
+                    to_agent: { source: "storage", sourceKey: `agent_${toAgentName}` },
+                },
+                outputMappings: [
+                    { outputKey: "bridge", target: "storage", targetKey: `bridge_${fromAgentName}_${toAgentName}` },
+                ],
             });
         }
 
-        // 6. Example messages (send_message uses agent names)
+        // 6. Example messages — output responses to storage
         for (const em of config.exampleMessages || []) {
             if (em.channelIdx == null || !em.message) continue;
             const ch = (config.channels || [])[em.channelIdx];
@@ -182,17 +245,45 @@ export const deployNetworkCommand: CommandDefinition = {
                 id: `step-${stepIdx++}`,
                 commandId: "send_message",
                 name: `Message: ${fromName} → ${toName}`,
-                args: { from_agent_name: fromName, to_agent_name: toName, message: em.message },
+                args: { from_agent_id: `$storage.agent_${fromName}`, to_agent_id: `$storage.agent_${toName}`, message: em.message },
+                inputBindings: {
+                    from_agent_id: { source: "storage", sourceKey: `agent_${fromName}` },
+                    to_agent_id: { source: "storage", sourceKey: `agent_${toName}` },
+                },
+                outputMappings: [
+                    { outputKey: "response", target: "storage", targetKey: `response_${toName}` },
+                ],
             });
         }
 
-        // 7. Final step: print topology as a deliverable
+        // 7. Final step: print topology — route to storage and deliverable
         steps.push({
             id: `step-${stepIdx++}`,
             commandId: "print_topology",
             name: "Generate Topology Report",
             args: {},
+            outputMappings: [
+                { outputKey: "*", target: "storage", targetKey: "lastTopology" },
+                { outputKey: "*", target: "deliverable", targetKey: "topology" },
+            ],
         });
+
+        // --- Build storage defaults from config entities ---
+        const childStorageDefaults: Record<string, any> = {};
+        for (const net of configNetworks) {
+            if (net?.name) childStorageDefaults[`network_${net.name}`] = null;
+        }
+        for (const a of config.agents) {
+            if (a?.name) childStorageDefaults[`agent_${a.name}`] = null;
+        }
+        for (const c of config.channels || []) {
+            const fn = config.agents[c.from]?.name;
+            const tn = config.agents[c.to]?.name;
+            if (fn && tn) childStorageDefaults[`channel_${fn}_${tn}`] = null;
+        }
+        for (const g of config.groups || []) {
+            if (g?.name) childStorageDefaults[`group_${g.name}`] = null;
+        }
 
         // --- Queue the multi-step deployment job ---
         const networkNames = configNetworks.map((n: any) => n.name).join(", ");
@@ -204,7 +295,8 @@ export const deployNetworkCommand: CommandDefinition = {
             deliverables: [
                 { key: "topology", label: "Network Topology", type: "json", description: "Final topology after deployment" },
             ],
-            storageDefaults: {},
+            storageDefaults: childStorageDefaults,
+            inputDefaults: [],
         };
 
         const job = context.jobs.addJob(jobPayload);

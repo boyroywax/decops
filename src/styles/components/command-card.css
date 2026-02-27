@@ -75,6 +75,14 @@
   gap: var(--space-sm);
 }
 
+.cmd-card__icon-img {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .cmd-card__slash {
   font-size: var(--text-sm);
   opacity: 0.6;
@@ -93,6 +101,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.cmd-card__studio-btn {
+  padding: 2px 6px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-base);
+}
+.cmd-card__studio-btn:hover {
+  background: #8b5cf630 !important;
+  transform: scale(1.1);
 }
 
 .cmd-card__type-badge {

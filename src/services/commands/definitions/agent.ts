@@ -20,9 +20,10 @@ export const createAgentCommand: CommandDefinition = {
         role: {
             name: "role",
             type: "string",
-            description: "The role of the agent (researcher, builder, etc.)",
+            description: "The role of the agent",
             required: true,
-            validation: (val) => ROLES.some(r => r.id === val) || "Invalid role",
+            enum: ["researcher", "builder", "curator", "validator", "orchestrator"],
+            validation: (val) => ROLES.some(r => r.id === val) || "Invalid role. Must be one of: researcher, builder, curator, validator, orchestrator",
         },
         prompt: {
             name: "prompt",
