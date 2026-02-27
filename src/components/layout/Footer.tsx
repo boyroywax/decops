@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "../../types";
 import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor } from "lucide-react";
 import type { ChatPosition } from "../../context/ThemeContext";
@@ -7,6 +7,7 @@ import { ArtifactsPanel } from "./ArtifactsPanel";
 import { LLMManager } from "./LLMManager";
 import { DisplayPanel } from "./DisplayPanel";
 import { useLLM, type LivenessStatus } from "../../context/LLMContext";
+import { useEditorContext } from "../../context/EditorContext";
 import "../../styles/components/footer.css";
 import "../../styles/components/llm-manager.css";
 
@@ -57,6 +58,19 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
     const savedHeightRef = useRef(DEFAULT_PANEL_HEIGHT);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const llm = useLLM();
+    const { api: editorApi, queueArtifact } = useEditorContext();
+
+    const handleOpenInEditor = useCallback((artifact: JobArtifact) => {
+        // If editor is already mounted, load directly
+        if (editorApi) {
+            editorApi.loadArtifact(artifact);
+        } else {
+            // Queue for when editor mounts
+            queueArtifact(artifact);
+        }
+        setView("editor");
+        setPanel("none");
+    }, [editorApi, queueArtifact, setView, setPanel]);
 
     const isStudioMode = view === "jobs";
 
@@ -136,6 +150,7 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                     setHeight={handleSetHeight}
                     isExpanded={isExpanded}
                     onToggleExpand={handleToggleExpand}
+                    onOpenInEditor={handleOpenInEditor}
                 />
             )}
 
@@ -178,34 +193,28 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
                         )}
                     </button>
 
-                    {isSideChat && (
-                        <>
-                            <span className="footer__separator">│</span>
-                            <button
-                                onClick={toggleSideChat}
-                                className={`footer__toggle ${sideChatVisible ? "footer__toggle--active" : ""}`}
-                                title={sideChatVisible ? "Hide chat" : "Show chat"}
-                            >
-                                <MessageCircle size={10} />
-                                Chat
-                            </button>
-                        </>
+                    <span className="footer__separator">│</span>
+                    {isSideChat ? (
+                        <button
+                            onClick={toggleSideChat}
+                            className={`footer__toggle ${sideChatVisible ? "footer__toggle--active" : ""}`}
+                            title={sideChatVisible ? "Hide chat" : "Show chat"}
+                        >
+                            <MessageCircle size={10} />
+                            Chat
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => toggle("chat")}
+                            className={`footer__toggle ${panel === "chat" ? "footer__toggle--active" : ""}`}
+                        >
+                            <MessageCircle size={10} />
+                            Chat
+                        </button>
                     )}
                 </div>
 
                 <div className="footer__controls">
-                    {!isSideChat && (
-                        <>
-                            <button
-                                onClick={() => toggle("chat")}
-                                className={`footer__toggle ${panel === "chat" ? "footer__toggle--active" : ""}`}
-                            >
-                                <MessageCircle size={10} />
-                                Chat
-                            </button>
-                            <span className="footer__separator">│</span>
-                        </>
-                    )}
 
                     <button
                         onClick={() => toggle("jobs")}

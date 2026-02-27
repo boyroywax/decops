@@ -33,7 +33,10 @@ import {
 import {
     createArtifactCommand,
     editArtifactCommand,
-    deleteArtifactCommand
+    tagArtifactCommand,
+    deleteArtifactCommand,
+    listArtifactsCommand,
+    searchArtifactsCommand
 } from "./definitions/artifact";
 import {
     createNetworkCommand,
@@ -141,7 +144,10 @@ export function initializeRegistry() {
     // Artifacts
     registry.register(createArtifactCommand);
     registry.register(editArtifactCommand);
+    registry.register(tagArtifactCommand);
     registry.register(deleteArtifactCommand);
+    registry.register(listArtifactsCommand);
+    registry.register(searchArtifactsCommand);
 
     // Ecosystem / Networks
     registry.register(createNetworkCommand);

@@ -140,22 +140,16 @@ const DEFAULT_MODEL = "claude-sonnet-4-20250514";
 
 async function probeAnthropic(apiKey: string): Promise<boolean> {
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
+    const res = await fetch("https://api.anthropic.com/v1/models", {
+      method: "GET",
       headers: {
-        "Content-Type": "application/json",
         "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
         "anthropic-dangerous-direct-browser-access": "true",
       },
-      body: JSON.stringify({
-        model: "claude-haiku-3-5-20241022",
-        max_tokens: 1,
-        messages: [{ role: "user", content: "ping" }],
-      }),
     });
-    // 200 = success, 401 = bad key (still "online"), 429 = rate limited (still reachable)
-    return res.status === 200 || res.status === 429;
+    // 200 = success, 429 = rate limited (still reachable)
+    return res.ok || res.status === 429;
   } catch {
     return false;
   }

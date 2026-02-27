@@ -12,11 +12,12 @@ describe('createGroupCommand', () => {
         workspace: {
             agents: mockAgents,
             groups: [],
-            channels: [], // Needed for auto-channel creation logic
+            channels: [],
             setGroups: vi.fn(),
-            setChannels: vi.fn(), // Needed
+            setChannels: vi.fn(),
             addLog: vi.fn(),
-        }
+        },
+        storage: {} as Record<string, any>,
     };
 
     it('creates a group with valid members', async () => {

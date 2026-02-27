@@ -662,6 +662,46 @@
   background: rgba(239, 68, 68, 0.15);
 }
 
+.artifacts-panel__btn--editor {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.artifacts-panel__btn--editor:hover {
+  background: rgba(56, 189, 248, 0.18);
+}
+
+/* Editor button on artifact cards */
+.artifacts-panel__editor-btn {
+  background: none;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: var(--radius-md);
+  color: rgba(56, 189, 248, 0.6);
+  cursor: pointer;
+  padding: 3px 5px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.artifacts-panel__card:hover .artifacts-panel__editor-btn {
+  opacity: 1;
+}
+
+.artifacts-panel__editor-btn:hover {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * CREATE ARTIFACT MODAL (panel variant — compact)
  * ═══════════════════════════════════════════════════════════════════════════ */

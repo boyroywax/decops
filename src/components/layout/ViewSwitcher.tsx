@@ -331,10 +331,8 @@ export function ViewSwitcher({
         return (
             <ErrorBoundary>
                 <EditorView
-                    artifacts={allArtifacts}
                     updateArtifact={updateArtifact}
                     importArtifact={importArtifact}
-                    removeArtifact={removeArtifact}
                 />
             </ErrorBoundary>
         );

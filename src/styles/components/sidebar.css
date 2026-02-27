@@ -178,6 +178,46 @@
   gap: 2px;
 }
 
+/* ═══ Ecosystem Expandable Menu ═══ */
+
+.sidebar-eco-toggle {
+  font-weight: var(--font-medium);
+}
+
+.sidebar-eco-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sidebar-eco-chevron {
+  flex-shrink: 0;
+  color: var(--text-ghost);
+  transition: transform var(--transition-fast);
+  margin-left: auto;
+}
+
+.sidebar-eco-chevron--open {
+  transform: rotate(180deg);
+}
+
+.sidebar-eco-subitems {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sidebar-nav-subitem {
+  padding-left: calc(var(--space-xl) + 10px) !important;
+  font-size: var(--text-sm);
+}
+
+.app-sidebar.collapsed .sidebar-eco-subitems {
+  display: none;
+}
+
 /* Bottom nav group (architect + collapse) */
 .sidebar-nav-bottom {
   display: flex;

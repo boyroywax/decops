@@ -5,7 +5,7 @@ import type { StudioStep, SelectedElement, OutputMapping, InputBinding } from ".
 import type { JobDeliverable, ArtifactType, EntityInput } from "../../types";
 import type { LLMModel } from "../../context/LLMContext";
 
-const ARTIFACT_TYPES: ArtifactType[] = ["markdown", "json", "yaml", "csv", "image", "code"];
+const ARTIFACT_TYPES: ArtifactType[] = ["markdown", "json", "yaml", "csv", "image", "code", "txt"];
 const ENTITY_INPUT_TYPES: EntityInput["type"][] = ["agent", "channel", "group", "network"];
 
 interface NodeEditorProps {

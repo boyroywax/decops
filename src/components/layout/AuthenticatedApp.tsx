@@ -380,6 +380,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
         isExpanded={chatExpanded}
         onToggleExpand={handleChatToggleExpand}
         position={chatPosition}
+        view={view}
       />
     </div>
   );
@@ -405,6 +406,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
               collapsed={sidebarCollapsed}
               setCollapsed={setSidebarCollapsed}
               isMobile={isMobile}
+              ecosystemName={ecosystem.ecosystem?.name}
             />
           </div>
 

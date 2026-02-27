@@ -28,7 +28,9 @@ describe('broadcastMessageCommand', () => {
             setMessages: vi.fn(),
             addLog: vi.fn(),
             setActiveChannels: vi.fn()
-        }
+        },
+        storage: {} as Record<string, any>,
+        addDeliverable: vi.fn(),
     };
 
     beforeEach(() => {

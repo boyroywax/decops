@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { LayoutGrid, List, Play, Plus } from "lucide-react";
+import { useState, useCallback } from "react";
+import { LayoutGrid, List, Play, Plus, X } from "lucide-react";
 import { registry } from "../../services/commands/registry";
 import { CommandDefinition } from "../../services/commands/types";
 import { CommandCard } from "./CommandCard";
@@ -10,42 +10,109 @@ interface CommandsPanelProps {
     isStudioMode?: boolean;
 }
 
+const TAG_COLORS: Record<string, string> = {
+    architect: "#fb923c",
+    data: "#3b82f6",
+    ecosystem: "#38bdf8",
+    agent: "#00e5a0",
+    channel: "#a78bfa",
+    messaging: "#f472b6",
+    topology: "#38bdf8",
+    group: "#f472b6",
+    system: "#94a3b8",
+    artifact: "#fbbf24",
+    modification: "#ef4444",
+};
+
+const getTagColor = (tag: string) => TAG_COLORS[tag] || "#71717a";
+
 const getCommandColor = (tags: string[]) => {
-    if (tags.includes("architect")) return "#fb923c";
-    if (tags.includes("data")) return "#3b82f6";
-    if (tags.includes("ecosystem")) return "#38bdf8";
-    if (tags.includes("agent")) return "#00e5a0";
-    if (tags.includes("channel")) return "#a78bfa";
-    if (tags.includes("messaging")) return "#f472b6";
-    if (tags.includes("topology")) return "#38bdf8";
-    if (tags.includes("group")) return "#f472b6";
-    if (tags.includes("system")) return "#94a3b8";
-    if (tags.includes("artifact")) return "#fbbf24";
-    if (tags.includes("modification")) return "#ef4444";
+    for (const tag of tags) {
+        if (TAG_COLORS[tag]) return TAG_COLORS[tag];
+    }
     return "#71717a";
 };
 
 export function CommandsPanel({ onRunCommand, isStudioMode }: CommandsPanelProps) {
     const commands = registry.getAll().filter(c => !c.hidden);
     const [filter, setFilter] = useState("");
+    const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
     const [view, setView] = useState<"cards" | "table">("cards");
 
-    const filteredCommands = commands.filter(c =>
-        c.id.toLowerCase().includes(filter.toLowerCase()) ||
-        c.description.toLowerCase().includes(filter.toLowerCase()) ||
-        c.tags.some(t => t.toLowerCase().includes(filter.toLowerCase()))
-    );
+    const toggleTag = useCallback((tag: string) => {
+        setActiveTags(prev => {
+            const next = new Set(prev);
+            if (next.has(tag)) next.delete(tag);
+            else next.add(tag);
+            return next;
+        });
+    }, []);
+
+    const removeTag = useCallback((tag: string) => {
+        setActiveTags(prev => {
+            const next = new Set(prev);
+            next.delete(tag);
+            return next;
+        });
+    }, []);
+
+    const clearTags = useCallback(() => setActiveTags(new Set()), []);
+
+    const filteredCommands = commands.filter(c => {
+        // Tag filter: command must have ALL active tags
+        if (activeTags.size > 0 && !Array.from(activeTags).every(t => c.tags.includes(t))) {
+            return false;
+        }
+        // Text filter
+        if (!filter) return true;
+        const q = filter.toLowerCase();
+        return (
+            c.id.toLowerCase().includes(q) ||
+            c.description.toLowerCase().includes(q) ||
+            c.tags.some(t => t.toLowerCase().includes(q))
+        );
+    });
 
     return (
         <div className="commands-panel">
             {/* Toolbar */}
             <div className="commands-panel__toolbar">
-                <input
-                    className="commands-panel__search"
-                    placeholder="Search commands..."
-                    value={filter}
-                    onChange={e => setFilter(e.target.value)}
-                />
+                <div className="commands-panel__search-wrap">
+                    {Array.from(activeTags).map(tag => {
+                        const tagColor = getTagColor(tag);
+                        return (
+                            <span
+                                key={tag}
+                                className="commands-panel__active-tag"
+                                style={{
+                                    background: `${tagColor}18`,
+                                    border: `1px solid ${tagColor}35`,
+                                    color: tagColor,
+                                }}
+                            >
+                                #{tag}
+                                <button
+                                    className="commands-panel__active-tag-x"
+                                    onClick={() => removeTag(tag)}
+                                    style={{ color: tagColor }}
+                                >
+                                    <X size={10} />
+                                </button>
+                            </span>
+                        );
+                    })}
+                    <input
+                        className="commands-panel__search"
+                        placeholder={activeTags.size > 0 ? "Refine..." : "Search commands..."}
+                        value={filter}
+                        onChange={e => setFilter(e.target.value)}
+                    />
+                    {activeTags.size > 0 && (
+                        <button className="commands-panel__clear-tags" onClick={clearTags} title="Clear all tag filters">
+                            <X size={12} />
+                        </button>
+                    )}
+                </div>
                 <div className="commands-panel__view-toggle">
                     <button
                         onClick={() => setView("cards")}
@@ -75,6 +142,8 @@ export function CommandsPanel({ onRunCommand, isStudioMode }: CommandsPanelProps
                             key={cmd.id}
                             command={cmd}
                             onRun={() => onRunCommand(cmd.id, cmd)}
+                            onTagClick={toggleTag}
+                            activeTags={activeTags}
                             onAddToStudio={isStudioMode ? () => {
                                 window.dispatchEvent(new CustomEvent("studio:add-command", { detail: { commandId: cmd.id } }));
                             } : undefined}
@@ -113,15 +182,23 @@ export function CommandsPanel({ onRunCommand, isStudioMode }: CommandsPanelProps
                                         </td>
                                         <td className="commands-panel__td commands-panel__td--tags">
                                             <div className="commands-panel__tag-list">
-                                                {cmd.tags.map(tag => (
-                                                    <span key={tag} className="commands-panel__tag" style={{
-                                                        background: `${color}10`,
-                                                        border: `1px solid ${color}18`,
-                                                        color,
-                                                    }}>
-                                                        #{tag}
-                                                    </span>
-                                                ))}
+                                                {cmd.tags.map(tag => {
+                                                    const isActive = activeTags.has(tag);
+                                                    return (
+                                                        <span
+                                                            key={tag}
+                                                            className={`commands-panel__tag commands-panel__tag--clickable${isActive ? " commands-panel__tag--active" : ""}`}
+                                                            style={{
+                                                                background: isActive ? `${color}25` : `${color}10`,
+                                                                border: `1px solid ${isActive ? `${color}50` : `${color}18`}`,
+                                                                color,
+                                                            }}
+                                                            onClick={(e) => { e.stopPropagation(); toggleTag(tag); }}
+                                                        >
+                                                            #{tag}
+                                                        </span>
+                                                    );
+                                                })}
                                             </div>
                                         </td>
                                         <td className="commands-panel__td commands-panel__td--args-count">

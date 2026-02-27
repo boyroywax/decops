@@ -3,31 +3,23 @@ import { marked } from "marked";
 import DOMPurify from "dompurify";
 import type { JobArtifact, ArtifactType } from "../../types";
 import {
-  FileText, Eye, Edit3, Copy, Trash2,
+  FileText, Eye, Edit3, Copy,
   Bold, Italic, Code, List, ListOrdered, Link, Image,
   Heading1, Heading2, Heading3, Quote, Minus, CheckSquare,
   Table, Plus, X, Save, FileDown, FileUp,
   Maximize2, Minimize2, Search, Replace, Undo2, Redo2,
-  AlignLeft, WrapText, Hash, Sparkles, Send,
-  ChevronRight, AlertTriangle, Check, Loader2,
-  Braces, FileJson, FileSpreadsheet, File,
+  AlignLeft, WrapText, Hash,
+  AlertTriangle, Check,
+  Braces, FileJson, FileSpreadsheet,
 } from "lucide-react";
-import { streamChatWithWorkspace, getSelectedModel } from "../../services/ai";
-import type { ChatMessage, WorkspaceContext, StreamCallbacks, ToolCallDisplay } from "../../services/ai";
-import { useLLM } from "../../context/LLMContext";
-import { useWorkspaceContext } from "../../context/WorkspaceContext";
-import { useCommandContext } from "../../hooks/useCommandContext";
-import { useJobsContext } from "../../context/JobsContext";
-import { useAuth } from "../../context/AuthContext";
-import { useArchitect } from "../../hooks/useArchitect";
-import { useEcosystemContext } from "../../context/EcosystemContext";
-import { MarkdownContent } from "../shared/MarkdownContent";
+import { useEditorContext } from "../../context/EditorContext";
+import type { EditorAPI, PersistedEditorState } from "../../context/EditorContext";
 import "../../styles/components/editor.css";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 
 type EditorMode = "edit" | "preview" | "split";
-type FileType = "markdown" | "json" | "yaml" | "csv" | "code";
+type FileType = "markdown" | "json" | "yaml" | "csv" | "code" | "txt";
 
 interface HistoryEntry {
   content: string;
@@ -55,10 +47,15 @@ function detectFileType(name: string, type?: ArtifactType): FileType {
   if (type === "csv") return "csv";
   if (type === "code") return "code";
   if (type === "markdown") return "markdown";
+  if (type === "txt") return "txt";
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
   const map: Record<string, FileType> = {
     md: "markdown", json: "json", yaml: "yaml", yml: "yaml",
     csv: "csv", ts: "code", js: "code", py: "code", rs: "code",
+    txt: "txt", text: "txt", log: "txt", sh: "txt", bash: "txt",
+    zsh: "txt", env: "txt", cfg: "txt", conf: "txt", ini: "txt",
+    toml: "txt", properties: "txt", gitignore: "txt", dockerignore: "txt",
+    editorconfig: "txt", makefile: "txt", dockerfile: "txt",
   };
   return map[ext] ?? "markdown";
 }
@@ -69,6 +66,7 @@ function getFileIcon(type: FileType, size = 14) {
     case "yaml": return <Braces size={size} />;
     case "csv": return <FileSpreadsheet size={size} />;
     case "code": return <Code size={size} />;
+    case "txt": return <AlignLeft size={size} />;
     default: return <FileText size={size} />;
   }
 }
@@ -79,6 +77,7 @@ function getFileColor(type: FileType): string {
     case "yaml": return "#fb923c";
     case "csv": return "#34d399";
     case "code": return "#a78bfa";
+    case "txt": return "#94a3b8";
     default: return "#38bdf8";
   }
 }
@@ -89,6 +88,7 @@ function getFileExtension(type: FileType): string {
     case "yaml": return ".yaml";
     case "csv": return ".csv";
     case "code": return ".ts";
+    case "txt": return ".txt";
     default: return ".md";
   }
 }
@@ -99,6 +99,7 @@ function getMimeType(type: FileType): string {
     case "yaml": return "text/yaml";
     case "csv": return "text/csv";
     case "code": return "text/plain";
+    case "txt": return "text/plain";
     default: return "text/markdown";
   }
 }
@@ -249,89 +250,43 @@ function prefixLine(
   return { text: newText, cursorStart: start + prefix.length, cursorEnd: end + prefix.length };
 }
 
-/* ─── AI Message Type ──────────────────────────────────────────────── */
-
-interface AiMessage {
-  role: "user" | "assistant";
-  content: string;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════
  * EDITOR VIEW
  * ═══════════════════════════════════════════════════════════════════════ */
 
 export interface EditorViewProps {
-  artifacts: JobArtifact[];
   updateArtifact: (id: string, updates: Partial<JobArtifact>) => void;
   importArtifact: (artifact: JobArtifact) => void;
-  removeArtifact: (id: string) => void;
 }
 
-export function EditorView({ artifacts, updateArtifact, importArtifact, removeArtifact }: EditorViewProps) {
+export function EditorView({ updateArtifact, importArtifact }: EditorViewProps) {
+  /* ─── Editor Context Registration ───────────────────────────────── */
+  const { register, unregister, consumePendingArtifact, persistState, getPersistedState } = useEditorContext();
+
+  /* ─── Restore persisted state (runs once on mount) ──────────────── */
+  const restored = getPersistedState();
+
   /* ─── Core State ──────────────────────────────────────────────────── */
-  const [activeArtifactId, setActiveArtifactId] = useState<string | null>(null);
-  const [content, setContent] = useState("");
-  const [mode, setMode] = useState<EditorMode>("split");
-  const [docName, setDocName] = useState("Untitled");
-  const [fileType, setFileType] = useState<FileType>("markdown");
+  const [activeArtifactId, setActiveArtifactId] = useState<string | null>(restored?.activeArtifactId ?? null);
+  const [content, setContent] = useState(restored?.content ?? "");
+  const [mode, setMode] = useState<EditorMode>((restored?.mode as EditorMode) ?? "split");
+  const [docName, setDocName] = useState(restored?.docName ?? "Untitled");
+  const [fileType, setFileType] = useState<FileType>((restored?.fileType as FileType) ?? "markdown");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showFind, setShowFind] = useState(false);
   const [findText, setFindText] = useState("");
   const [replaceText, setReplaceText] = useState("");
-  const [wordWrap, setWordWrap] = useState(true);
-  const [showArtifactPanel, setShowArtifactPanel] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
-
-  /* ─── AI Chat State ──────────────────────────────────────────────── */
-  const [showAiPanel, setShowAiPanel] = useState(false);
-  const [aiMessages, setAiMessages] = useState<AiMessage[]>([]);
-  const [aiInput, setAiInput] = useState("");
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiStreamingText, setAiStreamingText] = useState<string | null>(null);
+  const [wordWrap, setWordWrap] = useState(restored?.wordWrap ?? true);
+  const [isDirty, setIsDirty] = useState(restored?.isDirty ?? false);
 
   /* ─── Undo / Redo ─────────────────────────────────────────────────── */
-  const [history, setHistory] = useState<HistoryEntry[]>([{ content: "", cursorPos: 0 }]);
-  const [historyIndex, setHistoryIndex] = useState(0);
+  const [history, setHistory] = useState<HistoryEntry[]>(restored?.history ?? [{ content: "", cursorPos: 0 }]);
+  const [historyIndex, setHistoryIndex] = useState(restored?.historyIndex ?? 0);
   const isUndoRedoRef = useRef(false);
 
   /* ─── Refs ────────────────────────────────────────────────────────── */
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const aiEndRef = useRef<HTMLDivElement>(null);
-
-  /* ─── Context Hooks ─────────────────────────────────────────────── */
-  const { user } = useAuth();
-  const workspace = useWorkspaceContext();
-  const jobsCtx = useJobsContext();
-  const { jobs, addJob } = jobsCtx;
-  const architect = useArchitect(() => {}, addJob, jobs);
-  const ecosystem = useEcosystemContext();
-  const llm = useLLM();
-
-  const commandContext = useCommandContext({
-    workspace,
-    user,
-    jobs: jobsCtx,
-    ecosystem: ecosystem || { ecosystems: [], bridges: [] },
-    architect,
-    addLog: () => {},
-  });
-
-  const wsContext: WorkspaceContext = useMemo(() => ({
-    agents: workspace.agents,
-    channels: workspace.channels,
-    groups: workspace.groups,
-    messages: workspace.messages,
-    ecosystems: ecosystem?.ecosystems || [],
-    bridges: ecosystem?.bridges || [],
-    jobs: jobs || [],
-  }), [workspace.agents, workspace.channels, workspace.groups, workspace.messages, ecosystem?.ecosystems, ecosystem?.bridges, jobs]);
-
-  /* ─── Derived Data ────────────────────────────────────────────────── */
-  const editableArtifacts = useMemo(() =>
-    artifacts.filter(a => a.type !== "image" && a.content !== undefined),
-    [artifacts]
-  );
 
   const validation = useMemo(() => validateContent(content, fileType), [content, fileType]);
 
@@ -339,6 +294,97 @@ export function EditorView({ artifacts, updateArtifact, importArtifact, removeAr
     const words = content.trim() ? content.trim().split(/\s+/).length : 0;
     return { words, chars: content.length, lines: content.split("\n").length };
   }, [content]);
+
+  /* ─── Artifact Operations ─────────────────────────────────────────── */
+  const loadArtifact = useCallback((artifact: JobArtifact) => {
+    setContent(artifact.content || "");
+    setDocName(artifact.name);
+    setActiveArtifactId(artifact.id);
+    setFileType(detectFileType(artifact.name, artifact.type));
+    setIsDirty(false);
+    setHistory([{ content: artifact.content || "", cursorPos: 0 }]);
+    setHistoryIndex(0);
+  }, []);
+
+  const loadArtifactRef = useRef(loadArtifact);
+  loadArtifactRef.current = loadArtifact;
+
+  /* ─── Register Editor API ─────────────────────────────────────── */
+  const contentRef = useRef(content);
+  contentRef.current = content;
+  const docNameRef = useRef(docName);
+  docNameRef.current = docName;
+  const fileTypeRef = useRef(fileType);
+  fileTypeRef.current = fileType;
+  const isDirtyRef = useRef(isDirty);
+  isDirtyRef.current = isDirty;
+  const validationRef = useRef(validation);
+  validationRef.current = validation;
+  const statsRef = useRef(stats);
+  statsRef.current = stats;
+  const activeArtifactIdRef = useRef(activeArtifactId);
+  activeArtifactIdRef.current = activeArtifactId;
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  const wordWrapRef = useRef(wordWrap);
+  wordWrapRef.current = wordWrap;
+  const historyRef = useRef(history);
+  historyRef.current = history;
+  const historyIndexRef = useRef(historyIndex);
+  historyIndexRef.current = historyIndex;
+
+  /* ─── Persist state on unmount (survives view switches) ─────────── */
+  useEffect(() => {
+    return () => {
+      persistState({
+        content: contentRef.current,
+        docName: docNameRef.current,
+        fileType: fileTypeRef.current,
+        activeArtifactId: activeArtifactIdRef.current,
+        isDirty: isDirtyRef.current,
+        mode: modeRef.current,
+        wordWrap: wordWrapRef.current,
+        history: historyRef.current,
+        historyIndex: historyIndexRef.current,
+      });
+    };
+  }, []); // runs only on unmount — uses refs for fresh values
+
+  useEffect(() => {
+    const api: EditorAPI = {
+      getState: () => ({
+        docName: docNameRef.current,
+        fileType: fileTypeRef.current,
+        content: contentRef.current,
+        isDirty: isDirtyRef.current,
+        validation: validationRef.current,
+        stats: statsRef.current,
+        activeArtifactId: activeArtifactIdRef.current,
+      }),
+      setContent: (text: string) => {
+        setContent(text);
+        setIsDirty(true);
+        contentRef.current = text;
+      },
+      applyCodeBlock: (markdownResponse: string): boolean => {
+        const codeBlockRegex = /```(?:json|yaml|yml|csv|md|markdown|javascript|typescript|python|[\w]*)?\n([\s\S]*?)```/;
+        const match = markdownResponse.match(codeBlockRegex);
+        if (match && match[1]) {
+          const newContent = match[1].trim();
+          setContent(newContent);
+          setIsDirty(true);
+          contentRef.current = newContent;
+          return true;
+        }
+        return false;
+      },
+      getContent: () => contentRef.current,
+      getFileInfo: () => ({ docName: docNameRef.current, fileType: fileTypeRef.current }),
+      loadArtifact: (artifact: JobArtifact) => loadArtifactRef.current(artifact),
+    };
+    register(api);
+    return () => unregister();
+  }, []); // stable — uses refs for fresh closures
 
   const previewHtml = useMemo(() =>
     fileType === "markdown" ? renderMarkdown(content) : null,
@@ -457,14 +503,22 @@ export function EditorView({ artifacts, updateArtifact, importArtifact, removeAr
     { id: "headers", icon: <Heading1 size={14} />, label: "Insert Headers", action: (ta) => insertAtCursor(ta, "Name,Value,Description\n") },
   ], []);
 
+  const txtActions: ToolbarAction[] = useMemo(() => [
+    { id: "comment", icon: <Hash size={14} />, label: "Comment Line", action: (ta) => prefixLine(ta, "# ") },
+    { id: "sep1", icon: null, label: "", action: () => ({ text: "", cursorStart: 0, cursorEnd: 0 }), separator: true },
+    { id: "indent", icon: <List size={14} />, label: "Indent", action: (ta) => prefixLine(ta, "  ") },
+    { id: "hr", icon: <Minus size={14} />, label: "Separator Line", action: (ta) => insertAtCursor(ta, "\n" + "-".repeat(40) + "\n") },
+  ], []);
+
   const toolbarActions = useMemo(() => {
     switch (fileType) {
       case "json": return jsonActions;
       case "yaml": return yamlActions;
       case "csv": return csvActions;
+      case "txt": return txtActions;
       default: return markdownActions;
     }
-  }, [fileType, jsonActions, yamlActions, csvActions, markdownActions]);
+  }, [fileType, jsonActions, yamlActions, csvActions, txtActions, markdownActions]);
 
   /* ─── Keyboard Shortcuts ──────────────────────────────────────────── */
   const handleSave = useCallback(() => {
@@ -513,17 +567,11 @@ export function EditorView({ artifacts, updateArtifact, importArtifact, removeAr
     }
   }, [content, findText, replaceText, handleContentChange]);
 
-  /* ─── Artifact Operations ─────────────────────────────────────────── */
-  const loadArtifact = useCallback((artifact: JobArtifact) => {
-    setContent(artifact.content || "");
-    setDocName(artifact.name);
-    setActiveArtifactId(artifact.id);
-    setFileType(detectFileType(artifact.name, artifact.type));
-    setIsDirty(false);
-    setShowArtifactPanel(false);
-    setHistory([{ content: artifact.content || "", cursorPos: 0 }]);
-    setHistoryIndex(0);
-  }, []);
+  /* ─── Consume pending artifact from context on mount ───────────── */
+  useEffect(() => {
+    const pending = consumePendingArtifact();
+    if (pending) loadArtifactRef.current(pending);
+  }, [consumePendingArtifact]);
 
   const newFile = useCallback((type: FileType = "markdown") => {
     const templates: Record<FileType, string> = {
@@ -532,6 +580,7 @@ export function EditorView({ artifacts, updateArtifact, importArtifact, removeAr
       yaml: "# New YAML config\n",
       csv: "Name,Value,Description\n",
       code: "// New file\n",
+      txt: "",
     };
     setActiveArtifactId(null);
     setContent(templates[type]);
@@ -590,79 +639,11 @@ export function EditorView({ artifacts, updateArtifact, importArtifact, removeAr
     }
   }, [content]);
 
-  /* ─── AI Editor Chat ──────────────────────────────────────────────── */
-  const sendAiMessage = useCallback(async () => {
-    const text = aiInput.trim();
-    if (!text || aiLoading) return;
-    setAiInput("");
-
-    const userMsg: AiMessage = { role: "user", content: text };
-    const updatedMessages = [...aiMessages, userMsg];
-    setAiMessages(updatedMessages);
-    setAiLoading(true);
-    setAiStreamingText("");
-
-    try {
-      const editorSystemSuffix = `
-
-EDITOR MODE ACTIVE:
-You are operating in the Editor view. The user has a file open and wants help editing it.
-
-Current file: "${docName}" (${fileType})
-File content (${stats.lines} lines, ${stats.words} words):
-\`\`\`${fileType === "markdown" ? "md" : fileType}
-${content.length > 4000 ? content.substring(0, 4000) + "\n... (truncated)" : content}
-\`\`\`
-${!validation.valid ? `\nValidation Error: ${validation.error}` : ""}
-
-When helping with this file:
-- Provide COMPLETE updated file content in a fenced code block so the user can apply it.
-- Be precise with the format (${fileType}).
-- For small edits, show context around the change and the complete replacement.
-- Do NOT include explanatory text inside the code block, only the file content.`;
-
-      const chatHistory: ChatMessage[] = updatedMessages.slice(0, -1).map(m => ({ role: m.role, content: m.content }));
-
-      const streamCallbacks: StreamCallbacks = {
-        onToken: (token) => setAiStreamingText(prev => (prev ?? "") + token),
-      };
-
-      const { text: response } = await streamChatWithWorkspace(
-        text + editorSystemSuffix,
-        chatHistory,
-        wsContext,
-        streamCallbacks,
-        commandContext,
-      );
-
-      setAiStreamingText(null);
-      setAiMessages(prev => [...prev, { role: "assistant", content: response }]);
-    } catch (err) {
-      setAiStreamingText(null);
-      setAiMessages(prev => [...prev, { role: "assistant", content: `Error: ${err instanceof Error ? err.message : String(err)}` }]);
-    } finally {
-      setAiLoading(false);
-    }
-  }, [aiInput, aiLoading, aiMessages, content, docName, fileType, stats, validation, wsContext, commandContext]);
-
-  const applyAiCodeBlock = useCallback((responseContent: string) => {
-    const codeBlockRegex = /```(?:json|yaml|yml|csv|md|markdown|javascript|typescript|python|[\w]*)?\n([\s\S]*?)```/;
-    const match = responseContent.match(codeBlockRegex);
-    if (match && match[1]) handleContentChange(match[1].trim());
-  }, [handleContentChange]);
-
-  useEffect(() => {
-    aiEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [aiMessages.length, aiStreamingText]);
-
-  const modelId = getSelectedModel();
-  const modelLabel = llm.getModelById(modelId)?.label || modelId;
-
   /* ═══════════════════════════════════════════════════════════════════
    * RENDER
    * ═══════════════════════════════════════════════════════════════════ */
   return (
-    <div className={`editor-view ${isFullscreen ? "editor-view--fullscreen" : ""} ${showAiPanel ? "editor-view--with-ai" : ""}`}>
+    <div className={`editor-view ${isFullscreen ? "editor-view--fullscreen" : ""}`}>
       {/* ─── Header ──────────────────────────────────────────────── */}
       <div className="editor-header">
         <div className="editor-header-left">
@@ -676,6 +657,7 @@ When helping with this file:
             <option value="yaml">YAML</option>
             <option value="csv">CSV</option>
             <option value="code">Code</option>
+            <option value="txt">Plain Text</option>
           </select>
         </div>
 
@@ -688,14 +670,12 @@ When helping with this file:
         </div>
 
         <div className="editor-header-right">
-          <button className={`editor-action-btn ${showAiPanel ? "active" : ""}`} onClick={() => setShowAiPanel(!showAiPanel)} title="AI Assistant"><Sparkles size={14} /></button>
           <button className="editor-action-btn" onClick={handleCopy} title="Copy to clipboard"><Copy size={14} /></button>
           <button className="editor-action-btn" onClick={() => fileInputRef.current?.click()} title="Import file"><FileUp size={14} /></button>
           <button className="editor-action-btn" onClick={handleExport} title="Export file"><FileDown size={14} /></button>
           <button className={`editor-action-btn ${isDirty ? "editor-action-btn--highlight" : ""}`} onClick={handleSave} title="Save to artifacts (Ctrl+S)"><Save size={14} /></button>
-          <button className={`editor-action-btn ${showArtifactPanel ? "active" : ""}`} onClick={() => setShowArtifactPanel(!showArtifactPanel)} title="Artifact library"><File size={14} /></button>
           <button className="editor-action-btn" onClick={() => setIsFullscreen(!isFullscreen)} title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>{isFullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />}</button>
-          <input ref={fileInputRef} type="file" accept=".md,.markdown,.txt,.json,.yaml,.yml,.csv,.ts,.js,.py" onChange={handleImport} style={{ display: "none" }} />
+          <input ref={fileInputRef} type="file" accept=".md,.markdown,.txt,.text,.log,.json,.yaml,.yml,.csv,.ts,.js,.py,.sh,.bash,.zsh,.env,.cfg,.conf,.ini,.toml,.properties,.editorconfig,.gitignore,.dockerignore" onChange={handleImport} style={{ display: "none" }} />
         </div>
       </div>
 
@@ -710,7 +690,7 @@ When helping with this file:
             )}
           </div>
           <div className="editor-toolbar-extras">
-            {fileType !== "markdown" && (
+            {fileType !== "markdown" && fileType !== "txt" && (
               <span className={`editor-validation ${validation.valid ? "valid" : "invalid"}`} title={validation.valid ? "Valid" : validation.error}>
                 {validation.valid ? <Check size={12} /> : <AlertTriangle size={12} />}
                 {validation.valid ? "Valid" : "Error"}
@@ -739,52 +719,13 @@ When helping with this file:
         </div>
       )}
 
-      {/* ─── Artifact Library Panel ──────────────────────────────── */}
-      {showArtifactPanel && (
-        <div className="editor-doc-panel">
-          <div className="editor-doc-panel-header">
-            <span>Artifacts ({editableArtifacts.length})</span>
-            <div className="editor-doc-panel-actions">
-              <button className="editor-action-btn" onClick={() => newFile("markdown")} title="New Markdown"><FileText size={12} /></button>
-              <button className="editor-action-btn" onClick={() => newFile("json")} title="New JSON"><FileJson size={12} /></button>
-              <button className="editor-action-btn" onClick={() => newFile("yaml")} title="New YAML"><Braces size={12} /></button>
-              <button className="editor-action-btn" onClick={() => newFile("csv")} title="New CSV"><FileSpreadsheet size={12} /></button>
-            </div>
-          </div>
-          {editableArtifacts.length === 0 ? (
-            <div className="editor-doc-empty">No artifacts yet. Create a new file or save your work to the artifact library.</div>
-          ) : (
-            <div className="editor-doc-list">
-              {editableArtifacts.map((artifact) => {
-                const aType = detectFileType(artifact.name, artifact.type);
-                return (
-                  <div key={artifact.id} className={`editor-doc-item ${artifact.id === activeArtifactId ? "active" : ""}`} onClick={() => loadArtifact(artifact)}>
-                    <div className="editor-doc-item-info">
-                      <span style={{ color: getFileColor(aType), flexShrink: 0 }}>{getFileIcon(aType)}</span>
-                      <div className="editor-doc-item-text">
-                        <span className="editor-doc-item-name">{artifact.name}</span>
-                        <span className="editor-doc-item-date">
-                          {artifact.createdAt ? new Date(artifact.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
-                          {artifact.source && <span className="editor-doc-item-source">{artifact.source}</span>}
-                        </span>
-                      </div>
-                    </div>
-                    <button className="editor-doc-item-delete" onClick={(e) => { e.stopPropagation(); removeArtifact(artifact.id); }} title="Remove from artifacts"><Trash2 size={12} /></button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* ─── Main Content Area ───────────────────────────────────── */}
       <div className="editor-body">
         <div className={`editor-content editor-content--${mode}`}>
           {/* Editor Pane */}
           {(mode === "edit" || mode === "split") && (
             <div className="editor-pane editor-pane--edit">
-              {mode === "split" && <div className="editor-pane-label">{fileType === "markdown" ? "Markdown" : fileType.toUpperCase()}</div>}
+              {mode === "split" && <div className="editor-pane-label">{fileType === "markdown" ? "Markdown" : fileType === "txt" ? "Plain Text" : fileType.toUpperCase()}</div>}
               <textarea
                 ref={textareaRef}
                 className={`editor-textarea ${wordWrap ? "" : "no-wrap"}`}
@@ -792,7 +733,7 @@ When helping with this file:
                 onChange={(e) => handleContentChange(e.target.value)}
                 onKeyDown={handleTextareaKeyDown}
                 placeholder={`Start writing ${fileType}...`}
-                spellCheck={fileType === "markdown"}
+                spellCheck={fileType === "markdown" || fileType === "txt"}
               />
             </div>
           )}
@@ -803,6 +744,10 @@ When helping with this file:
               {mode === "split" && <div className="editor-pane-label">Preview</div>}
               {fileType === "markdown" ? (
                 <div className="editor-preview chat-md" dangerouslySetInnerHTML={{ __html: previewHtml || "" }} />
+              ) : fileType === "txt" ? (
+                <div className="editor-preview">
+                  <pre className="editor-structured-preview" style={{ whiteSpace: "pre-wrap" }}>{content}</pre>
+                </div>
               ) : (
                 <div className="editor-preview">
                   <StructuredPreview content={content} type={fileType} />
@@ -811,80 +756,6 @@ When helping with this file:
             </div>
           )}
         </div>
-
-        {/* ─── AI Chat Panel ───────────────────────────────────────── */}
-        {showAiPanel && (
-          <div className="editor-ai-panel">
-            <div className="editor-ai-header">
-              <div className="editor-ai-header-left">
-                <Sparkles size={14} style={{ color: "#fbbf24" }} />
-                <span>AI Editor</span>
-              </div>
-              <div className="editor-ai-header-right">
-                <span className="editor-ai-model">{modelLabel}</span>
-                <button className="editor-find-close" onClick={() => setShowAiPanel(false)}><X size={14} /></button>
-              </div>
-            </div>
-
-            <div className="editor-ai-messages">
-              {aiMessages.length === 0 && aiStreamingText === null && (
-                <div className="editor-ai-empty">
-                  <Sparkles size={20} style={{ color: "#fbbf24", opacity: 0.5 }} />
-                  <p>Ask the AI to help write, edit, or transform your {fileType} content.</p>
-                  <div className="editor-ai-suggestions">
-                    <button onClick={() => setAiInput("Fix any errors in this file")}>Fix errors</button>
-                    <button onClick={() => setAiInput("Improve and expand this content")}>Improve content</button>
-                    <button onClick={() => setAiInput("Convert this to a different format")}>Convert format</button>
-                    {fileType === "json" && <button onClick={() => setAiInput("Add schema validation comments")}>Add schema</button>}
-                    {fileType === "markdown" && <button onClick={() => setAiInput("Add a table of contents")}>Add TOC</button>}
-                    {fileType === "csv" && <button onClick={() => setAiInput("Add sample data rows")}>Add sample data</button>}
-                  </div>
-                </div>
-              )}
-
-              {aiMessages.map((msg, i) => (
-                <div key={i} className={`editor-ai-msg editor-ai-msg--${msg.role}`}>
-                  {msg.role === "assistant" ? (
-                    <div className="editor-ai-msg-content">
-                      <MarkdownContent content={msg.content} />
-                      {msg.content.includes("```") && (
-                        <button className="editor-ai-apply-btn" onClick={() => applyAiCodeBlock(msg.content)} title="Apply code block to editor">
-                          <ChevronRight size={12} /> Apply to editor
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="editor-ai-msg-content">{msg.content}</div>
-                  )}
-                </div>
-              ))}
-
-              {aiStreamingText !== null && (
-                <div className="editor-ai-msg editor-ai-msg--assistant">
-                  <div className="editor-ai-msg-content">
-                    <MarkdownContent content={aiStreamingText || "..."} />
-                  </div>
-                </div>
-              )}
-
-              <div ref={aiEndRef} />
-            </div>
-
-            <div className="editor-ai-input-bar">
-              <input
-                className="editor-ai-input"
-                value={aiInput}
-                onChange={(e) => setAiInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendAiMessage(); } }}
-                placeholder={`Ask AI about your ${fileType} file...`}
-                disabled={aiLoading}
-              />
-              <button className="editor-ai-send" onClick={sendAiMessage} disabled={aiLoading || !aiInput.trim()}>
-                {aiLoading ? <Loader2 size={14} className="editor-ai-spinner" /> : <Send size={14} />}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ─── Status Bar ──────────────────────────────────────────── */}

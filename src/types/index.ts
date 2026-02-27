@@ -555,7 +555,7 @@ export interface EmailOTPVerification {
 
 export type JobStatus = "queued" | "running" | "completed" | "failed";
 
-export type ArtifactType = "markdown" | "json" | "yaml" | "csv" | "image" | "code";
+export type ArtifactType = "markdown" | "json" | "yaml" | "csv" | "image" | "code" | "txt";
 
 export interface JobArtifact {
   id: string;

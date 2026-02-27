@@ -6,7 +6,8 @@ describe('createAgentCommand', () => {
         workspace: {
             setAgents: vi.fn(),
             addLog: vi.fn(),
-        }
+        },
+        storage: {} as Record<string, any>,
     };
 
     it('validates name length', async () => {

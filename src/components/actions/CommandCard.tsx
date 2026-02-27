@@ -21,10 +21,12 @@ const getCommandColor = (tags: string[]) => {
 interface CommandCardProps {
     command: CommandDefinition;
     onRun?: () => void;
+    onTagClick?: (tag: string) => void;
+    activeTags?: Set<string>;
     onAddToStudio?: () => void;
 }
 
-export function CommandCard({ command, onRun, onAddToStudio }: CommandCardProps) {
+export function CommandCard({ command, onRun, onTagClick, activeTags, onAddToStudio }: CommandCardProps) {
     const [isFlipped, setIsFlipped] = useState(false);
     const [animationState, setAnimationState] = useState<"idle" | "pressing" | "flipping">("idle");
     const color = getCommandColor(command.tags);
@@ -125,15 +127,23 @@ export function CommandCard({ command, onRun, onAddToStudio }: CommandCardProps)
                         </div>
                     </div>
                     <div className="cmd-card__tags">
-                        {command.tags.map(tag => (
-                            <span key={tag} className="cmd-card__tag" style={{
-                                background: `${color}10`,
-                                border: `1px solid ${color}10`,
-                                color,
-                            }}>
-                                #{tag}
-                            </span>
-                        ))}
+                        {command.tags.map(tag => {
+                            const isActive = activeTags?.has(tag) || false;
+                            return (
+                                <span
+                                    key={tag}
+                                    className={`cmd-card__tag cmd-card__tag--clickable${isActive ? " cmd-card__tag--active" : ""}`}
+                                    style={{
+                                        background: isActive ? `${color}25` : `${color}10`,
+                                        border: `1px solid ${isActive ? `${color}50` : `${color}10`}`,
+                                        color,
+                                    }}
+                                    onClick={(e) => { e.stopPropagation(); onTagClick?.(tag); }}
+                                >
+                                    #{tag}
+                                </span>
+                            );
+                        })}
                     </div>
                 </div>
 

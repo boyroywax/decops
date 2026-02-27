@@ -25,6 +25,7 @@ function getIcon(type: string, size = 18) {
         case "image": return <Image size={size} />;
         case "code": return <Code size={size} />;
         case "csv": return <Hash size={size} />;
+        case "txt": return <FileText size={size} />;
         default: return <File size={size} />;
     }
 }
@@ -37,6 +38,7 @@ function getIconColor(type: string) {
         case "image": return "#f472b6";
         case "code": return "#a78bfa";
         case "csv": return "#34d399";
+        case "txt": return "#94a3b8";
         default: return "#9ca3af";
     }
 }
@@ -47,6 +49,10 @@ function inferTypeFromName(name: string): ArtifactType {
         md: "markdown", json: "json", yaml: "yaml", yml: "yaml",
         csv: "csv", ts: "code", js: "code", py: "code", rs: "code",
         png: "image", jpg: "image", jpeg: "image", gif: "image", svg: "image", webp: "image",
+        txt: "txt", text: "txt", log: "txt", sh: "txt", bash: "txt",
+        zsh: "txt", env: "txt", cfg: "txt", conf: "txt", ini: "txt",
+        toml: "txt", properties: "txt", gitignore: "txt", dockerignore: "txt",
+        editorconfig: "txt", makefile: "txt", dockerfile: "txt",
     };
     return map[ext] ?? "markdown";
 }
@@ -124,6 +130,7 @@ function CreateArtifactModal({ onClose, onCreate }: {
                                 <option value="yaml">YAML</option>
                                 <option value="code">Code</option>
                                 <option value="csv">CSV</option>
+                                <option value="txt">Plain Text</option>
                                 <option value="image">Image</option>
                             </select>
                         </label>

@@ -146,6 +146,21 @@
   padding: 2px 6px;
 }
 
+.cmd-card__tag--clickable {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.cmd-card__tag--clickable:hover {
+  filter: brightness(1.3);
+  transform: scale(1.08);
+}
+
+.cmd-card__tag--active {
+  font-weight: 600;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.05);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * BACK FACE
  * ═══════════════════════════════════════════════════════════════════════════ */

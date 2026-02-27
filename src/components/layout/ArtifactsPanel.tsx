@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { X, Gem, Plus, FileText, Image, Code, File, Tag, Layers, Clock, Hash, ChevronRight, Search, Upload, PenLine, ChevronsUp, ChevronsDown } from "lucide-react";
+import { X, Gem, Plus, FileText, Image, Code, File, Tag, Layers, Clock, Hash, ChevronRight, Search, Upload, PenLine, ChevronsUp, ChevronsDown, Edit3 } from "lucide-react";
 import type { JobArtifact, ArtifactType } from "../../types";
 import "../../styles/components/artifacts-panel.css";
 
@@ -17,6 +17,7 @@ interface ArtifactsPanelProps {
     setHeight: (h: number) => void;
     isExpanded: boolean;
     onToggleExpand: () => void;
+    onOpenInEditor?: (artifact: JobArtifact) => void;
 }
 
 /* ─── Helpers ───────────────────────────────────────────────────────── */
@@ -29,6 +30,7 @@ function getIcon(type: string, size = 14) {
         case "image": return <Image size={size} />;
         case "code": return <Code size={size} />;
         case "csv": return <Hash size={size} />;
+        case "txt": return <FileText size={size} />;
         default: return <File size={size} />;
     }
 }
@@ -41,6 +43,7 @@ function getIconColor(type: string) {
         case "image": return "#f472b6";
         case "code": return "#a78bfa";
         case "csv": return "#34d399";
+        case "txt": return "#94a3b8";
         default: return "#9ca3af";
     }
 }
@@ -51,6 +54,10 @@ function inferTypeFromName(name: string): ArtifactType {
         md: "markdown", json: "json", yaml: "yaml", yml: "yaml",
         csv: "csv", ts: "code", js: "code", py: "code", rs: "code",
         png: "image", jpg: "image", jpeg: "image", gif: "image", svg: "image", webp: "image",
+        txt: "txt", text: "txt", log: "txt", sh: "txt", bash: "txt",
+        zsh: "txt", env: "txt", cfg: "txt", conf: "txt", ini: "txt",
+        toml: "txt", properties: "txt", gitignore: "txt", dockerignore: "txt",
+        editorconfig: "txt", makefile: "txt", dockerfile: "txt",
     };
     return map[ext] ?? "markdown";
 }
@@ -148,6 +155,7 @@ function CreateArtifactModal({ onClose, onCreate }: {
                             <option value="yaml">YAML</option>
                             <option value="code">Code</option>
                             <option value="csv">CSV</option>
+                            <option value="txt">Plain Text</option>
                             <option value="image">Image</option>
                         </select>
                     </label>
@@ -177,7 +185,7 @@ function CreateArtifactModal({ onClose, onCreate }: {
  * MAIN COMPONENT
  * ═══════════════════════════════════════════════════════════════════════ */
 
-export function ArtifactsPanel({ artifacts, importArtifact, removeArtifact, updateArtifact, onClose, height, setHeight, isExpanded, onToggleExpand }: ArtifactsPanelProps) {
+export function ArtifactsPanel({ artifacts, importArtifact, removeArtifact, updateArtifact, onClose, height, setHeight, isExpanded, onToggleExpand, onOpenInEditor }: ArtifactsPanelProps) {
     const [isResizing, setIsResizing] = useState(false);
     const [search, setSearch] = useState("");
     const [selectedArtifact, setSelectedArtifact] = useState<JobArtifact | null>(null);
@@ -432,6 +440,15 @@ export function ArtifactsPanel({ artifacts, importArtifact, removeArtifact, upda
                                                 </div>
                                             )}
                                         </div>
+                                        {onOpenInEditor && art.type !== "image" && art.content !== undefined && (
+                                            <button
+                                                className="artifacts-panel__editor-btn"
+                                                onClick={e => { e.stopPropagation(); onOpenInEditor(art); }}
+                                                title="Open in Editor"
+                                            >
+                                                <Edit3 size={11} />
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -487,6 +504,11 @@ export function ArtifactsPanel({ artifacts, importArtifact, removeArtifact, upda
                             )}
                         </div>
                         <div className="artifacts-panel__preview-actions">
+                            {onOpenInEditor && selectedArtifact.type !== "image" && selectedArtifact.content !== undefined && (
+                                <button onClick={() => onOpenInEditor(selectedArtifact)} className="artifacts-panel__btn artifacts-panel__btn--editor">
+                                    <Edit3 size={12} /> Open in Editor
+                                </button>
+                            )}
                             <button onClick={handleDownload} className="artifacts-panel__btn artifacts-panel__btn--download">
                                 Download
                             </button>

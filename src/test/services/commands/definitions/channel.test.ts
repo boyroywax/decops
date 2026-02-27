@@ -13,7 +13,8 @@ describe('createChannelCommand', () => {
             channels: [],
             setChannels: vi.fn(),
             addLog: vi.fn(),
-        }
+        },
+        storage: {} as Record<string, any>,
     };
 
     it('creates a new channel', async () => {

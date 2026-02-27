@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard } from "lucide-react";
+import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3 } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { chatWithWorkspace, streamChatWithWorkspace, getSelectedModel } from "../../services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "../../services/ai";
@@ -16,7 +16,9 @@ import { useAuth } from "../../context/AuthContext";
 import { registry as commandRegistry } from "../../services/commands/registry";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { useStudioContext } from "../../context/StudioContext";
+import { useEditorContext } from "../../context/EditorContext";
 import type { ChatPosition } from "../../context/ThemeContext";
+import type { ViewId } from "../../types";
 import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {
@@ -29,9 +31,10 @@ interface ChatPanelProps {
     isExpanded: boolean;
     onToggleExpand: () => void;
     position?: ChatPosition;
+    view?: ViewId;
 }
 
-export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeight, isExpanded, onToggleExpand, position = "bottom" }: ChatPanelProps) {
+export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeight, isExpanded, onToggleExpand, position = "bottom", view }: ChatPanelProps) {
     const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
     const [activeId, setActiveId] = useState<string | null>(loadActiveId);
     const [input, setInput] = useState("");
@@ -40,6 +43,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallDisplay[]>([]);
     const [showConvos, setShowConvos] = useState(false);
     const [studioMode, setStudioMode] = useState(true);
+    const [editorMode, setEditorMode] = useState(true);
     const endRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const initialScrollDone = useRef(false);
@@ -250,8 +254,16 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                     },
                 };
 
+                // Build editor context suffix if editor mode is active
+                let messageToSend = text;
+                if (editorActive && editorApi) {
+                    const editorState = editorApi.getState();
+                    const editorSuffix = `\n\nEDITOR MODE ACTIVE:\nYou are assisting with a file open in the Editor view. The user wants help editing it.\n\nCurrent file: "${editorState.docName}" (${editorState.fileType})\nFile content (${editorState.stats.lines} lines, ${editorState.stats.words} words):\n\`\`\`${editorState.fileType === "markdown" ? "md" : editorState.fileType}\n${editorState.content.length > 4000 ? editorState.content.substring(0, 4000) + "\n... (truncated)" : editorState.content}\n\`\`\`${!editorState.validation.valid ? `\nValidation Error: ${editorState.validation.error}` : ""}\n\nWhen helping with this file:\n- Provide COMPLETE updated file content in a fenced code block so the user can apply it.\n- Be precise with the format (${editorState.fileType}).\n- For small edits, show context around the change and the complete replacement.\n- Do NOT include explanatory text inside the code block, only the file content.`;
+                    messageToSend = text + editorSuffix;
+                }
+
                 const { text: response, toolCalls } = await streamChatWithWorkspace(
-                    text, currentMessages, context, streamCallbacks, commandContext,
+                    messageToSend, currentMessages, context, streamCallbacks, commandContext,
                 );
 
                 setStreamingText(null);
@@ -318,13 +330,22 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const llm = useLLM();
     const modelLabel = llm.getModelById(modelId)?.label || modelId;
     const { api: studioApi } = useStudioContext();
-    const studioAvailable = !!studioApi;
+    const studioAvailable = !!studioApi && view === "jobs";
     const studioActive = studioAvailable && studioMode;
+
+    const { api: editorApi } = useEditorContext();
+    const editorAvailable = !!editorApi && view === "editor";
+    const editorActive = editorAvailable && editorMode;
 
     // Auto-enable studio mode when studio becomes available
     useEffect(() => {
         if (studioAvailable) setStudioMode(true);
     }, [studioAvailable]);
+
+    // Auto-enable editor mode when editor becomes available
+    useEffect(() => {
+        if (editorAvailable) setEditorMode(true);
+    }, [editorAvailable]);
 
     // Cmd+J / Ctrl+J to toggle studio mode
     useEffect(() => {
@@ -372,6 +393,25 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             title="Enable Studio mode (⌘J)"
                         >
                             <Clapperboard size={10} /> <span className="chat-panel__studio-badge-label">Studio</span>
+                        </button>
+                    )}
+                    {editorActive && (
+                        <span className="chat-panel__editor-badge" title="Editor mode active — AI can read and edit your file">
+                            <Edit3 size={10} /> <span className="chat-panel__editor-badge-label">Editor</span>
+                            <button
+                                className="chat-panel__editor-badge-dismiss"
+                                onClick={() => setEditorMode(false)}
+                                title="Disable Editor mode"
+                            ><X size={8} /></button>
+                        </span>
+                    )}
+                    {editorAvailable && !editorMode && (
+                        <button
+                            className="chat-panel__editor-badge chat-panel__editor-badge--off"
+                            onClick={() => setEditorMode(true)}
+                            title="Enable Editor mode"
+                        >
+                            <Edit3 size={10} /> <span className="chat-panel__editor-badge-label">Editor</span>
                         </button>
                     )}
                     <span className="chat-panel__separator">│</span>
@@ -452,7 +492,20 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             </div>
                         </div>
                     )}
-                    {messages.map((m, i) => <MessageBubble key={i} msg={m} context={context} />)}
+                    {messages.map((m, i) => (
+                        <div key={i}>
+                            <MessageBubble msg={m} context={context} />
+                            {editorActive && editorApi && m.role === "assistant" && m.content.includes("```") && (
+                                <button
+                                    className="chat-panel__apply-editor-btn"
+                                    onClick={() => editorApi.applyCodeBlock(m.content)}
+                                    title="Extract code block and apply to editor"
+                                >
+                                    <Edit3 size={11} /> Apply to Editor
+                                </button>
+                            )}
+                        </div>
+                    ))}
                     {streamingText !== null && (
                         <MessageBubble
                             msg={{
@@ -485,14 +538,19 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             <Clapperboard size={13} />
                         </span>
                     )}
+                    {editorActive && !studioActive && (
+                        <span className="chat-panel__editor-input-badge" title="Editor mode — prompts include file context">
+                            <Edit3 size={13} />
+                        </span>
+                    )}
                     <input
                         ref={inputRef}
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-                        placeholder={studioActive ? "Ask the AI to build on the Studio canvas..." : "Ask about your workspace..."}
+                        placeholder={studioActive ? "Ask the AI to build on the Studio canvas..." : editorActive ? "Ask the AI to help edit your file..." : "Ask about your workspace..."}
                         disabled={loading}
-                        className={`chat-panel__input${studioActive ? " chat-panel__input--studio" : ""}`}
+                        className={`chat-panel__input${studioActive ? " chat-panel__input--studio" : editorActive ? " chat-panel__input--editor" : ""}`}
                     />
                     <button
                         onClick={send}

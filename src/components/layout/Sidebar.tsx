@@ -5,7 +5,7 @@ import {
   Sparkles, Globe, Bot, ArrowLeftRight,
   Hexagon, MessageSquare, Clapperboard,
   ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
-  Activity, Zap, FileText,
+  Activity, Zap, FileText, ChevronDown, Layers,
 } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import "../../styles/components/sidebar.css";
@@ -22,6 +22,7 @@ interface SidebarProps {
   collapsed: boolean;
   setCollapsed: (v: boolean) => void;
   isMobile?: boolean;
+  ecosystemName?: string;
 }
 
 const EDITOR_ITEM = { id: "editor" as ViewId, label: "Editor", icon: FileText, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] as [string, string] };
@@ -36,10 +37,13 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; 
   { id: "messages", label: "Messages", icon: MessageSquare, accent: "#fbbf24", gradient: ["#fbbf24", "#fb923c"] },
 ];
 
-export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, agents, channels, groups, collapsed, setCollapsed, isMobile }: SidebarProps) {
+const ECOSYSTEM_VIEWS: Set<ViewId> = new Set(["networks", "agents", "channels", "groups", "messages"]);
+
+export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, agents, channels, groups, collapsed, setCollapsed, isMobile, ecosystemName }: SidebarProps) {
   const navRef = useRef<HTMLElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [ecoExpanded, setEcoExpanded] = useState(() => ECOSYSTEM_VIEWS.has(view));
 
   const checkScroll = () => {
     if (navRef.current) {
@@ -99,76 +103,75 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
       className={`app-sidebar ${isMobile ? 'mobile' : ''} ${collapsed && !isMobile ? 'collapsed' : ''}`}
     >
       <div className="sidebar-nav-top">
-        {NAV_ITEMS.map((tab) => {
-        const badgeCount =
-          tab.id === "networks" ? ecosystems.length :
-          tab.id === "agents" ? agents.length :
-          tab.id === "channels" ? channels.length :
-          tab.id === "groups" ? groups.length :
-          tab.id === "messages" ? messages.length + bridgeMessages.length :
-          0;
-
-        return (
+        {/* ─── Ecosystem Expandable Menu ─── */}
         <button
-          key={tab.id}
-          onClick={() => setView(tab.id)}
-          title={collapsed ? tab.label : undefined}
-          className={`sidebar-nav-item ${view === tab.id ? 'active' : ''}`}
-          data-accent={getAccentType(tab.id)}
-          style={view === tab.id ? { color: tab.accent } : undefined}
+          onClick={() => {
+            if (collapsed && !isMobile) {
+              setCollapsed(false);
+              setEcoExpanded(true);
+            } else {
+              setEcoExpanded(!ecoExpanded);
+            }
+          }}
+          title={collapsed && !isMobile ? (ecosystemName || "Ecosystem") : undefined}
+          className={`sidebar-nav-item sidebar-eco-toggle ${ECOSYSTEM_VIEWS.has(view) ? 'active' : ''}`}
+          data-accent="accent"
         >
-          {view === tab.id
-            ? <GradientIcon icon={tab.icon} size={14} gradient={tab.gradient} />
-            : <tab.icon size={14} />
+          {ECOSYSTEM_VIEWS.has(view)
+            ? <GradientIcon icon={Layers} size={14} gradient={["#00e5a0", "#38bdf8"]} />
+            : <Layers size={14} />
           }
-          {/* Collapsed badge — small overlay near icon */}
-          {collapsed && !isMobile && badgeCount > 0 && (
-            <span className={`sidebar-badge ${getAccentType(tab.id)}`}>{badgeCount}</span>
-          )}
-          {(!collapsed || isMobile) && (
+          {collapsed && !isMobile && (
             <>
-              {tab.label}
-              {tab.id === "networks" && ecosystems.length > 0 && (
-                <span className="sidebar-count info">{ecosystems.length}</span>
-              )}
-              {tab.id === "agents" && agents.length > 0 && (
-                <span className="sidebar-count accent">{agents.length}</span>
-              )}
-              {tab.id === "channels" && channels.length > 0 && (
-                <span className="sidebar-count channel">{channels.length}</span>
-              )}
-              {tab.id === "groups" && groups.length > 0 && (
-                <span className="sidebar-count group">{groups.length}</span>
-              )}
-              {tab.id === "messages" && (messages.length + bridgeMessages.length) > 0 && (
-                <span className="sidebar-count warning">{messages.length + bridgeMessages.length}</span>
+              {(ecosystems.length + agents.length + channels.length + groups.length) > 0 && (
+                <span className="sidebar-badge accent">{ecosystems.length + agents.length + channels.length + groups.length}</span>
               )}
             </>
           )}
+          {(!collapsed || isMobile) && (
+            <>
+              <span className="sidebar-eco-name">{ecosystemName || "Ecosystem"}</span>
+              <ChevronDown size={12} className={`sidebar-eco-chevron${ecoExpanded ? ' sidebar-eco-chevron--open' : ''}`} />
+            </>
+          )}
         </button>
-        );
-      })}
+
+        {/* ─── Ecosystem Sub-items ─── */}
+        {ecoExpanded && (!collapsed || isMobile) && (
+          <div className="sidebar-eco-subitems">
+            {NAV_ITEMS.map((tab) => {
+              const badgeCount =
+                tab.id === "networks" ? ecosystems.length :
+                tab.id === "agents" ? agents.length :
+                tab.id === "channels" ? channels.length :
+                tab.id === "groups" ? groups.length :
+                tab.id === "messages" ? messages.length + bridgeMessages.length :
+                0;
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setView(tab.id)}
+                  className={`sidebar-nav-item sidebar-nav-subitem ${view === tab.id ? 'active' : ''}`}
+                  data-accent={getAccentType(tab.id)}
+                  style={view === tab.id ? { color: tab.accent } : undefined}
+                >
+                  {view === tab.id
+                    ? <GradientIcon icon={tab.icon} size={13} gradient={tab.gradient} />
+                    : <tab.icon size={13} />
+                  }
+                  {tab.label}
+                  {badgeCount > 0 && (
+                    <span className={`sidebar-count ${getAccentType(tab.id)}`}>{badgeCount}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="sidebar-nav-bottom">
-      <button
-        onClick={() => setView(EDITOR_ITEM.id)}
-        title={collapsed && !isMobile ? EDITOR_ITEM.label : undefined}
-        className={`sidebar-nav-item sidebar-nav-item--editor ${view === EDITOR_ITEM.id ? 'active' : ''}`}
-        data-accent={getAccentType(EDITOR_ITEM.id)}
-        style={view === EDITOR_ITEM.id ? { color: EDITOR_ITEM.accent } : undefined}
-      >
-        {view === EDITOR_ITEM.id
-          ? <GradientIcon icon={EDITOR_ITEM.icon} size={14} gradient={EDITOR_ITEM.gradient} />
-          : <EDITOR_ITEM.icon size={14} />
-        }
-        {(!collapsed || isMobile) && (
-          <>
-            {EDITOR_ITEM.label}
-          </>
-        )}
-      </button>
-
       <button
         onClick={() => setView(ARCHITECT_ITEM.id)}
         title={collapsed && !isMobile ? ARCHITECT_ITEM.label : undefined}
@@ -184,6 +187,24 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
           <>
             {ARCHITECT_ITEM.label}
             <span className="sidebar-shortcut">⌘K</span>
+          </>
+        )}
+      </button>
+
+      <button
+        onClick={() => setView(EDITOR_ITEM.id)}
+        title={collapsed && !isMobile ? EDITOR_ITEM.label : undefined}
+        className={`sidebar-nav-item sidebar-nav-item--editor ${view === EDITOR_ITEM.id ? 'active' : ''}`}
+        data-accent={getAccentType(EDITOR_ITEM.id)}
+        style={view === EDITOR_ITEM.id ? { color: EDITOR_ITEM.accent } : undefined}
+      >
+        {view === EDITOR_ITEM.id
+          ? <GradientIcon icon={EDITOR_ITEM.icon} size={14} gradient={EDITOR_ITEM.gradient} />
+          : <EDITOR_ITEM.icon size={14} />
+        }
+        {(!collapsed || isMobile) && (
+          <>
+            {EDITOR_ITEM.label}
           </>
         )}
       </button>

@@ -6,7 +6,7 @@ import { CommandArgInput } from "../automations/CommandArgInput";
 import type { JobDefinition, JobStep, JobDeliverable, ArtifactType } from "../../types";
 import type { DeclarativeAutomationDefinition, AutomationStep } from "../../services/automations/types";
 
-const ARTIFACT_TYPES: ArtifactType[] = ["markdown", "json", "yaml", "csv", "image", "code"];
+const ARTIFACT_TYPES: ArtifactType[] = ["markdown", "json", "yaml", "csv", "image", "code", "txt"];
 
 interface UnifiedBuilderProps {
     onRunJob: (job: JobDefinition) => void;
