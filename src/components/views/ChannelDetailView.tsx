@@ -4,6 +4,8 @@ import { Radio, Calendar, ArrowLeftRight, MessageSquare, Globe, Zap, Users, Cloc
 import { GradientIcon } from "../shared/GradientIcon";
 import { CopyableId } from "../shared/CopyableId";
 import { MarkdownContent } from "../shared/MarkdownContent";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import "../../styles/components/channel-detail.css";
 
 interface ChannelDetailViewProps {
@@ -39,6 +41,7 @@ export function ChannelDetailView({
   const chType = CHANNEL_TYPES.find(t => t.id === channel.type);
   const fromRole = ROLES.find(r => r.id === fromAgent?.role);
   const toRole = ROLES.find(r => r.id === toAgent?.role);
+  const delConfirm = useDeleteConfirm();
 
   const handleOpenMessages = () => {
     setActiveChannel(channelId);
@@ -194,9 +197,18 @@ export function ChannelDetailView({
         <button className="channel-detail__action-btn channel-detail__action-btn--primary" onClick={handleOpenMessages}>
           <MessageSquare size={13} /> Open Messages
         </button>
-        <button className="channel-detail__action-btn channel-detail__action-btn--danger" onClick={handleDelete}>
-          <Trash2 size={13} /> Remove Channel
-        </button>
+        {delConfirm.isPending(channelId) ? (
+          <DeleteConfirmInline
+            entityName="Channel"
+            onConfirm={() => delConfirm.confirm(() => handleDelete())}
+            onCancel={delConfirm.cancel}
+            compact
+          />
+        ) : (
+          <button className="channel-detail__action-btn channel-detail__action-btn--danger" onClick={() => delConfirm.requestDelete(channelId)}>
+            <Trash2 size={13} /> Remove Channel
+          </button>
+        )}
       </div>
     </div>
   );

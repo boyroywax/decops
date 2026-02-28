@@ -8,6 +8,8 @@ import { CopyableId } from "../shared/CopyableId";
 import { GroupBadge } from "../shared/GroupBadge";
 import { GroupTradingCard } from "../shared/GroupTradingCard";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import "../../styles/components/groups.css";
 
 interface GroupsViewProps {
@@ -36,6 +38,7 @@ export function GroupsView({
   setBroadcastGroup, setView,
 }: GroupsViewProps) {
   const bulk = useBulkSelect();
+  const del = useDeleteConfirm();
   const [tradingCardGroup, setTradingCardGroup] = useState<{ group: Group; members: Agent[]; networkName?: string; networkColor?: string } | null>(null);
 
   const getNetworkName = (networkId?: string) => {
@@ -202,7 +205,11 @@ export function GroupsView({
                   ))}
                   <div className="group-actions">
                     <button onClick={(e) => { e.stopPropagation(); setBroadcastGroup(g.id); setView("messages"); }} className="group-action-btn group-action-btn--broadcast">Broadcast</button>
-                    <button onClick={(e) => { e.stopPropagation(); removeGroup(g.id); }} className="group-action-btn group-action-btn--dissolve">Dissolve</button>
+                    {del.isPending(g.id) ? (
+                      <DeleteConfirmInline entityName="Group" entityLabel={g.name} warning="All members will be released." onConfirm={() => del.confirm(() => removeGroup(g.id))} onCancel={del.cancel} compact />
+                    ) : (
+                      <button onClick={(e) => { e.stopPropagation(); del.requestDelete(g.id); }} className="group-action-btn group-action-btn--dissolve">Dissolve</button>
+                    )}
                   </div>
                 </div>
               )}

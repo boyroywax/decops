@@ -8,6 +8,8 @@ import {
   Brain, Sparkles, Compass, BookOpen, Heart, Mic,
   Shield, Target,
 } from "lucide-react";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import { AgentChat } from "../chat/AgentChat";
 import { CopyableId } from "../shared/CopyableId";
 import { AgentPortrait } from "../shared/AgentPortrait";
@@ -77,6 +79,7 @@ export function AgentDetailView({
   const [importMsg, setImportMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [showTradingCard, setShowTradingCard] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
+  const delConfirm = useDeleteConfirm();
 
   if (!agent) {
     return (
@@ -703,15 +706,22 @@ export function AgentDetailView({
 
       {/* Actions */}
       <div className="agent-detail__actions">
-        <button
-          className="agent-detail__action-btn agent-detail__action-btn--danger"
-          onClick={() => {
-            removeAgent(agentId);
-            navigateTo("networks", { networkId });
-          }}
-        >
-          <Trash2 size={12} /> Remove Agent
-        </button>
+        {delConfirm.isPending(agentId) ? (
+          <DeleteConfirmInline
+            entityName="Agent"
+            entityLabel={agent.name}
+            onConfirm={() => delConfirm.confirm(() => { removeAgent(agentId); navigateTo("networks", { networkId }); })}
+            onCancel={delConfirm.cancel}
+            compact
+          />
+        ) : (
+          <button
+            className="agent-detail__action-btn agent-detail__action-btn--danger"
+            onClick={() => delConfirm.requestDelete(agentId)}
+          >
+            <Trash2 size={12} /> Remove Agent
+          </button>
+        )}
       </div>
 
       {/* Trading card modal */}

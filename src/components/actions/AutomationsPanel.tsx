@@ -5,6 +5,8 @@ import { useStudioContext } from "../../context/StudioContext";
 import { AutomationCard } from "../automations/AutomationCard";
 import type { AutomationDefinition, DeclarativeAutomationDefinition } from "../../services/automations/types";
 import type { ViewId } from "../../types";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import "../../styles/components/automations-panel.css";
 
 interface AutomationsPanelProps {
@@ -17,6 +19,7 @@ export function AutomationsPanel({ setView }: AutomationsPanelProps) {
     const [layoutView, setLayoutView] = useState<"cards" | "table">("cards");
     const [filter, setFilter] = useState("");
     const [logTarget, setLogTarget] = useState<string | null>(null);
+    const del = useDeleteConfirm();
 
     const filtered = automations.filter(a =>
         a.name.toLowerCase().includes(filter.toLowerCase()) ||
@@ -196,13 +199,17 @@ export function AutomationsPanel({ setView }: AutomationsPanelProps) {
                                                 >
                                                     <PlayCircle size={14} />
                                                 </button>
-                                                <button
-                                                    onClick={() => deleteAutomation(auto.id)}
-                                                    className="automations-panel__action-btn automations-panel__action-btn--delete"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
+                                                {del.isPending(auto.id) ? (
+                                                    <DeleteConfirmInline entityName="Automation" entityLabel={auto.name} warning="This automation will be permanently deleted." onConfirm={() => del.confirm(() => deleteAutomation(auto.id))} onCancel={del.cancel} compact />
+                                                ) : (
+                                                    <button
+                                                        onClick={() => del.requestDelete(auto.id)}
+                                                        className="automations-panel__action-btn automations-panel__action-btn--delete"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>

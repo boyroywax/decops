@@ -7,6 +7,8 @@ import {
 import { CopyableId } from "../shared/CopyableId";
 import { GroupBadge } from "../shared/GroupBadge";
 import { GroupTradingCard } from "../shared/GroupTradingCard";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import "../../styles/components/group-detail.css";
 
 interface GroupDetailViewProps {
@@ -41,6 +43,7 @@ export function GroupDetailView({
   const memberAgents = agents.filter(a => group.members.includes(a.id));
   const nonMembers = agents.filter(a => a.networkId === networkId && !group.members.includes(a.id));
   const [showTradingCard, setShowTradingCard] = useState(false);
+  const delConfirm = useDeleteConfirm();
 
   return (
     <div className="group-detail">
@@ -165,15 +168,22 @@ export function GroupDetailView({
         >
           <Radio size={12} /> Broadcast to Group
         </button>
-        <button
-          className="group-detail__action-btn group-detail__action-btn--danger"
-          onClick={() => {
-            removeGroup(groupId);
-            navigateTo("networks", { networkId });
-          }}
-        >
-          <Trash2 size={12} /> Remove Group
-        </button>
+        {delConfirm.isPending(groupId) ? (
+          <DeleteConfirmInline
+            entityName="Group"
+            entityLabel={group.name}
+            onConfirm={() => delConfirm.confirm(() => { removeGroup(groupId); navigateTo("networks", { networkId }); })}
+            onCancel={delConfirm.cancel}
+            compact
+          />
+        ) : (
+          <button
+            className="group-detail__action-btn group-detail__action-btn--danger"
+            onClick={() => delConfirm.requestDelete(groupId)}
+          >
+            <Trash2 size={12} /> Remove Group
+          </button>
+        )}
       </div>
 
       {/* Trading card modal */}

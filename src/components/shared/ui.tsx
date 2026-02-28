@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
 
 // NOTE: These inline style constants are DEPRECATED
 // Use CSS classes from the design system instead:
@@ -96,6 +97,7 @@ export function BulkActionBar({
   entityName: string;
   color?: string;
 }) {
+  const del = useDeleteConfirm();
   if (count === 0) return null;
   return (
     <div className="bulk-action-bar">
@@ -111,12 +113,21 @@ export function BulkActionBar({
         <button onClick={allSelected ? onClear : onSelectAll} className="btn btn-ghost btn-sm">
           {allSelected ? "Deselect All" : `Select All (${total})`}
         </button>
-        <button onClick={onClear} className="btn btn-ghost btn-sm">
+        <button onClick={() => { del.cancel(); onClear(); }} className="btn btn-ghost btn-sm">
           Cancel
         </button>
-        <button onClick={onDelete} className="btn btn-danger btn-sm">
-          🗑 Delete {count}
-        </button>
+        {del.isPending("bulk") ? (
+          <>
+            <button onClick={del.cancel} className="btn btn-ghost btn-sm">No, keep</button>
+            <button onClick={() => del.confirm(() => { onDelete(); del.cancel(); })} className="btn btn-danger btn-sm">
+              ✅ Confirm delete {count}
+            </button>
+          </>
+        ) : (
+          <button onClick={() => del.requestDelete("bulk")} className="btn btn-danger btn-sm">
+            🗑 Delete {count}
+          </button>
+        )}
       </div>
     </div>
   );

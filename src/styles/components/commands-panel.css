@@ -148,13 +148,76 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * CARD GRID (reuses ActionLibrary grid)
+ * CARD SIZE SLIDER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.commands-panel__size-control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin-left: var(--space-sm);
+}
+
+.commands-panel__size-icon {
+  color: var(--text-ghost);
+  flex-shrink: 0;
+}
+
+.commands-panel__size-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 60px;
+  height: 4px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-full);
+  outline: none;
+  cursor: pointer;
+}
+
+.commands-panel__size-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: var(--color-accent, #00e5a0);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+
+.commands-panel__size-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.3);
+}
+
+.commands-panel__size-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: var(--color-accent, #00e5a0);
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CARD GRID — Size Variants
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 .commands-panel__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--space-2xl);
+}
+
+.commands-panel__grid--sm {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: var(--space-lg);
+}
+
+.commands-panel__grid--md {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.commands-panel__grid--lg {
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -283,20 +346,6 @@
 
 .commands-panel__td--run {
   text-align: center;
-}
-
-.commands-panel__run-btn {
-  padding: 3px 8px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity var(--transition-fast);
-}
-
-.commands-panel__run-btn:hover {
-  opacity: 0.8;
 }
 
 .commands-panel__studio-btn {

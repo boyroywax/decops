@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { X, AlertTriangle, Clipboard, Download, Upload, Check, Zap } from "lucide-react";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import { useAuth } from "../../context/AuthContext";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { useEcosystemContext } from "../../context/EcosystemContext";
@@ -21,6 +23,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   const [status, setStatus] = useState("");
   const [importStatus, setImportStatus] = useState("");
+  const del = useDeleteConfirm();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const backdropRef = useRef<HTMLDivElement>(null);
 
@@ -109,10 +112,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   };
 
   const handleReset = () => {
-    if (confirm("Are you sure? This will WIPE ALL DATA. This cannot be undone.")) {
-      localStorage.clear();
-      window.location.reload();
-    }
+    localStorage.clear();
+    window.location.reload();
   };
 
   const hasAnyKey = llm.hasProviderKey("anthropic") || llm.hasProviderKey("google");
@@ -234,9 +235,13 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
                 <p className="profile-danger-description">
                   Wipe all LocalStorage and reset.
                 </p>
-                <button onClick={handleReset} className="btn btn-danger-solid">
-                  Reset All
-                </button>
+                {del.isPending("reset") ? (
+                  <DeleteConfirmInline entityName="All Data" warning="This will WIPE ALL DATA. This cannot be undone." onConfirm={() => del.confirm(handleReset)} onCancel={del.cancel} compact />
+                ) : (
+                  <button onClick={() => del.requestDelete("reset")} className="btn btn-danger-solid">
+                    Reset All
+                  </button>
+                )}
               </div>
             </section>
           </div>

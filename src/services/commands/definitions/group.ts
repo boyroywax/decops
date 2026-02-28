@@ -32,6 +32,12 @@ export const createGroupCommand: CommandDefinition = {
             type: "network",
             description: "ID of the network this group belongs to",
             required: false,
+        },
+        items: {
+            name: "items",
+            type: "array",
+            description: "Batch mode: array of {name, members, governance, networkId?} specs. Overrides individual args.",
+            required: false,
         }
     },
     output: "JSON object containing the created group details.",
@@ -49,73 +55,92 @@ export const createGroupCommand: CommandDefinition = {
         }
     },
     execute: async (args, context) => {
-        const { name, members, governance } = args;
         const { agents, groups, setGroups, setChannels, addLog } = context.workspace;
 
-        // Validate members
-        const memberIds: string[] = [];
-        for (const input of members) {
-            const agent = agents.find((a: any) => a.id === input || a.name === input);
-            if (!agent) throw new Error(`Agent '${input}' not found`);
-            memberIds.push(agent.id);
-        }
+        // Combine workspace agents with any created in previous job steps
+        const allAgents = [...agents, ...(context.storage._agents || [])];
 
-        // Deduplicate
-        const uniqueMembers = [...new Set(memberIds)];
+        // Normalize: batch items or single spec
+        const specs = args.items
+            ? (Array.isArray(args.items) ? args.items : [args.items])
+            : [{ name: args.name, members: args.members, governance: args.governance, networkId: args.networkId }];
 
-        if (uniqueMembers.length < 2) throw new Error("Group must have at least 2 members");
+        const createdGroups: Group[] = [];
+        const allNewChannels: Channel[] = [];
 
-        // Create Group
-        const newGroup: Group = {
-            id: crypto.randomUUID(),
-            name,
-            governance: governance || "majority",
-            members: uniqueMembers,
-            threshold: Math.ceil(uniqueMembers.length / 2),
-            did: generateGroupDID(),
-            color: GROUP_COLORS[groups.length % GROUP_COLORS.length],
-            createdAt: new Date().toISOString(),
-            networkId: args.networkId || context.ecosystem?.activeNetworkId || undefined,
-        };
+        for (const spec of specs) {
+            const { name, members, governance } = spec;
 
-        setGroups((prev: any[]) => [...prev, newGroup]);
-        addLog(`Group "${name}" created via command`);
+            // Validate members
+            const memberIds: string[] = [];
+            for (const input of members) {
+                const agent = allAgents.find((a: any) => a.id === input || a.name === input);
+                if (!agent) throw new Error(`Agent '${input}' not found`);
+                memberIds.push(agent.id);
+            }
 
-        // Auto-create consensus channels (similar to useWorkspace logic)
-        const newCh: Channel[] = [];
-        const currentChannels = context.workspace.channels;
+            const uniqueMembers = [...new Set(memberIds)];
+            if (uniqueMembers.length < 2) throw new Error("Group must have at least 2 members");
 
-        for (let i = 0; i < uniqueMembers.length; i++) {
-            for (let j = i + 1; j < uniqueMembers.length; j++) {
-                const hasChannel = currentChannels.concat(newCh).some((c: any) =>
-                    (c.from === uniqueMembers[i] && c.to === uniqueMembers[j]) ||
-                    (c.from === uniqueMembers[j] && c.to === uniqueMembers[i])
-                );
+            const newGroup: Group = {
+                id: crypto.randomUUID(),
+                name,
+                governance: governance || "majority",
+                members: uniqueMembers,
+                threshold: Math.ceil(uniqueMembers.length / 2),
+                did: generateGroupDID(),
+                color: GROUP_COLORS[(groups.length + createdGroups.length) % GROUP_COLORS.length],
+                createdAt: new Date().toISOString(),
+                networkId: spec.networkId || context.ecosystem?.activeNetworkId || undefined,
+            };
 
-                if (!hasChannel) {
-                    newCh.push({
-                        id: crypto.randomUUID(),
-                        from: uniqueMembers[i],
-                        to: uniqueMembers[j],
-                        type: "consensus",
-                        offset: Math.random() * 100,
-                        createdAt: new Date().toISOString(),
-                        networkId: context.ecosystem?.activeNetworkId || undefined,
-                    });
+            createdGroups.push(newGroup);
+
+            // Auto-create consensus channels between members
+            const currentChannels = [...context.workspace.channels, ...(context.storage._channels || [])];
+            for (let i = 0; i < uniqueMembers.length; i++) {
+                for (let j = i + 1; j < uniqueMembers.length; j++) {
+                    const hasChannel = currentChannels.concat(allNewChannels).some((c: any) =>
+                        (c.from === uniqueMembers[i] && c.to === uniqueMembers[j]) ||
+                        (c.from === uniqueMembers[j] && c.to === uniqueMembers[i])
+                    );
+
+                    if (!hasChannel) {
+                        allNewChannels.push({
+                            id: crypto.randomUUID(),
+                            from: uniqueMembers[i],
+                            to: uniqueMembers[j],
+                            type: "consensus",
+                            offset: Math.random() * 100,
+                            createdAt: new Date().toISOString(),
+                            networkId: context.ecosystem?.activeNetworkId || undefined,
+                        });
+                    }
                 }
             }
+
+            // Write to shared storage
+            context.storage.lastGroupId = newGroup.id;
+            context.storage.lastGroupName = newGroup.name;
+            context.storage[`group_${name}`] = newGroup.id;
         }
 
-        if (newCh.length > 0) {
-            setChannels((prev: any[]) => [...prev, ...newCh]);
-            addLog(`Created ${newCh.length} consensus channels for group`);
+        setGroups((prev: any[]) => [...prev, ...createdGroups]);
+        addLog(`Created ${createdGroups.length} group(s): ${createdGroups.map(g => g.name).join(", ")}`);
+
+        if (allNewChannels.length > 0) {
+            setChannels((prev: any[]) => [...prev, ...allNewChannels]);
+            addLog(`Created ${allNewChannels.length} consensus channels for groups`);
         }
 
-        // Write to shared storage for downstream steps
-        context.storage.lastGroupId = newGroup.id;
-        context.storage.lastGroupName = newGroup.name;
-        context.storage[`group_${name}`] = newGroup.id;
-
-        return { status: "created", groupId: newGroup.id, channelCount: newCh.length };
+        // Single mode: backwards-compatible return shape
+        if (!args.items) {
+            return { status: "created", groupId: createdGroups[0].id, channelCount: allNewChannels.length };
+        }
+        // Batch mode
+        return {
+            results: createdGroups.map(g => ({ groupId: g.id, name: g.name })),
+            channelCount: allNewChannels.length,
+        };
     },
 };

@@ -1,5 +1,70 @@
 
-import { CommandDefinition } from "./types";
+import { CommandDefinition, CommandArgType } from "./types";
+
+/**
+ * Resolve entity name → ID for semantic arg types ("agent", "group", "channel", "network").
+ * If the provided value is already a valid entity ID, it passes through unchanged.
+ * If not, we attempt a case-insensitive name lookup and swap the value for the real ID.
+ */
+function resolveEntityName(
+    value: string,
+    argType: CommandArgType,
+    context: any,
+): string {
+    if (!value || typeof value !== "string") return value;
+
+    // Determine which collection to search and key for name
+    let entities: any[] | undefined;
+    switch (argType) {
+        case "agent":
+            entities = context?.workspace?.agents;
+            // Also check agents nested inside networks (ecosystem)
+            if (entities && !entities.find((e: any) => e.id === value)) {
+                const match = entities.find(
+                    (e: any) => e.name?.toLowerCase() === value.toLowerCase(),
+                );
+                if (match) return match.id;
+                // Fall through to check ecosystem network agents
+                const nets: any[] = context?.ecosystem?.ecosystems ?? [];
+                for (const net of nets) {
+                    const netAgents: any[] = net.agents ?? [];
+                    const netMatch = netAgents.find(
+                        (a: any) => a.id === value || a.name?.toLowerCase() === value.toLowerCase(),
+                    );
+                    if (netMatch) return netMatch.id;
+                }
+                // Also search mutable storage._agents (populated during deploy_network)
+                const storageAgents: any[] = context?.storage?._agents ?? [];
+                const storageMatch = storageAgents.find(
+                    (a: any) => a.id === value || a.name?.toLowerCase() === value.toLowerCase(),
+                );
+                if (storageMatch) return storageMatch.id;
+            }
+            break;
+        case "group":
+            entities = context?.workspace?.groups;
+            break;
+        case "channel":
+            entities = context?.workspace?.channels;
+            break;
+        case "network":
+            entities = context?.ecosystem?.ecosystems;
+            break;
+        default:
+            return value;
+    }
+
+    if (!entities) return value;
+
+    // Already a valid ID — pass through
+    if (entities.find((e: any) => e.id === value)) return value;
+
+    // Try case-insensitive name match
+    const match = entities.find(
+        (e: any) => e.name?.toLowerCase() === value.toLowerCase(),
+    );
+    return match ? match.id : value;
+}
 
 export class CommandRegistry {
     private commands: Map<string, CommandDefinition> = new Map();
@@ -26,6 +91,34 @@ export class CommandRegistry {
         }
 
         // Validate Arguments
+        // When batch mode (items arg) is provided, skip required checks for
+        // individual args — the command's execute body validates each item.
+        const isBatch = 'items' in command.args && args.items != null;
+
+        // ── Resolve entity names → IDs ──
+        // For args with semantic types (agent, group, channel, network),
+        // allow callers to pass entity names and auto-resolve to real IDs.
+        const entityTypes: Set<string> = new Set(["agent", "group", "channel", "network"]);
+        for (const [argName, argDef] of Object.entries(command.args)) {
+            const value = args[argName];
+            if (typeof value === "string" && entityTypes.has(argDef.type)) {
+                (args as any)[argName] = resolveEntityName(value, argDef.type, context);
+            }
+        }
+        // Also resolve entity names inside batch items arrays
+        if (isBatch && Array.isArray(args.items)) {
+            for (const item of args.items) {
+                if (item && typeof item === "object") {
+                    for (const [argName, argDef] of Object.entries(command.args)) {
+                        const value = item[argName];
+                        if (typeof value === "string" && entityTypes.has(argDef.type)) {
+                            item[argName] = resolveEntityName(value, argDef.type, context);
+                        }
+                    }
+                }
+            }
+        }
+
         for (const [argName, argDef] of Object.entries(command.args)) {
             const value = args[argName];
 
@@ -34,7 +127,7 @@ export class CommandRegistry {
             if (value === undefined || value === null) {
                 if (argDef.defaultValue !== undefined) {
                     (args as any)[argName] = argDef.defaultValue;
-                } else if (argDef.required !== false) {
+                } else if (argDef.required !== false && !(isBatch && argName !== 'items')) {
                     throw new Error(`Missing required argument: ${argName}`);
                 }
             }

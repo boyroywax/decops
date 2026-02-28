@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { CommandDefinition } from "../../services/commands/types";
-import { Play, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import "../../styles/components/command-card.css";
 
 const getCommandColor = (tags: string[]) => {
@@ -18,18 +18,29 @@ const getCommandColor = (tags: string[]) => {
     return "#71717a"; // Default
 };
 
+/* ─── Initial Placard ────────────────────────────────────────────────── */
+
+/** Extract 2-letter initials from a command id (e.g. "bulk_delete" → "BD") */
+function getInitials(id: string): string {
+    const parts = id.split(/[_\-]/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    if (id.length >= 2) return (id[0] + id[1]).toUpperCase();
+    return id[0]?.toUpperCase() ?? "?";
+}
+
 interface CommandCardProps {
     command: CommandDefinition;
-    onRun?: () => void;
+    cardSize?: "sm" | "md" | "lg";
     onTagClick?: (tag: string) => void;
     activeTags?: Set<string>;
     onAddToStudio?: () => void;
 }
 
-export function CommandCard({ command, onRun, onTagClick, activeTags, onAddToStudio }: CommandCardProps) {
+export function CommandCard({ command, cardSize = "md", onTagClick, activeTags, onAddToStudio }: CommandCardProps) {
     const [isFlipped, setIsFlipped] = useState(false);
     const [animationState, setAnimationState] = useState<"idle" | "pressing" | "flipping">("idle");
     const color = getCommandColor(command.tags);
+    const initials = useMemo(() => getInitials(command.id), [command.id]);
 
     const handleClick = () => {
         if (isFlipped) {
@@ -47,11 +58,6 @@ export function CommandCard({ command, onRun, onTagClick, activeTags, onAddToStu
         }, 200);
     };
 
-    const handleRunClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onRun?.();
-    };
-
     const getTransform = () => {
         if (isFlipped) return "rotateY(180deg)";
         if (animationState === "pressing") return "scale(0.92) rotateY(-15deg)";
@@ -67,7 +73,7 @@ export function CommandCard({ command, onRun, onTagClick, activeTags, onAddToStu
     return (
         <div
             onClick={handleClick}
-            className={`cmd-card${(isFlipped || animationState !== "idle") ? " cmd-card--elevated" : ""}`}
+            className={`cmd-card cmd-card--${cardSize}${(isFlipped || animationState !== "idle") ? " cmd-card--elevated" : ""}`}
         >
             <div className={`cmd-card__inner ${getTransitionClass()}`} style={{ transform: getTransform() }}>
                 {/* Front */}
@@ -80,25 +86,17 @@ export function CommandCard({ command, onRun, onTagClick, activeTags, onAddToStu
                                 {command.icon ? (
                                     <img src={command.icon} alt="" className="cmd-card__icon-img" />
                                 ) : (
-                                    <span className="cmd-card__slash">/</span>
+                                    <span
+                                        className="cmd-card__initials"
+                                        style={{ background: `${color}18`, color, borderColor: `${color}30` }}
+                                    >{initials}</span>
                                 )}
-                                {command.id}
+                                <span className="cmd-card__id-text">
+                                    <span className="cmd-card__slash">/</span>
+                                    {command.id}
+                                </span>
                             </div>
                             <div className="cmd-card__header-right">
-                                {onRun && (
-                                    <button
-                                        onClick={handleRunClick}
-                                        className="cmd-card__run-btn"
-                                        style={{
-                                            background: `${color}20`,
-                                            border: `1px solid ${color}40`,
-                                            color,
-                                        }}
-                                        title="Run Command"
-                                    >
-                                        <Play size={10} fill={color} />
-                                    </button>
-                                )}
                                 {onAddToStudio && (
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onAddToStudio(); }}
@@ -170,27 +168,10 @@ export function CommandCard({ command, onRun, onTagClick, activeTags, onAddToStu
                     </div>
 
                     <div className="cmd-card__footer">
-                        {onRun && (
-                            <button
-                                onClick={handleRunClick}
-                                className="cmd-card__back-run-btn"
-                                style={{
-                                    background: `${color}20`,
-                                    border: `1px solid ${color}40`,
-                                    color,
-                                }}
-                            >
-                                <Play size={10} fill={color} /> Run Command
-                            </button>
-                        )}
-                        {!onRun && (
-                            <>
-                                <div className="cmd-card__output-label">Output</div>
-                                <div className="cmd-card__output-text">
-                                    {command.output}
-                                </div>
-                            </>
-                        )}
+                        <div className="cmd-card__output-label">Output</div>
+                        <div className="cmd-card__output-text">
+                            {command.output}
+                        </div>
                     </div>
                 </div>
             </div>

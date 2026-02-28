@@ -36,6 +36,6 @@ describe('createAgentCommand', () => {
         expect(result).toHaveProperty('agentId');
         expect(result).toHaveProperty('did');
         expect(mockContext.workspace.setAgents).toHaveBeenCalled();
-        expect(mockContext.workspace.addLog).toHaveBeenCalledWith(expect.stringContaining('Created agent: Test Agent'));
+        expect(mockContext.workspace.addLog).toHaveBeenCalledWith(expect.stringContaining('Test Agent'));
     });
 });

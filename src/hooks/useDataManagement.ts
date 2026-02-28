@@ -100,10 +100,8 @@ export function useDataManagement(deps: DataManagementDeps) {
   }, [setAgents, setChannels, setGroups, setMessages, setEcosystems, setBridges]);
 
   const resetAllData = useCallback(() => {
-    if (confirm("Are you sure? This will WIPE ALL DATA from LocalStorage. This action cannot be undone.")) {
-      localStorage.clear();
-      window.location.reload();
-    }
+    localStorage.clear();
+    window.location.reload();
   }, []);
 
   return {

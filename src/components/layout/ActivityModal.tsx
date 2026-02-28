@@ -1,6 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import type { NotebookEntry, NotebookCategory } from "../../types";
 import { X, Zap, Download, Edit, Trash2 } from "lucide-react";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import { GradientIcon } from "../shared/GradientIcon";
 import { ComposePanel } from "../activity/ComposePanel";
 import { ActivityFilter } from "../activity/ActivityFilter";
@@ -29,6 +31,7 @@ export function ActivityModal({
   );
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showCompose, setShowCompose] = useState(false);
+  const del = useDeleteConfirm();
 
   // Escape to close
   useEffect(() => {
@@ -93,14 +96,16 @@ export function ActivityModal({
             >
               <Download size={11} />
             </button>
-            <button
-              onClick={() => {
-                if (window.confirm("Clear all activity entries?")) clearNotebook();
-              }}
-              className="activity-modal__clear-btn"
-            >
-              <Trash2 size={11} />
-            </button>
+            {del.isPending("clear-all") ? (
+              <DeleteConfirmInline entityName="Activity" warning="All activity entries will be cleared." onConfirm={() => del.confirm(clearNotebook)} onCancel={del.cancel} compact />
+            ) : (
+              <button
+                onClick={() => del.requestDelete("clear-all")}
+                className="activity-modal__clear-btn"
+              >
+                <Trash2 size={11} />
+              </button>
+            )}
             <button
               onClick={onClose}
               className="activity-modal__close-btn"

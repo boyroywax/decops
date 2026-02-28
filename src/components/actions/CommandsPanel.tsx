@@ -1,12 +1,10 @@
 import { useState, useCallback } from "react";
-import { LayoutGrid, List, Play, Plus, X } from "lucide-react";
+import { LayoutGrid, List, Plus, X, ZoomIn, ZoomOut } from "lucide-react";
 import { registry } from "../../services/commands/registry";
-import { CommandDefinition } from "../../services/commands/types";
 import { CommandCard } from "./CommandCard";
 import "../../styles/components/commands-panel.css";
 
 interface CommandsPanelProps {
-    onRunCommand: (commandId: string, command: CommandDefinition) => void;
     isStudioMode?: boolean;
 }
 
@@ -33,11 +31,12 @@ const getCommandColor = (tags: string[]) => {
     return "#71717a";
 };
 
-export function CommandsPanel({ onRunCommand, isStudioMode }: CommandsPanelProps) {
+export function CommandsPanel({ isStudioMode }: CommandsPanelProps) {
     const commands = registry.getAll().filter(c => !c.hidden);
     const [filter, setFilter] = useState("");
     const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
     const [view, setView] = useState<"cards" | "table">("cards");
+    const [cardSize, setCardSize] = useState(1); // 0=small, 1=medium, 2=large
 
     const toggleTag = useCallback((tag: string) => {
         setActiveTags(prev => {
@@ -129,6 +128,22 @@ export function CommandsPanel({ onRunCommand, isStudioMode }: CommandsPanelProps
                         <List size={12} />
                     </button>
                 </div>
+                {view === "cards" && (
+                    <div className="commands-panel__size-control">
+                        <ZoomOut size={11} className="commands-panel__size-icon" />
+                        <input
+                            type="range"
+                            min={0}
+                            max={2}
+                            step={1}
+                            value={cardSize}
+                            onChange={e => setCardSize(Number(e.target.value))}
+                            className="commands-panel__size-slider"
+                            title={["Small cards", "Medium cards", "Large cards"][cardSize]}
+                        />
+                        <ZoomIn size={11} className="commands-panel__size-icon" />
+                    </div>
+                )}
                 <span className="commands-panel__count">
                     {filteredCommands.length} command{filteredCommands.length !== 1 ? "s" : ""}
                 </span>
@@ -136,12 +151,12 @@ export function CommandsPanel({ onRunCommand, isStudioMode }: CommandsPanelProps
 
             {/* Card View */}
             {view === "cards" && (
-                <div className="commands-panel__grid">
+                <div className={`commands-panel__grid commands-panel__grid--${["sm", "md", "lg"][cardSize]}`}>
                     {filteredCommands.map(cmd => (
                         <CommandCard
                             key={cmd.id}
                             command={cmd}
-                            onRun={() => onRunCommand(cmd.id, cmd)}
+                            cardSize={(["sm", "md", "lg"] as const)[cardSize]}
                             onTagClick={toggleTag}
                             activeTags={activeTags}
                             onAddToStudio={isStudioMode ? () => {
@@ -162,7 +177,7 @@ export function CommandsPanel({ onRunCommand, isStudioMode }: CommandsPanelProps
                                 <th className="commands-panel__th">Description</th>
                                 <th className="commands-panel__th">Tags</th>
                                 <th className="commands-panel__th commands-panel__th--args">Args</th>
-                                <th className="commands-panel__th commands-panel__th--action"></th>
+                                <th className="commands-panel__th commands-panel__th--action">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -207,18 +222,6 @@ export function CommandsPanel({ onRunCommand, isStudioMode }: CommandsPanelProps
                                             </span>
                                         </td>
                                         <td className="commands-panel__td commands-panel__td--run">
-                                            <button
-                                                onClick={() => onRunCommand(cmd.id, cmd)}
-                                                className="commands-panel__run-btn"
-                                                style={{
-                                                    background: `${color}15`,
-                                                    border: `1px solid ${color}30`,
-                                                    color,
-                                                }}
-                                                title="Run command"
-                                            >
-                                                <Play size={10} fill={color} />
-                                            </button>
                                             {isStudioMode && (
                                                 <button
                                                     onClick={() => window.dispatchEvent(new CustomEvent("studio:add-command", { detail: { commandId: cmd.id } }))}

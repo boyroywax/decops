@@ -5,6 +5,8 @@ import {
   ChevronDown, ChevronUp, ArrowRight,
 } from "lucide-react";
 import { CopyableId } from "../../shared/CopyableId";
+import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../../shared/DeleteConfirmInline";
 
 interface NetworkCardProps {
   net: Network;
@@ -25,6 +27,7 @@ export function NetworkCard({
   isExpanded, onToggleExpand,
   dissolveNetwork, onNavigate,
 }: NetworkCardProps) {
+  const del = useDeleteConfirm();
   // Filter workspace entities by networkId for live counts
   const networkAgents = workspaceAgents.filter(a => a.networkId === net.id);
   const networkChannels = workspaceChannels.filter(c => c.networkId === net.id);
@@ -172,24 +175,28 @@ export function NetworkCard({
               Open
             </button>
           )}
-          <button
-            onClick={(e) => { e.stopPropagation(); dissolveNetwork(net.id); }}
-            style={{
-              background: "rgba(239,68,68,0.06)",
-              border: "1px solid rgba(239,68,68,0.12)",
-              color: "#71717a",
-              padding: "6px 10px",
-              borderRadius: 6,
-              fontFamily: "inherit",
-              fontSize: 10,
-              cursor: "pointer",
-              marginLeft: "auto",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <Trash2 size={11} />
-          </button>
+          {del.isPending(net.id) ? (
+            <DeleteConfirmInline entityName="Network" entityLabel={net.name} warning="All agents, channels, and groups will be dissolved." onConfirm={() => del.confirm(() => dissolveNetwork(net.id))} onCancel={del.cancel} compact />
+          ) : (
+            <button
+              onClick={(e) => { e.stopPropagation(); del.requestDelete(net.id); }}
+              style={{
+                background: "rgba(239,68,68,0.06)",
+                border: "1px solid rgba(239,68,68,0.12)",
+                color: "#71717a",
+                padding: "6px 10px",
+                borderRadius: 6,
+                fontFamily: "inherit",
+                fontSize: 10,
+                cursor: "pointer",
+                marginLeft: "auto",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <Trash2 size={11} />
+            </button>
+          )}
         </div>
       </div>
 

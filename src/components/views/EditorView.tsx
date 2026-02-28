@@ -11,6 +11,7 @@ import {
   AlignLeft, WrapText, Hash,
   AlertTriangle, Check,
   Braces, FileJson, FileSpreadsheet,
+  Sparkles, Columns,
 } from "lucide-react";
 import { useEditorContext } from "../../context/EditorContext";
 import type { EditorAPI, PersistedEditorState } from "../../context/EditorContext";
@@ -254,6 +255,131 @@ function prefixLine(
  * EDITOR VIEW
  * ═══════════════════════════════════════════════════════════════════════ */
 
+/* ─── Line Diff Algorithm (LCS-based) ──────────────────────────────── */
+
+type DiffLineType = "unchanged" | "added" | "removed";
+
+interface DiffLine {
+  type: DiffLineType;
+  content: string;
+  oldLineNum?: number;
+  newLineNum?: number;
+}
+
+function computeLineDiff(oldText: string, newText: string): DiffLine[] {
+  const oldLines = oldText.split("\n");
+  const newLines = newText.split("\n");
+  const m = oldLines.length;
+  const n = newLines.length;
+
+  // LCS via dynamic programming
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = oldLines[i - 1] === newLines[j - 1]
+        ? dp[i - 1][j - 1] + 1
+        : Math.max(dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+
+  // Backtrack to produce diff
+  const result: DiffLine[] = [];
+  let i = m, j = n;
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
+      result.unshift({ type: "unchanged", content: oldLines[i - 1], oldLineNum: i, newLineNum: j });
+      i--; j--;
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+      result.unshift({ type: "added", content: newLines[j - 1], newLineNum: j });
+      j--;
+    } else {
+      result.unshift({ type: "removed", content: oldLines[i - 1], oldLineNum: i });
+      i--;
+    }
+  }
+  return result;
+}
+
+/* ─── Inline Diff View ─────────────────────────────────────────────── */
+
+function InlineDiffView({ diffLines }: { diffLines: DiffLine[] }) {
+  return (
+    <div className="editor-diff-inline">
+      {diffLines.map((line, i) => (
+        <div key={i} className={`editor-diff-line editor-diff-line--${line.type}`}>
+          <span className="editor-diff-gutter">
+            {line.type === "removed" ? "−" : line.type === "added" ? "+" : " "}
+          </span>
+          <span className="editor-diff-line-num">
+            {line.type !== "added" ? line.oldLineNum : ""}
+          </span>
+          <span className="editor-diff-line-num">
+            {line.type !== "removed" ? line.newLineNum : ""}
+          </span>
+          <span className="editor-diff-text">{line.content || "\u00A0"}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Side-by-Side Diff View ───────────────────────────────────────── */
+
+function SideBySideDiffView({ diffLines }: { diffLines: DiffLine[] }) {
+  const rows = useMemo(() => {
+    const result: { left: DiffLine | null; right: DiffLine | null }[] = [];
+    for (const line of diffLines) {
+      if (line.type === "unchanged") {
+        result.push({ left: line, right: line });
+      } else if (line.type === "removed") {
+        result.push({ left: line, right: null });
+      } else {
+        // Try to pair with a preceding unmatched removed line
+        const prev = result[result.length - 1];
+        if (prev && prev.right === null && prev.left?.type === "removed") {
+          prev.right = line;
+        } else {
+          result.push({ left: null, right: line });
+        }
+      }
+    }
+    return result;
+  }, [diffLines]);
+
+  return (
+    <div className="editor-diff-side">
+      <div className="editor-diff-side-header">
+        <div className="editor-diff-side-label">Original</div>
+        <div className="editor-diff-side-label">Proposed</div>
+      </div>
+      <div className="editor-diff-side-body">
+        {rows.map((row, i) => (
+          <div key={i} className="editor-diff-side-row">
+            <div className={`editor-diff-side-cell ${row.left ? `editor-diff-side-cell--${row.left.type}` : "editor-diff-side-cell--empty"}`}>
+              {row.left && (
+                <>
+                  <span className="editor-diff-line-num">{row.left.oldLineNum ?? ""}</span>
+                  <span className="editor-diff-text">{row.left.content || "\u00A0"}</span>
+                </>
+              )}
+            </div>
+            <div className={`editor-diff-side-cell ${row.right ? `editor-diff-side-cell--${row.right.type}` : "editor-diff-side-cell--empty"}`}>
+              {row.right && (
+                <>
+                  <span className="editor-diff-line-num">{row.right.newLineNum ?? ""}</span>
+                  <span className="editor-diff-text">{row.right.content || "\u00A0"}</span>
+                </>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+
 export interface EditorViewProps {
   updateArtifact: (id: string, updates: Partial<JobArtifact>) => void;
   importArtifact: (artifact: JobArtifact) => void;
@@ -261,7 +387,7 @@ export interface EditorViewProps {
 
 export function EditorView({ updateArtifact, importArtifact }: EditorViewProps) {
   /* ─── Editor Context Registration ───────────────────────────────── */
-  const { register, unregister, consumePendingArtifact, persistState, getPersistedState } = useEditorContext();
+  const { register, unregister, consumePendingArtifact, persistState, getPersistedState, proposedContent, clearProposal } = useEditorContext();
 
   /* ─── Restore persisted state (runs once on mount) ──────────────── */
   const restored = getPersistedState();
@@ -278,6 +404,33 @@ export function EditorView({ updateArtifact, importArtifact }: EditorViewProps) 
   const [replaceText, setReplaceText] = useState("");
   const [wordWrap, setWordWrap] = useState(restored?.wordWrap ?? true);
   const [isDirty, setIsDirty] = useState(restored?.isDirty ?? false);
+
+  /* ─── Diff State ──────────────────────────────────────────────────── */
+  type DiffViewMode = "inline" | "side-by-side";
+  const [diffViewMode, setDiffViewMode] = useState<DiffViewMode>("inline");
+
+  const diffLines = useMemo(() => {
+    if (proposedContent === null) return [];
+    return computeLineDiff(content, proposedContent);
+  }, [content, proposedContent]);
+
+  const diffStats = useMemo(() => {
+    const added = diffLines.filter(l => l.type === "added").length;
+    const removed = diffLines.filter(l => l.type === "removed").length;
+    return { added, removed };
+  }, [diffLines]);
+
+  const acceptEdit = useCallback(() => {
+    if (proposedContent !== null) {
+      setContent(proposedContent);
+      setIsDirty(true);
+      clearProposal();
+    }
+  }, [proposedContent, clearProposal]);
+
+  const rejectEdit = useCallback(() => {
+    clearProposal();
+  }, [clearProposal]);
 
   /* ─── Undo / Redo ─────────────────────────────────────────────────── */
   const [history, setHistory] = useState<HistoryEntry[]>(restored?.history ?? [{ content: "", cursorPos: 0 }]);
@@ -680,7 +833,7 @@ export function EditorView({ updateArtifact, importArtifact }: EditorViewProps) 
       </div>
 
       {/* ─── Toolbar ─────────────────────────────────────────────── */}
-      {(mode === "edit" || mode === "split") && (
+      {proposedContent === null && (mode === "edit" || mode === "split") && (
         <div className="editor-toolbar">
           <div className="editor-toolbar-actions">
             {toolbarActions.map((action) =>
@@ -704,6 +857,31 @@ export function EditorView({ updateArtifact, importArtifact }: EditorViewProps) 
         </div>
       )}
 
+      {/* ─── Diff Review Bar ─────────────────────────────────────── */}
+      {proposedContent !== null && (
+        <div className="editor-diff-bar">
+          <div className="editor-diff-bar-left">
+            <Sparkles size={14} />
+            <span>AI Proposed Changes</span>
+            <span className="editor-diff-stats">
+              +{diffStats.added} −{diffStats.removed}
+            </span>
+          </div>
+          <div className="editor-diff-bar-right">
+            <button className="editor-diff-toggle" onClick={() => setDiffViewMode(diffViewMode === "inline" ? "side-by-side" : "inline")} title="Toggle diff view mode">
+              {diffViewMode === "inline" ? <Columns size={13} /> : <AlignLeft size={13} />}
+              {diffViewMode === "inline" ? "Side by Side" : "Inline"}
+            </button>
+            <button className="editor-diff-accept" onClick={acceptEdit} title="Accept all changes">
+              <Check size={13} /> Accept
+            </button>
+            <button className="editor-diff-reject" onClick={rejectEdit} title="Reject all changes">
+              <X size={13} /> Reject
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ─── Find & Replace ──────────────────────────────────────── */}
       {showFind && (
         <div className="editor-find-bar">
@@ -721,41 +899,52 @@ export function EditorView({ updateArtifact, importArtifact }: EditorViewProps) 
 
       {/* ─── Main Content Area ───────────────────────────────────── */}
       <div className="editor-body">
-        <div className={`editor-content editor-content--${mode}`}>
-          {/* Editor Pane */}
-          {(mode === "edit" || mode === "split") && (
-            <div className="editor-pane editor-pane--edit">
-              {mode === "split" && <div className="editor-pane-label">{fileType === "markdown" ? "Markdown" : fileType === "txt" ? "Plain Text" : fileType.toUpperCase()}</div>}
-              <textarea
-                ref={textareaRef}
-                className={`editor-textarea ${wordWrap ? "" : "no-wrap"}`}
-                value={content}
-                onChange={(e) => handleContentChange(e.target.value)}
-                onKeyDown={handleTextareaKeyDown}
-                placeholder={`Start writing ${fileType}...`}
-                spellCheck={fileType === "markdown" || fileType === "txt"}
-              />
-            </div>
-          )}
+        {proposedContent !== null ? (
+          /* ─── Diff View ──────────────────────────────────────────── */
+          <div className="editor-diff-scroll">
+            {diffViewMode === "inline"
+              ? <InlineDiffView diffLines={diffLines} />
+              : <SideBySideDiffView diffLines={diffLines} />
+            }
+          </div>
+        ) : (
+          /* ─── Normal Editor ──────────────────────────────────────── */
+          <div className={`editor-content editor-content--${mode}`}>
+            {/* Editor Pane */}
+            {(mode === "edit" || mode === "split") && (
+              <div className="editor-pane editor-pane--edit">
+                {mode === "split" && <div className="editor-pane-label">{fileType === "markdown" ? "Markdown" : fileType === "txt" ? "Plain Text" : fileType.toUpperCase()}</div>}
+                <textarea
+                  ref={textareaRef}
+                  className={`editor-textarea ${wordWrap ? "" : "no-wrap"}`}
+                  value={content}
+                  onChange={(e) => handleContentChange(e.target.value)}
+                  onKeyDown={handleTextareaKeyDown}
+                  placeholder={`Start writing ${fileType}...`}
+                  spellCheck={fileType === "markdown" || fileType === "txt"}
+                />
+              </div>
+            )}
 
-          {/* Preview Pane */}
-          {(mode === "preview" || mode === "split") && (
-            <div className="editor-pane editor-pane--preview">
-              {mode === "split" && <div className="editor-pane-label">Preview</div>}
-              {fileType === "markdown" ? (
-                <div className="editor-preview chat-md" dangerouslySetInnerHTML={{ __html: previewHtml || "" }} />
-              ) : fileType === "txt" ? (
-                <div className="editor-preview">
-                  <pre className="editor-structured-preview" style={{ whiteSpace: "pre-wrap" }}>{content}</pre>
-                </div>
-              ) : (
-                <div className="editor-preview">
-                  <StructuredPreview content={content} type={fileType} />
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+            {/* Preview Pane */}
+            {(mode === "preview" || mode === "split") && (
+              <div className="editor-pane editor-pane--preview">
+                {mode === "split" && <div className="editor-pane-label">Preview</div>}
+                {fileType === "markdown" ? (
+                  <div className="editor-preview chat-md" dangerouslySetInnerHTML={{ __html: previewHtml || "" }} />
+                ) : fileType === "txt" ? (
+                  <div className="editor-preview">
+                    <pre className="editor-structured-preview" style={{ whiteSpace: "pre-wrap" }}>{content}</pre>
+                  </div>
+                ) : (
+                  <div className="editor-preview">
+                    <StructuredPreview content={content} type={fileType} />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ─── Status Bar ──────────────────────────────────────────── */}
@@ -766,6 +955,9 @@ export function EditorView({ updateArtifact, importArtifact }: EditorViewProps) 
           <span>{stats.lines} lines</span>
         </div>
         <div className="editor-status-right">
+          {proposedContent !== null && (
+            <span style={{ color: "#38bdf8" }}>Reviewing {diffStats.added + diffStats.removed} changes</span>
+          )}
           <span style={{ color: getFileColor(fileType) }}>{fileType.toUpperCase()}</span>
           {!validation.valid && <span style={{ color: "#ef4444" }}>Errors</span>}
           {activeArtifactId && !isDirty && <span>Synced</span>}

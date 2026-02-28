@@ -32,6 +32,7 @@
 @import './styles/components/unified-builder.css';
 @import './styles/components/copyable-id.css';
 @import './styles/components/trading-card.css';
+@import './styles/components/delete-confirm.css';
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * FONT IMPORTS

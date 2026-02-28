@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3 } from "lucide-react";
+import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3, Eye } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { chatWithWorkspace, streamChatWithWorkspace, getSelectedModel } from "../../services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "../../services/ai";
@@ -12,13 +12,14 @@ import { useJobsContext } from "../../context/JobsContext";
 import { useArchitect } from "../../hooks/useArchitect";
 import { useEcosystem } from "../../hooks/useEcosystem"; // This might not be needed if ecosystem is passed as prop
 import { useAuth } from "../../context/AuthContext";
-// registry is accessed via commandRegistry below
 import { registry as commandRegistry } from "../../services/commands/registry";
+import type { CommandDefinition } from "../../services/commands/types";
+import { CommandPrompt } from "../actions/CommandPrompt";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { useStudioContext } from "../../context/StudioContext";
 import { useEditorContext } from "../../context/EditorContext";
 import type { ChatPosition } from "../../context/ThemeContext";
-import type { ViewId } from "../../types";
+import type { ViewId, JobStep } from "../../types";
 import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {
@@ -44,6 +45,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const [showConvos, setShowConvos] = useState(false);
     const [studioMode, setStudioMode] = useState(true);
     const [editorMode, setEditorMode] = useState(true);
+    const [pendingCommand, setPendingCommand] = useState<{ command: CommandDefinition; initialArgs: Record<string, any>; convoId: string; msgs: ChatMessage[] } | null>(null);
     const endRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const initialScrollDone = useRef(false);
@@ -151,6 +153,37 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         addLog: addLog || (() => { }) as (msg: string) => void
     });
 
+    /** Queue a command as a proper job instead of executing directly */
+    const queueCommandAsJob = useCallback((
+        commandId: string,
+        cmdDef: CommandDefinition,
+        args: Record<string, any>,
+        convoId: string,
+        msgs: ChatMessage[],
+    ) => {
+        const step: JobStep = {
+            id: `step-${Date.now()}`,
+            commandId,
+            args,
+            name: cmdDef.description,
+            status: "pending",
+        };
+
+        jobs.addJob({
+            type: commandId,
+            request: { description: cmdDef.description },
+            steps: [step],
+            mode: "serial",
+        });
+
+        addLog?.(`CLI: Queued /${commandId} as job`);
+        const successMsg = [...msgs, {
+            role: "assistant" as const,
+            content: `📋 Command \`/${commandId}\` queued as a job.${Object.keys(args).length > 0 ? `\n\nArgs: \`${JSON.stringify(args, null, 2)}\`` : ""}\n\nView progress in the **Jobs** tab.`,
+        }];
+        updateConversation(convoId, successMsg);
+    }, [jobs, addLog, updateConversation]);
+
     const send = useCallback(async () => {
         const text = input.trim();
         if (!text || loading) return;
@@ -179,45 +212,59 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         setLoading(true);
 
         try {
-            // CLI INTERCEPTION
+            // CLI INTERCEPTION — commands go through arg prompt → job queue
             if (text.startsWith("/")) {
                 const part1 = text.split(" ")[0];
-                const commandId = part1.slice(1); // remove /
+                const commandId = part1.slice(1);
                 const argsString = text.slice(part1.length).trim();
 
-                let args: any = {};
+                // Validate command exists
+                const cmdDef = commandRegistry.get(commandId);
+                if (!cmdDef) {
+                    const errMsg = [...updatedMsgs, { role: "assistant" as const, content: `❌ Unknown command \`/${commandId}\`. Type \`/\` to see available commands.` }];
+                    updateConversation(currentId, errMsg);
+                    setLoading(false);
+                    return;
+                }
+
+                // Parse any inline args
+                let parsedArgs: Record<string, any> = {};
                 if (argsString) {
-                    // 1. Try JSON
                     if (argsString.startsWith("{")) {
-                        try {
-                            args = JSON.parse(argsString);
-                        } catch (e) {
-                            // ignore
-                        }
+                        try { parsedArgs = JSON.parse(argsString); } catch { /* ignore */ }
                     }
-                    // 2. Try Key=Value if empty (simple regex)
-                    if (Object.keys(args).length === 0 && argsString.includes("=")) {
+                    if (Object.keys(parsedArgs).length === 0 && argsString.includes("=")) {
                         const regex = /(\w+)=(?:"([^"]*)"|(\S+))/g;
                         let match;
                         while ((match = regex.exec(argsString)) !== null) {
-                            const key = match[1];
-                            const value = match[2] || match[3];
-                            args[key] = value;
+                            parsedArgs[match[1]] = match[2] || match[3];
                         }
                     }
-                    // 3. If still empty and string exists, maybe it's a "query" or default arg?
-                    // Some commands might take a single string.
-                    // But our registry expects named args.
-                    // We'll leave it empty if parsing failed, or put raw string in "input"?
                 }
 
-                addLog?.(`CLI: Executing /${commandId}`);
+                // Determine if we need the arg prompt
+                const hasArgs = Object.keys(cmdDef.args).length > 0;
+                const requiredArgs = Object.entries(cmdDef.args).filter(
+                    ([, a]) => a.required !== false && a.defaultValue === undefined
+                );
+                const missingRequired = requiredArgs.filter(([name]) => !(name in parsedArgs));
 
-                // Execute
-                await commandRegistry.execute(commandId, args, commandContext);
+                if (hasArgs && missingRequired.length > 0) {
+                    // Show the prompt modal for user to fill in args
+                    setPendingCommand({
+                        command: cmdDef,
+                        initialArgs: parsedArgs,
+                        convoId: currentId,
+                        msgs: updatedMsgs,
+                    });
+                    setLoading(false);
+                    return;
+                }
 
-                const successMsg = [...updatedMsgs, { role: "assistant" as const, content: `✅ Command \`/${commandId}\` executed successfully.` }];
-                updateConversation(currentId, successMsg);
+                // No missing required args — queue as job directly
+                queueCommandAsJob(commandId, cmdDef, parsedArgs, currentId, updatedMsgs);
+                setLoading(false);
+                return;
             } else {
                 // Streaming chat
                 setStreamingText("");
@@ -283,7 +330,22 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         } finally {
             setLoading(false);
         }
-    }, [input, loading, activeId, conversations, context, addLog, updateConversation, commandContext]);
+    }, [input, loading, activeId, conversations, context, addLog, updateConversation, commandContext, queueCommandAsJob]);
+
+    // Handle prompt modal submission
+    const handlePromptSubmit = useCallback((commandId: string, args: Record<string, any>) => {
+        if (!pendingCommand) return;
+        queueCommandAsJob(commandId, pendingCommand.command, args, pendingCommand.convoId, pendingCommand.msgs);
+        setPendingCommand(null);
+    }, [pendingCommand, queueCommandAsJob]);
+
+    const handlePromptCancel = useCallback(() => {
+        if (pendingCommand) {
+            const cancelMsg = [...pendingCommand.msgs, { role: "assistant" as const, content: `Command \`/${pendingCommand.command.id}\` cancelled.` }];
+            updateConversation(pendingCommand.convoId, cancelMsg);
+        }
+        setPendingCommand(null);
+    }, [pendingCommand, updateConversation]);
 
     const [isResizing, setIsResizing] = useState(false);
     const isSide = position === "left" || position === "right";
@@ -333,7 +395,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const studioAvailable = !!studioApi && view === "jobs";
     const studioActive = studioAvailable && studioMode;
 
-    const { api: editorApi } = useEditorContext();
+    const { api: editorApi, proposeEdit } = useEditorContext();
     const editorAvailable = !!editorApi && view === "editor";
     const editorActive = editorAvailable && editorMode;
 
@@ -498,10 +560,13 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             {editorActive && editorApi && m.role === "assistant" && m.content.includes("```") && (
                                 <button
                                     className="chat-panel__apply-editor-btn"
-                                    onClick={() => editorApi.applyCodeBlock(m.content)}
-                                    title="Extract code block and apply to editor"
+                                    onClick={() => {
+                                        const match = m.content.match(/```(?:[\w]*)?\.?\n([\s\S]*?)```/);
+                                        if (match?.[1]) proposeEdit(match[1].trim());
+                                    }}
+                                    title="Preview AI changes as inline diff in the editor"
                                 >
-                                    <Edit3 size={11} /> Apply to Editor
+                                    <Eye size={11} /> Preview in Editor
                                 </button>
                             )}
                         </div>
@@ -558,6 +623,23 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                         className={`chat-panel__send-btn${isReady ? " chat-panel__send-btn--ready" : ""}`}
                     >Send</button>
                 </div>
+            )}
+
+            {/* Command Prompt Modal */}
+            {pendingCommand && (
+                <CommandPrompt
+                    command={pendingCommand.command}
+                    initialArgs={pendingCommand.initialArgs}
+                    entities={{
+                        agents: workspaceCtx.agents.map((a: any) => ({ id: a.id, name: a.name })),
+                        channels: workspaceCtx.channels.map((c: any) => ({ id: c.id, from: c.from, to: c.to, type: c.type })),
+                        groups: workspaceCtx.groups.map((g: any) => ({ id: g.id, name: g.name })),
+                        networks: (ecosystem?.ecosystems || []).map((n: any) => ({ id: n.id, name: n.name, color: n.color })),
+                    }}
+                    currentUser={user}
+                    onSubmit={handlePromptSubmit}
+                    onCancel={handlePromptCancel}
+                />
             )}
         </div>
     );

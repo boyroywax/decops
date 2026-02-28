@@ -8,6 +8,8 @@ import { getSelectedModel, setSelectedModel } from "../../services/ai";
 import { getGeminiApiKey, setGeminiApiKey as saveGeminiKey } from "../../services/imageGen";
 import { GemAvatar } from "../shared/GemAvatar";
 import { useDataManagement } from "../../hooks/useDataManagement";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import type { Agent, Channel, Group, Message, Network, Bridge } from "../../types";
 
 interface ProfileViewProps {
@@ -40,6 +42,7 @@ export function ProfileView({
     const [hasGeminiKey, setHasGeminiKey] = useState(false);
     const [importStatus, setImportStatus] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const del = useDeleteConfirm();
 
     const {
         exportWorkspace: handleExportWorkspace,
@@ -388,7 +391,11 @@ export function ProfileView({
                         <p className="section-desc section-desc--danger">
                             Clear all data from LocalStorage and reset application to default state.
                         </p>
-                        <button onClick={handleReset} className="btn btn-danger-solid">Reset All Data</button>
+                        {del.isPending("reset") ? (
+                            <DeleteConfirmInline entityName="All Data" warning="This will WIPE ALL DATA. This cannot be undone." onConfirm={() => del.confirm(handleReset)} onCancel={del.cancel} compact />
+                        ) : (
+                            <button onClick={() => del.requestDelete("reset")} className="btn btn-danger-solid">Reset All Data</button>
+                        )}
                     </div>
                 </section>
             </div>

@@ -59,15 +59,6 @@ export const createArtifactCommand: CommandDefinition = {
         context.jobs.importArtifact(artifact);
         context.workspace.addLog(`Artifact created: ${args.name}`);
 
-        // Also register as a deliverable for job tracking
-        context.addDeliverable({
-            key: args.name.replace(/\s+/g, '-').toLowerCase(),
-            name: args.name,
-            type: args.type,
-            content: args.content,
-            tags,
-        });
-
         // Write to shared storage for downstream steps
         context.storage.lastArtifactId = artifact.id;
         context.storage[`artifact_${args.name}`] = artifact.id;

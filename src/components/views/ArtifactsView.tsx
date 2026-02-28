@@ -2,6 +2,8 @@ import { useState, useRef, useMemo } from "react";
 import type { JobArtifact, ArtifactType } from "../../types";
 import { SectionTitle } from "../shared/ui";
 import { FileText, Image, Code, File, X, Plus, Tag, Layers, Clock, Hash, ChevronRight, Search, Upload, PenLine } from "lucide-react";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import "../../styles/components/artifacts.css";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
@@ -164,6 +166,7 @@ export function ArtifactsView({ artifacts, importArtifact, removeArtifact, updat
     const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
     const [selectedArtifact, setSelectedArtifact] = useState<JobArtifact | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const del = useDeleteConfirm();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const tagMap = useMemo(() => collectTags(artifacts), [artifacts]);
@@ -396,7 +399,11 @@ export function ArtifactsView({ artifacts, importArtifact, removeArtifact, updat
 
                         <div className="artifacts__preview-actions">
                             <button onClick={handleDownload} className="artifacts__btn-download">Download</button>
-                            <button onClick={handleDelete} className="artifacts__btn-delete">Delete</button>
+                            {del.isPending(selectedArtifact.id) ? (
+                                <DeleteConfirmInline entityName="Artifact" entityLabel={selectedArtifact.name} warning="This artifact will be permanently deleted." onConfirm={() => del.confirm(handleDelete)} onCancel={del.cancel} compact />
+                            ) : (
+                                <button onClick={() => del.requestDelete(selectedArtifact.id)} className="artifacts__btn-delete">Delete</button>
+                            )}
                         </div>
                     </div>
                 )}

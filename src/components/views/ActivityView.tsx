@@ -5,6 +5,8 @@ import { GradientIcon } from "../shared/GradientIcon";
 import { ComposePanel } from "../activity/ComposePanel";
 import { ActivityFilter } from "../activity/ActivityFilter";
 import { ActivityList } from "../activity/ActivityList";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import "../../styles/components/activity.css";
 
 interface ActivityViewProps {
@@ -22,6 +24,7 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
     const [activeFilters, setActiveFilters] = useState<Set<NotebookCategory>>(new Set(["action", "output", "navigation", "system", "narrative"]));
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [showCompose, setShowCompose] = useState(false);
+    const del = useDeleteConfirm();
 
     const toggleFilter = (cat: NotebookCategory) => {
         setActiveFilters(prev => {
@@ -61,20 +64,25 @@ export function ActivityView({ entries, clearNotebook, exportNotebook, addEntry 
                     >
                         <Download size={12} /> Export
                     </button>
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            setTimeout(() => {
-                                if (window.confirm("Clear all notebook entries?")) {
-                                    clearNotebook();
-                                }
-                            }, 0);
-                        }}
-                        className="btn btn-surface activity__btn activity__btn--danger"
-                    >
-                        <Trash2 size={12} /> Clear
-                    </button>
+                    {del.isPending("clear-all") ? (
+                        <DeleteConfirmInline
+                            entityName="Activity Log"
+                            warning="All notebook entries will be cleared."
+                            onConfirm={() => del.confirm(() => clearNotebook())}
+                            onCancel={del.cancel}
+                            compact
+                        />
+                    ) : (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                del.requestDelete("clear-all");
+                            }}
+                            className="btn btn-surface activity__btn activity__btn--danger"
+                        >
+                            <Trash2 size={12} /> Clear
+                        </button>
+                    )}
                 </span>
             </h2>
 

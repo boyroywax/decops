@@ -190,26 +190,7 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
                 )}
                 {activeTab === "commands" && (
                     <div className="action-manager__tab-content">
-                        <CommandsPanel isStudioMode={isStudioMode} onRunCommand={(commandId, command) => {
-                            const step: import("../../types").JobStep = {
-                                id: `step-${Date.now()}`,
-                                commandId,
-                                args: Object.fromEntries(
-                                    Object.values(command.args)
-                                        .filter(a => a.defaultValue !== undefined)
-                                        .map(a => [a.name, a.defaultValue])
-                                ),
-                                name: command.description,
-                                status: "pending",
-                            };
-                            addJob({
-                                type: commandId,
-                                request: { description: command.description },
-                                steps: [step],
-                                mode: "serial",
-                            });
-                            setActiveTab("monitor");
-                        }} />
+                        <CommandsPanel isStudioMode={isStudioMode} />
                     </div>
                 )}
             </div>

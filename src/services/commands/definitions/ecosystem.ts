@@ -32,11 +32,51 @@ export const createNetworkCommand: CommandDefinition = {
             description: "If provided, use the AI Architect to generate the network contents",
             required: false,
             defaultValue: ""
+        },
+        items: {
+            name: "items",
+            type: "array",
+            description: "Batch mode: array of {name, description?} specs. Overrides individual args (architectPrompt not supported in batch).",
+            required: false,
         }
     },
     output: "The created network object.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" }, network: { type: "object" } } },
     execute: async (args, context: CommandContext) => {
+        // Batch mode: create multiple bare networks (architectPrompt not supported)
+        if (args.items) {
+            const specs = Array.isArray(args.items) ? args.items : [args.items];
+            const existingNetworks = context.ecosystem.ecosystems || [];
+            const created: any[] = [];
+
+            for (let i = 0; i < specs.length; i++) {
+                const spec = specs[i];
+                const netId = crypto.randomUUID();
+                const cIdx = (existingNetworks.length + i) % (NETWORK_COLORS?.length || 6);
+                const clr = NETWORK_COLORS?.[cIdx] || "#00e5a0";
+
+                const net = {
+                    id: netId,
+                    name: spec.name,
+                    description: spec.description || "",
+                    did: generateNetworkDID(),
+                    color: clr,
+                    agents: [] as any[], channels: [] as any[], groups: [] as any[], messages: [] as any[],
+                    createdAt: new Date().toISOString(),
+                };
+
+                created.push(net);
+                context.storage.lastNetworkId = netId;
+                context.storage[`network_${spec.name}`] = netId;
+            }
+
+            context.ecosystem.setEcosystems((prev: any[]) => [...prev, ...created]);
+            context.storage._networks = [...(context.storage._networks || []), ...created];
+            context.workspace.addLog(`Created ${created.length} network(s): ${created.map((n: any) => n.name).join(", ")}`);
+            return { success: true, results: created.map((n: any) => ({ networkId: n.id, name: n.name })) };
+        }
+
+        // Single mode
         const networkId = crypto.randomUUID();
         const existingNetworks = context.ecosystem.ecosystems || [];
         const colorIdx = existingNetworks.length % (NETWORK_COLORS?.length || 6);
@@ -96,6 +136,10 @@ export const createNetworkCommand: CommandDefinition = {
                 }
 
                 context.workspace.addLog(`Architect generated ${agents.length} agents, ${channels.length} channels, ${groups.length} groups.`);
+                // Also add architect-generated entities to workspace so they're live
+                if (agents.length > 0) context.workspace.setAgents((prev: any[]) => [...prev, ...agents]);
+                if (channels.length > 0) context.workspace.setChannels((prev: any[]) => [...prev, ...channels]);
+                if (groups.length > 0) context.workspace.setGroups((prev: any[]) => [...prev, ...groups]);
             } catch (e: any) {
                 context.workspace.addLog(`Architect failed: ${e.message}. Creating empty network.`);
             }
@@ -120,6 +164,18 @@ export const createNetworkCommand: CommandDefinition = {
         // Write to shared storage for downstream steps
         context.storage.lastNetworkId = networkId;
         context.storage[`network_${args.name}`] = networkId;
+
+        // Accumulate entities so downstream steps can look them up
+        // (React state may be stale within the same job execution cycle)
+        context.storage._networks = [...(context.storage._networks || []), net];
+        if (agents.length > 0) {
+            context.storage._agents = [...(context.storage._agents || []), ...agents];
+            // Also set per-agent storage keys for name→id resolution
+            for (const a of agents) context.storage[`agent_${a.name}`] = a.id;
+        }
+        if (channels.length > 0) {
+            context.storage._channels = [...(context.storage._channels || []), ...channels];
+        }
 
         return { success: true, network: net };
     }
@@ -280,11 +336,42 @@ export const updateNetworkCommand: CommandDefinition = {
             type: "string",
             description: "New color hex value for the network (e.g. #ff6600)",
             required: false
+        },
+        items: {
+            name: "items",
+            type: "array",
+            description: "Batch mode: array of {id, name?, description?, color?} specs. Overrides individual args.",
+            required: false,
         }
     },
     output: "The updated network object.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" }, network: { type: "object" } } },
     execute: async (args, context: CommandContext) => {
+        // Batch mode
+        if (args.items) {
+            const specs = Array.isArray(args.items) ? args.items : [args.items];
+            const results: any[] = [];
+
+            context.ecosystem.setEcosystems((prev: any[]) => {
+                const updated = [...prev];
+                for (const spec of specs) {
+                    const idx = updated.findIndex((n: any) => n.id === spec.id);
+                    if (idx === -1) throw new Error(`Network ${spec.id} not found`);
+                    const changes: Record<string, any> = {};
+                    if (spec.name !== undefined && spec.name !== "") changes.name = spec.name;
+                    if (spec.description !== undefined) changes.description = spec.description;
+                    if (spec.color !== undefined && spec.color !== "") changes.color = spec.color;
+                    updated[idx] = { ...updated[idx], ...changes };
+                    results.push(updated[idx]);
+                }
+                return updated;
+            });
+
+            context.workspace.addLog(`Updated ${results.length} network(s)`);
+            return { success: true, results: results.map((n: any) => ({ networkId: n.id, name: n.name })) };
+        }
+
+        // Single mode
         const id = args.id;
         const existing = context.ecosystem.ecosystems.find((n: any) => n.id === id);
         if (!existing) throw new Error("Network not found in ecosystem");
@@ -333,54 +420,65 @@ export const destroyNetworkCommand: CommandDefinition = {
             description: "Also remove workspace agents, channels, and groups belonging to this network (default: false)",
             required: false,
             defaultValue: false
+        },
+        ids: {
+            name: "ids",
+            type: "array",
+            description: "Batch mode: array of network IDs to destroy. Overrides single id.",
+            required: false,
         }
     },
     output: "Summary of what was destroyed.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" }, removed: { type: "object" } } },
     execute: async (args, context: CommandContext) => {
-        const id = args.id;
+        const targetIds = args.ids
+            ? (Array.isArray(args.ids) ? args.ids : [args.ids])
+            : [args.id];
+
         const { setEcosystems, setBridges, ecosystems } = context.ecosystem;
+        const totalRemoved: Record<string, number> = { networks: 0, bridges: 0 };
 
-        const net = ecosystems.find((n: any) => n.id === id);
-        if (!net) throw new Error("Network not found in ecosystem");
+        for (const id of targetIds) {
+            const net = ecosystems.find((n: any) => n.id === id);
+            if (!net) throw new Error(`Network ${id} not found in ecosystem`);
+            totalRemoved.networks++;
+        }
 
-        const removed: Record<string, number> = { networks: 1, bridges: 0 };
+        // Remove all targeted networks
+        setEcosystems((prev: any[]) => prev.filter((n: any) => !targetIds.includes(n.id)));
 
-        // Remove the network from the ecosystem
-        setEcosystems((prev: any[]) => prev.filter((n: any) => n.id !== id));
-
-        // Remove bridges that reference this network
+        // Remove bridges referencing any targeted network
         setBridges((prev: any[]) => {
             const before = prev.length;
-            const after = prev.filter((b: any) => b.fromNetworkId !== id && b.toNetworkId !== id);
-            removed.bridges = before - after.length;
+            const after = prev.filter((b: any) => !targetIds.includes(b.fromNetworkId) && !targetIds.includes(b.toNetworkId));
+            totalRemoved.bridges = before - after.length;
             return after;
         });
 
-        // Cascade: also remove workspace-level entities tied to this network
+        // Cascade: remove workspace-level entities tied to these networks
         if (args.cascade) {
             const { setAgents, setChannels, setGroups, agents, channels, groups } = context.workspace;
 
             const agentsBefore = agents.length;
-            setAgents((prev: any[]) => prev.filter((a: any) => a.networkId !== id));
-            removed.agents = agentsBefore - agents.filter((a: any) => a.networkId !== id).length;
+            setAgents((prev: any[]) => prev.filter((a: any) => !targetIds.includes(a.networkId)));
+            totalRemoved.agents = agentsBefore - agents.filter((a: any) => !targetIds.includes(a.networkId)).length;
 
             const channelsBefore = channels.length;
-            setChannels((prev: any[]) => prev.filter((c: any) => c.networkId !== id));
-            removed.channels = channelsBefore - channels.filter((c: any) => c.networkId !== id).length;
+            setChannels((prev: any[]) => prev.filter((c: any) => !targetIds.includes(c.networkId)));
+            totalRemoved.channels = channelsBefore - channels.filter((c: any) => !targetIds.includes(c.networkId)).length;
 
             const groupsBefore = groups.length;
-            setGroups((prev: any[]) => prev.filter((g: any) => g.networkId !== id));
-            removed.groups = groupsBefore - groups.filter((g: any) => g.networkId !== id).length;
+            setGroups((prev: any[]) => prev.filter((g: any) => !targetIds.includes(g.networkId)));
+            totalRemoved.groups = groupsBefore - groups.filter((g: any) => !targetIds.includes(g.networkId)).length;
         }
 
-        const summary = Object.entries(removed)
+        const summary = Object.entries(totalRemoved)
             .filter(([, v]) => v > 0)
             .map(([k, v]) => `${v} ${k}`)
             .join(", ");
 
-        context.workspace.addLog(`Network "${net.name}" destroyed: ${summary}`);
-        return { success: true, removed };
+        context.workspace.addLog(`Networks destroyed: ${summary}`);
+        return { success: true, removed: totalRemoved };
     }
 };
 

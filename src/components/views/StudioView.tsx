@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Play, Save, FolderOpen, Plus, X, Package, Database, Tag, Cpu } from "lucide-react";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import { registry } from "../../services/commands/registry";
 import { JobCanvas } from "../jobs/JobCanvas";
 import { NodeEditor } from "../jobs/NodeEditor";
@@ -79,6 +81,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
 
     // ── Catalog modal ──
     const [showCatalog, setShowCatalog] = useState(false);
+    const del = useDeleteConfirm();
 
     const effectiveStepId = selectedElement?.type === "step" ? selectedElement.id : null;
     const selectedStep = effectiveStepId ? steps.find(s => s.id === effectiveStepId) || null : null;
@@ -822,16 +825,26 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                                         </div>
                                         <div className="jm-catalog-modal__item-actions">
                                             {!isSeedJob(job.id) && (
-                                                <button
-                                                    className="jm-meta-panel__remove"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (confirm("Delete this job definition?")) onDeleteJob(job.id);
-                                                    }}
-                                                    title="Delete"
-                                                >
-                                                    <X size={12} />
-                                                </button>
+                                                del.isPending(job.id) ? (
+                                                    <DeleteConfirmInline
+                                                        entityName="Job"
+                                                        entityLabel={job.name}
+                                                        onConfirm={() => del.confirm(() => onDeleteJob(job.id))}
+                                                        onCancel={del.cancel}
+                                                        compact
+                                                    />
+                                                ) : (
+                                                    <button
+                                                        className="jm-meta-panel__remove"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            del.requestDelete(job.id);
+                                                        }}
+                                                        title="Delete"
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                )
                                             )}
                                         </div>
                                     </div>

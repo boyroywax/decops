@@ -1,6 +1,8 @@
 import { Play, Edit, Trash2, Briefcase, Lock } from "lucide-react";
 import type { JobDefinition } from "../../types";
 import { isSeedJob } from "../../services/jobs/seedCatalog";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import "../../styles/components/job-catalog.css";
 
 interface JobCatalogProps {
@@ -11,6 +13,7 @@ interface JobCatalogProps {
 }
 
 export function JobCatalog({ jobs, onRun, onEdit, onDelete }: JobCatalogProps) {
+    const del = useDeleteConfirm();
     if (jobs.length === 0) {
         return (
             <div className="job-catalog__empty">
@@ -69,17 +72,23 @@ export function JobCatalog({ jobs, onRun, onEdit, onDelete }: JobCatalogProps) {
                             <Edit size={12} />
                         </button>
                         {!isBuiltIn && (
+                        del.isPending(job.id) ? (
+                            <DeleteConfirmInline
+                                entityName="Job"
+                                entityLabel={job.name}
+                                onConfirm={() => del.confirm(() => onDelete(job.id))}
+                                onCancel={del.cancel}
+                                compact
+                            />
+                        ) : (
                         <button
-                            onClick={() => {
-                                if (confirm("Are you sure you want to delete this job definition?")) {
-                                    onDelete(job.id);
-                                }
-                            }}
+                            onClick={() => del.requestDelete(job.id)}
                             className="btn btn-secondary job-catalog__action-btn job-catalog__action-btn--danger"
                             title="Delete"
                         >
                             <Trash2 size={12} />
                         </button>
+                        )
                         )}
                     </div>
                 </div>

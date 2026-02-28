@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
 import { useWorkspaceContext } from "../../context/WorkspaceContext";
 import { Grid, Plus, Download, Upload, Check, Trash2, FolderOpen, Save } from "lucide-react";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import { WorkspaceMetadata } from "../../types";
 import "../../styles/components/workspace-manager.css";
 
@@ -144,11 +146,11 @@ export function WorkspaceManager({ onClose }: WorkspaceManagerProps) {
         reader.readAsText(file);
     };
 
+    const del = useDeleteConfirm();
+
     const handleDelete = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
-        if (confirm("Are you sure you want to delete this workspace?")) {
-            deleteWorkspace(id);
-        }
+        del.requestDelete(id);
     };
 
     // Click outside to close
@@ -208,6 +210,15 @@ export function WorkspaceManager({ onClose }: WorkspaceManagerProps) {
                         </div>
                         {ws.id === activeWorkspaceId ? (
                             <Check size={14} color="#00e5a0" />
+                        ) : del.isPending(ws.id) ? (
+                            <DeleteConfirmInline
+                                entityName="Workspace"
+                                entityLabel={ws.name}
+                                warning="All agents and data will be lost."
+                                onConfirm={() => del.confirm(() => deleteWorkspace(ws.id))}
+                                onCancel={del.cancel}
+                                compact
+                            />
                         ) : (
                             <button
                                 onClick={(e) => handleDelete(e, ws.id)}

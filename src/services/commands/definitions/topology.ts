@@ -11,37 +11,52 @@ export const createBridgeCommand: CommandDefinition = {
         to_network: { name: "to_network", type: "network", description: "Target Network ID", required: true },
         from_agent: { name: "from_agent", type: "agent", description: "Source Agent ID", required: true },
         to_agent: { name: "to_agent", type: "agent", description: "Target Agent ID", required: true },
-        type: { name: "type", type: "string", description: "Type: data, task, consensus", required: false, defaultValue: "data" }
+        type: { name: "type", type: "string", description: "Type: data, task, consensus", required: false, defaultValue: "data" },
+        items: { name: "items", type: "array", description: "Batch mode: array of {from_network, to_network, from_agent, to_agent, type?} specs. Overrides individual args.", required: false }
     },
     output: "Details of the created bridge.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" }, bridge: { type: "object" } } },
     execute: async (args, context: CommandContext) => {
-        // We can iterate bridges to check existence
-        const exists = context.ecosystem.bridges.some((b: any) =>
-            (b.fromAgentId === args.from_agent && b.toAgentId === args.to_agent) ||
-            (b.fromAgentId === args.to_agent && b.toAgentId === args.from_agent)
-        );
+        const specs = args.items
+            ? (Array.isArray(args.items) ? args.items : [args.items])
+            : [{ from_network: args.from_network, to_network: args.to_network, from_agent: args.from_agent, to_agent: args.to_agent, type: args.type }];
 
-        if (exists) throw new Error("Bridge already exists.");
+        const created: any[] = [];
 
-        const bridge = {
-            id: crypto.randomUUID(),
-            fromNetworkId: args.from_network,
-            toNetworkId: args.to_network,
-            fromAgentId: args.from_agent,
-            toAgentId: args.to_agent,
-            type: args.type || "data",
-            offset: Math.random() * 100,
-            createdAt: new Date().toISOString()
-        };
+        for (const spec of specs) {
+            const exists = context.ecosystem.bridges.some((b: any) =>
+                (b.fromAgentId === spec.from_agent && b.toAgentId === spec.to_agent) ||
+                (b.fromAgentId === spec.to_agent && b.toAgentId === spec.from_agent)
+            );
+            if (exists) {
+                if (specs.length === 1) throw new Error("Bridge already exists.");
+                continue; // skip duplicates in batch
+            }
 
-        context.ecosystem.setBridges((prev: any[]) => [...prev, bridge]);
-        context.workspace.addLog("Bridge created successfully.");
+            const bridge = {
+                id: crypto.randomUUID(),
+                fromNetworkId: spec.from_network,
+                toNetworkId: spec.to_network,
+                fromAgentId: spec.from_agent,
+                toAgentId: spec.to_agent,
+                type: spec.type || "data",
+                offset: Math.random() * 100,
+                createdAt: new Date().toISOString()
+            };
 
-        // Write to shared storage for downstream steps
-        context.storage.lastBridgeId = bridge.id;
+            created.push(bridge);
+            context.storage.lastBridgeId = bridge.id;
+        }
 
-        return { success: true, bridge };
+        if (created.length > 0) {
+            context.ecosystem.setBridges((prev: any[]) => [...prev, ...created]);
+            context.workspace.addLog(`Created ${created.length} bridge(s).`);
+        }
+
+        if (!args.items) {
+            return { success: true, bridge: created[0] };
+        }
+        return { success: true, results: created.map(b => ({ bridgeId: b.id })) };
     }
 };
 
@@ -51,15 +66,19 @@ export const deleteBridgeCommand: CommandDefinition = {
     tags: ["topology", "bridge", "delete"],
     rbac: ["orchestrator"],
     args: {
-        id: { name: "id", type: "string", description: "Bridge ID", required: true }
+        id: { name: "id", type: "string", description: "Bridge ID", required: true },
+        ids: { name: "ids", type: "array", description: "Batch mode: array of bridge IDs to delete. Overrides single id.", required: false }
     },
     output: "Confirmation of deletion.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
     execute: async (args, context: CommandContext) => {
-        const bridgeId = args.id;
-        context.ecosystem.setBridges((prev: any[]) => prev.filter((b: any) => b.id !== bridgeId));
-        context.workspace.addLog("Bridge dissolved");
-        return { success: true };
+        const targetIds = args.ids
+            ? (Array.isArray(args.ids) ? args.ids : [args.ids])
+            : [args.id];
+        const idSet = new Set(targetIds);
+        context.ecosystem.setBridges((prev: any[]) => prev.filter((b: any) => !idSet.has(b.id)));
+        context.workspace.addLog(`Dissolved ${targetIds.length} bridge(s)`);
+        return { success: true, deleted: targetIds.length };
     }
 };
 

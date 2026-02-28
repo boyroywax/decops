@@ -908,6 +908,292 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+ * DIFF VIEW — Inline AI Edit Preview
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Diff Review Bar ───────────────────────────────────────────────── */
+
+.editor-diff-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-lg);
+  background: rgba(56, 189, 248, 0.06);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+  flex-shrink: 0;
+  gap: var(--space-md);
+}
+
+.editor-diff-bar-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: #38bdf8;
+  white-space: nowrap;
+}
+
+.editor-diff-stats {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  padding: 1px var(--space-sm);
+  background: var(--bg-surface);
+  border-radius: var(--radius-sm);
+}
+
+.editor-diff-stats::before {
+  content: "";
+}
+
+.editor-diff-bar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.editor-diff-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.editor-diff-toggle:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.editor-diff-accept {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  background: rgba(0, 229, 160, 0.1);
+  border: 1px solid rgba(0, 229, 160, 0.25);
+  color: #00e5a0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.editor-diff-accept:hover {
+  background: rgba(0, 229, 160, 0.18);
+  border-color: rgba(0, 229, 160, 0.35);
+}
+
+.editor-diff-reject {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-md);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.editor-diff-reject:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* ─── Diff Scroll Container ─────────────────────────────────────────── */
+
+.editor-diff-scroll {
+  flex: 1;
+  overflow: auto;
+}
+
+.editor-diff-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.editor-diff-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.editor-diff-scroll::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: var(--radius-full);
+}
+
+/* ─── Inline Diff View ──────────────────────────────────────────────── */
+
+.editor-diff-inline {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  padding: var(--space-xs) 0;
+}
+
+.editor-diff-line {
+  display: flex;
+  min-height: 1.65em;
+  padding: 0 var(--space-lg);
+  transition: background 0.12s ease;
+}
+
+.editor-diff-line:hover {
+  filter: brightness(1.15);
+}
+
+.editor-diff-line--unchanged {
+  color: var(--text-muted);
+}
+
+.editor-diff-line--added {
+  background: rgba(0, 229, 160, 0.07);
+  color: #00e5a0;
+}
+
+.editor-diff-line--removed {
+  background: rgba(239, 68, 68, 0.07);
+  color: #ef4444;
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.editor-diff-gutter {
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+  user-select: none;
+  color: var(--text-ghost);
+  font-weight: var(--font-semibold);
+}
+
+.editor-diff-line--added .editor-diff-gutter {
+  color: #00e5a0;
+}
+
+.editor-diff-line--removed .editor-diff-gutter {
+  color: #ef4444;
+}
+
+.editor-diff-line-num {
+  width: 36px;
+  text-align: right;
+  padding-right: var(--space-sm);
+  color: var(--text-ghost);
+  font-size: var(--text-xs);
+  user-select: none;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.editor-diff-text {
+  flex: 1;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ─── Side-by-Side Diff View ────────────────────────────────────────── */
+
+.editor-diff-side {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.editor-diff-side-header {
+  display: flex;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.editor-diff-side-label {
+  flex: 1;
+  padding: var(--space-xs) var(--space-lg);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--text-ghost);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.editor-diff-side-label:first-child {
+  border-right: 1px solid var(--border-subtle);
+}
+
+.editor-diff-side-body {
+  flex: 1;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+}
+
+.editor-diff-side-row {
+  display: flex;
+  min-height: 1.65em;
+}
+
+.editor-diff-side-cell {
+  flex: 1;
+  display: flex;
+  padding: 0 var(--space-md);
+  min-height: 1.65em;
+  min-width: 0;
+}
+
+.editor-diff-side-cell:first-child {
+  border-right: 1px solid var(--border-subtle);
+}
+
+.editor-diff-side-cell--unchanged {
+  color: var(--text-muted);
+}
+
+.editor-diff-side-cell--removed {
+  background: rgba(239, 68, 68, 0.07);
+  color: #ef4444;
+}
+
+.editor-diff-side-cell--added {
+  background: rgba(0, 229, 160, 0.07);
+  color: #00e5a0;
+}
+
+.editor-diff-side-cell--empty {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.editor-diff-side-cell .editor-diff-line-num {
+  width: 32px;
+}
+
+.editor-diff-side-cell .editor-diff-text {
+  flex: 1;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
  * AI EDITOR PANEL
  * ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -1227,5 +1513,18 @@
 
   .editor-view--with-ai .editor-body {
     flex-direction: column;
+  }
+
+  .editor-diff-bar {
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+  }
+
+  .editor-diff-bar-right {
+    flex-wrap: wrap;
+  }
+
+  .editor-diff-side-row {
+    font-size: var(--text-xs);
   }
 }

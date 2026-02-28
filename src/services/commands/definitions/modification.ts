@@ -7,30 +7,30 @@ export const deleteAgentCommand: CommandDefinition = {
     tags: ["modification", "agent", "delete"],
     rbac: ["orchestrator", "curator"],
     args: {
-        id: { name: "id", type: "agent", description: "Agent ID", required: true }
+        id: { name: "id", type: "agent", description: "Agent ID", required: true },
+        ids: { name: "ids", type: "array", description: "Batch mode: array of agent IDs to delete. Overrides single id.", required: false }
     },
     output: "Confirmation of deletion.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
     execute: async (args, context: CommandContext) => {
-        const { id } = args;
-        const { agents, channels, groups, messages, setAgents, setChannels, setGroups, setMessages, addLog } = context.workspace;
+        const targetIds = args.ids
+            ? (Array.isArray(args.ids) ? args.ids : [args.ids])
+            : [args.id];
 
-        const agent = agents.find((a: any) => a.id === id);
-        if (!agent) throw new Error("Agent not found");
+        const { agents, setAgents, setChannels, setGroups, addLog } = context.workspace;
+        const idSet = new Set(targetIds);
 
-        // Logic from useWorkspace.removeAgent
-        setAgents((prev: any[]) => prev.filter((a: any) => a.id !== id));
-        setChannels((prev: any[]) => prev.filter((c: any) => c.from !== id && c.to !== id));
-        setGroups((prev: any[]) => prev.map((g: any) => ({ ...g, members: g.members.filter((m: any) => m !== id) })));
+        // Validate all targets exist
+        for (const id of targetIds) {
+            if (!agents.find((a: any) => a.id === id)) throw new Error(`Agent ${id} not found`);
+        }
 
-        // Also cleanup messages? useWorkspace didn't explicitly cleanup messages for agent, but maybe it should?
-        // useWorkspace.removeAgent didn't. useWorkspace.removeAgents (bulk) DID.
-        // Let's match single removeAgent behavior for now, or improve it?
-        // Improving it is better.
-        // setMessages((prev: any[]) => prev.filter((m: any) => m.fromId !== id && m.toId !== id));
+        setAgents((prev: any[]) => prev.filter((a: any) => !idSet.has(a.id)));
+        setChannels((prev: any[]) => prev.filter((c: any) => !idSet.has(c.from) && !idSet.has(c.to)));
+        setGroups((prev: any[]) => prev.map((g: any) => ({ ...g, members: g.members.filter((m: any) => !idSet.has(m)) })));
 
-        addLog(`Agent "${agent.name}" deleted via command`);
-        return { success: true };
+        addLog(`Deleted ${targetIds.length} agent(s) via command`);
+        return { success: true, deleted: targetIds.length };
     }
 };
 
@@ -40,24 +40,20 @@ export const deleteChannelCommand: CommandDefinition = {
     tags: ["modification", "channel", "delete"],
     rbac: ["orchestrator", "curator"],
     args: {
-        id: { name: "id", type: "channel", description: "Channel ID", required: true }
+        id: { name: "id", type: "channel", description: "Channel ID", required: true },
+        ids: { name: "ids", type: "array", description: "Batch mode: array of channel IDs to delete. Overrides single id.", required: false }
     },
     output: "Confirmation of deletion.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
     execute: async (args, context: CommandContext) => {
-        const { id } = args;
-        const { setChannels, setMessages, addLog, activeChannel, setActiveChannel } = context.workspace;
+        const targetIds = args.ids
+            ? (Array.isArray(args.ids) ? args.ids : [args.ids])
+            : [args.id];
+        const idSet = new Set(targetIds);
 
-        setChannels((prev: any[]) => prev.filter((c: any) => c.id !== id));
-        // useWorkspace clears activeChannel if match
-        // We can't easily clear activeChannel state in App via context if it's not exposed as setter...
-        // But we exposed ...workspace, so setActiveChannel is there!
-        // We need to check if we can read 'activeChannel' from context.workspace?
-        // context.workspace is a snapshot.
-
-        // We'll proceed with deletion.
-        addLog("Channel dissolved via command");
-        return { success: true };
+        context.workspace.setChannels((prev: any[]) => prev.filter((c: any) => !idSet.has(c.id)));
+        context.workspace.addLog(`Dissolved ${targetIds.length} channel(s) via command`);
+        return { success: true, deleted: targetIds.length };
     }
 };
 
@@ -67,37 +63,46 @@ export const deleteGroupCommand: CommandDefinition = {
     tags: ["modification", "group", "delete"],
     rbac: ["orchestrator", "curator"],
     args: {
-        id: { name: "id", type: "group", description: "Group ID", required: true }
+        id: { name: "id", type: "group", description: "Group ID", required: true },
+        ids: { name: "ids", type: "array", description: "Batch mode: array of group IDs to dissolve. Overrides single id.", required: false }
     },
     output: "Confirmation of deletion.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
     execute: async (args, context: CommandContext) => {
-        const { id } = args;
-        const { setGroups, addLog } = context.workspace;
+        const targetIds = args.ids
+            ? (Array.isArray(args.ids) ? args.ids : [args.ids])
+            : [args.id];
+        const idSet = new Set(targetIds);
 
-        setGroups((prev: any[]) => prev.filter((g: any) => g.id !== id));
-        addLog("Group dissolved via command");
-        return { success: true };
+        context.workspace.setGroups((prev: any[]) => prev.filter((g: any) => !idSet.has(g.id)));
+        context.workspace.addLog(`Dissolved ${targetIds.length} group(s) via command`);
+        return { success: true, deleted: targetIds.length };
     }
 };
 
 export const editChannelCommand: CommandDefinition = {
-    id: "edit_channel", // Fixed ID to singular
+    id: "edit_channel",
     description: "Edit channel properties (e.g. type).",
     tags: ["modification", "channel", "edit"],
     rbac: ["orchestrator", "builder"],
     args: {
         id: { name: "id", type: "channel", description: "Channel ID", required: true },
-        type: { name: "type", type: "string", description: "New Type: data, task, consensus", required: true }
+        type: { name: "type", type: "string", description: "New Type: data, task, consensus", required: true },
+        items: { name: "items", type: "array", description: "Batch mode: array of {id, type} specs. Overrides individual args.", required: false }
     },
     output: "Confirmation of update.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
     execute: async (args, context: CommandContext) => {
+        const specs = args.items
+            ? (Array.isArray(args.items) ? args.items : [args.items])
+            : [{ id: args.id, type: args.type }];
+
+        const idTypeMap = new Map(specs.map((s: any) => [s.id, s.type]));
         context.workspace.setChannels((prev: any[]) => prev.map((c: any) =>
-            c.id === args.id ? { ...c, type: args.type } : c
+            idTypeMap.has(c.id) ? { ...c, type: idTypeMap.get(c.id) } : c
         ));
-        context.workspace.addLog(`Channel updated`);
-        return { success: true };
+        context.workspace.addLog(`Updated ${specs.length} channel(s)`);
+        return { success: true, updated: specs.length };
     }
 };
 
@@ -109,16 +114,22 @@ export const updateAgentPromptCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: {
         id: { name: "id", type: "agent", description: "Agent ID", required: true },
-        prompt: { name: "prompt", type: "string", description: "New Prompt", required: true }
+        prompt: { name: "prompt", type: "string", description: "New Prompt", required: true },
+        items: { name: "items", type: "array", description: "Batch mode: array of {id, prompt} specs. Overrides individual args.", required: false }
     },
     output: "Confirmation",
     execute: async (args, context: CommandContext) => {
-        const { id, prompt } = args;
-        const { setAgents, addLog, agents } = context.workspace;
-        setAgents((prev: any[]) => prev.map((a: any) => a.id === id ? { ...a, prompt } : a));
-        const agent = agents.find((a: any) => a.id === id);
-        addLog(`Prompt updated for "${agent?.name || id}"`);
-        return { success: true };
+        const specs = args.items
+            ? (Array.isArray(args.items) ? args.items : [args.items])
+            : [{ id: args.id, prompt: args.prompt }];
+
+        const idPromptMap = new Map(specs.map((s: any) => [s.id, s.prompt]));
+        const { setAgents, addLog } = context.workspace;
+        setAgents((prev: any[]) => prev.map((a: any) =>
+            idPromptMap.has(a.id) ? { ...a, prompt: idPromptMap.get(a.id) } : a
+        ));
+        addLog(`Prompt updated for ${specs.length} agent(s)`);
+        return { success: true, updated: specs.length };
     }
 };
 
@@ -130,24 +141,34 @@ export const toggleGroupMemberCommand: CommandDefinition = {
     rbac: ["orchestrator"],
     args: {
         group_id: { name: "group_id", type: "group", description: "Group ID", required: true },
-        agent_id: { name: "agent_id", type: "agent", description: "Agent ID", required: true }
+        agent_id: { name: "agent_id", type: "agent", description: "Agent ID", required: true },
+        items: { name: "items", type: "array", description: "Batch mode: array of {group_id, agent_id} specs. Overrides individual args.", required: false }
     },
     output: "Confirmation",
     execute: async (args, context: CommandContext) => {
-        const { group_id, agent_id } = args;
+        const specs = args.items
+            ? (Array.isArray(args.items) ? args.items : [args.items])
+            : [{ group_id: args.group_id, agent_id: args.agent_id }];
+
         const { setGroups, addLog } = context.workspace;
 
-        setGroups((prev: any[]) => prev.map((g: any) => {
-            if (g.id !== group_id) return g;
-            const hasMember = g.members.includes(agent_id);
-            return {
-                ...g,
-                members: hasMember
-                    ? g.members.filter((m: any) => m !== agent_id)
-                    : [...g.members, agent_id]
-            };
-        }));
-        addLog(`Group membership updated`);
-        return { success: true };
+        setGroups((prev: any[]) => {
+            let updated = [...prev];
+            for (const spec of specs) {
+                updated = updated.map((g: any) => {
+                    if (g.id !== spec.group_id) return g;
+                    const hasMember = g.members.includes(spec.agent_id);
+                    return {
+                        ...g,
+                        members: hasMember
+                            ? g.members.filter((m: any) => m !== spec.agent_id)
+                            : [...g.members, spec.agent_id]
+                    };
+                });
+            }
+            return updated;
+        });
+        addLog(`Group membership updated (${specs.length} operation(s))`);
+        return { success: true, updated: specs.length };
     }
 };

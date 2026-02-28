@@ -10,6 +10,8 @@ import { GradientIcon } from "../shared/GradientIcon";
 import { MarkdownContent } from "../shared/MarkdownContent";
 import { EcosystemCanvas } from "../canvas/EcosystemCanvas";
 import { CopyableId } from "../shared/CopyableId";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import "../../styles/components/ecosystem.css";
 
 interface EcosystemViewProps {
@@ -54,6 +56,7 @@ export function EcosystemView({
   dissolveNetwork,
   createBridge, removeBridge, sendBridgeMessage, setView,
 }: EcosystemViewProps) {
+  const del = useDeleteConfirm();
   return (
     <div>
       <h2 className="eco-title">
@@ -86,7 +89,11 @@ export function EcosystemView({
                   {net.agents.length > 6 && <span className="eco-agent-badge--overflow">+{net.agents.length - 6}</span>}
                 </div>
                 <div className="eco-network-card__actions">
-                  <button onClick={() => dissolveNetwork(net.id)} className="btn btn-sm btn-danger">Destroy</button>
+                  {del.isPending(net.id) ? (
+                    <DeleteConfirmInline entityName="Network" entityLabel={net.name} warning="All agents, channels, and groups will be dissolved." onConfirm={() => del.confirm(() => dissolveNetwork(net.id))} onCancel={del.cancel} compact />
+                  ) : (
+                    <button onClick={() => del.requestDelete(net.id)} className="btn btn-sm btn-danger">Destroy</button>
+                  )}
                 </div>
               </div>
             ))}
@@ -164,7 +171,11 @@ export function EcosystemView({
                   </div>
                   <div className="eco-bridge-card__footer">
                     <span className="eco-bridge-card__type-badge">{CHANNEL_TYPES.find((t) => t.id === b.type)?.label || "Data"}</span>
-                    <button onClick={(e) => { e.stopPropagation(); removeBridge(b.id); }} className="eco-bridge-card__remove-btn"><X size={10} /></button>
+                    {del.isPending(b.id) ? (
+                      <DeleteConfirmInline entityName="Bridge" onConfirm={() => del.confirm(() => removeBridge(b.id))} onCancel={del.cancel} compact />
+                    ) : (
+                      <button onClick={(e) => { e.stopPropagation(); del.requestDelete(b.id); }} className="eco-bridge-card__remove-btn"><X size={10} /></button>
+                    )}
                   </div>
                 </div>
               );

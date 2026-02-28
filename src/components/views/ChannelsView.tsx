@@ -4,6 +4,8 @@ import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar, PillButton } fro
 import { ArrowLeftRight, X, Globe } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import "../../styles/components/channels.css";
 
 interface ChannelsViewProps {
@@ -28,6 +30,7 @@ export function ChannelsView({
   navigateTo,
 }: ChannelsViewProps) {
   const bulk = useBulkSelect();
+  const del = useDeleteConfirm();
 
   const getNetworkName = (networkId?: string) => {
     if (!networkId) return null;
@@ -138,7 +141,11 @@ export function ChannelsView({
             </div>
             <div className="channel-item-actions">
               <button onClick={() => { setActiveChannel(ch.id); setView("messages"); }} className="btn btn-sm btn-message">Message</button>
-              <button onClick={() => removeChannel(ch.id)} className="btn btn-sm btn-ghost"><X size={10} /></button>
+              {del.isPending(ch.id) ? (
+                <DeleteConfirmInline entityName="Channel" entityLabel={`${from.name} ↔ ${to.name}`} warning="All messages will be lost." onConfirm={() => del.confirm(() => removeChannel(ch.id))} onCancel={del.cancel} compact />
+              ) : (
+                <button onClick={() => del.requestDelete(ch.id)} className="btn btn-sm btn-ghost"><X size={10} /></button>
+              )}
             </div>
           </div>
         );

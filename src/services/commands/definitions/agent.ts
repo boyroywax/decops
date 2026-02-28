@@ -37,6 +37,12 @@ export const createAgentCommand: CommandDefinition = {
             type: "network",
             description: "ID of the network this agent belongs to",
             required: false,
+        },
+        items: {
+            name: "items",
+            type: "array",
+            description: "Batch mode: array of {name, role, prompt, networkId?} specs. Overrides individual args.",
+            required: false,
         }
     },
     output: "JSON object containing the created agent's ID and details.",
@@ -55,34 +61,53 @@ export const createAgentCommand: CommandDefinition = {
         }
     },
     execute: async (args, context) => {
-        const { name, role, prompt, networkId } = args;
         const { workspace } = context;
 
-        // Simulate delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Normalize: batch items or single spec
+        const specs = args.items
+            ? (Array.isArray(args.items) ? args.items : [args.items])
+            : [{ name: args.name, role: args.role, prompt: args.prompt, networkId: args.networkId }];
 
-        const newAgent = {
-            id: crypto.randomUUID(),
-            name,
-            role,
-            prompt,
-            did: generateDID(),
-            keys: generateKeyPair(),
-            createdAt: new Date().toISOString(),
-            status: "active" as const,
-            networkId: networkId || context.ecosystem?.activeNetworkId || undefined,
-            aieos: createAieosEntity(name, role, prompt),
-        };
+        const created: any[] = [];
+        for (const spec of specs) {
+            const { name, role, prompt, networkId } = spec;
 
-        workspace.setAgents((prev: any[]) => [...prev, newAgent]);
-        workspace.addLog(`Created agent: ${name} (${role})`);
+            await new Promise(resolve => setTimeout(resolve, 300));
 
-        // Write to shared storage for downstream steps
-        context.storage.lastAgentId = newAgent.id;
-        context.storage.lastAgentName = newAgent.name;
-        context.storage[`agent_${name}`] = newAgent.id;
+            const newAgent = {
+                id: crypto.randomUUID(),
+                name,
+                role,
+                prompt,
+                did: generateDID(),
+                keys: generateKeyPair(),
+                createdAt: new Date().toISOString(),
+                status: "active" as const,
+                networkId: networkId || context.ecosystem?.activeNetworkId || undefined,
+                aieos: createAieosEntity(name, role, prompt),
+            };
 
-        return { agentId: newAgent.id, did: newAgent.did };
+            created.push(newAgent);
+
+            // Write to shared storage for downstream steps
+            context.storage.lastAgentId = newAgent.id;
+            context.storage.lastAgentName = newAgent.name;
+            context.storage[`agent_${name}`] = newAgent.id;
+        }
+
+        workspace.setAgents((prev: any[]) => [...prev, ...created]);
+        workspace.addLog(`Created ${created.length} agent(s): ${created.map(a => a.name).join(", ")}`);
+
+        // Accumulate in storage so downstream steps (channels, groups) can look up
+        // agents even when React state hasn't re-rendered yet
+        context.storage._agents = [...(context.storage._agents || []), ...created];
+
+        // Single mode: backwards-compatible return shape
+        if (!args.items) {
+            return { agentId: created[0].id, did: created[0].did };
+        }
+        // Batch mode
+        return { results: created.map(a => ({ agentId: a.id, name: a.name, did: a.did })) };
     },
 };
 

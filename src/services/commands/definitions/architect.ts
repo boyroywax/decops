@@ -41,7 +41,7 @@ export const promptArchitectCommand: CommandDefinition = {
 
 export const deployNetworkCommand: CommandDefinition = {
     id: "deploy_network",
-    description: "Generate and deploy a full agent mesh network. Provide a natural-language prompt to auto-generate the config, or supply a pre-built MeshConfig directly.",
+    description: "Generate and deploy a full agent mesh network. Provide a natural-language prompt to auto-generate the config, or supply a pre-built MeshConfig directly. Multi-network configs create parallel jobs for A/B testing.",
     tags: ["architect", "deploy", "provision", "job"],
     rbac: ["builder", "orchestrator"],
     args: {
@@ -56,10 +56,17 @@ export const deployNetworkCommand: CommandDefinition = {
             type: "object",
             description: "Pre-built MeshConfig object — overrides prompt-based generation",
             required: false
+        },
+        mode: {
+            name: "mode",
+            type: "string",
+            description: "Deployment mode: 'parallel' queues each network as an independent concurrent job (A/B testing), 'serial' queues everything as one sequential job. Default: parallel for multi-network, serial for single.",
+            required: false,
+            enum: ["serial", "parallel"],
         }
     },
-    output: "Summary of the generated deployment job with step list.",
-    outputSchema: { type: "object", properties: { success: { type: "boolean" }, jobId: { type: "string" }, stepCount: { type: "number" }, steps: { type: "array" } } },
+    output: "Summary of the generated deployment job(s) with step lists.",
+    outputSchema: { type: "object", properties: { success: { type: "boolean" }, jobs: { type: "array" }, stepCount: { type: "number" } } },
     execute: async (args, context: CommandContext) => {
         const { addLog } = context.workspace;
 
@@ -111,97 +118,200 @@ export const deployNetworkCommand: CommandDefinition = {
             }
         }
 
-        // --- Generate steps ---
-        const steps: any[] = [];
-        let stepIdx = 0;
+        // Determine deployment mode
+        const effectiveMode = args.mode || (configNetworks.length > 1 ? "parallel" : "serial");
 
-        // 1. Create networks — output network ID to storage for downstream steps
-        for (const net of configNetworks) {
-            if (!net?.name) continue;
+        // ── Helper: build per-network pipeline steps ──
+        const buildNetworkPipeline = (net: any, netIdx: number, prefix: string) => {
+            const steps: any[] = [];
+            let stepIdx = 0;
+
+            // 1. Create the network
             steps.push({
-                id: `step-${stepIdx++}`,
+                id: `${prefix}-step-${stepIdx++}`,
                 commandId: "create_network",
                 name: `Create Network: ${net.name}`,
                 args: { name: net.name, description: net.description || "" },
-                outputMappings: [
-                    { outputKey: "network", target: "storage", targetKey: `network_${net.name}` },
-                ],
             });
-        }
 
-        // 2. Create agents — bind networkId from storage, output agent ID to storage
-        for (let i = 0; i < config.agents.length; i++) {
-            const a = config.agents[i];
-            if (!a?.name) continue;
-            const networkIdx = a.network ?? agentToNetworkIdx[i] ?? 0;
-            const networkName = configNetworks[networkIdx]?.name || configNetworks[0]?.name;
-            steps.push({
-                id: `step-${stepIdx++}`,
-                commandId: "create_agent",
-                name: `Create Agent: ${a.name}`,
-                args: {
+            // 2. Create agents belonging to this network
+            const agentSpecs: any[] = [];
+            for (let i = 0; i < config.agents.length; i++) {
+                const a = config.agents[i];
+                if (!a?.name) continue;
+                const belongsToNet = a.network ?? agentToNetworkIdx[i] ?? 0;
+                if (belongsToNet !== netIdx) continue;
+                agentSpecs.push({
                     name: a.name,
                     role: a.role || "researcher",
                     prompt: a.prompt || "",
-                    networkId: `$storage.network_${networkName}`,
-                },
-                inputBindings: {
-                    networkId: { source: "storage", sourceKey: `network_${networkName}` },
-                },
-                outputMappings: [
-                    { outputKey: "agentId", target: "storage", targetKey: `agent_${a.name}` },
-                ],
-            });
-        }
+                    networkId: `$storage.network_${net.name}`,
+                });
+            }
 
-        // 3. Create channels — output channel ID to storage
-        for (const c of config.channels || []) {
-            if (c.from == null || c.to == null) continue;
-            const fromName = config.agents[c.from]?.name;
-            const toName = config.agents[c.to]?.name;
-            if (!fromName || !toName) continue;
-            steps.push({
-                id: `step-${stepIdx++}`,
-                commandId: "create_channel",
-                name: `Channel: ${fromName} ↔ ${toName}`,
-                args: { from: fromName, to: toName, type: c.type || "data" },
-                inputBindings: {
-                    from: { source: "storage", sourceKey: `agent_${fromName}` },
-                    to: { source: "storage", sourceKey: `agent_${toName}` },
-                },
-                outputMappings: [
-                    { outputKey: "channelId", target: "storage", targetKey: `channel_${fromName}_${toName}` },
-                ],
-            });
-        }
+            if (agentSpecs.length > 0) {
+                steps.push({
+                    id: `${prefix}-step-${stepIdx++}`,
+                    commandId: "create_agent",
+                    name: `Create ${agentSpecs.length} Agent(s) [${net.name}]`,
+                    args: agentSpecs.length === 1 ? { ...agentSpecs[0] } : { items: agentSpecs },
+                });
+            }
 
-        // 4. Create groups — bind networkId from storage, output group ID to storage
-        for (const g of config.groups || []) {
-            if (!g?.name) continue;
-            const memberNames = (g.members || []).map((idx: number) => config.agents[idx]?.name).filter(Boolean);
-            if (memberNames.length < 2) continue;
-            const firstMemberNetIdx = agentToNetworkIdx[g.members[0]] ?? 0;
-            const networkName = configNetworks[firstMemberNetIdx]?.name || configNetworks[0]?.name;
-            steps.push({
-                id: `step-${stepIdx++}`,
-                commandId: "create_group",
-                name: `Create Group: ${g.name}`,
-                args: {
+            // 3. Create channels (intra-network only)
+            const netAgentIndices = new Set<number>();
+            for (let i = 0; i < config.agents.length; i++) {
+                const belongsToNet = config.agents[i]?.network ?? agentToNetworkIdx[i] ?? 0;
+                if (belongsToNet === netIdx) netAgentIndices.add(i);
+            }
+            const channelSpecs: any[] = [];
+            for (const c of config.channels || []) {
+                if (c.from == null || c.to == null) continue;
+                if (!netAgentIndices.has(c.from) || !netAgentIndices.has(c.to)) continue;
+                const fromName = config.agents[c.from]?.name;
+                const toName = config.agents[c.to]?.name;
+                if (!fromName || !toName) continue;
+                channelSpecs.push({ from: fromName, to: toName, type: c.type || "data" });
+            }
+            if (channelSpecs.length > 0) {
+                steps.push({
+                    id: `${prefix}-step-${stepIdx++}`,
+                    commandId: "create_channel",
+                    name: `Create ${channelSpecs.length} Channel(s) [${net.name}]`,
+                    args: channelSpecs.length === 1 ? { ...channelSpecs[0] } : { items: channelSpecs },
+                });
+            }
+
+            // 4. Create groups (members in this network)
+            const groupSpecs: any[] = [];
+            for (const g of config.groups || []) {
+                if (!g?.name) continue;
+                const memberNames = (g.members || [])
+                    .filter((idx: number) => netAgentIndices.has(idx))
+                    .map((idx: number) => config.agents[idx]?.name)
+                    .filter(Boolean);
+                if (memberNames.length < 2) continue;
+                groupSpecs.push({
                     name: g.name,
                     members: memberNames,
                     governance: g.governance || "majority",
-                    networkId: `$storage.network_${networkName}`,
-                },
-                inputBindings: {
-                    networkId: { source: "storage", sourceKey: `network_${networkName}` },
-                },
+                    networkId: `$storage.network_${net.name}`,
+                });
+            }
+            if (groupSpecs.length > 0) {
+                steps.push({
+                    id: `${prefix}-step-${stepIdx++}`,
+                    commandId: "create_group",
+                    name: `Create ${groupSpecs.length} Group(s) [${net.name}]`,
+                    args: groupSpecs.length === 1 ? { ...groupSpecs[0] } : { items: groupSpecs },
+                });
+            }
+
+            // 5. Print topology at the end
+            steps.push({
+                id: `${prefix}-step-${stepIdx++}`,
+                commandId: "print_topology",
+                name: `Topology Report [${net.name}]`,
+                args: {},
                 outputMappings: [
-                    { outputKey: "groupId", target: "storage", targetKey: `group_${g.name}` },
+                    { outputKey: "*", target: "storage", targetKey: "lastTopology" },
+                    { outputKey: "*", target: "deliverable", targetKey: `topology_${net.name}` },
                 ],
             });
+
+            return steps;
+        };
+
+        // ── Build storage defaults for a network ──
+        const buildStorageDefaults = (net: any, netIdx: number) => {
+            const defaults: Record<string, any> = {};
+            defaults[`network_${net.name}`] = null;
+            for (let i = 0; i < config.agents.length; i++) {
+                const a = config.agents[i];
+                if (!a?.name) continue;
+                const belongsToNet = a.network ?? agentToNetworkIdx[i] ?? 0;
+                if (belongsToNet !== netIdx) continue;
+                defaults[`agent_${a.name}`] = null;
+            }
+            return defaults;
+        };
+
+        // ── Parallel mode: one job per network ──
+        if (effectiveMode === "parallel" && configNetworks.length > 1) {
+            const queuedJobs: any[] = [];
+
+            for (let netIdx = 0; netIdx < configNetworks.length; netIdx++) {
+                const net = configNetworks[netIdx];
+                if (!net?.name) continue;
+                const steps = buildNetworkPipeline(net, netIdx, `net${netIdx}`);
+                const storageDefaults = buildStorageDefaults(net, netIdx);
+
+                const jobPayload: any = {
+                    type: `deploy: ${net.name}`,
+                    request: { config, generatedAt: new Date().toISOString(), networkIndex: netIdx },
+                    steps,
+                    mode: "serial",
+                    deliverables: [
+                        { key: `topology_${net.name}`, label: `Topology: ${net.name}`, type: "json", description: `Topology for network ${net.name}` },
+                    ],
+                    storageDefaults,
+                    inputDefaults: [],
+                };
+
+                const job = context.jobs.addJob(jobPayload);
+                queuedJobs.push({ jobId: job.id, network: net.name, stepCount: steps.length });
+                addLog(`[A/B] Queued job for "${net.name}": ${steps.length} steps → ${job.id.slice(0, 12)}`);
+            }
+
+            // If there are cross-network bridges, queue a finalization job
+            const bridgeSpecs: any[] = [];
+            for (const b of config.bridges || []) {
+                if (b.fromNetwork == null || b.toNetwork == null || b.fromAgent == null || b.toAgent == null) continue;
+                const fromAgentName = config.agents[b.fromAgent]?.name;
+                const toAgentName = config.agents[b.toAgent]?.name;
+                const fromNetworkName = configNetworks[b.fromNetwork]?.name;
+                const toNetworkName = configNetworks[b.toNetwork]?.name;
+                if (!fromAgentName || !toAgentName || !fromNetworkName || !toNetworkName) continue;
+                if (fromNetworkName === toNetworkName) continue;
+                bridgeSpecs.push({
+                    from_network: `$storage.network_${fromNetworkName}`,
+                    to_network: `$storage.network_${toNetworkName}`,
+                    from_agent: `$storage.agent_${fromAgentName}`,
+                    to_agent: `$storage.agent_${toAgentName}`,
+                    type: b.type || "data",
+                });
+            }
+
+            if (bridgeSpecs.length > 0) {
+                addLog(`[A/B] ${bridgeSpecs.length} cross-network bridge(s) require manual setup after parallel deploys`);
+            }
+
+            const totalSteps = queuedJobs.reduce((s: number, j: any) => s + j.stepCount, 0);
+            return {
+                success: true,
+                mode: "parallel",
+                jobs: queuedJobs,
+                stepCount: totalSteps,
+            };
         }
 
-        // 5. Create bridges — bind network/agent refs from storage
+        // ── Serial mode: single job with all networks ──
+        const steps: any[] = [];
+        let stepIdx = 0;
+
+        for (let netIdx = 0; netIdx < configNetworks.length; netIdx++) {
+            const net = configNetworks[netIdx];
+            if (!net?.name) continue;
+            const pipelineSteps = buildNetworkPipeline(net, netIdx, `s${netIdx}`);
+            // Remove per-network topology step (we'll add one at the end)
+            const withoutTopology = pipelineSteps.filter((s: any) => s.commandId !== "print_topology");
+            for (const s of withoutTopology) {
+                steps.push({ ...s, id: `step-${stepIdx++}` });
+            }
+        }
+
+        // Cross-network bridges (only in serial mode where all entities share storage)
+        const bridgeSpecs: any[] = [];
         for (const b of config.bridges || []) {
             if (b.fromNetwork == null || b.toNetwork == null || b.fromAgent == null || b.toAgent == null) continue;
             const fromAgentName = config.agents[b.fromAgent]?.name;
@@ -209,31 +319,25 @@ export const deployNetworkCommand: CommandDefinition = {
             const fromNetworkName = configNetworks[b.fromNetwork]?.name;
             const toNetworkName = configNetworks[b.toNetwork]?.name;
             if (!fromAgentName || !toAgentName || !fromNetworkName || !toNetworkName) continue;
-            if (fromNetworkName === toNetworkName) continue; // Bridges connect different networks
+            if (fromNetworkName === toNetworkName) continue;
+            bridgeSpecs.push({
+                from_network: `$storage.network_${fromNetworkName}`,
+                to_network: `$storage.network_${toNetworkName}`,
+                from_agent: `$storage.agent_${fromAgentName}`,
+                to_agent: `$storage.agent_${toAgentName}`,
+                type: b.type || "data",
+            });
+        }
+        if (bridgeSpecs.length > 0) {
             steps.push({
                 id: `step-${stepIdx++}`,
                 commandId: "create_bridge",
-                name: `Bridge: ${fromAgentName} ↔ ${toAgentName}`,
-                args: {
-                    from_network: `$storage.network_${fromNetworkName}`,
-                    to_network: `$storage.network_${toNetworkName}`,
-                    from_agent: `$storage.agent_${fromAgentName}`,
-                    to_agent: `$storage.agent_${toAgentName}`,
-                    type: b.type || "data",
-                },
-                inputBindings: {
-                    from_network: { source: "storage", sourceKey: `network_${fromNetworkName}` },
-                    to_network: { source: "storage", sourceKey: `network_${toNetworkName}` },
-                    from_agent: { source: "storage", sourceKey: `agent_${fromAgentName}` },
-                    to_agent: { source: "storage", sourceKey: `agent_${toAgentName}` },
-                },
-                outputMappings: [
-                    { outputKey: "bridge", target: "storage", targetKey: `bridge_${fromAgentName}_${toAgentName}` },
-                ],
+                name: `Create ${bridgeSpecs.length} Bridge(s)`,
+                args: bridgeSpecs.length === 1 ? { ...bridgeSpecs[0] } : { items: bridgeSpecs },
             });
         }
 
-        // 6. Example messages — output responses to storage
+        // Example messages
         for (const em of config.exampleMessages || []) {
             if (em.channelIdx == null || !em.message) continue;
             const ch = (config.channels || [])[em.channelIdx];
@@ -246,17 +350,10 @@ export const deployNetworkCommand: CommandDefinition = {
                 commandId: "send_message",
                 name: `Message: ${fromName} → ${toName}`,
                 args: { from_agent_id: `$storage.agent_${fromName}`, to_agent_id: `$storage.agent_${toName}`, message: em.message },
-                inputBindings: {
-                    from_agent_id: { source: "storage", sourceKey: `agent_${fromName}` },
-                    to_agent_id: { source: "storage", sourceKey: `agent_${toName}` },
-                },
-                outputMappings: [
-                    { outputKey: "response", target: "storage", targetKey: `response_${toName}` },
-                ],
             });
         }
 
-        // 7. Final step: print topology — route to storage and deliverable
+        // Final topology step
         steps.push({
             id: `step-${stepIdx++}`,
             commandId: "print_topology",
@@ -268,7 +365,7 @@ export const deployNetworkCommand: CommandDefinition = {
             ],
         });
 
-        // --- Build storage defaults from config entities ---
+        // Build storage defaults
         const childStorageDefaults: Record<string, any> = {};
         for (const net of configNetworks) {
             if (net?.name) childStorageDefaults[`network_${net.name}`] = null;
@@ -276,16 +373,7 @@ export const deployNetworkCommand: CommandDefinition = {
         for (const a of config.agents) {
             if (a?.name) childStorageDefaults[`agent_${a.name}`] = null;
         }
-        for (const c of config.channels || []) {
-            const fn = config.agents[c.from]?.name;
-            const tn = config.agents[c.to]?.name;
-            if (fn && tn) childStorageDefaults[`channel_${fn}_${tn}`] = null;
-        }
-        for (const g of config.groups || []) {
-            if (g?.name) childStorageDefaults[`group_${g.name}`] = null;
-        }
 
-        // --- Queue the multi-step deployment job ---
         const networkNames = configNetworks.map((n: any) => n.name).join(", ");
         const jobPayload: any = {
             type: `deploy: ${networkNames}`,
@@ -304,9 +392,9 @@ export const deployNetworkCommand: CommandDefinition = {
 
         return {
             success: true,
-            jobId: job.id,
+            mode: "serial",
+            jobs: [{ jobId: job.id, network: networkNames, stepCount: steps.length }],
             stepCount: steps.length,
-            steps: steps.map((s: any) => ({ id: s.id, command: s.commandId, name: s.name })),
         };
     }
 };

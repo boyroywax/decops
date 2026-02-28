@@ -1,6 +1,8 @@
 import type { Agent, Network, Bridge, BridgeMessage } from "../../../types";
 import { CHANNEL_TYPES } from "../../../constants";
 import { ArrowLeftRight, X } from "lucide-react";
+import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../../shared/DeleteConfirmInline";
 
 interface BridgeCardProps {
   bridge: Bridge;
@@ -11,6 +13,7 @@ interface BridgeCardProps {
 }
 
 export function BridgeCard({ bridge: b, agents, ecosystems, bridgeMessages, removeBridge }: BridgeCardProps) {
+  const del = useDeleteConfirm();
   const fNet = ecosystems.find((n) => n.id === b.fromNetworkId);
   const tNet = ecosystems.find((n) => n.id === b.toNetworkId);
   const fA = agents.find((a) => a.id === b.fromAgentId) || fNet?.agents.find((a) => a.id === b.fromAgentId);
@@ -50,24 +53,28 @@ export function BridgeCard({ bridge: b, agents, ecosystems, bridgeMessages, remo
         }}>
           {CHANNEL_TYPES.find((t) => t.id === b.type)?.label || "Data"}
         </span>
-        <button
-          onClick={() => removeBridge(b.id)}
-          style={{
-            background: "transparent",
-            border: "1px solid rgba(239,68,68,0.12)",
-            color: "#52525b",
-            padding: "2px 6px",
-            borderRadius: 4,
-            fontFamily: "inherit",
-            fontSize: 9,
-            cursor: "pointer",
-            marginLeft: "auto",
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          <X size={10} />
-        </button>
+        {del.isPending(b.id) ? (
+          <DeleteConfirmInline entityName="Bridge" onConfirm={() => del.confirm(() => removeBridge(b.id))} onCancel={del.cancel} compact />
+        ) : (
+          <button
+            onClick={() => del.requestDelete(b.id)}
+            style={{
+              background: "transparent",
+              border: "1px solid rgba(239,68,68,0.12)",
+              color: "#52525b",
+              padding: "2px 6px",
+              borderRadius: 4,
+              fontFamily: "inherit",
+              fontSize: 9,
+              cursor: "pointer",
+              marginLeft: "auto",
+              display: "flex",
+              alignItems: "center",
+            }}
+          >
+            <X size={10} />
+          </button>
+        )}
       </div>
       <div style={{ fontSize: 9, color: "#3f3f46", marginTop: 8, fontStyle: "italic" }}>
         Send messages via the Messages page

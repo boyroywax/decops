@@ -61,4 +61,97 @@ describe('CommandRegistry', () => {
         await expect(registry.execute('unknown_command', {}, {}))
             .rejects.toThrow('Command unknown_command not found');
     });
+
+    describe('entity name → ID resolution', () => {
+        const agentCommand: CommandDefinition = {
+            id: 'msg_test',
+            description: 'Test agent resolution',
+            args: {
+                from: { name: 'from', type: 'agent', required: true, description: 'Sender' },
+                to: { name: 'to', type: 'agent', required: true, description: 'Receiver' },
+                networkId: { name: 'networkId', type: 'network', required: false, description: 'Network' },
+            },
+            execute: vi.fn(async (args) => ({ resolved: args })),
+            rbac: ['builder'],
+            tags: ['test'],
+            output: 'result',
+        };
+
+        const ctx = {
+            workspace: {
+                agents: [
+                    { id: 'a-001', name: 'Lead' },
+                    { id: 'a-002', name: 'Ideator' },
+                ],
+                groups: [],
+                channels: [],
+            },
+            ecosystem: {
+                ecosystems: [
+                    { id: 'n-001', name: 'Marketing Net', agents: [] },
+                ],
+            },
+            storage: {},
+        };
+
+        it('resolves agent names to IDs', async () => {
+            registry.register(agentCommand);
+            const result = await registry.execute('msg_test', { from: 'Lead', to: 'Ideator' }, ctx);
+            expect(result.resolved.from).toBe('a-001');
+            expect(result.resolved.to).toBe('a-002');
+        });
+
+        it('passes through valid IDs unchanged', async () => {
+            registry.register(agentCommand);
+            const result = await registry.execute('msg_test', { from: 'a-001', to: 'a-002' }, ctx);
+            expect(result.resolved.from).toBe('a-001');
+            expect(result.resolved.to).toBe('a-002');
+        });
+
+        it('resolves network names to IDs', async () => {
+            registry.register(agentCommand);
+            const result = await registry.execute('msg_test', {
+                from: 'a-001', to: 'a-002', networkId: 'Marketing Net',
+            }, ctx);
+            expect(result.resolved.networkId).toBe('n-001');
+        });
+
+        it('is case-insensitive for name lookup', async () => {
+            registry.register(agentCommand);
+            const result = await registry.execute('msg_test', { from: 'lead', to: 'IDEATOR' }, ctx);
+            expect(result.resolved.from).toBe('a-001');
+            expect(result.resolved.to).toBe('a-002');
+        });
+
+        it('leaves unresolvable values unchanged', async () => {
+            registry.register(agentCommand);
+            const result = await registry.execute('msg_test', { from: 'Ghost', to: 'a-002' }, ctx);
+            // 'Ghost' doesn't match any agent — passes through as-is
+            expect(result.resolved.from).toBe('Ghost');
+        });
+
+        it('resolves names inside batch items', async () => {
+            const batchCmd: CommandDefinition = {
+                id: 'batch_test',
+                description: 'Batch test',
+                args: {
+                    agent_id: { name: 'agent_id', type: 'agent', required: false, description: 'Agent' },
+                    items: { name: 'items', type: 'array', required: true, description: 'Batch items' },
+                },
+                execute: vi.fn(async (args) => ({ items: args.items })),
+                rbac: ['builder'],
+                tags: ['test'],
+                output: 'result',
+            };
+            registry.register(batchCmd);
+            const result = await registry.execute('batch_test', {
+                items: [
+                    { agent_id: 'Lead' },
+                    { agent_id: 'a-002' },
+                ],
+            }, ctx);
+            expect(result.items[0].agent_id).toBe('a-001');
+            expect(result.items[1].agent_id).toBe('a-002');
+        });
+    });
 });

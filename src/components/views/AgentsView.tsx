@@ -8,6 +8,8 @@ import { CopyableId } from "../shared/CopyableId";
 import { AgentPortrait } from "../shared/AgentPortrait";
 import { AgentTradingCard } from "../shared/AgentTradingCard";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
+import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import { validateAieos, downloadAgentAieos } from "../../utils/aieos";
 import "../../styles/components/agents.css";
 
@@ -87,6 +89,8 @@ export function AgentsView({
     const net = ecosystems.find(n => n.id === networkId);
     return net ? { name: net.name, color: net.color } : null;
   };
+
+  const del = useDeleteConfirm();
 
   const handleBulkDelete = () => {
     removeAgents(bulk.selected);
@@ -375,13 +379,21 @@ export function AgentsView({
                         <Download size={10} /> Export
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); removeAgent(a.id); }}
+                        onClick={(e) => { e.stopPropagation(); del.requestDelete(a.id); }}
                         className="btn-danger btn-sm"
                       >
                         Revoke
                       </button>
                     </div>
-                    {a.networkId && (
+                    {del.isPending(a.id) ? (
+                      <DeleteConfirmInline
+                        entityName="Agent"
+                        entityLabel={a.name}
+                        onConfirm={() => del.confirm(() => removeAgent(a.id))}
+                        onCancel={del.cancel}
+                        compact
+                      />
+                    ) : a.networkId ? (
                       <button
                         className="agent-flip__detail-link"
                         onClick={(e) => { e.stopPropagation(); navigateTo("networks", { networkId: a.networkId!, ...(agentGroups.length > 0 ? { groupId: agentGroups[0].id } : {}), agentId: a.id }); }}
@@ -389,7 +401,7 @@ export function AgentsView({
                       >
                         <ExternalLink size={10} /> View Detail
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>

@@ -83,16 +83,30 @@ export function useJobExecutor({
     automations,
     workspaceManager // [NEW]
 }: JobExecutorProps) {
-    const processingRef = useRef(false);
+    const processingRef = useRef<Set<string>>(new Set());
+    const MAX_CONCURRENT_JOBS = 4;
     const { api: studioApi } = useStudioContext();
 
     useEffect(() => {
         const processJobs = async () => {
-            if (processingRef.current || isPaused) return;
+            if (isPaused) return;
 
-            const queuedJob = jobs.find((j: any) => j.status === "queued");
-            if (queuedJob) {
-                processingRef.current = true;
+            // Find all queued jobs that aren't already being processed
+            const queuedJobs = jobs.filter(
+                (j: any) => j.status === "queued" && !processingRef.current.has(j.id)
+            );
+            if (queuedJobs.length === 0) return;
+
+            // Limit concurrent execution
+            const slotsAvailable = MAX_CONCURRENT_JOBS - processingRef.current.size;
+            if (slotsAvailable <= 0) return;
+
+            const batch = queuedJobs.slice(0, slotsAvailable);
+
+            for (const queuedJob of batch) {
+                processingRef.current.add(queuedJob.id);
+                // Fire-and-forget: each job runs independently
+                (async () => {
                 try {
                     updateJobStatus(queuedJob.id, "running");
                     addNotebookEntry({
@@ -486,29 +500,6 @@ export function useJobExecutor({
                         tags: ["job", "success", queuedJob.type],
                     });
 
-                    // Enriched Result Artifact
-                    const resultArtifact = {
-                        jobId: queuedJob.id,
-                        timestamp: Date.now(),
-                        status: "success",
-                        command: queuedJob.type,
-                        data: finalResult || {}
-                    };
-
-                    addArtifact(queuedJob.id, {
-                        id: `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-                        type: "json",
-                        name: "result.json",
-                        content: JSON.stringify(resultArtifact, null, 2),
-                        tags: [
-                            `type:json`,
-                            `source:job`,
-                            `job:${queuedJob.type}`,
-                            ...(queuedJob.request?.name ? [`name:${queuedJob.request.name}`] : []),
-                        ],
-                        source: "job",
-                    });
-
                 } catch (err: any) {
                     console.error("Job Failed", err);
                     updateJobStatus(queuedJob.id, "failed", err.message || "Unknown error");
@@ -525,9 +516,10 @@ export function useJobExecutor({
                         tags: ["job", "error", queuedJob.type],
                     });
                 } finally {
-                    processingRef.current = false;
+                    processingRef.current.delete(queuedJob.id);
                 }
-            }
+                })(); // end fire-and-forget IIFE
+            } // end for batch
         };
 
         const interval = setInterval(processJobs, 1000); // Check every second (simple polling)

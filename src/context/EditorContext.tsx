@@ -63,6 +63,12 @@ interface EditorContextType {
     persistState: (state: PersistedEditorState) => void;
     /** Retrieve persisted state (non-destructive — state stays until overwritten) */
     getPersistedState: () => PersistedEditorState | null;
+    /** AI-proposed content for inline diff preview */
+    proposedContent: string | null;
+    /** Send proposed content to the editor for diff preview */
+    proposeEdit: (content: string) => void;
+    /** Clear the current proposal (accept or reject) */
+    clearProposal: () => void;
 }
 
 const EditorContext = createContext<EditorContextType>({
@@ -73,12 +79,21 @@ const EditorContext = createContext<EditorContextType>({
     consumePendingArtifact: () => null,
     persistState: () => {},
     getPersistedState: () => null,
+    proposedContent: null,
+    proposeEdit: () => {},
+    clearProposal: () => {},
 });
 
 export function EditorProvider({ children }: { children: ReactNode }) {
     const [api, setApi] = useState<EditorAPI | null>(null);
     const [pendingArtifact, setPendingArtifact] = useState<JobArtifact | null>(null);
+    const [proposedContent, setProposedContent] = useState<string | null>(null);
     const persistedStateRef = useRef<PersistedEditorState | null>(null);
+
+    const proposeEdit = useCallback((content: string) => {
+        if (content.trim()) setProposedContent(content);
+    }, []);
+    const clearProposal = useCallback(() => setProposedContent(null), []);
 
     const register = useCallback((newApi: EditorAPI) => {
         setApi(newApi);
@@ -107,7 +122,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     }, []);
 
     return (
-        <EditorContext.Provider value={{ api, register, unregister, queueArtifact, consumePendingArtifact, persistState, getPersistedState }}>
+        <EditorContext.Provider value={{ api, register, unregister, queueArtifact, consumePendingArtifact, persistState, getPersistedState, proposedContent, proposeEdit, clearProposal }}>
             {children}
         </EditorContext.Provider>
     );

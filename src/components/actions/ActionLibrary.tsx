@@ -1,14 +1,9 @@
 import React, { useState } from "react";
 import { registry } from "../../services/commands/registry";
-import { CommandDefinition } from "../../services/commands/types";
 import { CommandCard } from "./CommandCard";
 import "../../styles/components/action-library.css";
 
-interface ActionLibraryProps {
-    onRunCommand: (commandId: string, command: CommandDefinition) => void;
-}
-
-export function ActionLibrary({ onRunCommand }: ActionLibraryProps) {
+export function ActionLibrary() {
     const commands = registry.getAll();
     const [filter, setFilter] = useState("");
 
@@ -33,7 +28,6 @@ export function ActionLibrary({ onRunCommand }: ActionLibraryProps) {
                     <CommandCard
                         key={cmd.id}
                         command={cmd}
-                        onRun={() => onRunCommand(cmd.id, cmd)}
                     />
                 ))}
             </div>
