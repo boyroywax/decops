@@ -86,9 +86,7 @@ export function useJobs() {
         ...standaloneArtifacts,
         ...jobs.flatMap(j => j.artifacts)
     ].sort((a, b) => {
-        const tsA = parseInt(a.id.split('-')[1] || '0');
-        const tsB = parseInt(b.id.split('-')[1] || '0');
-        return tsB - tsA;
+        return (b.createdAt || 0) - (a.createdAt || 0);
     });
 
     const [isPaused, setIsPaused] = useState(false);

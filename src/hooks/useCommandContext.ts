@@ -97,10 +97,11 @@ export function useCommandContext({
             storage: {},
             addDeliverable: (deliverable) => {
                 const artifact = {
-                    id: `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                    id: crypto.randomUUID(),
                     name: deliverable.name,
                     type: deliverable.type,
                     content: deliverable.content,
+                    createdAt: Date.now(),
                     tags: [
                         `type:${deliverable.type}`,
                         `source:chat`,

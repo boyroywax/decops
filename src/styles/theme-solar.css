@@ -2045,6 +2045,87 @@
   scrollbar-color: rgba(120, 80, 20, 0.15) transparent;
 }
 
+/* ═══ Graphics Panel — Solar ═══ */
+[data-theme="solar"] .display-panel__add-btn {
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .display-panel__add-btn:hover {
+  border-color: rgba(156, 109, 16, 0.25);
+  background: rgba(156, 109, 16, 0.06);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .display-panel__cache-toast {
+  color: #9c6d10;
+  background: rgba(156, 109, 16, 0.06);
+  border-color: rgba(156, 109, 16, 0.15);
+}
+
+[data-theme="solar"] .display-panel__custom-form {
+  background: rgba(120, 80, 20, 0.02);
+  border-color: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .display-panel__graphics-btn {
+  background: rgba(120, 80, 20, 0.02);
+  border-color: rgba(120, 80, 20, 0.08);
+  color: #8a7050;
+}
+
+[data-theme="solar"] .display-panel__graphics-btn:hover {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #4a3520;
+}
+
+[data-theme="solar"] .display-panel__graphics-btn--active {
+  background: rgba(156, 109, 16, 0.08);
+  border-color: rgba(156, 109, 16, 0.3);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .display-panel__graphics-btn--active:hover {
+  background: rgba(156, 109, 16, 0.12);
+  border-color: rgba(156, 109, 16, 0.4);
+}
+
+[data-theme="solar"] .display-panel__graphics-btn--active .display-panel__graphics-desc {
+  color: rgba(156, 109, 16, 0.6);
+}
+
+[data-theme="solar"] .display-panel__graphics-btn--active .display-panel__graphics-icon {
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .display-panel__graphics-delete:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* Portrait option toggles */
+[data-theme="solar"] .display-panel__toggle-row {
+  background: #f7f0e0;
+  border-color: #e8dcc8;
+}
+
+[data-theme="solar"] .display-panel__toggle-row:hover {
+  background: #f0e8d4;
+}
+
+[data-theme="solar"] .display-panel__switch {
+  background: #d4c8a8;
+  border-color: #d4c8a8;
+}
+
+[data-theme="solar"] .display-panel__switch--on {
+  background: #9c6d10;
+  border-color: #9c6d10;
+}
+
+[data-theme="solar"] .display-panel__switch-knob {
+  background: #fefaf0;
+}
+
 /* ═══ Ecosystem Overview ═══ */
 [data-theme="solar"] .channel-btn--active-eco {
   background: rgba(156, 109, 16, 0.06);
@@ -2064,5 +2145,21 @@
 }
 
 [data-theme="solar"] .msg-eco-footer {
+  color: #a89880;
+}
+
+/* Artifact reference chips */
+[data-theme="solar"] .msg-artifact-chip {
+  border-color: #9c6d10;
+  background: rgba(156, 109, 16, 0.06);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .msg-artifact-chip:hover {
+  background: rgba(156, 109, 16, 0.12);
+  box-shadow: 0 2px 6px rgba(156, 109, 16, 0.12);
+}
+
+[data-theme="solar"] .msg-artifact-chip__type {
   color: #a89880;
 }

@@ -507,3 +507,52 @@
   color: var(--text-ghost);
   justify-content: center;
 }
+
+/* ═══ Artifact Reference Chips ═══ */
+
+.msg-artifact-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.msg-artifact-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--color-accent, #7c3aed);
+  background: rgba(124, 58, 237, 0.06);
+  color: var(--color-accent, #7c3aed);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  line-height: 1.4;
+  white-space: nowrap;
+  max-width: 220px;
+}
+
+.msg-artifact-chip:hover {
+  background: rgba(124, 58, 237, 0.14);
+  border-color: var(--color-accent, #7c3aed);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.15);
+}
+
+.msg-artifact-chip__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+.msg-artifact-chip__type {
+  font-size: 8px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}

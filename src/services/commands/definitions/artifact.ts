@@ -48,11 +48,12 @@ export const createArtifactCommand: CommandDefinition = {
         tags.push(`type:${args.type}`);
 
         const artifact = {
-            id: `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            id: crypto.randomUUID(),
             name: args.name,
             type: args.type,
             content: args.content,
             tags,
+            createdAt: Date.now(),
             description: args.description || "",
             source: "command" as const,
         };
@@ -63,7 +64,12 @@ export const createArtifactCommand: CommandDefinition = {
         context.storage.lastArtifactId = artifact.id;
         context.storage[`artifact_${args.name}`] = artifact.id;
 
-        return { success: true, artifact };
+        return {
+            success: true,
+            artifact,
+            // Structured reference that agents can embed in messages/results
+            ref: `[[artifact:${artifact.id}|${artifact.name}]]`,
+        };
     }
 };
 

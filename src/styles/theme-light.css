@@ -2053,6 +2053,87 @@
   scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
+/* ═══ Graphics Panel — Light ═══ */
+[data-theme="light"] .display-panel__add-btn {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .display-panel__add-btn:hover {
+  border-color: rgba(5, 150, 105, 0.25);
+  background: rgba(5, 150, 105, 0.06);
+  color: #059669;
+}
+
+[data-theme="light"] .display-panel__cache-toast {
+  color: #059669;
+  background: rgba(5, 150, 105, 0.06);
+  border-color: rgba(5, 150, 105, 0.15);
+}
+
+[data-theme="light"] .display-panel__custom-form {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .display-panel__graphics-btn {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #6b7280;
+}
+
+[data-theme="light"] .display-panel__graphics-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #1f2937;
+}
+
+[data-theme="light"] .display-panel__graphics-btn--active {
+  background: rgba(5, 150, 105, 0.08);
+  border-color: rgba(5, 150, 105, 0.3);
+  color: #059669;
+}
+
+[data-theme="light"] .display-panel__graphics-btn--active:hover {
+  background: rgba(5, 150, 105, 0.12);
+  border-color: rgba(5, 150, 105, 0.4);
+}
+
+[data-theme="light"] .display-panel__graphics-btn--active .display-panel__graphics-desc {
+  color: rgba(5, 150, 105, 0.6);
+}
+
+[data-theme="light"] .display-panel__graphics-btn--active .display-panel__graphics-icon {
+  color: #059669;
+}
+
+[data-theme="light"] .display-panel__graphics-delete:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* Portrait option toggles */
+[data-theme="light"] .display-panel__toggle-row {
+  background: #f9fafb;
+  border-color: #e5e7eb;
+}
+
+[data-theme="light"] .display-panel__toggle-row:hover {
+  background: #f3f4f6;
+}
+
+[data-theme="light"] .display-panel__switch {
+  background: #d1d5db;
+  border-color: #d1d5db;
+}
+
+[data-theme="light"] .display-panel__switch--on {
+  background: #059669;
+  border-color: #059669;
+}
+
+[data-theme="light"] .display-panel__switch-knob {
+  background: #fff;
+}
+
 /* ═══ Ecosystem Overview ═══ */
 [data-theme="light"] .channel-btn--active-eco {
   background: rgba(99, 102, 241, 0.06);
@@ -2073,5 +2154,21 @@
 
 [data-theme="light"] .msg-eco-footer {
   color: #9ca3af;
+}
+
+/* Artifact reference chips */
+[data-theme="light"] .msg-artifact-chip {
+  border-color: #059669;
+  background: rgba(5, 150, 105, 0.06);
+  color: #059669;
+}
+
+[data-theme="light"] .msg-artifact-chip:hover {
+  background: rgba(5, 150, 105, 0.12);
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.12);
+}
+
+[data-theme="light"] .msg-artifact-chip__type {
+  color: #6b7280;
 }
 

@@ -280,6 +280,8 @@ export function ViewSwitcher({
                 selBridgeFromNet={ecosystem.selBridgeFromNet}
                 selBridgeToNet={ecosystem.selBridgeToNet}
                 sendBridgeMessage={ecosystem.sendBridgeMessage}
+                allArtifacts={allArtifacts}
+                onNavigateToArtifact={(art) => navigateTo("artifacts", { artifactId: art.id })}
             />
         );
     }
@@ -310,6 +312,7 @@ export function ViewSwitcher({
                 importArtifact={importArtifact}
                 removeArtifact={removeArtifact}
                 updateArtifact={updateArtifact}
+                initialSelectedId={navContext.artifactId}
             />
         );
     }

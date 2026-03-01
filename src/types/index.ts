@@ -32,6 +32,7 @@ export interface NavContext {
   groupId?: string;
   agentId?: string;
   channelId?: string;
+  artifactId?: string;
 }
 
 export type NotebookCategory = "action" | "output" | "navigation" | "system" | "narrative";

@@ -1,12 +1,13 @@
 import type { RefObject } from "react";
-import { useState, useMemo } from "react";
-import type { Agent, Channel, Group, Message, Network, Bridge, BridgeMessage } from "../../types";
-import { MessageSquare, ArrowLeftRight, Hexagon, X, Link2, Globe } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import type { Agent, Channel, Group, Message, Network, Bridge, BridgeMessage, JobArtifact, ViewId } from "../../types";
+import { MessageSquare, ArrowLeftRight, Hexagon, X, Link2, Globe, FileText, FileJson, FileCode, Image, FileSpreadsheet, File } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { MarkdownContent } from "../shared/MarkdownContent";
 import { ROLES, CHANNEL_TYPES } from "../../constants";
 import { SectionTitle, BulkCheckbox, BulkActionBar } from "../shared/ui";
 import { useBulkSelect } from "../../hooks/useBulkSelect";
+import { extractArtifactRefs, buildArtifactMap } from "../../utils/artifactRefs";
 import "../../styles/components/messages.css";
 
 interface MessagesViewProps {
@@ -45,6 +46,9 @@ interface MessagesViewProps {
   selBridgeFromNet: Network | null | undefined;
   selBridgeToNet: Network | null | undefined;
   sendBridgeMessage: () => void;
+  // Artifact reference support
+  allArtifacts: JobArtifact[];
+  onNavigateToArtifact?: (artifact: JobArtifact) => void;
 }
 
 export function MessagesView({
@@ -57,9 +61,51 @@ export function MessagesView({
   selectedBridge, setSelectedBridge, bridgeMsgInput, setBridgeMsgInput,
   bridgeSending, selBridgeFrom, selBridgeTo, selBridgeFromNet, selBridgeToNet,
   sendBridgeMessage,
+  allArtifacts, onNavigateToArtifact,
 }: MessagesViewProps) {
   const bulk = useBulkSelect();
   const [ecosystemOverview, setEcosystemOverview] = useState(false);
+
+  // Build artifact lookup map for reference detection
+  const artifactMap = useMemo(() => buildArtifactMap(allArtifacts), [allArtifacts]);
+
+  /** Icon for artifact type */
+  const artIcon = useCallback((type: string) => {
+    switch (type) {
+      case "markdown": return <FileText size={10} />;
+      case "json": return <FileJson size={10} />;
+      case "yaml": return <FileCode size={10} />;
+      case "code": return <FileCode size={10} />;
+      case "csv": return <FileSpreadsheet size={10} />;
+      case "image": return <Image size={10} />;
+      default: return <File size={10} />;
+    }
+  }, []);
+
+  /** Render clickable artifact chips for a text block */
+  const renderArtifactChips = useCallback((text: string) => {
+    const refs = extractArtifactRefs(text, artifactMap);
+    if (refs.length === 0) return null;
+    return (
+      <div className="msg-artifact-chips">
+        {refs.map((ref) => {
+          const art = artifactMap.get(ref.id);
+          return (
+            <button
+              key={ref.id}
+              className="msg-artifact-chip"
+              onClick={(e) => { e.stopPropagation(); if (art && onNavigateToArtifact) onNavigateToArtifact(art); }}
+              title={`Open artifact: ${ref.label}`}
+            >
+              {artIcon(ref.type)}
+              <span className="msg-artifact-chip__name">{ref.label}</span>
+              <span className="msg-artifact-chip__type">{ref.type}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }, [artifactMap, artIcon, onNavigateToArtifact]);
 
   // Determine which messaging mode is active
   const isBridgeMode = !!selectedBridge && !activeChannel && !broadcastGroup && !ecosystemOverview;
@@ -262,6 +308,7 @@ export function MessagesView({
                             {sourceLabel && <span className="msg-sender__source" style={{ color: sourceColor, borderColor: sourceColor + "30" }}>{sourceLabel}</span>}
                           </div>
                           <MarkdownContent content={m.content} className="msg-bubble--sent" />
+                          {renderArtifactChips(m.content)}
                         </div>
                       </div>
                       {m.status === "sending" && <div className="msg-thinking"><span className="msg-thinking__dot">●</span> {receiver?.name} is thinking...</div>}
@@ -274,6 +321,7 @@ export function MessagesView({
                               <span className={`msg-sender__status${m.status === "no-prompt" ? " msg-sender__status--no-prompt" : " msg-sender__status--response"}`}>{m.status === "no-prompt" ? "no prompt" : "response"}</span>
                             </div>
                             <MarkdownContent content={m.response} className={`msg-bubble--received${m.status === "no-prompt" ? " msg-bubble--no-prompt" : ""}`} style={m.status !== "no-prompt" ? { background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15` } : undefined} />
+                            {renderArtifactChips(m.response)}
                           </div>
                         </div>
                       )}
@@ -352,6 +400,7 @@ export function MessagesView({
                       <div className="msg-content">
                         <div className="msg-sender" style={{ color: sRole?.color }}>{sender?.name} <span className="msg-sender__timestamp">{new Date(m.ts).toLocaleTimeString()}</span></div>
                         <MarkdownContent content={m.content} className="msg-bubble--sent" />
+                        {renderArtifactChips(m.content)}
                       </div>
                     </div>
                     {m.status === "sending" && <div className="msg-thinking"><span className="msg-thinking__dot">●</span> {receiver?.name} is thinking...</div>}
@@ -361,6 +410,7 @@ export function MessagesView({
                         <div className="msg-content">
                           <div className="msg-sender" style={{ color: rRole?.color }}>{receiver?.name} <span className={`msg-sender__status${m.status === "no-prompt" ? " msg-sender__status--no-prompt" : " msg-sender__status--response"}`}>{m.status === "no-prompt" ? "no prompt" : "response"}</span></div>
                           <MarkdownContent content={m.response} className={`msg-bubble--received${m.status === "no-prompt" ? " msg-bubble--no-prompt" : ""}`} style={m.status !== "no-prompt" ? { background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15` } : undefined} />
+                          {renderArtifactChips(m.response)}
                         </div>
                       </div>
                     )}
@@ -389,6 +439,7 @@ export function MessagesView({
                       <div className="msg-content">
                         <div className="msg-sender" style={{ color: rRole?.color }}>{receiver?.name}</div>
                         {m.response && <MarkdownContent content={m.response} className="msg-bubble--broadcast" style={{ background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15` }} />}
+                        {m.response && renderArtifactChips(m.response)}
                         {m.status === "sending" && <div className="msg-thinking--broadcast">● thinking...</div>}
                       </div>
                     </div>
@@ -414,6 +465,7 @@ export function MessagesView({
                         <div className="msg-content">
                           <div className="msg-sender" style={{ color: sRole?.color }}>{selBridgeFrom.name} <span className="msg-sender__net">({selBridgeFromNet?.name})</span> <span className="msg-sender__timestamp">{new Date(m.ts).toLocaleTimeString()}</span></div>
                           <MarkdownContent content={m.content} className="msg-bubble--sent" />
+                          {renderArtifactChips(m.content)}
                         </div>
                       </div>
                       {m.status === "sending" && <div className="msg-thinking--bridge"><span className="msg-thinking__dot">●</span> {selBridgeTo.name} is thinking…</div>}
@@ -423,6 +475,7 @@ export function MessagesView({
                           <div className="msg-content">
                             <div className="msg-sender" style={{ color: rRole?.color }}>{selBridgeTo.name} <span className="msg-sender__net">({selBridgeToNet?.name})</span> <span className={`msg-sender__status${m.status === "no-prompt" ? " msg-sender__status--no-prompt" : " msg-sender__status--response"}`}>{m.status === "no-prompt" ? "no prompt" : "response"}</span></div>
                             <MarkdownContent content={m.response} className={`msg-bubble--received msg-bubble--bridge-response${m.status === "no-prompt" ? " msg-bubble--no-prompt" : ""}`} style={m.status !== "no-prompt" ? { background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15` } : undefined} />
+                            {renderArtifactChips(m.response)}
                           </div>
                         </div>
                       )}

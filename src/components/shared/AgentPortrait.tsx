@@ -19,6 +19,7 @@ import {
   promptHash,
   type CachedPortrait,
 } from "../../services/portraitCache";
+import { getPortraitOptions } from "../../services/imageGen";
 
 // ── Helpers ──
 
@@ -28,26 +29,141 @@ function getInitials(name: string): string {
   return name.slice(0, 2).toUpperCase();
 }
 
-/** Build the generation prompt from AIEOS data */
-function buildPrompt(agent: Agent): string {
+/** Map role ID to thematic props/tools for image enrichment */
+const ROLE_TOOLS: Record<string, string> = {
+  researcher: "holding a magnifying glass, notebook, or data tablet",
+  builder: "surrounded by glowing code fragments, toolbelt, wrenches",
+  curator: "carrying a leather-bound tome or card catalog, spectacles",
+  validator: "a shield emblem, armor pauldron, digital scanning monocle",
+  orchestrator: "conducting with glowing batons, holographic interface",
+};
+
+/** Map role ID to thematic environment / background */
+const ROLE_BACKGROUNDS: Record<string, string> = {
+  researcher: "laboratory with beakers and charts in background",
+  builder: "industrial workshop with sparks and blueprints",
+  curator: "grand library with tall bookshelves in warm light",
+  validator: "security command center with monitors and data streams",
+  orchestrator: "nexus control room with holographic displays",
+};
+
+/**
+ * Build a rich, distinctive prompt from the full AIEOS profile.
+ *
+ * Pulls face, body, style, identity, occupation, personality, and interests
+ * to create a unique character description. The art style is NOT included —
+ * that is applied separately by the graphics preset prefix in imageGen.
+ *
+ * @param agent — The agent to describe
+ * @param options — Toggle flags for tools/theme and background inclusion
+ */
+function buildPrompt(
+  agent: Agent,
+  options: { showTools: boolean; showBackground: boolean },
+): string {
   const phys = agent.aieos?.physicality;
-  const base = phys?.image_prompts?.portrait || "";
+  const identity = agent.aieos?.identity;
+  const history = agent.aieos?.history;
+  const psychology = agent.aieos?.psychology;
+  const interests = agent.aieos?.interests;
 
-  if (base) return base;
+  const parts: string[] = [];
 
-  // Synthesize from physicality fields
-  if (phys) {
-    const parts = [
-      phys.face?.shape && `${phys.face.shape} face`,
-      phys.face?.eyes?.color && `${phys.face.eyes.color} eyes`,
-      phys.face?.hair?.color &&
-        `${phys.face.hair.color} ${phys.face.hair.style || "hair"}`,
-      phys.style?.aesthetic_archetype,
-    ].filter(Boolean);
-    if (parts.length > 0) return parts.join(", ");
+  // ── Core subject ──
+  parts.push("Portrait of a character");
+
+  // Age / gender cues
+  const age = identity?.bio?.age_perceived;
+  const gender = identity?.bio?.gender;
+  if (age || gender) {
+    const ageStr = age ? `${age}-year-old` : "";
+    parts.push([ageStr, gender].filter(Boolean).join(" "));
   }
 
-  return `AI agent portrait, ${agent.role} role`;
+  // ── Face details ──
+  if (phys?.face) {
+    const face = phys.face;
+    const faceParts: string[] = [];
+    if (face.shape) faceParts.push(`${face.shape} face`);
+    if (face.skin?.tone) faceParts.push(`${face.skin.tone} skin`);
+    if (face.eyes?.color && face.eyes?.shape) faceParts.push(`${face.eyes.shape} ${face.eyes.color} eyes`);
+    else if (face.eyes?.color) faceParts.push(`${face.eyes.color} eyes`);
+    if (face.hair?.color) {
+      const hairDesc = [face.hair.texture, face.hair.color, face.hair.style || "hair"].filter(Boolean).join(" ");
+      faceParts.push(hairDesc);
+    }
+    if (face.facial_hair && face.facial_hair !== "None" && face.facial_hair !== "none") faceParts.push(face.facial_hair);
+    if (face.nose) faceParts.push(`${face.nose} nose`);
+    if (face.mouth) faceParts.push(`${face.mouth} mouth`);
+    if (face.distinguishing_features?.length) faceParts.push(face.distinguishing_features.slice(0, 2).join(", "));
+    if (face.eyes?.corrective_lenses && face.eyes.corrective_lenses !== "None" && face.eyes.corrective_lenses !== "none")
+      faceParts.push(face.eyes.corrective_lenses);
+    if (faceParts.length > 0) parts.push(faceParts.join(", "));
+  }
+
+  // ── Body/build ──
+  if (phys?.body) {
+    const body = phys.body;
+    const bodyParts: string[] = [];
+    if (body.somatotype) bodyParts.push(`${body.somatotype.toLowerCase()} build`);
+    if (body.build_description) bodyParts.push(body.build_description);
+    if (body.posture) bodyParts.push(`${body.posture} posture`);
+    if (body.scars_tattoos?.length) bodyParts.push(body.scars_tattoos.slice(0, 2).join(", "));
+    if (bodyParts.length > 0) parts.push(bodyParts.join(", "));
+  }
+
+  // ── Clothing & accessories ──
+  if (phys?.style) {
+    const style = phys.style;
+    if (style.aesthetic_archetype) parts.push(`${style.aesthetic_archetype} aesthetic`);
+    if (style.clothing_preferences?.length) parts.push(`wearing ${style.clothing_preferences.slice(0, 3).join(", ")}`);
+    if (style.accessories?.length) parts.push(`with ${style.accessories.slice(0, 2).join(" and ")}`);
+    if (style.color_palette?.length) {
+      // Convert hex colors into descriptive hints for the image model
+      parts.push(`color theme: ${style.color_palette.slice(0, 3).join(", ")}`);
+    }
+  }
+
+  // ── Occupation hint ──
+  if (history?.occupation?.title) {
+    parts.push(`occupation: ${history.occupation.title}`);
+  }
+
+  // ── Personality flavour ──
+  if (psychology?.traits?.mbti) parts.push(`personality vibe: ${psychology.traits.mbti}`);
+  if (psychology?.moral_compass?.alignment) parts.push(psychology.moral_compass.alignment);
+
+  // ── Mood / expression ──
+  if (psychology?.emotional_profile?.base_mood) {
+    parts.push(`${psychology.emotional_profile.base_mood} expression`);
+  }
+
+  // ── Hobby / interest hints (small flavor) ──
+  if (interests?.hobbies?.length) {
+    parts.push(`interests: ${interests.hobbies.slice(0, 2).join(", ")}`);
+  }
+
+  // ── Role tools/theme items (toggle-controlled) ──
+  if (options.showTools) {
+    const tools = ROLE_TOOLS[agent.role];
+    if (tools) parts.push(tools);
+  }
+
+  // ── Background (toggle-controlled) ──
+  if (options.showBackground) {
+    const bg = ROLE_BACKGROUNDS[agent.role];
+    if (bg) parts.push(bg);
+  } else {
+    parts.push("plain solid color background");
+  }
+
+  // ── Fallback if somehow we have nothing ──
+  if (parts.length <= 2) {
+    const role = ROLES.find(r => r.id === agent.role);
+    parts.push(`AI agent in the ${role?.label || agent.role} role`);
+  }
+
+  return parts.join(", ");
 }
 
 // ── In-memory data URL cache (prevents re-creating object URLs) ──
@@ -81,7 +197,11 @@ export function AgentPortrait({
   const role = ROLES.find((r) => r.id === agent.role);
   const color = role?.color || "#a1a1aa";
 
-  const prompt = useMemo(() => buildPrompt(agent), [agent.id, agent.role]);
+  const portraitOpts = getPortraitOptions();
+  const prompt = useMemo(
+    () => buildPrompt(agent, { showTools: portraitOpts.showTools, showBackground: portraitOpts.showBackground }),
+    [agent.id, agent.role, portraitOpts.showTools, portraitOpts.showBackground],
+  );
   const pHash = useMemo(() => promptHash(prompt), [prompt]);
 
   const [imageUrl, setImageUrl] = useState<string | null>(

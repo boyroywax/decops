@@ -124,11 +124,12 @@ function CreateArtifactModal({ onClose, onCreate }: {
         tags.push(`type:${type}`);
 
         onCreate({
-            id: `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            id: crypto.randomUUID(),
             name: name.trim(),
             type,
             content: content || "",
             tags,
+            createdAt: Date.now(),
             description: description || undefined,
             source: "user",
         });

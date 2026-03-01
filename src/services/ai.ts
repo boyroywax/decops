@@ -1051,7 +1051,7 @@ The output must conform to this COMPLETE schema — ALL sections are REQUIRED, n
       "accessories": ["acc1"],
       "color_palette": ["#hex1", "#hex2", "#hex3"]
     },
-    "image_prompts": { "portrait": "concise txt2img prompt under 30 words", "full_body": "concise txt2img prompt under 30 words" }
+    "image_prompts": { "portrait": "physical appearance only, no art style or medium, under 30 words", "full_body": "physical appearance only, no art style or medium, under 30 words" }
   },
   "psychology": {
     "neural_matrix": {
@@ -1123,7 +1123,7 @@ Rules:
 - Invent plausible details for sections not explicitly described — be creative but consistent
 - Keep all string values concise (under 50 words each)
 - Generate 3-5 relevant skills
-- image_prompts portrait AND full_body should each be a concise txt2img description (under 30 words)
+- image_prompts portrait AND full_body MUST describe ONLY the subject's physical appearance (face, hair, clothing, pose, background color) in under 30 words — do NOT include any art style, rendering medium, or technique (no "digital art", "illustration", "vector", "3D render", "oil painting", "cel-shaded", "anime", "watercolor", etc.) because the art style is applied separately
 - Use the exact today's date for created_at and last_updated: ${new Date().toISOString().slice(0, 10)}
 - Generate a random UUID for instance_id
 - Target 100% schema coverage — every field populated`;

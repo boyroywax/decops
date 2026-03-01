@@ -5,6 +5,7 @@ import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import { registry } from "../../services/commands/registry";
 import { JobCanvas } from "../jobs/JobCanvas";
 import { NodeEditor } from "../jobs/NodeEditor";
+import { StepCardModal } from "../jobs/StepCardModal";
 import { isSeedJob } from "../../services/jobs/seedCatalog";
 import { useStudioContext } from "../../context/StudioContext";
 import { useLLM } from "../../context/LLMContext";
@@ -71,6 +72,9 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
 
     // ── Properties drawer ──
     const [propertiesOpen, setPropertiesOpen] = useState(false);
+
+    // ── Step card modal ──
+    const [modalStepId, setModalStepId] = useState<string | null>(null);
 
     // ── Deliverables ──
     const [deliverables, setDeliverables] = useState<JobDeliverable[]>([]);
@@ -245,6 +249,10 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const handleMultiSelect = useCallback((items: NonNullable<SelectedElement>[]) => {
         setSelectedElements(items);
         setSelectedElement(items.length === 1 ? items[0] : null);
+    }, []);
+
+    const handleOpenStepCard = useCallback((stepId: string) => {
+        setModalStepId(stepId);
     }, []);
 
     const handleDeleteSelected = useCallback(() => {
@@ -727,7 +735,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                 </div>
             </div>
 
-            {/* ═══ BODY: Canvas + Editor ═══ */}
+            {/* ═══ BODY: Canvas ═══ */}
             <div className="jm-body">
                 <JobCanvas
                     steps={steps}
@@ -745,36 +753,30 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                     selectedElements={selectedElements}
                     onMultiSelect={handleMultiSelect}
                     onDeleteSelected={handleDeleteSelected}
+                    onOpenStepCard={handleOpenStepCard}
                 />
 
-                {/* Right-side node editor */}
-                <NodeEditor
-                    selectedElement={selectedElement}
-                    step={selectedStep}
-                    deliverable={selectedElement?.type === "deliverable" ? deliverables[selectedElement.index] ?? null : null}
-                    deliverableIndex={selectedElement?.type === "deliverable" ? selectedElement.index : null}
-                    storageEntry={selectedElement?.type === "storage" ? storageEntries[selectedElement.index] ?? null : null}
-                    storageIndex={selectedElement?.type === "storage" ? selectedElement.index : null}
-                    inputEntry={selectedElement?.type === "input" ? inputs[selectedElement.index] ?? null : null}
-                    inputIndex={selectedElement?.type === "input" ? selectedElement.index : null}
-                    deliverables={deliverables}
-                    storageEntries={storageEntries}
-                    inputs={inputs}
-                    allSteps={steps}
-                    onUpdateArg={updateStepArg}
-                    onUpdatePreCondition={updateStepPreCondition}
-                    onUpdatePostCondition={updateStepPostCondition}
-                    onUpdateDeliverable={updateDeliverable}
-                    onUpdateStorage={updateStorageEntry}
-                    onUpdateInput={updateInput}
-                    onUpdateOutputMappings={updateStepOutputMappings}
-                    onUpdateInputBindings={updateStepInputBindings}
-                    onUpdateStepModel={updateStepModel}
-                    allModels={llm.allModels}
-                    isOpen={propertiesOpen}
-                    onClose={handleCloseProperties}
-                />
+                {/* Right-side node editor — hidden while styling is incomplete */}
+                {/* <NodeEditor ... /> */}
             </div>
+
+            {/* ═══ STEP CARD MODAL ═══ */}
+            {modalStepId && (() => {
+                const stepIdx = steps.findIndex(s => s.id === modalStepId);
+                const modalStep = stepIdx >= 0 ? steps[stepIdx] : null;
+                if (!modalStep) return null;
+                return (
+                    <StepCardModal
+                        step={modalStep}
+                        stepIndex={stepIdx}
+                        isOpen
+                        onClose={() => setModalStepId(null)}
+                        onPrev={stepIdx > 0 ? () => setModalStepId(steps[stepIdx - 1].id) : undefined}
+                        onNext={stepIdx < steps.length - 1 ? () => setModalStepId(steps[stepIdx + 1].id) : undefined}
+                        position={`${stepIdx + 1} / ${steps.length}`}
+                    />
+                );
+            })()}
 
             {/* ═══ CATALOG MODAL ═══ */}
             {showCatalog && (

@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import type { JobArtifact, ArtifactType } from "../../types";
 import { SectionTitle } from "../shared/ui";
 import { FileText, Image, Code, File, X, Plus, Tag, Layers, Clock, Hash, ChevronRight, Search, Upload, PenLine } from "lucide-react";
@@ -15,6 +15,8 @@ interface ArtifactsViewProps {
     importArtifact: (artifact: JobArtifact) => void;
     removeArtifact: (id: string) => void;
     updateArtifact: (id: string, updates: Partial<JobArtifact>) => void;
+    /** If provided, auto-select this artifact on mount */
+    initialSelectedId?: string;
 }
 
 /* ─── Helpers ───────────────────────────────────────────────────────── */
@@ -106,9 +108,9 @@ function CreateArtifactModal({ onClose, onCreate }: {
         const tags = tagInput.split(",").map(t => t.trim()).filter(Boolean);
         tags.push(`type:${type}`);
         onCreate({
-            id: `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            id: crypto.randomUUID(),
             name: name.trim(), type, content: content || "",
-            tags, description: description || undefined, source: "user",
+            tags, createdAt: Date.now(), description: description || undefined, source: "user",
         });
         onClose();
     };
@@ -160,14 +162,27 @@ function CreateArtifactModal({ onClose, onCreate }: {
  * MAIN COMPONENT
  * ═══════════════════════════════════════════════════════════════════════ */
 
-export function ArtifactsView({ artifacts, importArtifact, removeArtifact, updateArtifact }: ArtifactsViewProps) {
+export function ArtifactsView({ artifacts, importArtifact, removeArtifact, updateArtifact, initialSelectedId }: ArtifactsViewProps) {
     const [search, setSearch] = useState("");
     const [groupBy, setGroupBy] = useState<GroupBy>("none");
     const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);
-    const [selectedArtifact, setSelectedArtifact] = useState<JobArtifact | null>(null);
+    const [selectedArtifact, setSelectedArtifact] = useState<JobArtifact | null>(() => {
+        if (initialSelectedId) {
+            return artifacts.find(a => a.id === initialSelectedId) || null;
+        }
+        return null;
+    });
     const [showCreateModal, setShowCreateModal] = useState(false);
     const del = useDeleteConfirm();
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Auto-select when initialSelectedId changes (e.g. navigated from messages)
+    useEffect(() => {
+        if (initialSelectedId) {
+            const art = artifacts.find(a => a.id === initialSelectedId);
+            if (art) setSelectedArtifact(art);
+        }
+    }, [initialSelectedId, artifacts]);
 
     const tagMap = useMemo(() => collectTags(artifacts), [artifacts]);
 

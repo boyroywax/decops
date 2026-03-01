@@ -36,12 +36,14 @@ interface JobCanvasProps {
     selectedElements: NonNullable<SelectedElement>[];
     onMultiSelect: (items: NonNullable<SelectedElement>[]) => void;
     onDeleteSelected: () => void;
+    onOpenStepCard?: (stepId: string) => void;
 }
 
 export function JobCanvas({
     steps, deliverables, storageEntries, inputs, selectedElement,
     onSelect, onRemoveStep, onRemoveDeliverable, onRemoveStorage, onRemoveInput,
     onUpdatePosition, onUpdateFlowType, selectedElements, onMultiSelect, onDeleteSelected,
+    onOpenStepCard,
 }: JobCanvasProps) {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [dragging, setDragging] = useState<{ stepId: string; offsetX: number; offsetY: number } | null>(null);
@@ -527,6 +529,7 @@ export function JobCanvas({
                                 zIndex: dragging?.stepId === step.id ? 10 : 1,
                             }}
                             onMouseDown={(e) => handleNodeMouseDown(e, step.id)}
+                            onDoubleClick={() => onOpenStepCard?.(step.id)}
                         >
                             <JobNode
                                 step={step}
