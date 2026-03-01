@@ -8,14 +8,17 @@
  * Returns base64-encoded image data suitable for caching in IndexedDB.
  */
 
+import { getImageModel } from "./ai";
+
 const GEMINI_API_BASE =
   "https://generativelanguage.googleapis.com/v1beta/models";
 
 /**
  * Imagen 4.0 — dedicated high-quality image generation model.
  * Uses :predict endpoint with instances/parameters format.
+ * Defaults to imagen-4.0-generate-001, overridable via LLM Manager.
  */
-const IMAGE_MODEL = "imagen-4.0-generate-001";
+const DEFAULT_IMAGE_MODEL = "imagen-4.0-generate-001";
 
 // ── API key management ──
 
@@ -76,7 +79,8 @@ export async function generatePortrait(
 
   const styledPrompt = stylePrefix + prompt;
 
-  const url = `${GEMINI_API_BASE}/${IMAGE_MODEL}:predict?key=${apiKey}`;
+  const imageModelId = getImageModel() || DEFAULT_IMAGE_MODEL;
+  const url = `${GEMINI_API_BASE}/${imageModelId}:predict?key=${apiKey}`;
 
   const response = await fetch(url, {
     method: "POST",

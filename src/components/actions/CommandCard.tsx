@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { CommandDefinition } from "../../services/commands/types";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles, Info } from "lucide-react";
+import { useLLM } from "../../context/LLMContext";
 import "../../styles/components/command-card.css";
 
 const getCommandColor = (tags: string[]) => {
@@ -34,13 +35,15 @@ interface CommandCardProps {
     onTagClick?: (tag: string) => void;
     activeTags?: Set<string>;
     onAddToStudio?: () => void;
+    onShowDetail?: () => void;
 }
 
-export function CommandCard({ command, cardSize = "md", onTagClick, activeTags, onAddToStudio }: CommandCardProps) {
+export function CommandCard({ command, cardSize = "md", onTagClick, activeTags, onAddToStudio, onShowDetail }: CommandCardProps) {
     const [isFlipped, setIsFlipped] = useState(false);
     const [animationState, setAnimationState] = useState<"idle" | "pressing" | "flipping">("idle");
     const color = getCommandColor(command.tags);
     const initials = useMemo(() => getInitials(command.id), [command.id]);
+    const llm = useLLM();
 
     const handleClick = () => {
         if (isFlipped) {
@@ -118,6 +121,19 @@ export function CommandCard({ command, cardSize = "md", onTagClick, activeTags, 
                                 }}>
                                     CMD
                                 </div>
+                                {command.usesAI && (() => {
+                                    const modelId = command.recommendedModel
+                                        ? llm.getCommandModel(command.id, command.recommendedModel)
+                                        : llm.getCommandModel(command.id);
+                                    const modelInfo = llm.getModelById(modelId);
+                                    const modelLabel = modelInfo?.label || modelId?.split('-').slice(0, 2).join(' ') || 'AI';
+                                    return (
+                                        <div className="cmd-card__ai-badge" title={`Uses AI: ${modelLabel}`}>
+                                            <Sparkles size={10} />
+                                            <span className="cmd-card__ai-model">{modelLabel}</span>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </div>
                         <div className="cmd-card__description">
@@ -142,6 +158,14 @@ export function CommandCard({ command, cardSize = "md", onTagClick, activeTags, 
                                 </span>
                             );
                         })}
+                        <button
+                            className="cmd-card__info-btn"
+                            style={{ color, borderColor: `${color}30` }}
+                            title="View command details"
+                            onClick={(e) => { e.stopPropagation(); onShowDetail?.(); }}
+                        >
+                            <Info size={12} />
+                        </button>
                     </div>
                 </div>
 
@@ -168,6 +192,19 @@ export function CommandCard({ command, cardSize = "md", onTagClick, activeTags, 
                     </div>
 
                     <div className="cmd-card__footer">
+                        {command.usesAI && (() => {
+                            const modelId = command.recommendedModel
+                                ? llm.getCommandModel(command.id, command.recommendedModel)
+                                : llm.getCommandModel(command.id);
+                            const modelInfo = llm.getModelById(modelId);
+                            const modelLabel = modelInfo?.label || modelId?.split('-').slice(0, 2).join(' ') || 'AI';
+                            return (
+                                <div className="cmd-card__ai-detail">
+                                    <Sparkles size={10} />
+                                    <span>Model: {modelLabel}</span>
+                                </div>
+                            );
+                        })()}
                         <div className="cmd-card__output-label">Output</div>
                         <div className="cmd-card__output-text">
                             {command.output}

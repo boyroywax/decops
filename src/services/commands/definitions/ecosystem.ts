@@ -12,6 +12,7 @@ export const createNetworkCommand: CommandDefinition = {
     description: "Create a new network in the workspace, optionally populated via the AI Architect.",
     tags: ["ecosystem", "network", "create"],
     rbac: ["orchestrator", "builder"],
+    usesAI: true,
     args: {
         name: {
             name: "name",

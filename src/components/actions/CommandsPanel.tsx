@@ -1,7 +1,9 @@
 import { useState, useCallback } from "react";
-import { LayoutGrid, List, Plus, X, ZoomIn, ZoomOut } from "lucide-react";
+import { LayoutGrid, List, Plus, X, ZoomIn, ZoomOut, Sparkles } from "lucide-react";
 import { registry } from "../../services/commands/registry";
 import { CommandCard } from "./CommandCard";
+import { CommandCardModal } from "./CommandCardModal";
+import { useLLM } from "../../context/LLMContext";
 import "../../styles/components/commands-panel.css";
 
 interface CommandsPanelProps {
@@ -33,10 +35,12 @@ const getCommandColor = (tags: string[]) => {
 
 export function CommandsPanel({ isStudioMode }: CommandsPanelProps) {
     const commands = registry.getAll().filter(c => !c.hidden);
+    const llm = useLLM();
     const [filter, setFilter] = useState("");
     const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
     const [view, setView] = useState<"cards" | "table">("cards");
     const [cardSize, setCardSize] = useState(1); // 0=small, 1=medium, 2=large
+    const [modalCommandId, setModalCommandId] = useState<string | null>(null);
 
     const toggleTag = useCallback((tag: string) => {
         setActiveTags(prev => {
@@ -71,6 +75,18 @@ export function CommandsPanel({ isStudioMode }: CommandsPanelProps) {
             c.tags.some(t => t.toLowerCase().includes(q))
         );
     });
+
+    // Modal navigation
+    const modalIndex = modalCommandId ? filteredCommands.findIndex(c => c.id === modalCommandId) : -1;
+    const modalCommand = modalIndex >= 0 ? filteredCommands[modalIndex] : null;
+
+    const handlePrev = useCallback(() => {
+        if (modalIndex > 0) setModalCommandId(filteredCommands[modalIndex - 1].id);
+    }, [modalIndex, filteredCommands]);
+
+    const handleNext = useCallback(() => {
+        if (modalIndex < filteredCommands.length - 1) setModalCommandId(filteredCommands[modalIndex + 1].id);
+    }, [modalIndex, filteredCommands]);
 
     return (
         <div className="commands-panel">
@@ -159,6 +175,7 @@ export function CommandsPanel({ isStudioMode }: CommandsPanelProps) {
                             cardSize={(["sm", "md", "lg"] as const)[cardSize]}
                             onTagClick={toggleTag}
                             activeTags={activeTags}
+                            onShowDetail={() => setModalCommandId(cmd.id)}
                             onAddToStudio={isStudioMode ? () => {
                                 window.dispatchEvent(new CustomEvent("studio:add-command", { detail: { commandId: cmd.id } }));
                             } : undefined}
@@ -191,6 +208,19 @@ export function CommandsPanel({ isStudioMode }: CommandsPanelProps) {
                                             <span className="commands-panel__cmd-name" style={{ color }}>
                                                 <span className="commands-panel__slash">/</span>{cmd.id}
                                             </span>
+                                            {cmd.usesAI && (() => {
+                                                const modelId = cmd.recommendedModel
+                                                    ? llm.getCommandModel(cmd.id, cmd.recommendedModel)
+                                                    : llm.getCommandModel(cmd.id);
+                                                const modelInfo = llm.getModelById(modelId);
+                                                const modelLabel = modelInfo?.label || modelId?.split('-').slice(0, 2).join(' ') || 'AI';
+                                                return (
+                                                    <span className="commands-panel__ai-badge" title={`Uses AI: ${modelLabel}`}>
+                                                        <Sparkles size={9} />
+                                                        <span>{modelLabel}</span>
+                                                    </span>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="commands-panel__td commands-panel__td--desc">
                                             {cmd.description}
@@ -244,6 +274,18 @@ export function CommandsPanel({ isStudioMode }: CommandsPanelProps) {
                 <div className="commands-panel__empty">
                     No commands match "{filter}"
                 </div>
+            )}
+
+            {/* Shared Command Detail Modal */}
+            {modalCommand && (
+                <CommandCardModal
+                    command={modalCommand}
+                    isOpen={!!modalCommand}
+                    onClose={() => setModalCommandId(null)}
+                    onPrev={modalIndex > 0 ? handlePrev : undefined}
+                    onNext={modalIndex < filteredCommands.length - 1 ? handleNext : undefined}
+                    position={`${modalIndex + 1} / ${filteredCommands.length}`}
+                />
             )}
         </div>
     );

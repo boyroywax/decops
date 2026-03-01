@@ -361,17 +361,21 @@
   flex-shrink: 0;
 }
 
-/* ── Agents Tab ── */
-.llm-agents-list {}
+/* ── Model Sections (Agent Default / Chat / Image) ── */
 
-.llm-agent-row {
+.llm-models-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.llm-model-section {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  margin-bottom: var(--space-xs);
   overflow: hidden;
 }
 
-.llm-agent-header {
+.llm-model-section__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -385,134 +389,43 @@
   transition: background var(--transition-fast);
 }
 
-.llm-agent-header:hover {
+.llm-model-section__header:hover {
   background: var(--bg-surface-hover);
 }
 
-.llm-agent-info {
+.llm-model-section__header--active {
+  background: rgba(0, 229, 160, 0.04);
+}
+
+.llm-model-section__info {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
 }
 
-.llm-agent-name {
+.llm-model-section__label {
   font-size: var(--text-sm);
   font-weight: 500;
 }
 
-.llm-agent-role {
-  font-size: 10px;
-  color: var(--text-ghost);
-  text-transform: capitalize;
-}
-
-.llm-agent-model-badge {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: var(--text-xs);
-}
-
-.llm-override-badge {
-  color: var(--color-accent);
-  background: rgba(0, 229, 160, 0.1);
-  padding: 1px 6px;
-  border-radius: var(--radius-sm);
-  font-size: 10px;
-}
-
-.llm-default-badge {
-  color: var(--text-ghost);
-  font-size: 10px;
-}
-
-.llm-recommended-badge {
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.1);
-  padding: 1px 6px;
-  border-radius: var(--radius-sm);
-  font-size: 10px;
-}
-
-.llm-recommended-hint {
-  color: #38bdf8;
-  font-size: 10px;
-  opacity: 0.7;
-  white-space: nowrap;
-}
-
-.llm-agent-picker {
-  padding: var(--space-sm) var(--space-md) var(--space-md);
-  border-top: 1px solid var(--border-subtle);
-  background: rgba(0, 0, 0, 0.08);
-}
-
-.llm-agent-picker-header,
-.llm-command-picker-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-sm);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
-}
-
-/* ── Commands Tab ── */
-.llm-commands-list {}
-
-.llm-command-row {
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-xs);
-  overflow: hidden;
-}
-
-.llm-command-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: var(--space-sm) var(--space-md);
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  color: var(--text-primary);
-  transition: background var(--transition-fast);
-}
-
-.llm-command-header:hover {
-  background: var(--bg-surface-hover);
-}
-
-.llm-command-info {
+.llm-model-section__current {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
 }
 
-.llm-command-name {
-  font-size: var(--text-sm);
-  font-family: var(--font-mono, monospace);
+.llm-model-section__badge {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
 }
 
-.llm-command-model-badge {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: var(--text-xs);
-}
-
-.llm-command-picker {
+.llm-model-section__body {
   padding: var(--space-sm) var(--space-md) var(--space-md);
   border-top: 1px solid var(--border-subtle);
-  background: rgba(0, 0, 0, 0.08);
-}
-
-.llm-command-picker-header span {
-  font-size: 11px;
-  color: var(--text-ghost);
-  line-height: 1.4;
+  background: rgba(0, 0, 0, 0.04);
 }
 
 .llm-probe-all {

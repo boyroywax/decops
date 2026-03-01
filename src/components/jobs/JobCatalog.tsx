@@ -1,4 +1,4 @@
-import { Play, Edit, Trash2, Briefcase, Lock } from "lucide-react";
+import { Play, Edit, Trash2, Briefcase, Lock, FlaskConical } from "lucide-react";
 import type { JobDefinition } from "../../types";
 import { isSeedJob } from "../../services/jobs/seedCatalog";
 import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
@@ -8,11 +8,12 @@ import "../../styles/components/job-catalog.css";
 interface JobCatalogProps {
     jobs: JobDefinition[];
     onRun: (job: JobDefinition) => void;
+    onDryRun?: (job: JobDefinition) => void;
     onEdit: (job: JobDefinition) => void;
     onDelete: (id: string) => void;
 }
 
-export function JobCatalog({ jobs, onRun, onEdit, onDelete }: JobCatalogProps) {
+export function JobCatalog({ jobs, onRun, onDryRun, onEdit, onDelete }: JobCatalogProps) {
     const del = useDeleteConfirm();
     if (jobs.length === 0) {
         return (
@@ -64,6 +65,15 @@ export function JobCatalog({ jobs, onRun, onEdit, onDelete }: JobCatalogProps) {
                         >
                             <Play size={12} /> Run
                         </button>
+                        {onDryRun && (
+                            <button
+                                onClick={() => onDryRun(job)}
+                                className="btn btn-secondary job-catalog__action-btn job-catalog__action-btn--test"
+                                title="Test Run (Dry Run)"
+                            >
+                                <FlaskConical size={12} />
+                            </button>
+                        )}
                         <button
                             onClick={() => onEdit(job)}
                             className="btn btn-secondary job-catalog__action-btn"

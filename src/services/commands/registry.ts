@@ -1,5 +1,7 @@
 
 import { CommandDefinition, CommandArgType } from "./types";
+import { dryRunCommand, dryRunJob, type DryRunResult, type DryRunJobResult } from "./dryRun";
+import type { JobStep } from "../../types";
 
 /**
  * Resolve entity name → ID for semantic arg types ("agent", "group", "channel", "network").
@@ -151,6 +153,23 @@ export class CommandRegistry {
 
         // Execute
         return await command.execute(args, context);
+    }
+
+    /** Dry-run a single command: validate everything without executing */
+    dryRun(id: string, args: Record<string, any>, context: any): DryRunResult {
+        return dryRunCommand(this.get(id), id, args, context);
+    }
+
+    /** Dry-run an entire multi-step job */
+    dryRunJob(
+        steps: JobStep[],
+        mode: "serial" | "parallel",
+        context: any,
+        storage: Record<string, any> = {},
+        deliverableKeys: string[] = [],
+        inputMap: Record<string, string> = {},
+    ): DryRunJobResult {
+        return dryRunJob(steps, mode, (cid) => this.get(cid), context, storage, deliverableKeys, inputMap);
     }
 }
 

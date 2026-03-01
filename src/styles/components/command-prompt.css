@@ -372,3 +372,27 @@
   background: rgba(0, 229, 160, 0.2);
   border-color: rgba(0, 229, 160, 0.5);
 }
+
+.cmd-prompt__dryrun-btn {
+  background: rgba(129, 140, 248, 0.1);
+  border: 1px solid rgba(129, 140, 248, 0.25);
+  color: #818cf8;
+  padding: var(--space-sm, 6px) var(--space-xl, 12px);
+  border-radius: var(--radius-lg, 8px);
+  cursor: pointer;
+  font-size: var(--text-sm, 11px);
+  font-weight: var(--font-semibold, 600);
+  font-family: var(--font-mono, monospace);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm, 6px);
+  transition: all var(--transition-fast, 120ms);
+}
+.cmd-prompt__dryrun-btn:hover {
+  background: rgba(129, 140, 248, 0.18);
+  border-color: rgba(129, 140, 248, 0.4);
+}
+
+.cmd-prompt__dry-run {
+  margin-top: 8px;
+}

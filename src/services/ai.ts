@@ -234,6 +234,16 @@ export function getSelectedModel(): string {
   return localStorage.getItem("anthropic_model") || DEFAULT_MODEL;
 }
 
+/** Get the chat-specific model (workspace chat uses this) */
+export function getChatModel(): string {
+  return localStorage.getItem("llm_chat_model") || getSelectedModel();
+}
+
+/** Get the image generation model */
+export function getImageModel(): string {
+  return localStorage.getItem("llm_image_model") || "imagen-4.0-generate-001";
+}
+
 /** Get model for a specific agent (checks per-agent override → recommended → global) */
 export function getAgentModel(agentId?: string, recommendedModel?: string): string {
   if (agentId) {

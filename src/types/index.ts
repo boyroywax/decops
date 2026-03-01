@@ -722,6 +722,9 @@ export interface Job {
   storage?: Record<string, any>;
   deliverables?: JobDeliverable[];
   inputs?: EntityInput[];                  // Named entity inputs for $input.name resolution
+
+  /** When true, the job executor validates without executing — produces a dry-run report */
+  dryRun?: boolean;
 }
 
 

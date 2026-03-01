@@ -404,6 +404,20 @@ export function EditorView({ updateArtifact, importArtifact }: EditorViewProps) 
   const [replaceText, setReplaceText] = useState("");
   const [wordWrap, setWordWrap] = useState(restored?.wordWrap ?? true);
   const [isDirty, setIsDirty] = useState(restored?.isDirty ?? false);
+  const [showFileTypeMenu, setShowFileTypeMenu] = useState(false);
+  const fileTypeMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close file-type picker on outside click
+  useEffect(() => {
+    if (!showFileTypeMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (fileTypeMenuRef.current && !fileTypeMenuRef.current.contains(e.target as Node)) {
+        setShowFileTypeMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showFileTypeMenu]);
 
   /* ─── Diff State ──────────────────────────────────────────────────── */
   type DiffViewMode = "inline" | "side-by-side";
@@ -804,14 +818,7 @@ export function EditorView({ updateArtifact, importArtifact }: EditorViewProps) 
           <input className="editor-doc-name" value={docName} onChange={(e) => { setDocName(e.target.value); setIsDirty(true); }} placeholder="Document name..." spellCheck={false} />
           {isDirty && <span className="editor-dirty-badge">Modified</span>}
           {activeArtifactId && !isDirty && <span className="editor-saved-badge">Saved</span>}
-          <select className="editor-type-select" value={fileType} onChange={(e) => setFileType(e.target.value as FileType)} title="File type">
-            <option value="markdown">Markdown</option>
-            <option value="json">JSON</option>
-            <option value="yaml">YAML</option>
-            <option value="csv">CSV</option>
-            <option value="code">Code</option>
-            <option value="txt">Plain Text</option>
-          </select>
+
         </div>
 
         <div className="editor-header-center">
@@ -958,7 +965,31 @@ export function EditorView({ updateArtifact, importArtifact }: EditorViewProps) 
           {proposedContent !== null && (
             <span style={{ color: "#38bdf8" }}>Reviewing {diffStats.added + diffStats.removed} changes</span>
           )}
-          <span style={{ color: getFileColor(fileType) }}>{fileType.toUpperCase()}</span>
+          <div className="editor-filetype-picker" ref={fileTypeMenuRef}>
+            <button
+              className="editor-filetype-picker__btn"
+              style={{ color: getFileColor(fileType) }}
+              onClick={() => setShowFileTypeMenu(prev => !prev)}
+              title="Change file type"
+            >
+              {getFileIcon(fileType, 11)}
+              {fileType.toUpperCase()}
+            </button>
+            {showFileTypeMenu && (
+              <div className="editor-filetype-picker__menu">
+                {(["markdown", "json", "yaml", "csv", "code", "txt"] as FileType[]).map(t => (
+                  <button
+                    key={t}
+                    className={`editor-filetype-picker__item${t === fileType ? " editor-filetype-picker__item--active" : ""}`}
+                    onClick={() => { setFileType(t); setShowFileTypeMenu(false); }}
+                  >
+                    <span style={{ color: getFileColor(t) }}>{getFileIcon(t, 12)}</span>
+                    {t === "markdown" ? "Markdown" : t === "json" ? "JSON" : t === "yaml" ? "YAML" : t === "csv" ? "CSV" : t === "code" ? "Code" : "Plain Text"}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {!validation.valid && <span style={{ color: "#ef4444" }}>Errors</span>}
           {activeArtifactId && !isDirty && <span>Synced</span>}
           {isDirty && <span style={{ color: "#fbbf24" }}>Unsaved</span>}

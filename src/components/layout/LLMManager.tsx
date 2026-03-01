@@ -1,5 +1,5 @@
 /**
- * LLM Manager Drawer — footer panel for provider, model & override management
+ * LLM Manager Drawer — footer panel for provider & model management
  *
  * Same UI/UX pattern as ChatPanel, ActionManager, and ArtifactsPanel:
  *   - Resize handle, header with close/expand, scrollable body
@@ -7,20 +7,17 @@
  *
  * Tabs:
  *  1. Providers   — API keys + liveness per provider
- *  2. Models      — Global default model picker
- *  3. Agents      — Per-agent model overrides
- *  4. Commands    — Per-command model overrides
+ *  2. Models      — Agent Default, Chat, and Image Generation model pickers
  */
 
 import { useState, useCallback, useEffect } from "react";
 import {
-  X, Key, Bot, Cpu, Zap, RefreshCw, Trash2,
-  ChevronDown, ChevronUp, Terminal, Eye, EyeOff,
+  X, Key, Cpu, Zap, RefreshCw, Trash2,
+  ChevronDown, ChevronUp, Eye, EyeOff,
   ChevronsUp, ChevronsDown, Plus, Server, Globe,
+  Bot, MessageCircle, ImageIcon,
 } from "lucide-react";
 import { useLLM, type ProviderId, type LivenessStatus, type LLMModel, type OllamaInstance } from "../../context/LLMContext";
-import { useWorkspaceContext } from "../../context/WorkspaceContext";
-import { registry } from "../../services/commands/registry";
 import "../../styles/components/llm-manager.css";
 
 // ── Props (same shape as other footer drawers) ──
@@ -33,7 +30,7 @@ interface LLMManagerProps {
   onToggleExpand: () => void;
 }
 
-type Tab = "providers" | "models" | "agents" | "commands";
+type Tab = "providers" | "models";
 
 // ── Liveness dot ──
 
@@ -373,143 +370,69 @@ function ModelPicker({
   );
 }
 
-// ── Agents Tab ──
+// ── Models Tab (Agent Default, Chat, Image) ──
 
-function AgentsTab() {
+function ModelsTab() {
   const llm = useLLM();
-  const { agents } = useWorkspaceContext();
-  const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>("agent");
 
-  if (agents.length === 0) {
-    return <div className="llm-empty">No agents in workspace. Create agents first.</div>;
-  }
+  const sections: { key: string; label: string; desc: string; icon: React.ReactNode; modelId: string; onSelect: (id: string) => void; filter?: (m: LLMModel) => boolean }[] = [
+    {
+      key: "agent",
+      label: "Agent Default Model",
+      desc: "Default model used by agents to generate responses. Individual agents can still override this.",
+      icon: <Bot size={13} style={{ color: "#00e5a0" }} />,
+      modelId: llm.globalModel,
+      onSelect: id => llm.setGlobalModel(id),
+      filter: m => m.tier !== "image",
+    },
+    {
+      key: "chat",
+      label: "Chat Model",
+      desc: "Model used by the Workspace Chat panel for conversations and workspace queries.",
+      icon: <MessageCircle size={13} style={{ color: "#38bdf8" }} />,
+      modelId: llm.chatModel,
+      onSelect: id => llm.setChatModel(id),
+      filter: m => m.tier !== "image",
+    },
+    {
+      key: "image",
+      label: "Image Generation Model",
+      desc: "Model used for generating agent portraits, group badges, and custom images.",
+      icon: <ImageIcon size={13} style={{ color: "#f472b6" }} />,
+      modelId: llm.imageModel,
+      onSelect: id => llm.setImageModel(id),
+      filter: m => m.tier === "image",
+    },
+  ];
 
   return (
-    <div className="llm-agents-list">
-      {agents.map(agent => {
-        const override = llm.agentModels[agent.id];
-        const effectiveModel = llm.getAgentModel(agent.id, agent.recommendedModel);
-        const model = llm.getModelById(effectiveModel);
-        const recModel = agent.recommendedModel ? llm.getModelById(agent.recommendedModel) : undefined;
-        const isExpanded = expandedAgent === agent.id;
-
+    <div className="llm-models-sections">
+      {sections.map(s => {
+        const isOpen = expanded === s.key;
+        const model = llm.getModelById(s.modelId);
+        const tc = model ? (tierColors[model.tier] || "#71717a") : "#71717a";
         return (
-          <div key={agent.id} className="llm-agent-row">
+          <div key={s.key} className="llm-model-section">
             <button
-              className="llm-agent-header"
-              onClick={() => setExpandedAgent(isExpanded ? null : agent.id)}
+              className={`llm-model-section__header${isOpen ? " llm-model-section__header--active" : ""}`}
+              onClick={() => setExpanded(isOpen ? null : s.key)}
             >
-              <div className="llm-agent-info">
-                <Bot size={14} style={{ color: "#00e5a0" }} />
-                <span className="llm-agent-name">{agent.name}</span>
-                <span className="llm-agent-role">{agent.role}</span>
+              <div className="llm-model-section__info">
+                {s.icon}
+                <span className="llm-model-section__label">{s.label}</span>
               </div>
-              <div className="llm-agent-model-badge">
-                {override ? (
-                  <span className="llm-override-badge">{model?.label || effectiveModel}</span>
-                ) : agent.recommendedModel ? (
-                  <span className="llm-recommended-badge">{recModel?.label || agent.recommendedModel}</span>
-                ) : (
-                  <span className="llm-default-badge">Global default</span>
-                )}
-                {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              <div className="llm-model-section__current">
+                <span className="llm-model-section__badge" style={{ color: tc, borderColor: `${tc}44` }}>
+                  {model?.label || s.modelId}
+                </span>
+                {isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
               </div>
             </button>
-            {isExpanded && (
-              <div className="llm-agent-picker">
-                <div className="llm-agent-picker-header">
-                  <span>Model for <strong>{agent.name}</strong></span>
-                  <div style={{ display: "flex", gap: "var(--space-sm)", alignItems: "center" }}>
-                    {agent.recommendedModel && (
-                      <span className="llm-recommended-hint">Rec: {recModel?.label || agent.recommendedModel}</span>
-                    )}
-                    {override && (
-                      <button className="btn btn-ghost btn-xs" onClick={() => llm.clearAgentModel(agent.id)}>
-                        <Trash2 size={10} /> Reset{agent.recommendedModel ? " to recommended" : " to global"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <ModelPicker
-                  selectedId={effectiveModel}
-                  onSelect={id => llm.setAgentModel(agent.id, id)}
-                  filter={m => m.provider === "anthropic"} // Only text models for agents
-                />
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Commands Tab ──
-
-function CommandsTab() {
-  const llm = useLLM();
-  const [expandedCmd, setExpandedCmd] = useState<string | null>(null);
-
-  const commands = registry.getAll();
-
-  // Only show commands that make AI calls (filter by tags or known AI-using commands)
-  const aiCommands = commands.filter(
-    c => c.tags.some(t => ["agent", "workspace", "architect", "ai", "image"].includes(t))
-  );
-
-  if (aiCommands.length === 0) {
-    return <div className="llm-empty">No AI-related commands registered.</div>;
-  }
-
-  return (
-    <div className="llm-commands-list">
-      {aiCommands.map(cmd => {
-        const override = llm.commandModels[cmd.id];
-        const effectiveModel = llm.getCommandModel(cmd.id, cmd.recommendedModel);
-        const model = llm.getModelById(effectiveModel);
-        const recModel = cmd.recommendedModel ? llm.getModelById(cmd.recommendedModel) : undefined;
-        const isExpanded = expandedCmd === cmd.id;
-
-        return (
-          <div key={cmd.id} className="llm-command-row">
-            <button
-              className="llm-command-header"
-              onClick={() => setExpandedCmd(isExpanded ? null : cmd.id)}
-            >
-              <div className="llm-command-info">
-                <Terminal size={12} style={{ opacity: 0.5 }} />
-                <span className="llm-command-name">{cmd.id}</span>
-              </div>
-              <div className="llm-command-model-badge">
-                {override ? (
-                  <span className="llm-override-badge">{model?.label || effectiveModel}</span>
-                ) : cmd.recommendedModel ? (
-                  <span className="llm-recommended-badge">{recModel?.label || cmd.recommendedModel}</span>
-                ) : (
-                  <span className="llm-default-badge">Global default</span>
-                )}
-                {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              </div>
-            </button>
-            {isExpanded && (
-              <div className="llm-command-picker">
-                <div className="llm-command-picker-header">
-                  <span>{cmd.description}</span>
-                  <div style={{ display: "flex", gap: "var(--space-sm)", alignItems: "center" }}>
-                    {cmd.recommendedModel && (
-                      <span className="llm-recommended-hint">Rec: {recModel?.label || cmd.recommendedModel}</span>
-                    )}
-                    {override && (
-                      <button className="btn btn-ghost btn-xs" onClick={() => llm.clearCommandModel(cmd.id)}>
-                        <Trash2 size={10} /> Reset{cmd.recommendedModel ? " to recommended" : " to global"}
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <ModelPicker
-                  selectedId={effectiveModel}
-                  onSelect={id => llm.setCommandModel(cmd.id, id)}
-                />
+            {isOpen && (
+              <div className="llm-model-section__body">
+                <p className="llm-section-desc">{s.desc}</p>
+                <ModelPicker selectedId={s.modelId} onSelect={s.onSelect} filter={s.filter} />
               </div>
             )}
           </div>
@@ -556,14 +479,10 @@ export function LLMManager({ onClose, height, setHeight, isExpanded, onToggleExp
   }, [isResizing, resize, stopResizing]);
 
   // Count overrides for tab badges
-  const agentOverrideCount = Object.keys(llm.agentModels).length;
-  const commandOverrideCount = Object.keys(llm.commandModels).length;
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: "providers", label: "Providers", icon: <Key size={11} /> },
     { id: "models", label: "Models", icon: <Cpu size={11} /> },
-    { id: "agents", label: "Agents", icon: <Bot size={11} />, badge: agentOverrideCount },
-    { id: "commands", label: "Commands", icon: <Terminal size={11} />, badge: commandOverrideCount },
   ];
 
   return (
@@ -626,20 +545,7 @@ export function LLMManager({ onClose, height, setHeight, isExpanded, onToggleExp
           </div>
         )}
 
-        {tab === "models" && (
-          <div className="llm-models">
-            <p className="llm-section-desc">
-              Global default model. Agents and commands can override this individually.
-            </p>
-            <ModelPicker
-              selectedId={llm.globalModel}
-              onSelect={id => llm.setGlobalModel(id)}
-            />
-          </div>
-        )}
-
-        {tab === "agents" && <AgentsTab />}
-        {tab === "commands" && <CommandsTab />}
+        {tab === "models" && <ModelsTab />}
       </div>
     </div>
   );

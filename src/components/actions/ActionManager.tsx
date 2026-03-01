@@ -58,6 +58,22 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
         setActiveTab("monitor");
     };
 
+    /** Dry-run a saved job — validates all steps without executing */
+    const handleDryRunJob = (jobDef: JobDefinition) => {
+        addJob({
+            type: jobDef.name,
+            request: { description: jobDef.description },
+            steps: jobDef.steps,
+            mode: jobDef.mode,
+            ...(jobDef.storageDefaults ? { storageDefaults: jobDef.storageDefaults } : {}),
+            ...(jobDef.deliverables ? { deliverables: jobDef.deliverables } : {}),
+            ...(jobDef.inputDefaults && jobDef.inputDefaults.length > 0 ? { inputDefaults: jobDef.inputDefaults } : {}),
+            ...(jobDef.modelId ? { modelId: jobDef.modelId } : {}),
+            dryRun: true,
+        } as any);
+        setActiveTab("monitor");
+    };
+
     /** Open a job in Studio for editing */
     const handleEditInStudio = (job: JobDefinition) => {
         // Navigate to Studio view
@@ -183,6 +199,7 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
                         <JobCatalog
                             jobs={savedJobs}
                             onRun={handleRunJob}
+                            onDryRun={handleDryRunJob}
                             onEdit={handleEditInStudio}
                             onDelete={deleteJob}
                         />

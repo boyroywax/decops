@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3, Eye } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
-import { chatWithWorkspace, streamChatWithWorkspace, getSelectedModel } from "../../services/ai";
+import { chatWithWorkspace, streamChatWithWorkspace, getChatModel } from "../../services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "../../services/ai";
 import { useLLM } from "../../context/LLMContext";
 import MessageBubble from "../chat/MessageBubble";
@@ -388,9 +388,9 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         };
     }, [isResizing, resize, stopResizing]);
 
-    const modelId = getSelectedModel();
+    const modelId = getChatModel();
     const llm = useLLM();
-    const modelLabel = llm.getModelById(modelId)?.label || modelId;
+
     const { api: studioApi } = useStudioContext();
     const studioAvailable = !!studioApi && view === "jobs";
     const studioActive = studioAvailable && studioMode;
@@ -437,45 +437,6 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
             <div className="chat-panel__header">
                 <div className="chat-panel__header-left">
                     <span className="chat-panel__title">WORKSPACE CHAT</span>
-                    <span className="chat-panel__model-badge">{modelLabel}</span>
-                    {studioActive && (
-                        <span className="chat-panel__studio-badge" title="Studio mode active — AI can build jobs on the canvas (⌘J to toggle)">
-                            <Clapperboard size={10} /> <span className="chat-panel__studio-badge-label">Studio</span>
-                            <button
-                                className="chat-panel__studio-badge-dismiss"
-                                onClick={() => setStudioMode(false)}
-                                title="Disable Studio mode (⌘J)"
-                            ><X size={8} /></button>
-                        </span>
-                    )}
-                    {studioAvailable && !studioMode && (
-                        <button
-                            className="chat-panel__studio-badge chat-panel__studio-badge--off"
-                            onClick={() => setStudioMode(true)}
-                            title="Enable Studio mode (⌘J)"
-                        >
-                            <Clapperboard size={10} /> <span className="chat-panel__studio-badge-label">Studio</span>
-                        </button>
-                    )}
-                    {editorActive && (
-                        <span className="chat-panel__editor-badge" title="Editor mode active — AI can read and edit your file">
-                            <Edit3 size={10} /> <span className="chat-panel__editor-badge-label">Editor</span>
-                            <button
-                                className="chat-panel__editor-badge-dismiss"
-                                onClick={() => setEditorMode(false)}
-                                title="Disable Editor mode"
-                            ><X size={8} /></button>
-                        </span>
-                    )}
-                    {editorAvailable && !editorMode && (
-                        <button
-                            className="chat-panel__editor-badge chat-panel__editor-badge--off"
-                            onClick={() => setEditorMode(true)}
-                            title="Enable Editor mode"
-                        >
-                            <Edit3 size={10} /> <span className="chat-panel__editor-badge-label">Editor</span>
-                        </button>
-                    )}
                     <span className="chat-panel__separator">│</span>
                     {/* Conversations toggle */}
                     <button
@@ -495,11 +456,13 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                         className="chat-panel__new-btn"
                         title="New conversation"
                     >+ New</button>
-                    <button
-                        onClick={onToggleExpand}
-                        className="chat-panel__expand-btn"
-                        title={isExpanded ? "Collapse panel" : "Expand panel"}
-                    >{isExpanded ? <ChevronsDown size={14} /> : <ChevronsUp size={14} />}</button>
+                    {!isSide && (
+                        <button
+                            onClick={onToggleExpand}
+                            className="chat-panel__expand-btn"
+                            title={isExpanded ? "Collapse panel" : "Expand panel"}
+                        >{isExpanded ? <ChevronsDown size={14} /> : <ChevronsUp size={14} />}</button>
+                    )}
                     <button
                         onClick={onClose}
                         className="chat-panel__close-btn"
@@ -598,15 +561,23 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
             {/* Input (always visible) */}
             {!showConvos && (
                 <div className="chat-panel__input-area">
-                    {studioActive && (
-                        <span className="chat-panel__studio-input-badge" title="Studio mode — prompts have canvas context">
+                    {studioAvailable && (
+                        <button
+                            className={`chat-panel__studio-input-badge${!studioMode ? " chat-panel__studio-input-badge--off" : ""}`}
+                            onClick={() => setStudioMode(prev => !prev)}
+                            title={studioMode ? "Studio mode active — click to disable (⌘J)" : "Studio mode disabled — click to enable (⌘J)"}
+                        >
                             <Clapperboard size={13} />
-                        </span>
+                        </button>
                     )}
-                    {editorActive && !studioActive && (
-                        <span className="chat-panel__editor-input-badge" title="Editor mode — prompts include file context">
+                    {editorAvailable && !studioAvailable && (
+                        <button
+                            className={`chat-panel__editor-input-badge${!editorMode ? " chat-panel__editor-input-badge--off" : ""}`}
+                            onClick={() => setEditorMode(prev => !prev)}
+                            title={editorMode ? "Editor mode active — click to disable" : "Editor mode disabled — click to enable"}
+                        >
                             <Edit3 size={13} />
-                        </span>
+                        </button>
                     )}
                     <input
                         ref={inputRef}
@@ -638,6 +609,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                     }}
                     currentUser={user}
                     onSubmit={handlePromptSubmit}
+                    dryRunContext={commandContext}
                     onCancel={handlePromptCancel}
                 />
             )}

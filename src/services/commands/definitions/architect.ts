@@ -8,6 +8,7 @@ export const promptArchitectCommand: CommandDefinition = {
     tags: ["architect", "create", "ai"],
     rbac: ["builder", "orchestrator"],
     recommendedModel: "claude-sonnet-4-20250514",
+    usesAI: true,
     args: {
         prompt: {
             name: "prompt",
@@ -44,6 +45,7 @@ export const deployNetworkCommand: CommandDefinition = {
     description: "Generate and deploy a full agent mesh network. Provide a natural-language prompt to auto-generate the config, or supply a pre-built MeshConfig directly. Multi-network configs create parallel jobs for A/B testing.",
     tags: ["architect", "deploy", "provision", "job"],
     rbac: ["builder", "orchestrator"],
+    usesAI: true,
     args: {
         prompt: {
             name: "prompt",

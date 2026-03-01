@@ -369,6 +369,37 @@
   border-color: #8b5cf650;
 }
 
+/* ─── AI Badge (Table View) ────────────────────────────────────────── */
+
+.commands-panel__ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: var(--radius-full, 999px);
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(56, 189, 248, 0.10));
+  border: 1px solid rgba(168, 85, 247, 0.22);
+  color: #c084fc;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  font-weight: var(--font-semibold);
+  line-height: 1.2;
+  white-space: nowrap;
+  margin-left: var(--space-sm);
+  vertical-align: middle;
+}
+
+.commands-panel__ai-badge svg {
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 3px rgba(168, 85, 247, 0.35));
+}
+
+.commands-panel__ai-badge span {
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * EMPTY STATE
  * ═══════════════════════════════════════════════════════════════════════════ */

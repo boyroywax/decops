@@ -313,6 +313,13 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     }
   }, [view === "jobs"]);
 
+  // Close footer drawer when entering Editor view
+  useEffect(() => {
+    if (view === "editor" && footerPanel !== "none") {
+      setFooterPanel("none");
+    }
+  }, [view]);
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);

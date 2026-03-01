@@ -17,6 +17,7 @@ export const generateImageCommand: CommandDefinition = {
     tags: ["image", "agent", "workspace"],
     rbac: ["orchestrator", "builder", "curator"],
     recommendedModel: "imagen-4.0-generate-001",
+    usesAI: "ai-image",
     args: {
         target: {
             name: "target",
@@ -168,6 +169,7 @@ export const generateAllImagesCommand: CommandDefinition = {
     tags: ["image", "agent", "workspace"],
     rbac: ["orchestrator", "builder", "curator"],
     recommendedModel: "imagen-4.0-generate-001",
+    usesAI: "ai-image",
     args: {
         targets: {
             name: "targets",
@@ -324,6 +326,7 @@ export const generateIconCommand: CommandDefinition = {
     tags: ["image", "icon", "job", "command", "automation"],
     rbac: ["orchestrator", "builder", "curator"],
     recommendedModel: "imagen-4.0-generate-001",
+    usesAI: "ai-image",
     args: {
         target: {
             name: "target",

@@ -764,20 +764,73 @@
 }
 
 .editor-type-select {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  padding: 2px var(--space-sm);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  outline: none;
-  transition: border-color var(--transition-fast);
+  display: none; /* Replaced by status-bar file-type picker */
 }
 
-.editor-type-select:focus {
-  border-color: rgba(56, 189, 248, 0.3);
+/* ── File-type Picker (status bar popup) ─────────────────────────────── */
+
+.editor-filetype-picker {
+  position: relative;
+}
+
+.editor-filetype-picker__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.editor-filetype-picker__btn:hover {
+  background: var(--bg-hover);
+}
+
+.editor-filetype-picker__menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  min-width: 140px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  padding: 4px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-filetype-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  background: none;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.editor-filetype-picker__item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.editor-filetype-picker__item--active {
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
 }
 
 .editor-action-btn--highlight {

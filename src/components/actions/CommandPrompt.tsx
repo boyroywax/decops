@@ -1,7 +1,10 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
-import { X, Play, AlertCircle, ChevronDown } from "lucide-react";
+import { X, Play, AlertCircle, ChevronDown, FlaskConical } from "lucide-react";
 import type { CommandDefinition, CommandArg } from "../../services/commands/types";
 import type { User } from "../../types";
+import { registry } from "../../services/commands/registry";
+import { DryRunReport } from "./DryRunReport";
+import type { DryRunJobResult } from "../../services/commands/dryRun";
 import "../../styles/components/command-prompt.css";
 
 /* ─── Types ──────────────────────────────────────────────────────────── */
@@ -20,6 +23,8 @@ interface CommandPromptProps {
     /** Current user for includeUserOption */
     currentUser?: User | null;
     onSubmit: (commandId: string, args: Record<string, any>) => void;
+    /** Workspace context for dry-run entity resolution */
+    dryRunContext?: any;
     onCancel: () => void;
 }
 
@@ -60,6 +65,7 @@ export function CommandPrompt({
     entities,
     currentUser,
     onSubmit,
+    dryRunContext,
     onCancel,
 }: CommandPromptProps) {
     const argEntries = useMemo(
@@ -98,6 +104,7 @@ export function CommandPrompt({
 
     const [errors, setErrors] = useState<FieldError[]>([]);
     const [showOptional, setShowOptional] = useState(false);
+    const [dryRunReport, setDryRunReport] = useState<DryRunJobResult | null>(null);
     const firstInputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(null);
 
     // Focus first input on mount
@@ -184,6 +191,48 @@ export function CommandPrompt({
 
         onSubmit(command.id, coerced);
     }, [validate, argEntries, values, command.id, onSubmit]);
+
+    /** Build coerced args (shared between submit and dry-run) */
+    const buildCoercedArgs = useCallback(() => {
+        const coerced: Record<string, any> = {};
+        for (const [name, arg] of argEntries) {
+            let val = values[name];
+            if (val === "" && arg.required === false && arg.defaultValue === undefined) continue;
+            if (arg.type === "number" && val !== "" && val !== undefined) val = Number(val);
+            if (arg.type === "boolean") val = Boolean(val);
+            if (arg.type === "array" && typeof val === "string") {
+                val = val.split(",").map((s: string) => s.trim()).filter(Boolean);
+            }
+            if (arg.type === "object" && typeof val === "string") {
+                try { val = JSON.parse(val); } catch { /* keep string */ }
+            }
+            coerced[name] = val;
+        }
+        return coerced;
+    }, [argEntries, values]);
+
+    const handleDryRun = useCallback(() => {
+        const coerced = buildCoercedArgs();
+        const cmdResult = registry.dryRun(command.id, coerced, dryRunContext || {});
+        const report: DryRunJobResult = {
+            valid: cmdResult.valid,
+            mode: 'single',
+            steps: [{
+                stepId: 'single',
+                stepIndex: 0,
+                commandId: command.id,
+                conditionMet: null,
+                result: cmdResult,
+            }],
+            unresolvedRefs: [],
+            summary: cmdResult.summary,
+            totalChecks: cmdResult.checks.length,
+            passedChecks: cmdResult.checks.filter(c => c.status === 'pass').length,
+            failedChecks: cmdResult.checks.filter(c => c.status === 'fail').length,
+            warningCount: cmdResult.checks.filter(c => c.status === 'warn').length,
+        };
+        setDryRunReport(report);
+    }, [command.id, buildCoercedArgs, dryRunContext]);
 
     const getError = (name: string) => errors.find(e => e.argName === name)?.message;
 
@@ -416,6 +465,20 @@ export function CommandPrompt({
                             {errors.length} field{errors.length !== 1 ? "s" : ""} need{errors.length === 1 ? "s" : ""} attention
                         </div>
                     )}
+
+                    {/* Dry-run report */}
+                    {dryRunReport && (
+                        <div className="cmd-prompt__dry-run">
+                            <DryRunReport
+                                report={dryRunReport}
+                                onClose={() => setDryRunReport(null)}
+                                onRunForReal={() => {
+                                    setDryRunReport(null);
+                                    handleSubmit();
+                                }}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}
@@ -425,6 +488,9 @@ export function CommandPrompt({
                     </div>
                     <div className="cmd-prompt__footer-actions">
                         <button onClick={onCancel} className="cmd-prompt__cancel-btn">Cancel</button>
+                        <button onClick={handleDryRun} className="cmd-prompt__dryrun-btn">
+                            <FlaskConical size={11} /> Test Run
+                        </button>
                         <button onClick={handleSubmit} className="cmd-prompt__submit-btn">
                             <Play size={11} /> Queue Job
                         </button>

@@ -64,9 +64,15 @@ export type CommandModelMap = Record<string, string>; // commandId → modelId
 
 export interface LLMContextType {
   providers: ProviderState[];
-  // Global default
+  // Global default (used as default for agents)
   globalModel: string;
   setGlobalModel: (modelId: string) => void;
+  // Chat model (used by workspace chat)
+  chatModel: string;
+  setChatModel: (modelId: string) => void;
+  // Image generation model
+  imageModel: string;
+  setImageModel: (modelId: string) => void;
   // Keys
   setProviderKey: (provider: ProviderId, key: string) => void;
   getProviderKey: (provider: ProviderId) => string;
@@ -127,6 +133,8 @@ const OPENAI_MODELS: LLMModel[] = [
 const LS_KEYS = {
   anthropicKey: "anthropic_api_key",
   anthropicModel: "anthropic_model",
+  chatModel: "llm_chat_model",
+  imageModel: "llm_image_model",
   geminiKey: "gemini_api_key",
   openaiKey: "openai_api_key",
   ollamaInstances: "ollama_instances",
@@ -242,8 +250,15 @@ export function LLMProvider({ children }: { children: ReactNode }) {
     } catch { return []; }
   });
 
-  // Global model
+  // Global model (agent default)
   const [globalModel, setGlobalModelState] = useState(() => localStorage.getItem(LS_KEYS.anthropicModel) || DEFAULT_MODEL);
+
+  // Chat model
+  const [chatModel, setChatModelState] = useState(() => localStorage.getItem(LS_KEYS.chatModel) || DEFAULT_MODEL);
+
+  // Image generation model
+  const DEFAULT_IMAGE_MODEL = "imagen-4.0-generate-001";
+  const [imageModel, setImageModelState] = useState(() => localStorage.getItem(LS_KEYS.imageModel) || DEFAULT_IMAGE_MODEL);
 
   // Per-agent overrides
   const [agentModels, setAgentModelsState] = useState<AgentModelMap>(() => {
@@ -266,6 +281,16 @@ export function LLMProvider({ children }: { children: ReactNode }) {
   const setGlobalModel = useCallback((modelId: string) => {
     setGlobalModelState(modelId);
     localStorage.setItem(LS_KEYS.anthropicModel, modelId);
+  }, []);
+
+  const setChatModel = useCallback((modelId: string) => {
+    setChatModelState(modelId);
+    localStorage.setItem(LS_KEYS.chatModel, modelId);
+  }, []);
+
+  const setImageModel = useCallback((modelId: string) => {
+    setImageModelState(modelId);
+    localStorage.setItem(LS_KEYS.imageModel, modelId);
   }, []);
 
   const setProviderKey = useCallback((provider: ProviderId, key: string) => {
@@ -509,6 +534,10 @@ export function LLMProvider({ children }: { children: ReactNode }) {
     providers,
     globalModel,
     setGlobalModel,
+    chatModel,
+    setChatModel,
+    imageModel,
+    setImageModel,
     setProviderKey,
     getProviderKey,
     hasProviderKey,

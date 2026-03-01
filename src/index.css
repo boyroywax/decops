@@ -32,6 +32,8 @@
 @import './styles/components/unified-builder.css';
 @import './styles/components/copyable-id.css';
 @import './styles/components/trading-card.css';
+@import './styles/components/command-card-modal.css';
+@import './styles/components/dry-run-report.css';
 @import './styles/components/delete-confirm.css';
 
 /* ═══════════════════════════════════════════════════════════════════════════

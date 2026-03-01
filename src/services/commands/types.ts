@@ -125,6 +125,9 @@ export interface CommandDefinition<TArgs = any> {
     output: string; // Description of the output format/content
     outputSchema?: Record<string, any>; // Optional JSON schema of the output object
     recommendedModel?: string; // Suggested LLM model id (fallback between user override and global default)
+    /** Marks this command as using AI — shows AI badge in UI.
+     *  `true` or `"ai-text"` = text generation, `"ai-image"` = image generation */
+    usesAI?: boolean | "ai-text" | "ai-image";
     /** Hide from Commands panel & AI tools — still executable by job executor */
     hidden?: boolean;
     /** Base64 data-URI or URL for a custom icon image */

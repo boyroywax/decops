@@ -148,6 +148,14 @@
   color: var(--color-danger);
 }
 
+.job-catalog__action-btn--test {
+  color: #818cf8;
+}
+.job-catalog__action-btn--test:hover {
+  background: rgba(129, 140, 248, 0.12);
+  color: #a5b4fc;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * SEED / BUILT-IN CARD
  * ═══════════════════════════════════════════════════════════════════════════ */
