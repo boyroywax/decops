@@ -3,6 +3,7 @@ import { createAgentCommand, pingAgentCommand } from "./definitions/agent";
 import { sendMessageCommand } from "./definitions/messaging";
 import { createChannelCommand } from "./definitions/channel";
 import { createGroupCommand } from "./definitions/group";
+import { groupDecideCommand } from "./definitions/governance";
 import { broadcastMessageCommand } from "./definitions/broadcast";
 import {
     deleteAgentCommand,
@@ -113,6 +114,7 @@ export function initializeRegistry() {
     registry.register(sendMessageCommand);
     registry.register(createChannelCommand);
     registry.register(createGroupCommand);
+    registry.register(groupDecideCommand);
     registry.register(broadcastMessageCommand);
 
     // Modification

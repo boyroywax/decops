@@ -436,3 +436,74 @@
 }
 
 /* Group broadcast button uses dynamic group color via inline style */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ECOSYSTEM OVERVIEW
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.messages-sidebar__section-gap {
+  margin-top: var(--space-lg);
+}
+
+/* Eco active button */
+.channel-btn--active-eco {
+  background: rgba(56, 189, 248, 0.06);
+  border-color: rgba(129, 140, 248, 0.25);
+}
+
+.channel-btn--active-eco .channel-btn__label {
+  color: #818cf8;
+}
+
+/* Eco header title highlight */
+.msg-thread__header-title--eco {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: #818cf8;
+}
+
+/* Eco item — subtle left border for timeline feel */
+.msg-item--eco {
+  margin-bottom: var(--space-xl);
+  padding-left: var(--space-lg);
+  border-left: 2px solid var(--border-subtle);
+  transition: border-color var(--transition-fast);
+}
+
+.msg-item--eco:hover {
+  border-left-color: rgba(129, 140, 248, 0.35);
+}
+
+/* Sender → Receiver arrow */
+.msg-sender__arrow {
+  color: var(--text-ghost);
+  margin: 0 var(--space-xs);
+  font-size: var(--text-xs);
+}
+
+/* Source badge (bridge / network-name / broadcast) */
+.msg-sender__source {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+  margin-left: var(--space-sm);
+  opacity: 0.85;
+}
+
+/* Eco footer (read-only indicator) */
+.msg-input-bar--eco {
+  background: var(--bg-base);
+}
+
+.msg-eco-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  justify-content: center;
+}

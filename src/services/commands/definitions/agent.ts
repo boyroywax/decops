@@ -32,6 +32,12 @@ export const createAgentCommand: CommandDefinition = {
             required: true,
             defaultValue: 0
         },
+        title: {
+            name: "title",
+            type: "string",
+            description: "Job title or descriptor (e.g. 'Lead Researcher', 'Security Analyst')",
+            required: false,
+        },
         networkId: {
             name: "networkId",
             type: "network",
@@ -70,13 +76,14 @@ export const createAgentCommand: CommandDefinition = {
 
         const created: any[] = [];
         for (const spec of specs) {
-            const { name, role, prompt, networkId } = spec;
+            const { name, role, prompt, title, networkId } = spec;
 
             await new Promise(resolve => setTimeout(resolve, 300));
 
             const newAgent = {
                 id: crypto.randomUUID(),
                 name,
+                ...(title ? { title } : {}),
                 role,
                 prompt,
                 did: generateDID(),

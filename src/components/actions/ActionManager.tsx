@@ -53,7 +53,6 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
             ...(jobDef.storageDefaults ? { storageDefaults: jobDef.storageDefaults } : {}),
             ...(jobDef.deliverables ? { deliverables: jobDef.deliverables } : {}),
             ...(jobDef.inputDefaults && jobDef.inputDefaults.length > 0 ? { inputDefaults: jobDef.inputDefaults } : {}),
-            ...(jobDef.modelId ? { modelId: jobDef.modelId } : {}),
         });
         setActiveTab("monitor");
     };
@@ -68,7 +67,6 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
             ...(jobDef.storageDefaults ? { storageDefaults: jobDef.storageDefaults } : {}),
             ...(jobDef.deliverables ? { deliverables: jobDef.deliverables } : {}),
             ...(jobDef.inputDefaults && jobDef.inputDefaults.length > 0 ? { inputDefaults: jobDef.inputDefaults } : {}),
-            ...(jobDef.modelId ? { modelId: jobDef.modelId } : {}),
             dryRun: true,
         } as any);
         setActiveTab("monitor");

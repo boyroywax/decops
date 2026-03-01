@@ -205,30 +205,6 @@
   display: inline;
 }
 
-/* ── Model select ── */
-.jm-toolbar__model-select {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  color: var(--text-ghost);
-  margin-left: auto;
-  flex-shrink: 0;
-}
-.jm-toolbar__model-select select {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: 3px 6px;
-  cursor: pointer;
-  max-width: 160px;
-}
-.jm-toolbar__model-select select:focus {
-  border-color: var(--color-accent);
-  outline: none;
-}
 
 /* ── Responsive: hide labels on narrow viewports ── */
 @media (max-width: 900px) {
@@ -238,9 +214,6 @@
   .jm-toolbar__name {
     min-width: 100px;
     max-width: 160px;
-  }
-  .jm-toolbar__model-select select {
-    max-width: 120px;
   }
 }
 
@@ -300,6 +273,7 @@
   display: flex;
   flex: 1;
   overflow: hidden;
+  position: relative;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -419,6 +393,9 @@
 .jm-canvas__flow-badge--parallel:hover {
   border-color: #a78bfa60;
   background: #a78bfa20;
+}
+.jm-canvas__flow-badge--vertical {
+  transform: translateX(-50%);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -918,17 +895,50 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
- * NODE EDITOR (right side panel)
+ * NODE EDITOR — Right-side slide-in drawer
  * ═══════════════════════════════════════════════════════════════════════════ */
 
+.jm-editor-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.jm-editor-drawer--open {
+  pointer-events: auto;
+}
+
+.jm-editor-drawer__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.jm-editor-drawer--open .jm-editor-drawer__backdrop {
+  opacity: 1;
+}
+
 .jm-editor {
-  width: 320px;
-  min-width: 320px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 340px;
   background: var(--bg-surface);
   border-left: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+}
+.jm-editor-drawer--open .jm-editor {
+  transform: translateX(0);
 }
 
 .jm-editor__header {
@@ -941,6 +951,25 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+}
+
+.jm-editor__close {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-ghost);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.jm-editor__close:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
 }
 
 .jm-editor__body {

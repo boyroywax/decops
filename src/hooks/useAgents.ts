@@ -7,7 +7,7 @@ export function useAgents(addJob: (job: JobRequest) => void) {
 
     // UI State
     const [showCreate, setShowCreate] = useState(false);
-    const [newAgent, setNewAgent] = useState<NewAgentForm>({ name: "", role: "researcher", prompt: "", templateIdx: 0, networkId: "" });
+    const [newAgent, setNewAgent] = useState<NewAgentForm>({ name: "", title: "", role: "researcher", prompt: "", templateIdx: 0, networkId: "" });
     const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
     const [editingPrompt, setEditingPrompt] = useState<string | null>(null);
     const [editPromptText, setEditPromptText] = useState("");
@@ -18,12 +18,13 @@ export function useAgents(addJob: (job: JobRequest) => void) {
             type: "create_agent",
             request: {
                 name: newAgent.name.trim(),
+                title: newAgent.title.trim() || undefined,
                 role: newAgent.role,
                 prompt: newAgent.prompt.trim(),
                 networkId: newAgent.networkId
             }
         });
-        setNewAgent({ name: "", role: "researcher", prompt: "", templateIdx: 0, networkId: newAgent.networkId });
+        setNewAgent({ name: "", title: "", role: "researcher", prompt: "", templateIdx: 0, networkId: newAgent.networkId });
         setShowCreate(false);
     };
 

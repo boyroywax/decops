@@ -208,16 +208,36 @@ export function JobCanvas({
             if (!parent) return null;
             const siblings = steps.filter(s => s.parentId === step.parentId);
             const isParallel = parent.flowType === "parallel" && siblings.length > 1;
-            const fromX = parent.x + NODE_WIDTH;
-            const fromY = parent.y + NODE_HEIGHT / 2;
-            const toX = step.x;
-            const toY = step.y + NODE_HEIGHT / 2;
+
+            // Determine direction: vertical if child is more below than to the right
+            const parentCX = parent.x + NODE_WIDTH / 2;
+            const parentCY = parent.y + NODE_HEIGHT / 2;
+            const childCX = step.x + NODE_WIDTH / 2;
+            const childCY = step.y + NODE_HEIGHT / 2;
+            const isVertical = Math.abs(childCY - parentCY) > Math.abs(childCX - parentCX);
+
+            let fromX: number, fromY: number, toX: number, toY: number;
+            if (isVertical) {
+                // Bottom-center of parent → top-center of child
+                fromX = parentCX;
+                fromY = parent.y + NODE_HEIGHT;
+                toX = childCX;
+                toY = step.y;
+            } else {
+                // Right-center of parent → left-center of child
+                fromX = parent.x + NODE_WIDTH;
+                fromY = parent.y + NODE_HEIGHT / 2;
+                toX = step.x;
+                toY = step.y + NODE_HEIGHT / 2;
+            }
+
             return {
                 key: `${parent.id}-${step.id}`,
                 from: { x: fromX, y: fromY },
                 to: { x: toX, y: toY },
                 mid: { x: (fromX + toX) / 2, y: (fromY + toY) / 2 },
                 isParallel,
+                isVertical,
                 parentId: parent.id,
             };
         })
@@ -227,6 +247,7 @@ export function JobCanvas({
             to: { x: number; y: number };
             mid: { x: number; y: number };
             isParallel: boolean;
+            isVertical: boolean;
             parentId: string;
         }>;
 
@@ -237,6 +258,7 @@ export function JobCanvas({
         flowType: steps.find(s => s.id === conn.parentId)?.flowType || "serial",
         x: conn.mid.x,
         y: conn.mid.y,
+        isVertical: conn.isVertical,
     }));
 
     // ── Leaf steps (steps with no children) for deliverable connections ──
@@ -357,7 +379,10 @@ export function JobCanvas({
 
                     {/* Step→Step connectors */}
                     {connectors.map(conn => {
-                        const d = `M ${conn.from.x} ${conn.from.y} C ${conn.from.x + 40} ${conn.from.y}, ${conn.to.x - 40} ${conn.to.y}, ${conn.to.x} ${conn.to.y}`;
+                        const cpOffset = 40;
+                        const d = conn.isVertical
+                            ? `M ${conn.from.x} ${conn.from.y} C ${conn.from.x} ${conn.from.y + cpOffset}, ${conn.to.x} ${conn.to.y - cpOffset}, ${conn.to.x} ${conn.to.y}`
+                            : `M ${conn.from.x} ${conn.from.y} C ${conn.from.x + cpOffset} ${conn.from.y}, ${conn.to.x - cpOffset} ${conn.to.y}, ${conn.to.x} ${conn.to.y}`;
                         return (
                             <path
                                 key={conn.key}
@@ -410,12 +435,18 @@ export function JobCanvas({
                 {flowBadges.map(badge => (
                     <button
                         key={badge.key}
-                        className={`jm-canvas__flow-badge jm-canvas__flow-badge--${badge.flowType}`}
-                        style={{ left: badge.x - 28, top: badge.y - 10 }}
+                        className={`jm-canvas__flow-badge jm-canvas__flow-badge--${badge.flowType}${badge.isVertical ? " jm-canvas__flow-badge--vertical" : ""}`}
+                        style={{
+                            left: badge.isVertical ? badge.x : badge.x - 28,
+                            top: badge.y - 10,
+                        }}
                         onClick={() => onUpdateFlowType(badge.parentId, badge.flowType === "serial" ? "parallel" : "serial")}
                         title={`Children run: ${badge.flowType}. Click to toggle.`}
                     >
-                        {badge.flowType === "serial" ? "→ serial" : "⇉ parallel"}
+                        {badge.isVertical
+                            ? (badge.flowType === "serial" ? "↓ serial" : "⇊ parallel")
+                            : (badge.flowType === "serial" ? "→ serial" : "⇉ parallel")
+                        }
                     </button>
                 ))}
 

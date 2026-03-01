@@ -62,6 +62,9 @@ export type AgentModelMap = Record<string, string>; // agentId → modelId
 /** Per-command model override */
 export type CommandModelMap = Record<string, string>; // commandId → modelId
 
+/** Per-group model override (stored in localStorage as JSON map) */
+export type GroupModelMap = Record<string, string>; // groupId → modelId
+
 export interface LLMContextType {
   providers: ProviderState[];
   // Global default (used as default for agents)
@@ -90,6 +93,11 @@ export interface LLMContextType {
   setCommandModel: (commandId: string, modelId: string) => void;
   clearCommandModel: (commandId: string) => void;
   getCommandModel: (commandId: string, recommendedModel?: string) => string;
+  // Per-group
+  groupModels: GroupModelMap;
+  setGroupModel: (groupId: string, modelId: string) => void;
+  clearGroupModel: (groupId: string) => void;
+  getGroupModel: (groupId: string, recommendedModel?: string) => string;
   // Ollama instances
   ollamaInstances: OllamaInstance[];
   addOllamaInstance: (label: string, baseUrl: string) => void;
@@ -138,6 +146,7 @@ const LS_KEYS = {
   geminiKey: "gemini_api_key",
   openaiKey: "openai_api_key",
   ollamaInstances: "ollama_instances",
+  groupModels: "llm_group_models",
   agentModels: "llm_agent_models",
   commandModels: "llm_command_models",
 } as const;
@@ -270,6 +279,11 @@ export function LLMProvider({ children }: { children: ReactNode }) {
     try { return JSON.parse(localStorage.getItem(LS_KEYS.commandModels) || "{}"); } catch { return {}; }
   });
 
+  // Per-group overrides
+  const [groupModels, setGroupModelsState] = useState<GroupModelMap>(() => {
+    try { return JSON.parse(localStorage.getItem(LS_KEYS.groupModels) || "{}"); } catch { return {}; }
+  });
+
   // Manager open-request counter (Footer watches this)
   const [managerOpenRequest, setManagerOpenRequest] = useState(0);
 
@@ -372,6 +386,29 @@ export function LLMProvider({ children }: { children: ReactNode }) {
   const getCommandModel = useCallback((commandId: string, recommendedModel?: string) => {
     return commandModels[commandId] || recommendedModel || globalModel;
   }, [commandModels, globalModel]);
+
+  // ── Per-group ──
+
+  const setGroupModel = useCallback((groupId: string, modelId: string) => {
+    setGroupModelsState(prev => {
+      const next = { ...prev, [groupId]: modelId };
+      localStorage.setItem(LS_KEYS.groupModels, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const clearGroupModel = useCallback((groupId: string) => {
+    setGroupModelsState(prev => {
+      const next = { ...prev };
+      delete next[groupId];
+      localStorage.setItem(LS_KEYS.groupModels, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const getGroupModel = useCallback((groupId: string, recommendedModel?: string) => {
+    return groupModels[groupId] || recommendedModel || globalModel;
+  }, [groupModels, globalModel]);
 
   // ── Liveness probes ──
 
@@ -551,6 +588,10 @@ export function LLMProvider({ children }: { children: ReactNode }) {
     setCommandModel,
     clearCommandModel,
     getCommandModel,
+    groupModels,
+    setGroupModel,
+    clearGroupModel,
+    getGroupModel,
     ollamaInstances,
     addOllamaInstance,
     removeOllamaInstance,

@@ -6,7 +6,7 @@ import {
   MessageSquare, Key, FileText, Edit3, Check, X,
   Download, Upload, ChevronDown, ChevronUp,
   Brain, Sparkles, Compass, BookOpen, Heart, Mic,
-  Shield, Target,
+  Shield, Target, Cpu,
 } from "lucide-react";
 import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
@@ -16,6 +16,7 @@ import { AgentPortrait } from "../shared/AgentPortrait";
 import { AgentTradingCard } from "../shared/AgentTradingCard";
 import { downloadAgentAieos, aieosToAgent, validateAieos } from "../../utils/aieos";
 import { AieosEditor } from "./AieosEditor";
+import { useLLM } from "../../context/LLMContext";
 import "../../styles/components/agent-detail.css";
 
 interface AgentDetailViewProps {
@@ -60,6 +61,59 @@ function CoverageBadge({ coverage }: { coverage: number }) {
     <span className="aieos-coverage" style={{ color, borderColor: `${color}40` }}>
       {pct}% populated
     </span>
+  );
+}
+
+// ── Agent LLM Model Picker ──
+
+function AgentModelPicker({ agentId, recommendedModel }: { agentId: string; recommendedModel?: string }) {
+  const { allModels, getAgentModel, setAgentModel, clearAgentModel, getModelById, globalModel } = useLLM();
+  const [open, setOpen] = useState(false);
+  const resolvedId = getAgentModel(agentId, recommendedModel);
+  const resolved = getModelById(resolvedId);
+  const hasOverride = !!getModelById(resolvedId) && resolvedId !== (recommendedModel || globalModel);
+  const textModels = allModels.filter(m => m.tier !== "image");
+
+  return (
+    <div className="agent-detail__model-picker">
+      <div className="agent-detail__model-picker-label">
+        <Cpu size={11} /> LLM Model
+      </div>
+      <button
+        className={`agent-detail__model-picker-btn${hasOverride ? " agent-detail__model-picker-btn--override" : ""}`}
+        onClick={() => setOpen(o => !o)}
+      >
+        <span className="agent-detail__model-picker-name">{resolved?.label || resolvedId}</span>
+        {hasOverride && (
+          <span className="agent-detail__model-picker-badge">override</span>
+        )}
+        <ChevronDown size={12} style={{ opacity: 0.5, transform: open ? "rotate(180deg)" : undefined, transition: "transform 0.15s" }} />
+      </button>
+      {open && (
+        <div className="agent-detail__model-dropdown">
+          {/* Reset option */}
+          {hasOverride && (
+            <button
+              className="agent-detail__model-option agent-detail__model-option--reset"
+              onClick={() => { clearAgentModel(agentId); setOpen(false); }}
+            >
+              <X size={11} /> Reset to {recommendedModel ? "recommended" : "global default"}
+            </button>
+          )}
+          {textModels.map(m => (
+            <button
+              key={m.id}
+              className={`agent-detail__model-option${m.id === resolvedId ? " agent-detail__model-option--active" : ""}`}
+              onClick={() => { setAgentModel(agentId, m.id); setOpen(false); }}
+            >
+              <span className="agent-detail__model-option-label">{m.label}</span>
+              <span className="agent-detail__model-option-desc">{m.desc}</span>
+              <span className={`agent-detail__model-option-tier agent-detail__model-option-tier--${m.tier}`}>{m.tier}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -168,6 +222,7 @@ export function AgentDetailView({
             </div>
             <div>
               <h2 className="agent-detail__title">{agent.name}</h2>
+              {agent.title && <div className="agent-detail__job-title">{agent.title}</div>}
               <div
                 className="agent-detail__role-badge"
                 style={{
@@ -222,6 +277,9 @@ export function AgentDetailView({
         <div className="agent-detail__identity-label">Public Key</div>
         <div className="agent-detail__identity-value"><CopyableId value={agent.keys.pub} label="Key" /></div>
       </div>
+
+      {/* LLM Model */}
+      <AgentModelPicker agentId={agent.id} recommendedModel={agent.recommendedModel} />
 
       {/* Prompt */}
       <div className="agent-detail__section">

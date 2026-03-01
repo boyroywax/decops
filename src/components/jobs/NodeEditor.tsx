@@ -31,7 +31,8 @@ interface NodeEditorProps {
     onUpdateInputBindings: (stepId: string, bindings: Record<string, InputBinding>) => void;
     onUpdateStepModel: (stepId: string, modelId: string | undefined) => void;
     allModels: LLMModel[];
-    jobModelId: string;
+    isOpen: boolean;
+    onClose: () => void;
 }
 
 export function NodeEditor({
@@ -41,17 +42,24 @@ export function NodeEditor({
     onUpdateArg, onUpdatePreCondition, onUpdatePostCondition,
     onUpdateDeliverable, onUpdateStorage, onUpdateInput,
     onUpdateOutputMappings, onUpdateInputBindings,
-    onUpdateStepModel, allModels, jobModelId,
+    onUpdateStepModel, allModels,
+    isOpen, onClose,
 }: NodeEditorProps) {
     // ── Nothing selected ──
     if (!selectedElement) {
         return (
-            <div className="jm-editor">
-                <div className="jm-editor__header"><Settings size={14} /> Properties</div>
-                <div className="jm-editor__body">
-                    <div className="jm-editor__empty">
-                        <Settings size={28} className="jm-editor__empty-icon" />
-                        <div className="jm-editor__empty-text">Select a step, deliverable, storage, or input node</div>
+            <div className={`jm-editor-drawer${isOpen ? " jm-editor-drawer--open" : ""}`}>
+                <div className="jm-editor-drawer__backdrop" onClick={onClose} />
+                <div className="jm-editor">
+                    <div className="jm-editor__header">
+                        <Settings size={14} /> Properties
+                        <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                    </div>
+                    <div className="jm-editor__body">
+                        <div className="jm-editor__empty">
+                            <Settings size={28} className="jm-editor__empty-icon" />
+                            <div className="jm-editor__empty-text">Select a step, deliverable, storage, or input node</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -61,8 +69,13 @@ export function NodeEditor({
     // ── Input selected ──
     if (selectedElement.type === "input" && inputEntry && inputIndex !== null) {
         return (
-            <div className="jm-editor">
-                <div className="jm-editor__header"><Tag size={14} /> Entity Input</div>
+            <div className={`jm-editor-drawer${isOpen ? " jm-editor-drawer--open" : ""}`}>
+                <div className="jm-editor-drawer__backdrop" onClick={onClose} />
+                <div className="jm-editor">
+                <div className="jm-editor__header">
+                    <Tag size={14} /> Entity Input
+                    <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                </div>
                 <div className="jm-editor__body">
                     <div className="jm-editor__section">
                         <div className="jm-editor__section-title">Name</div>
@@ -101,6 +114,7 @@ export function NodeEditor({
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
         );
     }
@@ -108,8 +122,13 @@ export function NodeEditor({
     // ── Deliverable selected ──
     if (selectedElement.type === "deliverable" && deliverable && deliverableIndex !== null) {
         return (
-            <div className="jm-editor">
-                <div className="jm-editor__header"><Package size={14} /> Deliverable</div>
+            <div className={`jm-editor-drawer${isOpen ? " jm-editor-drawer--open" : ""}`}>
+                <div className="jm-editor-drawer__backdrop" onClick={onClose} />
+                <div className="jm-editor">
+                <div className="jm-editor__header">
+                    <Package size={14} /> Deliverable
+                    <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                </div>
                 <div className="jm-editor__body">
                     <div className="jm-editor__section">
                         <div className="jm-editor__section-title">Key</div>
@@ -152,6 +171,7 @@ export function NodeEditor({
                         />
                     </div>
                 </div>
+                </div>
             </div>
         );
     }
@@ -159,8 +179,13 @@ export function NodeEditor({
     // ── Storage selected ──
     if (selectedElement.type === "storage" && storageEntry && storageIndex !== null) {
         return (
-            <div className="jm-editor">
-                <div className="jm-editor__header"><Database size={14} /> Shared Storage</div>
+            <div className={`jm-editor-drawer${isOpen ? " jm-editor-drawer--open" : ""}`}>
+                <div className="jm-editor-drawer__backdrop" onClick={onClose} />
+                <div className="jm-editor">
+                <div className="jm-editor__header">
+                    <Database size={14} /> Shared Storage
+                    <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                </div>
                 <div className="jm-editor__body">
                     <div className="jm-editor__section">
                         <div className="jm-editor__section-title">Key</div>
@@ -186,6 +211,7 @@ export function NodeEditor({
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
         );
     }
@@ -193,12 +219,18 @@ export function NodeEditor({
     // ── Step selected ──
     if (!step) {
         return (
-            <div className="jm-editor">
-                <div className="jm-editor__header"><Settings size={14} /> Properties</div>
-                <div className="jm-editor__body">
-                    <div className="jm-editor__empty">
-                        <Settings size={28} className="jm-editor__empty-icon" />
-                        <div className="jm-editor__empty-text">Select a step to configure</div>
+            <div className={`jm-editor-drawer${isOpen ? " jm-editor-drawer--open" : ""}`}>
+                <div className="jm-editor-drawer__backdrop" onClick={onClose} />
+                <div className="jm-editor">
+                    <div className="jm-editor__header">
+                        <Settings size={14} /> Properties
+                        <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                    </div>
+                    <div className="jm-editor__body">
+                        <div className="jm-editor__empty">
+                            <Settings size={28} className="jm-editor__empty-icon" />
+                            <div className="jm-editor__empty-text">Select a step to configure</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -208,8 +240,13 @@ export function NodeEditor({
     const cmd = registry.get(step.commandId);
 
     return (
-        <div className="jm-editor">
-            <div className="jm-editor__header"><Settings size={14} /> Step Configuration</div>
+        <div className={`jm-editor-drawer${isOpen ? " jm-editor-drawer--open" : ""}`}>
+            <div className="jm-editor-drawer__backdrop" onClick={onClose} />
+            <div className="jm-editor">
+            <div className="jm-editor__header">
+                <Settings size={14} /> Step Configuration
+                <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+            </div>
             <div className="jm-editor__body">
                 {cmd && (
                     <>
@@ -218,6 +255,7 @@ export function NodeEditor({
                             <div className="jm-editor__cmd-desc">{cmd.description}</div>
                         </div>
 
+                        {cmd.usesAI && (
                         <div className="jm-editor__section">
                             <div className="jm-editor__section-title">
                                 <Cpu size={11} /> LLM Model
@@ -227,12 +265,7 @@ export function NodeEditor({
                                 value={step.modelId || ""}
                                 onChange={(e) => onUpdateStepModel(step.id, e.target.value || undefined)}
                             >
-                                <option value="">
-                                    {jobModelId
-                                        ? `Inherit from job (${allModels.find(m => m.id === jobModelId)?.label || jobModelId})`
-                                        : "Use default (global)"
-                                    }
-                                </option>
+                                <option value="">Use default (global)</option>
                                 {(() => {
                                     const grouped = new Map<string, LLMModel[]>();
                                     allModels.forEach(m => {
@@ -253,6 +286,7 @@ export function NodeEditor({
                                 Override the LLM model for this step. Leave empty to use the job or global default.
                             </div>
                         </div>
+                        )}
 
                         <div className="jm-editor__section">
                             <div className="jm-editor__section-title">Pre-Execution Condition</div>
@@ -499,6 +533,7 @@ export function NodeEditor({
                         </div>
                     </>
                 )}
+            </div>
             </div>
         </div>
     );

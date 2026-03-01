@@ -266,6 +266,17 @@ export function getCommandModel(commandId?: string, recommendedModel?: string): 
   return recommendedModel || getSelectedModel();
 }
 
+/** Get model for a specific group (checks per-group override → group.modelId → global) */
+export function getGroupModel(groupId?: string, recommendedModel?: string): string {
+  if (groupId) {
+    try {
+      const map = JSON.parse(localStorage.getItem("llm_group_models") || "{}");
+      if (map[groupId]) return map[groupId];
+    } catch { /* ignore parse errors */ }
+  }
+  return recommendedModel || getSelectedModel();
+}
+
 /** Save the selected model to localStorage */
 export function setSelectedModel(modelId: string): void {
   localStorage.setItem("anthropic_model", modelId);

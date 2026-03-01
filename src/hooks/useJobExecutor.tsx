@@ -242,12 +242,9 @@ export function useJobExecutor({
                         return value;
                     };
 
-                    // Job-level model override (from JobDefinition.modelId)
-                    const jobModelId = (queuedJob as any).request?.modelId || (queuedJob as any).modelId;
-
                     /** Build a step-scoped context that overrides model resolution if step has modelId */
                     const getStepContext = (step: any): CommandContext => {
-                        const stepModelId = step.modelId || jobModelId;
+                        const stepModelId = step.modelId;
                         if (!stepModelId) return context;
                         return {
                             ...context,

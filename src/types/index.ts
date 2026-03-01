@@ -268,6 +268,7 @@ export interface AieosEntity {
 export interface Agent {
   id: string;
   name: string;
+  title?: string;  // Job title / descriptor (e.g. "Lead Researcher", "Security Analyst")
   role: RoleId;
   prompt: string;
   did: string;
@@ -303,6 +304,7 @@ export interface Group {
   color: string;
   createdAt: string;
   networkId?: string;  // Which network this group belongs to
+  modelId?: string;    // LLM model override for group decision-making
 }
 
 export interface Message {
@@ -423,6 +425,7 @@ export interface MeshConfigMessage {
 
 export interface NewAgentForm {
   name: string;
+  title: string;
   role: RoleId;
   prompt: string;
   templateIdx: number;
@@ -609,7 +612,6 @@ export interface JobDefinition {
   name: string;
   description: string;
   mode: 'serial' | 'parallel';
-  modelId?: string;            // Default LLM model for all steps in this job
   icon?: string;               // Base64 data-URI or URL for a custom icon image
   steps: JobStep[];
   deliverables?: JobDeliverable[];         // Declared deliverables

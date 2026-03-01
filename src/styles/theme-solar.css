@@ -131,6 +131,80 @@
   border-color: rgba(120, 80, 20, 0.18);
 }
 
+/* Agents view toggle — solar */
+[data-theme="solar"] .agents-view-toggle {
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .agents-view-btn:hover {
+  background: rgba(120, 80, 20, 0.04);
+  color: #78572a;
+}
+
+[data-theme="solar"] .agents-view-btn--active {
+  background: rgba(156, 109, 16, 0.08);
+  color: #9c6d10;
+}
+
+/* Agents table — solar */
+[data-theme="solar"] .agents-th {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+  color: #a89880;
+}
+
+[data-theme="solar"] .agents-row:hover {
+  background: rgba(120, 80, 20, 0.02);
+}
+
+[data-theme="solar"] .agents-row--checked {
+  background: rgba(239, 68, 68, 0.04);
+}
+
+[data-theme="solar"] .agents-td {
+  border-bottom-color: rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .agents-table-name {
+  color: #4a3520;
+}
+
+[data-theme="solar"] .agents-table-did {
+  color: #c8b8a0;
+}
+
+[data-theme="solar"] .agents-table-title-empty {
+  color: #c8b8a0;
+}
+
+[data-theme="solar"] .agents-table-model {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.08);
+  color: #8a7050;
+}
+
+[data-theme="solar"] .agents-table-model--override {
+  color: #9c6d10;
+  background: rgba(156, 109, 16, 0.06);
+  border-color: rgba(156, 109, 16, 0.15);
+}
+
+[data-theme="solar"] .agents-table-action-btn {
+  border-color: rgba(120, 80, 20, 0.08);
+  color: #a89880;
+}
+
+[data-theme="solar"] .agents-table-action-btn:hover {
+  color: #78572a;
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .agents-table-action-btn--danger:hover {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
 [data-theme="solar"] .agent-portrait-wrap:hover {
   border-color: rgba(120, 80, 20, 0.22) !important;
 }
@@ -231,6 +305,85 @@
   background: rgba(192, 57, 43, 0.12);
   color: #c0392b;
 }
+
+/* LLM Model Picker — solar */
+[data-theme="solar"] .agent-detail__model-picker-btn,
+[data-theme="solar"] .group-detail__model-picker-btn {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #504030;
+}
+
+[data-theme="solar"] .agent-detail__model-picker-btn:hover,
+[data-theme="solar"] .group-detail__model-picker-btn:hover {
+  background: rgba(120, 80, 20, 0.06);
+  border-color: rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .agent-detail__model-picker-btn--override,
+[data-theme="solar"] .group-detail__model-picker-btn--override {
+  border-color: rgba(156, 109, 16, 0.25);
+  background: rgba(156, 109, 16, 0.05);
+}
+
+[data-theme="solar"] .agent-detail__model-picker-badge,
+[data-theme="solar"] .group-detail__model-picker-badge {
+  background: rgba(156, 109, 16, 0.14);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .agent-detail__model-dropdown,
+[data-theme="solar"] .group-detail__model-dropdown {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.12);
+  box-shadow: 0 12px 48px rgba(120, 80, 20, 0.10), 0 0 0 1px rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .agent-detail__model-option:hover,
+[data-theme="solar"] .group-detail__model-option:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .agent-detail__model-option--active,
+[data-theme="solar"] .group-detail__model-option--active {
+  background: rgba(156, 109, 16, 0.08);
+}
+
+[data-theme="solar"] .agent-detail__model-option--active .agent-detail__model-option-label,
+[data-theme="solar"] .group-detail__model-option--active .group-detail__model-option-label {
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .agent-detail__model-option-label,
+[data-theme="solar"] .group-detail__model-option-label {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .agent-detail__model-option-desc,
+[data-theme="solar"] .group-detail__model-option-desc {
+  color: #a89882;
+}
+
+[data-theme="solar"] .agent-detail__model-option--reset,
+[data-theme="solar"] .group-detail__model-option--reset {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+  color: #a89882;
+}
+
+[data-theme="solar"] .agent-detail__model-option--reset:hover,
+[data-theme="solar"] .group-detail__model-option--reset:hover {
+  color: #c0392b;
+  background: rgba(192, 57, 43, 0.05);
+}
+
+[data-theme="solar"] .agent-detail__model-option-tier--recommended,
+[data-theme="solar"] .group-detail__model-option-tier--recommended { background: rgba(46, 125, 50, 0.12); color: #2e7d32; }
+[data-theme="solar"] .agent-detail__model-option-tier--premium,
+[data-theme="solar"] .group-detail__model-option-tier--premium { background: rgba(94, 53, 177, 0.10); color: #5e35b1; }
+[data-theme="solar"] .agent-detail__model-option-tier--fast,
+[data-theme="solar"] .group-detail__model-option-tier--fast { background: rgba(160, 96, 10, 0.10); color: #a0600a; }
+[data-theme="solar"] .agent-detail__model-option-tier--standard,
+[data-theme="solar"] .group-detail__model-option-tier--standard { background: rgba(100, 90, 70, 0.10); color: #6b5b4a; }
 
 /* Sidebar */
 [data-theme="solar"] .app-sidebar {
@@ -1890,4 +2043,26 @@
 
 [data-theme="solar"] .display-panel__body {
   scrollbar-color: rgba(120, 80, 20, 0.15) transparent;
+}
+
+/* ═══ Ecosystem Overview ═══ */
+[data-theme="solar"] .channel-btn--active-eco {
+  background: rgba(156, 109, 16, 0.06);
+  border-color: rgba(156, 109, 16, 0.2);
+}
+
+[data-theme="solar"] .msg-item--eco {
+  border-left-color: #e8dcc8;
+}
+
+[data-theme="solar"] .msg-item--eco:hover {
+  border-left-color: rgba(156, 109, 16, 0.4);
+}
+
+[data-theme="solar"] .msg-input-bar--eco {
+  background: #f8f0de;
+}
+
+[data-theme="solar"] .msg-eco-footer {
+  color: #a89880;
 }

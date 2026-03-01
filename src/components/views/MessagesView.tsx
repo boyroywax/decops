@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
+import { useState, useMemo } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, BridgeMessage } from "../../types";
-import { MessageSquare, ArrowLeftRight, Hexagon, X, Link2 } from "lucide-react";
+import { MessageSquare, ArrowLeftRight, Hexagon, X, Link2, Globe } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { MarkdownContent } from "../shared/MarkdownContent";
 import { ROLES, CHANNEL_TYPES } from "../../constants";
@@ -58,19 +59,85 @@ export function MessagesView({
   sendBridgeMessage,
 }: MessagesViewProps) {
   const bulk = useBulkSelect();
+  const [ecosystemOverview, setEcosystemOverview] = useState(false);
 
   // Determine which messaging mode is active
-  const isBridgeMode = !!selectedBridge && !activeChannel && !broadcastGroup;
+  const isBridgeMode = !!selectedBridge && !activeChannel && !broadcastGroup && !ecosystemOverview;
 
-  const visibleMessages = activeChannel && !broadcastGroup && !selectedBridge
+  const visibleMessages = activeChannel && !broadcastGroup && !selectedBridge && !ecosystemOverview
     ? channelMessages
-    : broadcastGroup && !selectedBridge
+    : broadcastGroup && !selectedBridge && !ecosystemOverview
       ? (() => {
         const group = groups.find((g) => g.id === broadcastGroup);
         if (!group) return [];
         return messages.filter((m) => m.content.includes(`[GROUP BROADCAST — ${group.name}]`) && group.members.includes(m.toId));
       })()
       : [];
+
+  // ── Ecosystem Overview: merge ALL message sources chronologically ──
+  const allAgentsMap = useMemo(() => {
+    const map = new Map<string, Agent>();
+    agents.forEach(a => map.set(a.id, a));
+    ecosystems.forEach(net => net.agents?.forEach(a => { if (!map.has(a.id)) map.set(a.id, a); }));
+    return map;
+  }, [agents, ecosystems]);
+
+  type UnifiedMsg = {
+    id: string;
+    fromId: string;
+    toId: string;
+    content: string;
+    response: string | null;
+    status: string;
+    ts: number;
+    source: "p2p" | "broadcast" | "bridge" | "network";
+    channelId?: string;
+    networkName?: string;
+    networkColor?: string;
+  };
+
+  const ecosystemMessages = useMemo<UnifiedMsg[]>(() => {
+    if (!ecosystemOverview) return [];
+    const unified: UnifiedMsg[] = [];
+
+    // 1) Workspace-level P2P messages
+    messages.forEach(m => {
+      unified.push({ ...m, source: "p2p" });
+    });
+
+    // 2) Bridge messages
+    bridgeMessages.forEach(bm => {
+      unified.push({
+        id: bm.id,
+        fromId: bm.fromId,
+        toId: bm.toId,
+        content: bm.content,
+        response: bm.response,
+        status: bm.status,
+        ts: bm.ts,
+        source: "bridge",
+      });
+    });
+
+    // 3) Network-internal messages (from each ecosystem network)
+    ecosystems.forEach(net => {
+      (net.messages || []).forEach(m => {
+        // Avoid duplicates if already in workspace messages
+        if (!unified.some(u => u.id === m.id)) {
+          unified.push({
+            ...m,
+            source: "network",
+            networkName: net.name,
+            networkColor: net.color,
+          });
+        }
+      });
+    });
+
+    // Sort chronologically
+    unified.sort((a, b) => a.ts - b.ts);
+    return unified;
+  }, [ecosystemOverview, messages, bridgeMessages, ecosystems]);
 
   const handleBulkDelete = () => {
     removeMessages(bulk.selected);
@@ -82,7 +149,18 @@ export function MessagesView({
       {/* Channel list sidebar */}
       <div className="messages-sidebar">
         <h2 className="messages-sidebar__title"><GradientIcon icon={MessageSquare} size={18} gradient={["#fbbf24", "#fb923c"]} /> Messages</h2>
-        <SectionTitle text="P2P Channels" />
+
+        {/* Ecosystem Overview */}
+        <SectionTitle text="Ecosystem Overview" />
+        <button
+          onClick={() => { setEcosystemOverview(true); setActiveChannel(null); setBroadcastGroup(null); setSelectedBridge(null); bulk.clearSelection(); }}
+          className={`channel-btn${ecosystemOverview ? " channel-btn--active-eco" : ""}`}
+        >
+          <div className="channel-btn__label"><Globe size={10} /> All Messages</div>
+          <div className="channel-btn__meta">{messages.length + bridgeMessages.length + ecosystems.reduce((s, n) => s + (n.messages?.length || 0), 0)} total</div>
+        </button>
+
+        <div className="messages-sidebar__section-gap"><SectionTitle text="P2P Channels" /></div>
         {channels.length === 0 && <div className="messages-sidebar__empty">No channels</div>}
         {channels.map((ch) => {
           const from = agents.find((a) => a.id === ch.from);
@@ -91,7 +169,7 @@ export function MessagesView({
           if (!from || !to) return null;
           const isAc = activeChannel === ch.id && !broadcastGroup && !selectedBridge;
           return (
-            <button key={ch.id} onClick={() => { setActiveChannel(ch.id); setBroadcastGroup(null); setSelectedBridge(null); bulk.clearSelection(); }} className={`channel-btn${isAc ? " channel-btn--active-p2p" : ""}`}>
+            <button key={ch.id} onClick={() => { setActiveChannel(ch.id); setBroadcastGroup(null); setSelectedBridge(null); setEcosystemOverview(false); bulk.clearSelection(); }} className={`channel-btn${isAc ? " channel-btn--active-p2p" : ""}`}>
               <div className="channel-btn__label">{from.name} <ArrowLeftRight size={10} /> {to.name}</div>
               <div className="channel-btn__meta">
                 {CHANNEL_TYPES.find((t) => t.id === ch.type)?.icon} {CHANNEL_TYPES.find((t) => t.id === ch.type)?.label}
@@ -104,9 +182,9 @@ export function MessagesView({
           <>
             <div className="messages-sidebar__section-gap"><SectionTitle text="Group Broadcast" /></div>
             {groups.map((g) => {
-              const isAc = broadcastGroup === g.id && !selectedBridge;
+              const isAc = broadcastGroup === g.id && !selectedBridge && !ecosystemOverview;
               return (
-                <button key={g.id} onClick={() => { setBroadcastGroup(g.id); setActiveChannel(null); setSelectedBridge(null); bulk.clearSelection(); }} className={`channel-btn${isAc ? " channel-btn--active-group" : ""}`} style={isAc ? { background: g.color + "12", borderColor: g.color + "30" } : undefined}>
+                <button key={g.id} onClick={() => { setBroadcastGroup(g.id); setActiveChannel(null); setSelectedBridge(null); setEcosystemOverview(false); bulk.clearSelection(); }} className={`channel-btn${isAc ? " channel-btn--active-group" : ""}`} style={isAc ? { background: g.color + "12", borderColor: g.color + "30" } : undefined}>
                   <div className="channel-btn__label" style={isAc ? { color: g.color } : undefined}><Hexagon size={10} /> {g.name}</div>
                   <div className="channel-btn__meta">{g.members.length} members</div>
                 </button>
@@ -125,7 +203,7 @@ export function MessagesView({
               const bmCount = bridgeMessages.filter((m) => m.bridgeId === b.id).length;
               const isAc = selectedBridge === b.id;
               return (
-                <button key={b.id} onClick={() => { setSelectedBridge(isAc ? null : b.id); setActiveChannel(null); setBroadcastGroup(null); bulk.clearSelection(); }} className={`channel-btn${isAc ? " channel-btn--active-bridge" : ""}`}>
+                <button key={b.id} onClick={() => { setSelectedBridge(isAc ? null : b.id); setActiveChannel(null); setBroadcastGroup(null); setEcosystemOverview(false); bulk.clearSelection(); }} className={`channel-btn${isAc ? " channel-btn--active-bridge" : ""}`}>
                   <div className="channel-btn__label">
                     {fA?.name || "?"} <Link2 size={10} /> {tA?.name || "?"}
                   </div>
@@ -144,7 +222,75 @@ export function MessagesView({
 
       {/* Message thread */}
       <div className="msg-thread">
-        {(activeChannel || broadcastGroup || isBridgeMode) ? (
+        {/* ── Ecosystem Overview Feed ── */}
+        {ecosystemOverview ? (
+          <>
+            <div className="msg-thread__header">
+              <div>
+                <div className="msg-thread__header-title msg-thread__header-title--eco">
+                  <Globe size={14} /> Ecosystem Overview
+                </div>
+                <div className="msg-thread__header-subtitle">
+                  All messages across channels, groups, bridges & networks · {ecosystemMessages.length} messages
+                </div>
+              </div>
+            </div>
+            <div className="msg-thread__body">
+              {ecosystemMessages.length === 0 ? (
+                <div className="msg-thread__empty">
+                  <GradientIcon icon={Globe} size={24} gradient={["#38bdf8", "#818cf8"]} />
+                  <div className="msg-thread__empty-text">No messages in the ecosystem yet.</div>
+                </div>
+              ) : (
+                ecosystemMessages.map(m => {
+                  const sender = allAgentsMap.get(m.fromId);
+                  const receiver = allAgentsMap.get(m.toId);
+                  const sRole = sender ? ROLES.find(r => r.id === sender.role) : null;
+                  const rRole = receiver ? ROLES.find(r => r.id === receiver.role) : null;
+                  const sourceLabel = m.source === "bridge" ? "bridge" : m.source === "network" ? m.networkName : m.source === "broadcast" ? "broadcast" : undefined;
+                  const sourceColor = m.source === "bridge" ? "#38bdf8" : m.source === "network" ? (m.networkColor || "#818cf8") : m.source === "broadcast" ? "#f472b6" : undefined;
+                  return (
+                    <div key={m.id} className="msg-item msg-item--eco">
+                      <div className="msg-row">
+                        <div className="msg-avatar" style={{ background: (sRole?.color || "#555") + "20", border: `1px solid ${sRole?.color || "#555"}30` }}>{sRole?.icon}</div>
+                        <div className="msg-content">
+                          <div className="msg-sender" style={{ color: sRole?.color }}>
+                            {sender?.name || m.fromId.slice(0, 8)}
+                            <span className="msg-sender__arrow">→</span>
+                            <span style={{ color: rRole?.color }}>{receiver?.name || m.toId.slice(0, 8)}</span>
+                            <span className="msg-sender__timestamp">{new Date(m.ts).toLocaleString()}</span>
+                            {sourceLabel && <span className="msg-sender__source" style={{ color: sourceColor, borderColor: sourceColor + "30" }}>{sourceLabel}</span>}
+                          </div>
+                          <MarkdownContent content={m.content} className="msg-bubble--sent" />
+                        </div>
+                      </div>
+                      {m.status === "sending" && <div className="msg-thinking"><span className="msg-thinking__dot">●</span> {receiver?.name} is thinking...</div>}
+                      {m.response && (
+                        <div className="msg-row--reply">
+                          <div className="msg-avatar" style={{ background: (rRole?.color || "#555") + "20", border: `1px solid ${rRole?.color || "#555"}30` }}>{rRole?.icon}</div>
+                          <div className="msg-content">
+                            <div className="msg-sender" style={{ color: rRole?.color }}>
+                              {receiver?.name || m.toId.slice(0, 8)}
+                              <span className={`msg-sender__status${m.status === "no-prompt" ? " msg-sender__status--no-prompt" : " msg-sender__status--response"}`}>{m.status === "no-prompt" ? "no prompt" : "response"}</span>
+                            </div>
+                            <MarkdownContent content={m.response} className={`msg-bubble--received${m.status === "no-prompt" ? " msg-bubble--no-prompt" : ""}`} style={m.status !== "no-prompt" ? { background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15` } : undefined} />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+              <div ref={msgEndRef} />
+            </div>
+            {/* No input bar for ecosystem overview — read-only */}
+            <div className="msg-input-bar msg-input-bar--eco">
+              <div className="msg-eco-footer">
+                <Globe size={12} /> Read-only ecosystem feed
+              </div>
+            </div>
+          </>
+        ) : (activeChannel || broadcastGroup || isBridgeMode) ? (
           <>
             <div className="msg-thread__header">
               <div>
@@ -326,7 +472,7 @@ export function MessagesView({
           <div className="msg-thread__placeholder">
             <div className="msg-thread__placeholder-inner">
               <GradientIcon icon={MessageSquare} size={32} gradient={["#fbbf24", "#fb923c"]} />
-              <div className="msg-thread__placeholder-text">Select a channel, group, or bridge.</div>
+              <div className="msg-thread__placeholder-text">Select a channel, group, bridge, or ecosystem overview.</div>
             </div>
           </div>
         )}

@@ -2,7 +2,7 @@ import type { Agent, Channel, Group, Message, NewAgentForm, Network, ViewId, Nav
 import { ROLES, PROMPT_TEMPLATES } from "../../constants";
 import { inputStyle, SectionTitle, PillButton, BulkCheckbox, BulkActionBar } from "../shared/ui";
 import { useState, useCallback } from "react";
-import { Bot, Hexagon, X, Globe, Download, Sparkles, ExternalLink, MessageSquare, GitBranch, Users, Zap } from "lucide-react";
+import { Bot, Hexagon, X, Globe, Download, Sparkles, ExternalLink, MessageSquare, GitBranch, Users, Zap, LayoutGrid, List, Cpu } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { CopyableId } from "../shared/CopyableId";
 import { AgentPortrait } from "../shared/AgentPortrait";
@@ -11,6 +11,7 @@ import { useBulkSelect } from "../../hooks/useBulkSelect";
 import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import { validateAieos, downloadAgentAieos } from "../../utils/aieos";
+import { useLLM } from "../../context/LLMContext";
 import "../../styles/components/agents.css";
 
 interface AgentsViewProps {
@@ -44,6 +45,8 @@ export function AgentsView({
   createAgent, updateAgentPrompt, removeAgent, removeAgents, navigateTo,
 }: AgentsViewProps) {
   const bulk = useBulkSelect();
+  const llm = useLLM();
+  const [view, setView] = useState<"cards" | "table">("cards");
   const [tradingCardAgent, setTradingCardAgent] = useState<Agent | null>(null);
   const [flippedCards, setFlippedCards] = useState<Set<string>>(new Set());
   const [animStates, setAnimStates] = useState<Record<string, "idle" | "pressing" | "flipping">>({});
@@ -109,6 +112,16 @@ export function AgentsView({
               color="#00e5a0"
             />
           )}
+          {agents.length > 0 && (
+            <div className="agents-view-toggle">
+              <button onClick={() => setView("cards")} className={`agents-view-btn${view === "cards" ? " agents-view-btn--active" : ""}`} title="Card view">
+                <LayoutGrid size={12} />
+              </button>
+              <button onClick={() => setView("table")} className={`agents-view-btn${view === "table" ? " agents-view-btn--active" : ""}`} title="Table view">
+                <List size={12} />
+              </button>
+            </div>
+          )}
         </div>
         <button 
           onClick={() => setShowCreate(!showCreate)} 
@@ -148,6 +161,12 @@ export function AgentsView({
                   value={newAgent.name} 
                   onChange={(e) => setNewAgent({ ...newAgent, name: e.target.value })} 
                   className="input input-accent create-agent-name-input" 
+                />
+                <input 
+                  placeholder="Title (e.g. Lead Researcher)" 
+                  value={newAgent.title} 
+                  onChange={(e) => setNewAgent({ ...newAgent, title: e.target.value })} 
+                  className="input input-accent create-agent-title-input" 
                 />
                 <div className="role-selector">
                   {ROLES.map((r) => (
@@ -200,6 +219,7 @@ export function AgentsView({
         </div>
       )}
 
+      {view === "cards" && (
       <div className="agent-cards-grid">
         {agents.map((a) => {
           const role = ROLES.find((r) => r.id === a.role)!;
@@ -241,6 +261,7 @@ export function AgentsView({
                       <AgentPortrait agent={a} size={64} />
                     </div>
                     <div className="agent-flip__name">{a.name}</div>
+                    {a.title && <div className="agent-flip__title">{a.title}</div>}
                     <div className="agent-flip__role" style={{ color: role.color }}>
                       {role.icon} {role.label}
                     </div>
@@ -409,6 +430,133 @@ export function AgentsView({
           );
         })}
       </div>
+      )}
+
+      {/* ═══ TABLE VIEW ═══ */}
+      {view === "table" && agents.length > 0 && (
+        <div className="agents-table-wrap">
+          <table className="agents-table">
+            <thead>
+              <tr>
+                <th className="agents-th agents-th--check"></th>
+                <th className="agents-th">Agent</th>
+                <th className="agents-th">Title</th>
+                <th className="agents-th">Role</th>
+                <th className="agents-th">Network</th>
+                <th className="agents-th">LLM Model</th>
+                <th className="agents-th agents-th--center">AIEOS</th>
+                <th className="agents-th agents-th--center">Channels</th>
+                <th className="agents-th agents-th--center">Groups</th>
+                <th className="agents-th agents-th--center">Messages</th>
+                <th className="agents-th agents-th--action">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {agents.map((a) => {
+                const role = ROLES.find((r) => r.id === a.role)!;
+                const agentChannels = channels.filter((c) => c.from === a.id || c.to === a.id);
+                const agentGroups = groups.filter((g) => g.members.includes(a.id));
+                const agentMsgs = messages.filter((m) => m.fromId === a.id || m.toId === a.id);
+                const network = getNetworkName(a.networkId);
+                const isChecked = bulk.has(a.id);
+                const v = validateAieos(a.aieos);
+                const pct = Math.round(v.coverage * 100);
+                const aieosColor = pct > 60 ? "#00e5a0" : pct > 30 ? "#fbbf24" : "#ef4444";
+
+                // LLM model resolution
+                const modelId = llm.getAgentModel(a.id, a.recommendedModel);
+                const modelInfo = llm.getModelById(modelId);
+                const modelLabel = modelInfo?.label || modelId?.split("-").slice(0, 2).join(" ") || "Default";
+                const isOverride = llm.getAgentModel(a.id) !== llm.getAgentModel("__nonexistent__");
+
+                return (
+                  <tr key={a.id} className={`agents-row${isChecked ? " agents-row--checked" : ""}`}>
+                    <td className="agents-td agents-td--check" onClick={(e) => e.stopPropagation()}>
+                      <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(a.id)} color={role.color} />
+                    </td>
+                    <td className="agents-td agents-td--agent">
+                      <div className="agents-table-agent">
+                        <div className="agents-table-portrait">
+                          <AgentPortrait agent={a} size={28} />
+                        </div>
+                        <div className="agents-table-identity">
+                          <span className="agents-table-name">{a.name}</span>
+                          <span className="agents-table-did">{a.did.slice(0, 20)}…</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="agents-td agents-td--title">
+                      {a.title ? <span className="agents-table-title-text">{a.title}</span> : <span className="agents-table-title-empty">—</span>}
+                    </td>
+                    <td className="agents-td agents-td--role">
+                      <span className="agents-table-role" style={{ color: role.color }}>
+                        {role.icon} {role.label}
+                      </span>
+                    </td>
+                    <td className="agents-td agents-td--network">
+                      {network ? (
+                        <span className="agents-table-network" style={{ color: network.color }}>
+                          <Globe size={10} /> {network.name}
+                        </span>
+                      ) : <span className="agents-table-title-empty">—</span>}
+                    </td>
+                    <td className="agents-td agents-td--model">
+                      <span className={`agents-table-model${isOverride ? " agents-table-model--override" : ""}`}>
+                        <Cpu size={10} />
+                        <span>{modelLabel}</span>
+                      </span>
+                    </td>
+                    <td className="agents-td agents-td--center">
+                      <span className="agents-table-aieos" style={{ color: aieosColor }}>
+                        <Sparkles size={10} /> {pct}%
+                      </span>
+                    </td>
+                    <td className="agents-td agents-td--center">{agentChannels.length}</td>
+                    <td className="agents-td agents-td--center">{agentGroups.length}</td>
+                    <td className="agents-td agents-td--center">{agentMsgs.length}</td>
+                    <td className="agents-td agents-td--action">
+                      <div className="agents-table-actions">
+                        <button
+                          onClick={() => downloadAgentAieos(a)}
+                          className="agents-table-action-btn"
+                          title="Export .aieos.json"
+                        >
+                          <Download size={10} />
+                        </button>
+                        {a.networkId && (
+                          <button
+                            onClick={() => navigateTo("networks", { networkId: a.networkId!, ...(agentGroups.length > 0 ? { groupId: agentGroups[0].id } : {}), agentId: a.id })}
+                            className="agents-table-action-btn"
+                            title="View Detail"
+                          >
+                            <ExternalLink size={10} />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => { del.requestDelete(a.id); }}
+                          className="agents-table-action-btn agents-table-action-btn--danger"
+                          title="Revoke agent"
+                        >
+                          <X size={10} />
+                        </button>
+                      </div>
+                      {del.isPending(a.id) && (
+                        <DeleteConfirmInline
+                          entityName="Agent"
+                          entityLabel={a.name}
+                          onConfirm={() => del.confirm(() => removeAgent(a.id))}
+                          onCancel={del.cancel}
+                          compact
+                        />
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <BulkActionBar
         count={bulk.count}

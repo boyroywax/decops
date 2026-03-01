@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Play, Save, FolderOpen, Plus, X, Package, Database, Tag, Cpu } from "lucide-react";
+import { Play, Save, FolderOpen, Plus, X, Package, Database, Tag } from "lucide-react";
 import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import { registry } from "../../services/commands/registry";
@@ -63,12 +63,14 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [editingJobId, setEditingJobId] = useState<string | null>(null);
-    const [jobModelId, setJobModelId] = useState<string>(""); // job-level default model override
 
     // ── Steps ──
     const [steps, setSteps] = useState<StudioStep[]>([]);
     const [selectedElement, setSelectedElement] = useState<SelectedElement>(null);
     const [selectedElements, setSelectedElements] = useState<NonNullable<SelectedElement>[]>([]);
+
+    // ── Properties drawer ──
+    const [propertiesOpen, setPropertiesOpen] = useState(false);
 
     // ── Deliverables ──
     const [deliverables, setDeliverables] = useState<JobDeliverable[]>([]);
@@ -233,6 +235,11 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const handleSelect = useCallback((el: SelectedElement) => {
         setSelectedElement(el);
         setSelectedElements([]);
+        if (el) setPropertiesOpen(true);
+    }, []);
+
+    const handleCloseProperties = useCallback(() => {
+        setPropertiesOpen(false);
     }, []);
 
     const handleMultiSelect = useCallback((items: NonNullable<SelectedElement>[]) => {
@@ -304,7 +311,6 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
             name,
             description,
             mode: derivedMode,
-            modelId: jobModelId || undefined,
             steps: steps.map(s => {
                 // Merge inputBindings into args as $storage.key / $deliverable.key refs
                 const mergedArgs = { ...s.args };
@@ -352,7 +358,6 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         setName(job.name);
         setDescription(job.description);
         setEditingJobId(job.id);
-        setJobModelId(job.modelId || "");
         setSteps(job.steps.map((s, i) => {
             // Restore inputBindings: either from saved field, or reverse-engineer from $storage./$deliverable. args
             const savedBindings: Record<string, InputBinding> = (s as any).inputBindings || {};
@@ -403,7 +408,6 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         setName("");
         setDescription("");
         setEditingJobId(null);
-        setJobModelId("");
         setSteps([]);
         setSelectedElement(null);
         setSelectedElements([]);
@@ -720,31 +724,6 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                             <Tag size={12} /> <span>Input</span>
                         </button>
                     </div>
-                    <div className="jm-toolbar__model-select">
-                        <Cpu size={11} />
-                        <select
-                            value={jobModelId}
-                            onChange={(e) => setJobModelId(e.target.value)}
-                            title="Job default LLM model"
-                        >
-                            <option value="">Default model</option>
-                            {(() => {
-                                const grouped = new Map<string, typeof llm.allModels>();
-                                llm.allModels.forEach(m => {
-                                    const group = m.groupLabel || m.provider;
-                                    if (!grouped.has(group)) grouped.set(group, []);
-                                    grouped.get(group)!.push(m);
-                                });
-                                return Array.from(grouped.entries()).map(([group, models]) => (
-                                    <optgroup key={group} label={group}>
-                                        {models.map(m => (
-                                            <option key={m.id} value={m.id}>{m.label}</option>
-                                        ))}
-                                    </optgroup>
-                                ));
-                            })()}
-                        </select>
-                    </div>
                 </div>
             </div>
 
@@ -792,7 +771,8 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                     onUpdateInputBindings={updateStepInputBindings}
                     onUpdateStepModel={updateStepModel}
                     allModels={llm.allModels}
-                    jobModelId={jobModelId}
+                    isOpen={propertiesOpen}
+                    onClose={handleCloseProperties}
                 />
             </div>
 

@@ -2,13 +2,14 @@ import { useState } from "react";
 import type { Agent, Group, Network, ViewId, NavContext } from "../../types";
 import { ROLES, GOVERNANCE_MODELS } from "../../constants";
 import {
-  Users, Calendar, Trash2, Radio,
+  Users, Calendar, Trash2, Radio, Cpu, ChevronDown, X,
 } from "lucide-react";
 import { CopyableId } from "../shared/CopyableId";
 import { GroupBadge } from "../shared/GroupBadge";
 import { GroupTradingCard } from "../shared/GroupTradingCard";
 import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
+import { useLLM } from "../../context/LLMContext";
 import "../../styles/components/group-detail.css";
 
 interface GroupDetailViewProps {
@@ -21,6 +22,59 @@ interface GroupDetailViewProps {
   removeGroup: (id: string) => void;
   setBroadcastGroup: (id: string | null) => void;
   setView: (v: ViewId) => void;
+}
+
+// ── Group LLM Model Picker ──
+
+function GroupModelPicker({ groupId, recommendedModel }: { groupId: string; recommendedModel?: string }) {
+  const { allModels, getGroupModel, setGroupModel, clearGroupModel, getModelById, globalModel } = useLLM();
+  const [open, setOpen] = useState(false);
+  const resolvedId = getGroupModel(groupId, recommendedModel);
+  const resolved = getModelById(resolvedId);
+  const hasOverride = !!getModelById(resolvedId) && resolvedId !== (recommendedModel || globalModel);
+  const textModels = allModels.filter(m => m.tier !== "image");
+
+  return (
+    <div className="group-detail__model-picker">
+      <div className="group-detail__model-picker-label">
+        <Cpu size={11} /> LLM Model
+      </div>
+      <button
+        className={`group-detail__model-picker-btn${hasOverride ? " group-detail__model-picker-btn--override" : ""}`}
+        onClick={() => setOpen(o => !o)}
+      >
+        <span className="group-detail__model-picker-name">{resolved?.label || resolvedId}</span>
+        {hasOverride && (
+          <span className="group-detail__model-picker-badge">override</span>
+        )}
+        <ChevronDown size={12} style={{ opacity: 0.5, transform: open ? "rotate(180deg)" : undefined, transition: "transform 0.15s" }} />
+      </button>
+      {open && (
+        <div className="group-detail__model-dropdown">
+          {/* Reset option */}
+          {hasOverride && (
+            <button
+              className="group-detail__model-option group-detail__model-option--reset"
+              onClick={() => { clearGroupModel(groupId); setOpen(false); }}
+            >
+              <X size={11} /> Reset to {recommendedModel ? "recommended" : "global default"}
+            </button>
+          )}
+          {textModels.map(m => (
+            <button
+              key={m.id}
+              className={`group-detail__model-option${m.id === resolvedId ? " group-detail__model-option--active" : ""}`}
+              onClick={() => { setGroupModel(groupId, m.id); setOpen(false); }}
+            >
+              <span className="group-detail__model-option-label">{m.label}</span>
+              <span className="group-detail__model-option-desc">{m.desc}</span>
+              <span className={`group-detail__model-option-tier group-detail__model-option-tier--${m.tier}`}>{m.tier}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function GroupDetailView({
@@ -82,6 +136,9 @@ export function GroupDetailView({
           Threshold: {group.threshold}/{group.members.length}
         </div>
       </div>
+
+      {/* LLM Model */}
+      <GroupModelPicker groupId={group.id} recommendedModel={group.modelId} />
 
       {/* Members */}
       <div className="group-detail__section">
