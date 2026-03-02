@@ -592,7 +592,7 @@ The Studio is a visual canvas-based job editor. You can programmatically interac
 - studio_add_step(commandId, args?) — Add a step to the canvas. Returns new step ID.
 - studio_remove_step(stepId) — Remove a step by ID.
 - studio_set_step_args(stepId, args) — Update argument values on a step.
-- studio_set_step_flow(stepId, flowType) — Set flow type to 'serial' or 'parallel'.
+- studio_add_parallel_group() — Add a parallel container node. Steps added as children of this group run concurrently.
 - studio_set_step_condition(stepId, condition) — Set a JavaScript pre-condition (step only runs if truthy).
 
 **Data Flow (Input Bindings & Output Mappings):**
@@ -607,6 +607,17 @@ The Studio is a visual canvas-based job editor. You can programmatically interac
 - studio_add_storage(key, value) — Add a storage default key-value pair.
 - studio_remove_storage(index) — Remove storage entry by index.
 
+**Entity Inputs (with source types):**
+- studio_add_input(name, type, entityId, source?) — Add an entity input node.
+  Source kinds: "prompt" (ask user at runtime), "storage" (read from storage key), "hardcoded" (literal value), "artifact" (workspace artifact by ID or tag).
+- studio_update_input(index, field, value) — Update an input field.
+- studio_remove_input(index) — Remove an input by index.
+
+**Automated Triggers:**
+- studio_add_trigger(event, filter?, label?) — Add a trigger rule. Events: artifact:created, artifact:updated, artifact:deleted, agent:created, agent:updated, group:created, group:updated, channel:created, channel:updated, network:created, network:updated, job:completed, job:failed, schedule:cron.
+- studio_update_trigger(triggerId, patch) — Update trigger properties (event, enabled, filter, cron, label).
+- studio_remove_trigger(triggerId) — Remove a trigger.
+
 **Job Lifecycle:**
 - studio_save_job() — Save current Studio job to catalog.
 - studio_run_job() — Build and execute the current Studio job.
@@ -614,7 +625,7 @@ The Studio is a visual canvas-based job editor. You can programmatically interac
 - studio_clear_canvas() — Clear all steps, deliverables, storage (reset Studio).
 
 **Compound: Build & Deploy in One Call:**
-- studio_create_job(name, description?, steps, deliverables?, storageDefaults?, save?, run?)
+- studio_create_job(name, description?, steps, deliverables?, storageDefaults?, triggers?, save?, run?)
   Create a complete job in the Studio in one command. Optionally save to catalog and/or run immediately.
 
 When the user wants to build jobs programmatically or visually, use studio_create_job for efficiency. For incremental editing, use individual commands.

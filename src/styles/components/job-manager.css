@@ -116,6 +116,11 @@
   background: #a78bfa10;
   color: #a78bfa;
 }
+.jm-toolbar__mode-indicator--mixed {
+  border-color: #22d3ee40;
+  background: #22d3ee10;
+  color: #22d3ee;
+}
 
 /* ── File actions (New, Load, Save, Run) ── */
 .jm-toolbar__file-actions {
@@ -365,37 +370,182 @@
   stroke-dasharray: 8 4;
 }
 
-/* ── Flow type toggle badge on connectors ── */
-.jm-canvas__flow-badge {
-  position: absolute;
-  z-index: 5;
+/* ── Parallel Group Container ── */
+.jm-parallel-group {
+  border: 2px dashed #a78bfa50;
+  border-radius: var(--radius-lg);
+  background: #a78bfa06;
+  z-index: 0;
+  pointer-events: auto;
+  transition: border-color var(--transition-base), background var(--transition-base);
+}
+.jm-parallel-group--selected {
+  border-color: #a78bfa;
+  background: #a78bfa10;
+}
+.jm-parallel-group__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: #a78bfa;
+  border-bottom: 1px dashed #a78bfa30;
+  background: #a78bfa08;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.jm-parallel-group__label {
+  flex: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.jm-parallel-group__count {
+  font-size: 9px;
+  color: #a78bfa80;
+  font-weight: 500;
+}
+
+/* ── Parallel toolbar button ── */
+.jm-toolbar__tool-btn--parallel {
+  border-color: #a78bfa30;
+  color: #a78bfa;
+}
+.jm-toolbar__tool-btn--parallel:hover {
+  border-color: #a78bfa60;
+  background: #a78bfa10;
+}
+
+/* ── Trigger toolbar button ── */
+.jm-toolbar__tool-btn--trigger {
+  border-color: #f9731630;
+  color: #f97316;
+}
+.jm-toolbar__tool-btn--trigger:hover,
+.jm-toolbar__tool-btn--active {
+  border-color: #f9731660;
+  background: #f9731610;
+}
+.jm-toolbar__badge {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  background: #f97316;
+  color: #fff;
+  border-radius: 9px;
+  padding: 0 4px;
+  min-width: 14px;
+  text-align: center;
+  line-height: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TRIGGER PANEL — collapsible panel between toolbar and canvas
+ * ═══════════════════════════════════════════════════════════════════════════ */
+.jm-trigger-panel {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+.jm-trigger-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+.jm-trigger-panel__title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: #f97316;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+}
+.jm-trigger-panel__add {
+  display: flex;
+  align-items: center;
+  gap: 3px;
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 600;
   padding: 2px 8px;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid #f9731640;
+  background: #f9731608;
+  color: #f97316;
   cursor: pointer;
+  transition: all var(--transition-base);
+}
+.jm-trigger-panel__add:hover {
+  border-color: #f97316;
+  background: #f9731615;
+}
+.jm-trigger-panel__empty {
+  color: var(--text-ghost);
+  font-size: 10px;
+  text-align: center;
+  padding: var(--space-sm) 0;
+}
+.jm-trigger-panel__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.jm-trigger-panel__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  transition: all var(--transition-base);
+}
+.jm-trigger-panel__item--disabled {
+  opacity: 0.5;
+}
+.jm-trigger-panel__toggle input {
+  width: 12px;
+  height: 12px;
+  cursor: pointer;
+  accent-color: #f97316;
+}
+.jm-trigger-panel__event-select {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-default);
   background: var(--bg-surface);
-  color: var(--text-subtle);
-  transition: all var(--transition-base);
-  white-space: nowrap;
+  color: var(--text-primary);
+  cursor: pointer;
+  min-width: 120px;
 }
-.jm-canvas__flow-badge:hover {
-  border-color: var(--border-medium);
-  background: var(--bg-surface-hover);
+.jm-trigger-panel__filter {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 80px;
 }
-.jm-canvas__flow-badge--parallel {
-  border-color: #a78bfa40;
-  background: #a78bfa10;
-  color: #a78bfa;
-}
-.jm-canvas__flow-badge--parallel:hover {
-  border-color: #a78bfa60;
-  background: #a78bfa20;
-}
-.jm-canvas__flow-badge--vertical {
-  transform: translateX(-50%);
+.jm-trigger-panel__label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  width: 80px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -892,6 +1042,31 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding: 1px 4px 0;
+}
+.jm-input-node__source {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: 0 4px;
+  white-space: nowrap;
+}
+.jm-input-node__source--prompt {
+  background: #3b82f615;
+  color: #3b82f6;
+}
+.jm-input-node__source--storage {
+  background: #10b98115;
+  color: #10b981;
+}
+.jm-input-node__source--hardcoded {
+  background: #f59e0b15;
+  color: #f59e0b;
+}
+.jm-input-node__source--artifact {
+  background: #8b5cf615;
+  color: #8b5cf6;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

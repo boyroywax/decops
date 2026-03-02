@@ -601,23 +601,70 @@ export interface JobDeliverable {
   description?: string; // What this deliverable contains
 }
 
+/**
+ * How an input node resolves its value at runtime.
+ * - prompt:    Ask the user in the chat for the desired value before running.
+ * - storage:   Pull value from a storage key (optionally scoped by path).
+ * - hardcoded: A literal value baked into the job definition.
+ * - artifact:  Resolve from a workspace artifact (by ID or latest-matching tag).
+ */
+export type InputSourceKind = "prompt" | "storage" | "hardcoded" | "artifact";
+
+export type InputSource =
+  | { kind: "prompt";    promptText?: string }                          // Ask user at run-time
+  | { kind: "storage";   storageKey: string; path?: string }            // Read from storage object
+  | { kind: "hardcoded"; value: string }                                // Literal value
+  | { kind: "artifact";  artifactId?: string; tag?: string };           // Workspace artifact
+
 /** A named entity input that maps a friendly name to an entity ID */
 export interface EntityInput {
   name: string;         // Reference name (e.g. "Scout", "DataChannel") — used as $input.name
   type: "agent" | "channel" | "group" | "network"; // Entity type for picker filtering
   entityId: string;     // Resolved entity ID from the workspace
+  source?: InputSource; // How this input resolves its value (default: hardcoded via entityId)
+}
+
+/**
+ * Workspace event types that can trigger automatic job execution.
+ */
+export type TriggerEvent =
+  | "artifact:created"   | "artifact:updated"  | "artifact:deleted"
+  | "agent:created"      | "agent:updated"
+  | "group:created"      | "group:updated"
+  | "channel:created"    | "channel:updated"
+  | "network:created"    | "network:updated"
+  | "job:completed"      | "job:failed"
+  | "schedule:cron";
+
+/** A single trigger rule that can fire a job automatically. */
+export interface JobTrigger {
+  id: string;
+  event: TriggerEvent;
+  enabled: boolean;
+  /** Optional filter — e.g. only fire for artifacts with a specific tag or entity with a given ID */
+  filter?: {
+    entityId?: string;    // Specific entity ID to match
+    tag?: string;         // Artifact tag to match
+    name?: string;        // Entity name pattern (substring)
+  };
+  /** Cron expression when event === 'schedule:cron' */
+  cron?: string;
+  /** Human-readable label */
+  label?: string;
 }
 
 export interface JobDefinition {
   id: string;
   name: string;
   description: string;
-  mode: 'serial' | 'parallel';
+  mode: 'serial' | 'parallel' | 'mixed';
   icon?: string;               // Base64 data-URI or URL for a custom icon image
   steps: JobStep[];
   deliverables?: JobDeliverable[];         // Declared deliverables
   storageDefaults?: Record<string, any>;   // Default inter-step shared storage values
   inputDefaults?: EntityInput[];           // Named entity inputs (name → ID mappings)
+  parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>;
+  triggers?: JobTrigger[];                 // Automated trigger rules
   createdAt: number;
   updatedAt: number;
 }
@@ -701,7 +748,7 @@ export type JobRequest =
   | { type: "create_network"; request: CreateNetworkRequest }
   | { type: "reset_workspace"; request: ResetWorkspaceRequest }
   // Fallback for dynamic/other jobs
-  | { type: string; request: Record<string, any>; steps?: JobStep[]; mode?: 'serial' | 'parallel' };
+  | { type: string; request: Record<string, any>; steps?: JobStep[]; mode?: 'serial' | 'parallel' | 'mixed' };
 
 export interface Job {
   id: string;
@@ -719,7 +766,7 @@ export interface Job {
   steps?: JobStep[];
   currentStepIndex?: number;
   stepResults?: Record<string, any>;
-  mode?: 'serial' | 'parallel';
+  mode?: 'serial' | 'parallel' | 'mixed';
 
   // Inter-step shared storage & deliverables
   storage?: Record<string, any>;

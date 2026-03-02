@@ -127,21 +127,18 @@ export const studioSetStepArgsCommand: CommandDefinition = {
     },
 };
 
-export const studioSetStepFlowTypeCommand: CommandDefinition = {
-    id: "studio_set_step_flow",
-    description: "Sets the flow type (serial or parallel) for a Studio step.",
-    tags: ["studio", "edit", "step"],
+export const studioAddParallelGroupCommand: CommandDefinition = {
+    id: "studio_add_parallel_group",
+    description: "Adds a parallel container node to the Studio canvas. Steps added as children of this group will run concurrently.",
+    tags: ["studio", "edit", "step", "parallel"],
     rbac: ["orchestrator", "builder"],
-    args: {
-        stepId: { name: "stepId", type: "string", description: "Target step ID", required: true },
-        flowType: { name: "flowType", type: "string", description: "Flow type: 'serial' or 'parallel'", required: true },
-    },
-    output: "Updated flow type",
-    execute: async (args, context) => {
+    args: {},
+    output: "New parallel group step ID",
+    execute: async (_args, context) => {
         const studio = context.studio;
         if (!studio) return { error: "Studio is not available." };
-        studio.updateStepFlowType(args.stepId, args.flowType as "serial" | "parallel");
-        return { stepId: args.stepId, flowType: args.flowType };
+        const id = studio.addParallelGroup();
+        return { groupId: id };
     },
 };
 
@@ -437,7 +434,7 @@ export const studioCreateJobCommand: CommandDefinition = {
         steps: {
             name: "steps",
             type: "array",
-            description: "Array of step objects: [{ commandId, args?, inputBindings?, outputMappings?, flowType?, condition? }]",
+            description: "Array of step objects: [{ commandId, args?, inputBindings?, outputMappings?, condition? }]",
             required: true,
         },
         deliverables: {
@@ -486,10 +483,7 @@ export const studioCreateJobCommand: CommandDefinition = {
                 }
             }
 
-            // Set flow type
-            if (stepDef.flowType) {
-                studio.updateStepFlowType(stepId, stepDef.flowType);
-            }
+            // (flowType removed — use parallel groups instead)
 
             // Set condition
             if (stepDef.condition) {
@@ -545,5 +539,69 @@ export const studioCreateJobCommand: CommandDefinition = {
         }
 
         return result;
+    },
+};
+
+// ────────────────────────────────────────────────────
+// TRIGGER COMMANDS
+// ────────────────────────────────────────────────────
+
+export const studioAddTriggerCommand: CommandDefinition = {
+    id: "studio_add_trigger",
+    description: "Add an automated trigger rule to the current Studio job. The job will fire automatically when the specified workspace event occurs.",
+    tags: ["studio", "trigger", "automation"],
+    rbac: ["orchestrator", "builder"],
+    args: {
+        event: {
+            name: "event", type: "string",
+            description: "Trigger event: artifact:created, artifact:updated, artifact:deleted, agent:created, agent:updated, group:created, group:updated, channel:created, channel:updated, network:created, network:updated, job:completed, job:failed, schedule:cron",
+            required: true,
+        },
+        filter: { name: "filter", type: "string", description: "Optional filter string (entity ID, tag, or name pattern)", required: false },
+        label: { name: "label", type: "string", description: "Human-readable label for the trigger", required: false },
+        cron: { name: "cron", type: "string", description: "Cron expression (only for schedule:cron events)", required: false },
+    },
+    output: "Created trigger ID",
+    execute: async (args, context) => {
+        const studio = context.studio;
+        if (!studio) return { error: "Studio is not available." };
+        const state = studio.getState();
+        const id = `trigger-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+        // Build filter object from filter string
+        let filter: any = undefined;
+        if (args.filter) {
+            const val = args.filter;
+            const isId = /^[a-z0-9-]{8,}$/i.test(val);
+            const isTag = val.includes(":");
+            filter = {
+                entityId: isId ? val : undefined,
+                tag: isTag ? val : undefined,
+                name: (!isId && !isTag) ? val : undefined,
+            };
+        }
+        // We need to update triggers via the API — for now, use addTrigger if available
+        if ((studio as any).addTrigger) {
+            (studio as any).addTrigger(args.event, id, filter, args.label, args.cron);
+        }
+        return { triggerId: id, event: args.event, filter, label: args.label };
+    },
+};
+
+export const studioRemoveTriggerCommand: CommandDefinition = {
+    id: "studio_remove_trigger",
+    description: "Remove an automated trigger from the current Studio job by ID.",
+    tags: ["studio", "trigger", "automation"],
+    rbac: ["orchestrator", "builder"],
+    args: {
+        triggerId: { name: "triggerId", type: "string", description: "ID of the trigger to remove", required: true },
+    },
+    output: "Removed trigger confirmation",
+    execute: async (args, context) => {
+        const studio = context.studio;
+        if (!studio) return { error: "Studio is not available." };
+        if ((studio as any).removeTrigger) {
+            (studio as any).removeTrigger(args.triggerId);
+        }
+        return { removed: args.triggerId };
     },
 };

@@ -1047,3 +1047,333 @@
 [data-theme="solar"] .tc-card.scm-card::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * EDITABLE MODE — inputs, selects, bind toggles, add/remove buttons
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Shared editable input ── */
+.scm-edit-input,
+.scm-edit-select {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  color: var(--text-primary);
+  padding: 4px 6px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.scm-edit-input:focus,
+.scm-edit-select:focus {
+  border-color: var(--tc-accent, #71717a);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.scm-edit-select {
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2371717a'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  padding-right: 18px;
+}
+
+.scm-edit-select--sm {
+  width: auto;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.scm-edit-select--grow {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Bind toggle ── */
+.scm-bind-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-ghost);
+  cursor: pointer;
+  margin-left: auto;
+  transition: all 0.15s;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.scm-bind-toggle:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+.scm-bind-toggle--active {
+  border-color: rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.1);
+  color: #38bdf8;
+}
+
+.scm-bind-toggle--active:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(56, 189, 248, 0.15);
+}
+
+/* ── Inline binding edit row ── */
+.scm-param__binding-edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* ── CommandArgInput wrapper inside card ── */
+.scm-param__input-wrap {
+  margin-top: 4px;
+}
+
+.scm-param__input-wrap .command-arg__input,
+.scm-param__input-wrap .command-arg__select {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  color: var(--text-primary);
+  padding: 4px 6px;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.scm-param__input-wrap .command-arg__input:focus,
+.scm-param__input-wrap .command-arg__select:focus {
+  border-color: var(--tc-accent, #71717a);
+}
+
+.scm-param__input-wrap .command-arg__boolean {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.scm-param__input-wrap .command-arg__hint {
+  font-size: 9px;
+  color: var(--text-ghost);
+  margin-top: 2px;
+}
+
+/* ── Output mapping edit row ── */
+.scm-output--edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.scm-output__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.06);
+  color: #ef4444;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.scm-output__remove:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* ── Add mapping button ── */
+.scm-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-ghost);
+  cursor: pointer;
+  margin-top: 4px;
+  transition: all 0.15s;
+}
+
+.scm-add-btn:hover {
+  border-color: var(--tc-accent, #71717a);
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ── Conditions edit mode ── */
+.scm-conditions--edit .scm-condition {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scm-conditions--edit .scm-edit-input {
+  flex: 1;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * LIGHT THEME — editable overrides
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .scm-edit-input,
+[data-theme="light"] .scm-edit-select {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #1e293b;
+}
+
+[data-theme="light"] .scm-edit-input:focus,
+[data-theme="light"] .scm-edit-select:focus {
+  border-color: #059669;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .scm-bind-toggle {
+  border-color: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.03);
+  color: #94a3b8;
+}
+
+[data-theme="light"] .scm-bind-toggle:hover {
+  border-color: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.06);
+  color: #475569;
+}
+
+[data-theme="light"] .scm-bind-toggle--active {
+  border-color: rgba(5, 150, 105, 0.3);
+  background: rgba(5, 150, 105, 0.08);
+  color: #059669;
+}
+
+[data-theme="light"] .scm-param__input-wrap .command-arg__input,
+[data-theme="light"] .scm-param__input-wrap .command-arg__select {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #1e293b;
+}
+
+[data-theme="light"] .scm-param__input-wrap .command-arg__input:focus,
+[data-theme="light"] .scm-param__input-wrap .command-arg__select:focus {
+  border-color: #059669;
+}
+
+[data-theme="light"] .scm-output__remove {
+  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+[data-theme="light"] .scm-output__remove:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+[data-theme="light"] .scm-add-btn {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(0, 0, 0, 0.02);
+  color: #94a3b8;
+}
+
+[data-theme="light"] .scm-add-btn:hover {
+  border-color: #059669;
+  color: #475569;
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * SOLAR THEME — editable overrides
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .tc-card.scm-card .scm-edit-input,
+[data-theme="solar"] .tc-card.scm-card .scm-edit-select {
+  background: rgba(120, 80, 20, 0.06);
+  border-color: rgba(120, 80, 20, 0.15);
+  color: var(--text-primary);
+}
+
+[data-theme="solar"] .tc-card.scm-card .scm-edit-input:focus,
+[data-theme="solar"] .tc-card.scm-card .scm-edit-select:focus {
+  border-color: #9c6d10;
+  background: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .tc-card.scm-card .scm-bind-toggle {
+  border-color: rgba(120, 80, 20, 0.12);
+  background: rgba(120, 80, 20, 0.04);
+  color: var(--text-ghost);
+}
+
+[data-theme="solar"] .tc-card.scm-card .scm-bind-toggle:hover {
+  border-color: rgba(120, 80, 20, 0.25);
+  background: rgba(120, 80, 20, 0.08);
+  color: var(--text-secondary);
+}
+
+[data-theme="solar"] .tc-card.scm-card .scm-bind-toggle--active {
+  border-color: rgba(156, 109, 16, 0.3);
+  background: rgba(156, 109, 16, 0.1);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .tc-card.scm-card .scm-param__input-wrap .command-arg__input,
+[data-theme="solar"] .tc-card.scm-card .scm-param__input-wrap .command-arg__select {
+  background: rgba(120, 80, 20, 0.06);
+  border-color: rgba(120, 80, 20, 0.15);
+  color: var(--text-primary);
+}
+
+[data-theme="solar"] .tc-card.scm-card .scm-param__input-wrap .command-arg__input:focus,
+[data-theme="solar"] .tc-card.scm-card .scm-param__input-wrap .command-arg__select:focus {
+  border-color: #9c6d10;
+}
+
+[data-theme="solar"] .tc-card.scm-card .scm-output__remove {
+  border-color: rgba(194, 65, 12, 0.2);
+  background: rgba(194, 65, 12, 0.05);
+  color: #c2410c;
+}
+
+[data-theme="solar"] .tc-card.scm-card .scm-output__remove:hover {
+  background: rgba(194, 65, 12, 0.12);
+}
+
+[data-theme="solar"] .tc-card.scm-card .scm-add-btn {
+  border-color: rgba(120, 80, 20, 0.15);
+  background: rgba(120, 80, 20, 0.03);
+  color: var(--text-ghost);
+}
+
+[data-theme="solar"] .tc-card.scm-card .scm-add-btn:hover {
+  border-color: #9c6d10;
+  color: var(--text-secondary);
+  background: rgba(120, 80, 20, 0.06);
+}

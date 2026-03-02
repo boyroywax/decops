@@ -22,7 +22,7 @@ New command definitions (19 total):
 - `studio_add_step(commandId, args?)` — Add a step to canvas (returns step ID)
 - `studio_remove_step(stepId)` — Remove step by ID
 - `studio_set_step_args(stepId, args)` — Update step arguments
-- `studio_set_step_flow(stepId, flowType)` — Set serial/parallel execution
+- `studio_add_parallel_group()` — Add a parallel container node (children run concurrently)
 - `studio_set_step_condition(stepId, condition)` — Set JS pre-condition
 
 #### Data Flow

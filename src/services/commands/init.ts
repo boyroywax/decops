@@ -84,7 +84,7 @@ import {
     studioAddStepCommand,
     studioRemoveStepCommand,
     studioSetStepArgsCommand,
-    studioSetStepFlowTypeCommand,
+    studioAddParallelGroupCommand,
     studioSetStepConditionCommand,
     studioSetInputBindingsCommand,
     studioSetOutputMappingsCommand,
@@ -99,7 +99,9 @@ import {
     studioRunJobCommand,
     studioLoadJobCommand,
     studioClearCanvasCommand,
-    studioCreateJobCommand
+    studioCreateJobCommand,
+    studioAddTriggerCommand,
+    studioRemoveTriggerCommand,
 } from "./definitions/studio";
 
 export function initializeRegistry() {
@@ -194,7 +196,7 @@ export function initializeRegistry() {
     registry.register(studioAddStepCommand);
     registry.register(studioRemoveStepCommand);
     registry.register(studioSetStepArgsCommand);
-    registry.register(studioSetStepFlowTypeCommand);
+    registry.register(studioAddParallelGroupCommand);
     registry.register(studioSetStepConditionCommand);
     registry.register(studioSetInputBindingsCommand);
     registry.register(studioSetOutputMappingsCommand);
@@ -210,4 +212,6 @@ export function initializeRegistry() {
     registry.register(studioLoadJobCommand);
     registry.register(studioClearCanvasCommand);
     registry.register(studioCreateJobCommand);
+    registry.register(studioAddTriggerCommand);
+    registry.register(studioRemoveTriggerCommand);
 }

@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import { Workflow, Package, Database, Tag, X } from "lucide-react";
+import { Workflow, Package, Database, Tag, X, GitFork } from "lucide-react";
 import { JobNode } from "./JobNode";
 import type { StudioStep, SelectedElement } from "../views/StudioView";
+import { isParallelGroup, PARALLEL_GROUP_CMD } from "../views/StudioView";
 import type { JobDeliverable, EntityInput } from "../../types";
 
 const NODE_WIDTH = 240;
@@ -11,7 +12,7 @@ const DELIV_HEIGHT = 70;
 const STORAGE_WIDTH = 160;
 const STORAGE_HEIGHT = 56;
 const INPUT_WIDTH = 170;
-const INPUT_HEIGHT = 56;
+const INPUT_HEIGHT = 72;
 
 function rectsIntersect(
     a: { x: number; y: number; w: number; h: number },
@@ -32,7 +33,6 @@ interface JobCanvasProps {
     onRemoveStorage: (idx: number) => void;
     onRemoveInput: (idx: number) => void;
     onUpdatePosition: (stepId: string, x: number, y: number) => void;
-    onUpdateFlowType: (stepId: string, flowType: "serial" | "parallel") => void;
     selectedElements: NonNullable<SelectedElement>[];
     onMultiSelect: (items: NonNullable<SelectedElement>[]) => void;
     onDeleteSelected: () => void;
@@ -42,7 +42,7 @@ interface JobCanvasProps {
 export function JobCanvas({
     steps, deliverables, storageEntries, inputs, selectedElement,
     onSelect, onRemoveStep, onRemoveDeliverable, onRemoveStorage, onRemoveInput,
-    onUpdatePosition, onUpdateFlowType, selectedElements, onMultiSelect, onDeleteSelected,
+    onUpdatePosition, selectedElements, onMultiSelect, onDeleteSelected,
     onOpenStepCard,
 }: JobCanvasProps) {
     const canvasRef = useRef<HTMLDivElement>(null);
@@ -71,7 +71,7 @@ export function JobCanvas({
     }, [selectedElements]);
 
     const handleNodeMouseDown = useCallback((e: React.MouseEvent, stepId: string) => {
-        if ((e.target as HTMLElement).closest('.jm-node__action-btn, .jm-canvas__flow-badge')) return;
+        if ((e.target as HTMLElement).closest('.jm-node__action-btn')) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
         const step = steps.find(s => s.id === stepId);
@@ -108,7 +108,7 @@ export function JobCanvas({
     // ── Marquee multi-select ──
     const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
         if (e.button !== 0) return;
-        if ((e.target as HTMLElement).closest('.jm-node, .jm-deliverable-node, .jm-storage-node, .jm-input-node, .jm-canvas__flow-badge')) return;
+        if ((e.target as HTMLElement).closest('.jm-node, .jm-deliverable-node, .jm-storage-node, .jm-input-node, .jm-parallel-group')) return;
         const canvas = canvasRef.current;
         if (!canvas) return;
         const rect = canvas.getBoundingClientRect();
@@ -209,7 +209,7 @@ export function JobCanvas({
             const parent = steps.find(p => p.id === step.parentId);
             if (!parent) return null;
             const siblings = steps.filter(s => s.parentId === step.parentId);
-            const isParallel = parent.flowType === "parallel" && siblings.length > 1;
+            const isParallel = isParallelGroup(parent);
 
             // Determine direction: vertical if child is more below than to the right
             const parentCX = parent.x + NODE_WIDTH / 2;
@@ -253,19 +253,9 @@ export function JobCanvas({
             parentId: string;
         }>;
 
-    // ── Flow type badges — show on every connector so user can always toggle ──
-    const flowBadges = connectors.map(conn => ({
-        key: `flow-${conn.key}`,
-        parentId: conn.parentId,
-        flowType: steps.find(s => s.id === conn.parentId)?.flowType || "serial",
-        x: conn.mid.x,
-        y: conn.mid.y,
-        isVertical: conn.isVertical,
-    }));
-
     // ── Leaf steps (steps with no children) for deliverable connections ──
     const idsBeingParent = new Set(steps.filter(s => s.parentId !== null).map(s => s.parentId!));
-    const leafSteps = steps.filter(s => !idsBeingParent.has(s.id));
+    const leafSteps = steps.filter(s => !idsBeingParent.has(s.id) && !isParallelGroup(s));
     const leafMaxX = leafSteps.length > 0 ? Math.max(...leafSteps.map(s => s.x + NODE_WIDTH)) : 60;
     const leafAvgY = leafSteps.length > 0
         ? leafSteps.reduce((sum, s) => sum + s.y, 0) / leafSteps.length + NODE_HEIGHT / 2
@@ -317,7 +307,7 @@ export function JobCanvas({
     });
 
     // ── Storage connectors (storage → first root step) ──
-    const rootSteps = steps.filter(s => s.parentId === null);
+    const rootSteps = steps.filter(s => s.parentId === null && !isParallelGroup(s));
     const storageConnectors = storageEntries.flatMap((_, si) => {
         const sp = storagePositions[si];
         if (!sp) return [];
@@ -433,25 +423,6 @@ export function JobCanvas({
                     })}
                 </svg>
 
-                {/* Flow type toggle badges (only on parents with multiple children / fan-out) */}
-                {flowBadges.map(badge => (
-                    <button
-                        key={badge.key}
-                        className={`jm-canvas__flow-badge jm-canvas__flow-badge--${badge.flowType}${badge.isVertical ? " jm-canvas__flow-badge--vertical" : ""}`}
-                        style={{
-                            left: badge.isVertical ? badge.x : badge.x - 28,
-                            top: badge.y - 10,
-                        }}
-                        onClick={() => onUpdateFlowType(badge.parentId, badge.flowType === "serial" ? "parallel" : "serial")}
-                        title={`Children run: ${badge.flowType}. Click to toggle.`}
-                    >
-                        {badge.isVertical
-                            ? (badge.flowType === "serial" ? "↓ serial" : "⇊ parallel")
-                            : (badge.flowType === "serial" ? "→ serial" : "⇉ parallel")
-                        }
-                    </button>
-                ))}
-
                 {/* ── Storage Nodes (top area) ── */}
                 {storageEntries.map((entry, idx) => {
                     const pos = storagePositions[idx];
@@ -487,6 +458,13 @@ export function JobCanvas({
                     const pos = inputPositions[idx];
                     if (!pos) return null;
                     const isSelected = (selectedElement?.type === "input" && selectedElement.index === idx) || isInMultiSelect("input", idx);
+                    const sourceKind = inp.source?.kind || "hardcoded";
+                    const sourceLabel: Record<string, string> = {
+                        prompt: "⌨ prompt",
+                        storage: "⛁ storage",
+                        hardcoded: "⊙ literal",
+                        artifact: "◆ artifact",
+                    };
                     return (
                         <div
                             key={`input-${idx}`}
@@ -507,14 +485,57 @@ export function JobCanvas({
                             </div>
                             <div className="jm-input-node__meta">
                                 <span className="jm-input-node__type">{inp.type}</span>
-                                <span className="jm-input-node__id">{inp.entityId ? inp.entityId.slice(0, 12) + "…" : "—"}</span>
+                                <span className={`jm-input-node__source jm-input-node__source--${sourceKind}`}>
+                                    {sourceLabel[sourceKind] || sourceKind}
+                                </span>
+                            </div>
+                            <div className="jm-input-node__id">{inp.entityId ? inp.entityId.slice(0, 16) + "…" : "—"}</div>
+                        </div>
+                    );
+                })}
+
+                {/* ── Parallel Group Containers ── */}
+                {steps.filter(s => isParallelGroup(s)).map(group => {
+                    const children = steps.filter(s => s.parentId === group.id);
+                    const padding = 20;
+                    const headerH = 32;
+                    let boxX = group.x, boxY = group.y, boxW = 280, boxH = 80;
+                    if (children.length > 0) {
+                        const minX = Math.min(...children.map(c => c.x));
+                        const maxX = Math.max(...children.map(c => c.x + NODE_WIDTH));
+                        const minY = Math.min(...children.map(c => c.y));
+                        const maxY = Math.max(...children.map(c => c.y + NODE_HEIGHT));
+                        boxX = minX - padding;
+                        boxY = minY - padding - headerH;
+                        boxW = maxX - minX + NODE_WIDTH + padding * 2;
+                        boxH = maxY - minY + NODE_HEIGHT + padding * 2 + headerH;
+                    }
+                    const isSelected = (selectedElement?.type === "step" && selectedElement.id === group.id) || isInMultiSelect("step", group.id);
+                    return (
+                        <div
+                            key={`pg-${group.id}`}
+                            className={`jm-parallel-group ${isSelected ? "jm-parallel-group--selected" : ""}`}
+                            style={{ position: "absolute", left: boxX, top: boxY, width: boxW, height: boxH }}
+                            onMouseDown={(e) => handleNodeMouseDown(e, group.id)}
+                        >
+                            <div className="jm-parallel-group__header">
+                                <GitFork size={12} />
+                                <span className="jm-parallel-group__label">{group.label || "Parallel"}</span>
+                                <span className="jm-parallel-group__count">{children.length} tasks</span>
+                                <button
+                                    className="jm-node__action-btn jm-node__action-btn--danger"
+                                    onClick={(e) => { e.stopPropagation(); onRemoveStep(group.id); }}
+                                    title="Remove parallel group"
+                                >
+                                    <X size={10} />
+                                </button>
                             </div>
                         </div>
                     );
                 })}
 
                 {/* ── Step Nodes (draggable) ── */}
-                {steps.map((step, idx) => {
+                {steps.filter(s => !isParallelGroup(s)).map((step, idx) => {
                     const stepIndex = steps.filter(s => {
                         // BFS order index based on parentId tree
                         return steps.indexOf(s) <= steps.indexOf(step);
@@ -534,7 +555,7 @@ export function JobCanvas({
                             <JobNode
                                 step={step}
                                 index={idx}
-                                total={steps.length}
+                                total={steps.filter(s => !isParallelGroup(s)).length}
                                 selected={(selectedElement?.type === "step" && selectedElement.id === step.id) || isInMultiSelect("step", step.id)}
                                 isDragging={dragging?.stepId === step.id}
                                 onRemove={() => onRemoveStep(step.id)}

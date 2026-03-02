@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Play, Save, FolderOpen, Plus, X, Package, Database, Tag } from "lucide-react";
+import { Play, Save, FolderOpen, Plus, X, Package, Database, Tag, GitFork, Zap } from "lucide-react";
 import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import { registry } from "../../services/commands/registry";
@@ -10,7 +10,7 @@ import { isSeedJob } from "../../services/jobs/seedCatalog";
 import { useStudioContext } from "../../context/StudioContext";
 import { useLLM } from "../../context/LLMContext";
 import type { StudioAPI } from "../../context/StudioContext";
-import type { JobDefinition, JobStep, JobDeliverable, EntityInput } from "../../types";
+import type { JobDefinition, JobStep, JobDeliverable, EntityInput, JobTrigger, TriggerEvent } from "../../types";
 import "../../styles/components/job-manager.css";
 
 interface StudioViewProps {
@@ -31,17 +31,29 @@ export interface InputBinding {
     sourceKey: string;       // storage key or deliverable key or input name to read from
 }
 
+/**
+ * Sentinel commandId for parallel-group container steps.
+ * A parallel group is not a real task — it groups child steps that execute concurrently.
+ * Children whose parentId points to a parallel-group step run in parallel.
+ */
+export const PARALLEL_GROUP_CMD = "__parallel__";
+
+/** Returns true if the step is a parallel-group container (not a real task). */
+export function isParallelGroup(step: StudioStep): boolean {
+    return step.commandId === PARALLEL_GROUP_CMD;
+}
+
 export interface StudioStep {
     id: string;
-    commandId: string;
+    commandId: string;  // PARALLEL_GROUP_CMD for parallel containers
     args: Record<string, any>;
     inputBindings: Record<string, InputBinding>;  // argName → source binding
     preCondition: string;
     postCondition: string;
-    flowType: "serial" | "parallel";
     parentId: string | null;
     outputMappings: OutputMapping[];
     modelId?: string;  // LLM model override for this step
+    label?: string;    // display label for parallel groups
     x: number;
     y: number;
 }
@@ -84,6 +96,10 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
 
     // ── Entity Inputs (name → ID mappings) ──
     const [inputs, setInputs] = useState<EntityInput[]>([]);
+
+    // ── Triggers (automated job execution rules) ──
+    const [triggers, setTriggers] = useState<JobTrigger[]>([]);
+    const [showTriggerPanel, setShowTriggerPanel] = useState(false);
 
     // ── Catalog modal ──
     const [showCatalog, setShowCatalog] = useState(false);
@@ -131,7 +147,6 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                 inputBindings: {},
                 preCondition: "",
                 postCondition: "",
-                flowType: "serial" as const,
                 parentId,
                 outputMappings: [],
                 x,
@@ -169,10 +184,6 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
 
     const updateStepPosition = useCallback((stepId: string, x: number, y: number) => {
         setSteps(prev => prev.map(s => s.id === stepId ? { ...s, x, y } : s));
-    }, []);
-
-    const updateStepFlowType = useCallback((stepId: string, flowType: "serial" | "parallel") => {
-        setSteps(prev => prev.map(s => s.id === stepId ? { ...s, flowType } : s));
     }, []);
 
     const updateStepOutputMappings = useCallback((stepId: string, outputMappings: OutputMapping[]) => {
@@ -234,6 +245,52 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const removeInput = (index: number) => {
         setInputs(prev => prev.filter((_, i) => i !== index));
     };
+
+    // ── Triggers CRUD ──
+    const addTrigger = (event: TriggerEvent = "artifact:updated") => {
+        const id = `trigger-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+        setTriggers(prev => [...prev, { id, event, enabled: true }]);
+    };
+    const updateTrigger = (id: string, patch: Partial<JobTrigger>) => {
+        setTriggers(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
+    };
+    const removeTrigger = (id: string) => {
+        setTriggers(prev => prev.filter(t => t.id !== id));
+    };
+
+    // ── Parallel Group CRUD ──
+    const addParallelGroup = useCallback((): string => {
+        const newId = `pgroup-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+        setSteps(prev => {
+            // Determine parent: selected step, or last leaf, or null
+            let parentId: string | null = null;
+            if (effectiveStepId && prev.find(s => s.id === effectiveStepId)) {
+                parentId = effectiveStepId;
+            } else if (prev.length > 0) {
+                const idsBeingParent = new Set(prev.filter(s => s.parentId !== null).map(s => s.parentId!));
+                const leaves = prev.filter(s => !idsBeingParent.has(s.id));
+                parentId = leaves.length > 0 ? leaves[leaves.length - 1].id : prev[prev.length - 1].id;
+            }
+            const parent = parentId ? prev.find(s => s.id === parentId) : null;
+            const x = parent ? parent.x + NODE_SPACING_X : INITIAL_X;
+            const y = parent ? parent.y : INITIAL_Y;
+            return [...prev, {
+                id: newId,
+                commandId: PARALLEL_GROUP_CMD,
+                args: {},
+                inputBindings: {},
+                preCondition: "",
+                postCondition: "",
+                parentId,
+                outputMappings: [],
+                label: "Parallel",
+                x,
+                y,
+            }];
+        });
+        setSelectedElement({ type: "step", id: newId });
+        return newId;
+    }, [effectiveStepId]);
 
     // ── Selection handlers ──
     const handleSelect = useCallback((el: SelectedElement) => {
@@ -307,19 +364,27 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     };
 
     // ── Derive exec mode from steps ──
-    const derivedMode = steps.some(s => s.flowType === "parallel") ? "parallel" : "serial";
+    const hasParallelGroups = steps.some(s => isParallelGroup(s));
+    const derivedMode: "serial" | "parallel" | "mixed" = hasParallelGroups ? "mixed" : "serial";
 
     // ── Build job definition ──
     const buildJobDef = (): JobDefinition | null => {
         if (!name.trim()) { alert("Job name is required"); return null; }
-        if (steps.length === 0) { alert("Add at least one step"); return null; }
+        const taskSteps = steps.filter(s => !isParallelGroup(s));
+        if (taskSteps.length === 0) { alert("Add at least one step"); return null; }
         const validDeliverables = deliverables.filter(d => d.key.trim() && d.label.trim());
+        // Build parallel group metadata for serialization
+        const pGroups = steps.filter(s => isParallelGroup(s)).map(g => ({
+            id: g.id,
+            label: g.label || "Parallel",
+            stepIds: steps.filter(s => s.parentId === g.id && !isParallelGroup(s)).map(s => s.id),
+        }));
         return {
             id: editingJobId || `job-def-${Date.now()}`,
             name,
             description,
             mode: derivedMode,
-            steps: steps.map(s => {
+            steps: taskSteps.map(s => {
                 // Merge inputBindings into args as $storage.key / $deliverable.key refs
                 const mergedArgs = { ...s.args };
                 for (const [argName, binding] of Object.entries(s.inputBindings)) {
@@ -343,6 +408,8 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
             inputDefaults: inputs.filter(inp => inp.name.trim() && inp.entityId.trim()).length > 0
                 ? inputs.filter(inp => inp.name.trim() && inp.entityId.trim())
                 : undefined,
+            parallelGroups: pGroups.length > 0 ? pGroups : undefined,
+            triggers: triggers.length > 0 ? triggers : undefined,
             createdAt: Date.now(),
             updatedAt: Date.now()
         };
@@ -366,7 +433,9 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         setName(job.name);
         setDescription(job.description);
         setEditingJobId(job.id);
-        setSteps(job.steps.map((s, i) => {
+
+        // Reconstruct task steps
+        const taskSteps: StudioStep[] = job.steps.map((s, i) => {
             // Restore inputBindings: either from saved field, or reverse-engineer from $storage./$deliverable. args
             const savedBindings: Record<string, InputBinding> = (s as any).inputBindings || {};
             const cleanArgs: Record<string, any> = {};
@@ -380,7 +449,6 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                     cleanArgs[k] = v;
                 }
             }
-            // For bound args not in cleanArgs, keep a placeholder
             for (const argName of Object.keys(bindings)) {
                 if (!(argName in cleanArgs)) cleanArgs[argName] = "";
             }
@@ -391,14 +459,39 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                 inputBindings: bindings,
                 preCondition: s.condition || "",
                 postCondition: "",
-                flowType: (job.mode === "parallel" ? "parallel" : "serial") as "serial" | "parallel",
                 parentId: i > 0 ? (job.steps[i - 1].id || null) : null,
                 outputMappings: s.outputMappings || [],
                 modelId: s.modelId,
                 x: INITIAL_X + i * NODE_SPACING_X,
                 y: INITIAL_Y,
             };
-        }));
+        });
+
+        // Reconstruct parallel groups from saved metadata
+        const pGroups: StudioStep[] = (job.parallelGroups || []).map((g, gi) => {
+            // Re-parent the group's child steps
+            const groupStep: StudioStep = {
+                id: g.id,
+                commandId: PARALLEL_GROUP_CMD,
+                args: {},
+                inputBindings: {},
+                preCondition: "",
+                postCondition: "",
+                parentId: null,
+                outputMappings: [],
+                label: g.label || "Parallel",
+                x: INITIAL_X + (job.steps.length + gi) * NODE_SPACING_X,
+                y: INITIAL_Y,
+            };
+            // Reparent child tasks to this group
+            for (const sid of g.stepIds) {
+                const child = taskSteps.find(ts => ts.id === sid);
+                if (child) child.parentId = g.id;
+            }
+            return groupStep;
+        });
+
+        setSteps([...taskSteps, ...pGroups]);
         setDeliverables(job.deliverables || []);
         setStorageEntries(
             Object.entries(job.storageDefaults || {}).map(([key, value]) => ({
@@ -407,6 +500,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
             }))
         );
         setInputs(job.inputDefaults || []);
+        setTriggers(job.triggers || []);
         setSelectedElement(null);
         setSelectedElements([]);
         setShowCatalog(false);
@@ -422,6 +516,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         setDeliverables([]);
         setStorageEntries([]);
         setInputs([]);
+        setTriggers([]);
     };
 
     // ── Register Studio API with context for external access (commands/AI) ──
@@ -442,6 +537,8 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     storageRef.current = storageEntries;
     const inputsRef = useRef(inputs);
     inputsRef.current = inputs;
+    const triggersRef = useRef(triggers);
+    triggersRef.current = triggers;
     const derivedModeRef = useRef(derivedMode);
     derivedModeRef.current = derivedMode;
     const savedJobsRef = useRef(savedJobs);
@@ -460,8 +557,8 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     updateStepPostConditionRef.current = updateStepPostCondition;
     const updateStepPositionRef = useRef(updateStepPosition);
     updateStepPositionRef.current = updateStepPosition;
-    const updateStepFlowTypeRef = useRef(updateStepFlowType);
-    updateStepFlowTypeRef.current = updateStepFlowType;
+    const addParallelGroupRef = useRef(addParallelGroup);
+    addParallelGroupRef.current = addParallelGroup;
     const updateStepOutputMappingsRef = useRef(updateStepOutputMappings);
     updateStepOutputMappingsRef.current = updateStepOutputMappings;
     const updateStepInputBindingsRef = useRef(updateStepInputBindings);
@@ -510,7 +607,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                         });
                         stepsRef.current = [...stepsRef.current, {
                             id: stepId, commandId: cid, args, inputBindings: {},
-                            preCondition: "", postCondition: "", flowType: "serial" as const,
+                            preCondition: "", postCondition: "",
                             parentId: null, outputMappings: [], x: 0, y: 0,
                         }];
                     }
@@ -527,7 +624,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
             updateStepPreCondition: (sid, cond) => updateStepPreConditionRef.current(sid, cond),
             updateStepPostCondition: (sid, cond) => updateStepPostConditionRef.current(sid, cond),
             updateStepPosition: (sid, x, y) => updateStepPositionRef.current(sid, x, y),
-            updateStepFlowType: (sid, ft) => updateStepFlowTypeRef.current(sid, ft),
+            addParallelGroup: () => addParallelGroupRef.current(),
             updateStepOutputMappings: (sid, m) => updateStepOutputMappingsRef.current(sid, m),
             updateStepInputBindings: (sid, b) => updateStepInputBindingsRef.current(sid, b),
             updateStepModel: (sid, modelId) => {
@@ -568,6 +665,20 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                 setInputs(prev => prev.filter((_, i) => i !== index));
                 inputsRef.current = inputsRef.current.filter((_, i) => i !== index);
             },
+            addTrigger: (event, id, filter, label, cron) => {
+                const triggerId = id || `trigger-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                const newTrigger: JobTrigger = { id: triggerId, event, enabled: true, filter, label, cron };
+                setTriggers(prev => [...prev, newTrigger]);
+                triggersRef.current = [...triggersRef.current, newTrigger];
+            },
+            updateTrigger: (id, patch) => {
+                setTriggers(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
+                triggersRef.current = triggersRef.current.map(t => t.id === id ? { ...t, ...patch } : t);
+            },
+            removeTrigger: (id) => {
+                setTriggers(prev => prev.filter(t => t.id !== id));
+                triggersRef.current = triggersRef.current.filter(t => t.id !== id);
+            },
             saveJob: () => {
                 // Build job from refs (not closure state) to avoid stale reads
                 const jobName = nameRef.current;
@@ -579,13 +690,20 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                     try { acc[key] = JSON.parse(value); } catch { acc[key] = value; }
                     return acc;
                 }, {} as Record<string, any>);
-                const mode = jobSteps.some(s => s.flowType === "parallel") ? "parallel" : "serial";
+                const taskSteps = jobSteps.filter(s => !isParallelGroup(s));
+                const hasGroups = jobSteps.some(s => isParallelGroup(s));
+                const mode = hasGroups ? "mixed" : "serial";
+                const pGroups = jobSteps.filter(s => isParallelGroup(s)).map(g => ({
+                    id: g.id,
+                    label: g.label || "Parallel",
+                    stepIds: jobSteps.filter(s => s.parentId === g.id && !isParallelGroup(s)).map(s => s.id),
+                }));
                 const job: JobDefinition = {
                     id: editingIdRef.current || `job-def-${Date.now()}`,
                     name: jobName,
                     description: descRef.current,
                     mode,
-                    steps: jobSteps.map(s => {
+                    steps: taskSteps.map(s => {
                         const mergedArgs = { ...s.args };
                         for (const [argName, binding] of Object.entries(s.inputBindings)) {
                             if (binding.sourceKey) mergedArgs[argName] = `$${binding.source}.${binding.sourceKey}`;
@@ -603,6 +721,8 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                     inputDefaults: inputsRef.current.filter(inp => inp.name.trim() && inp.entityId.trim()).length > 0
                         ? inputsRef.current.filter(inp => inp.name.trim() && inp.entityId.trim())
                         : undefined,
+                    parallelGroups: pGroups.length > 0 ? pGroups : undefined,
+                    triggers: triggersRef.current.length > 0 ? triggersRef.current : undefined,
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
                 };
@@ -622,13 +742,20 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                     try { acc[key] = JSON.parse(value); } catch { acc[key] = value; }
                     return acc;
                 }, {} as Record<string, any>);
-                const mode = jobSteps.some(s => s.flowType === "parallel") ? "parallel" : "serial";
+                const taskSteps = jobSteps.filter(s => !isParallelGroup(s));
+                const hasGroups = jobSteps.some(s => isParallelGroup(s));
+                const mode = hasGroups ? "mixed" : "serial";
+                const pGroups = jobSteps.filter(s => isParallelGroup(s)).map(g => ({
+                    id: g.id,
+                    label: g.label || "Parallel",
+                    stepIds: jobSteps.filter(s => s.parentId === g.id && !isParallelGroup(s)).map(s => s.id),
+                }));
                 const job: JobDefinition = {
                     id: editingIdRef.current || `job-def-${Date.now()}`,
                     name: jobName,
                     description: descRef.current,
                     mode,
-                    steps: jobSteps.map(s => {
+                    steps: taskSteps.map(s => {
                         const mergedArgs = { ...s.args };
                         for (const [argName, binding] of Object.entries(s.inputBindings)) {
                             if (binding.sourceKey) mergedArgs[argName] = `$${binding.source}.${binding.sourceKey}`;
@@ -646,6 +773,8 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                     inputDefaults: inputsRef.current.filter(inp => inp.name.trim() && inp.entityId.trim()).length > 0
                         ? inputsRef.current.filter(inp => inp.name.trim() && inp.entityId.trim())
                         : undefined,
+                    parallelGroups: pGroups.length > 0 ? pGroups : undefined,
+                    triggers: triggersRef.current.length > 0 ? triggersRef.current : undefined,
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
                 };
@@ -669,6 +798,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                 deliverablesRef.current = [];
                 storageRef.current = [];
                 inputsRef.current = [];
+                triggersRef.current = [];
             },
         };
         register(api);
@@ -731,9 +861,124 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                         <button className="jm-toolbar__tool-btn" onClick={addInput} title="Add entity input">
                             <Tag size={12} /> <span>Input</span>
                         </button>
+                        <button className="jm-toolbar__tool-btn jm-toolbar__tool-btn--parallel" onClick={addParallelGroup} title="Add parallel group container">
+                            <GitFork size={12} /> <span>Parallel</span>
+                        </button>
+                        <div className="jm-toolbar__divider" />
+                        <button
+                            className={`jm-toolbar__tool-btn jm-toolbar__tool-btn--trigger ${triggers.length > 0 ? "jm-toolbar__tool-btn--active" : ""}`}
+                            onClick={() => setShowTriggerPanel(p => !p)}
+                            title="Configure automated triggers"
+                        >
+                            <Zap size={12} />
+                            <span>Triggers</span>
+                            {triggers.length > 0 && <span className="jm-toolbar__badge">{triggers.length}</span>}
+                        </button>
                     </div>
                 </div>
             </div>
+
+            {/* ═══ TRIGGER PANEL (collapsible) ═══ */}
+            {showTriggerPanel && (
+                <div className="jm-trigger-panel">
+                    <div className="jm-trigger-panel__header">
+                        <span className="jm-trigger-panel__title"><Zap size={12} /> Automated Triggers</span>
+                        <button className="jm-trigger-panel__add" onClick={() => addTrigger()}>
+                            <Plus size={12} /> Add Trigger
+                        </button>
+                    </div>
+                    {triggers.length === 0 ? (
+                        <div className="jm-trigger-panel__empty">
+                            No triggers configured. Add one to run this job automatically on workspace events.
+                        </div>
+                    ) : (
+                        <div className="jm-trigger-panel__list">
+                            {triggers.map(t => (
+                                <div key={t.id} className={`jm-trigger-panel__item ${t.enabled ? "" : "jm-trigger-panel__item--disabled"}`}>
+                                    <label className="jm-trigger-panel__toggle" title={t.enabled ? "Enabled" : "Disabled"}>
+                                        <input
+                                            type="checkbox"
+                                            checked={t.enabled}
+                                            onChange={e => updateTrigger(t.id, { enabled: e.target.checked })}
+                                        />
+                                    </label>
+                                    <select
+                                        className="jm-trigger-panel__event-select"
+                                        value={t.event}
+                                        onChange={e => updateTrigger(t.id, { event: e.target.value as TriggerEvent })}
+                                    >
+                                        <optgroup label="Artifacts">
+                                            <option value="artifact:created">Artifact Created</option>
+                                            <option value="artifact:updated">Artifact Updated</option>
+                                            <option value="artifact:deleted">Artifact Deleted</option>
+                                        </optgroup>
+                                        <optgroup label="Agents">
+                                            <option value="agent:created">Agent Created</option>
+                                            <option value="agent:updated">Agent Updated</option>
+                                        </optgroup>
+                                        <optgroup label="Groups">
+                                            <option value="group:created">Group Created</option>
+                                            <option value="group:updated">Group Updated</option>
+                                        </optgroup>
+                                        <optgroup label="Channels">
+                                            <option value="channel:created">Channel Created</option>
+                                            <option value="channel:updated">Channel Updated</option>
+                                        </optgroup>
+                                        <optgroup label="Networks">
+                                            <option value="network:created">Network Created</option>
+                                            <option value="network:updated">Network Updated</option>
+                                        </optgroup>
+                                        <optgroup label="Jobs">
+                                            <option value="job:completed">Job Completed</option>
+                                            <option value="job:failed">Job Failed</option>
+                                        </optgroup>
+                                        <optgroup label="Schedule">
+                                            <option value="schedule:cron">Cron Schedule</option>
+                                        </optgroup>
+                                    </select>
+                                    <input
+                                        type="text"
+                                        className="jm-trigger-panel__filter"
+                                        placeholder={t.event === "schedule:cron" ? "Cron expr (e.g. 0 */6 * * *)" : "Filter (name, tag, or ID)"}
+                                        value={t.event === "schedule:cron" ? (t.cron || "") : (t.filter?.tag || t.filter?.name || t.filter?.entityId || "")}
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            if (t.event === "schedule:cron") {
+                                                updateTrigger(t.id, { cron: val || undefined });
+                                            } else {
+                                                // Detect filter type: IDs contain dashes, tags start with "type:", rest is name
+                                                const isId = /^[a-z0-9-]{8,}$/i.test(val);
+                                                const isTag = val.includes(":");
+                                                updateTrigger(t.id, {
+                                                    filter: val ? {
+                                                        entityId: isId ? val : undefined,
+                                                        tag: isTag ? val : undefined,
+                                                        name: (!isId && !isTag) ? val : undefined,
+                                                    } : undefined,
+                                                });
+                                            }
+                                        }}
+                                    />
+                                    <input
+                                        type="text"
+                                        className="jm-trigger-panel__label"
+                                        placeholder="Label"
+                                        value={t.label || ""}
+                                        onChange={e => updateTrigger(t.id, { label: e.target.value || undefined })}
+                                    />
+                                    <button
+                                        className="jm-node__action-btn jm-node__action-btn--danger"
+                                        onClick={() => removeTrigger(t.id)}
+                                        title="Remove trigger"
+                                    >
+                                        <X size={10} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* ═══ BODY: Canvas ═══ */}
             <div className="jm-body">
@@ -749,7 +994,6 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                     onRemoveStorage={removeStorageEntry}
                     onRemoveInput={removeInput}
                     onUpdatePosition={updateStepPosition}
-                    onUpdateFlowType={updateStepFlowType}
                     selectedElements={selectedElements}
                     onMultiSelect={handleMultiSelect}
                     onDeleteSelected={handleDeleteSelected}
@@ -774,6 +1018,17 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                         onPrev={stepIdx > 0 ? () => setModalStepId(steps[stepIdx - 1].id) : undefined}
                         onNext={stepIdx < steps.length - 1 ? () => setModalStepId(steps[stepIdx + 1].id) : undefined}
                         position={`${stepIdx + 1} / ${steps.length}`}
+                        onUpdateArg={updateStepArg}
+                        onUpdatePreCondition={updateStepPreCondition}
+                        onUpdatePostCondition={updateStepPostCondition}
+                        onUpdateOutputMappings={updateStepOutputMappings}
+                        onUpdateInputBindings={updateStepInputBindings}
+                        onUpdateStepModel={updateStepModel}
+                        deliverables={deliverables}
+                        storageEntries={storageEntries}
+                        inputs={inputs}
+                        allSteps={steps}
+                        allModels={llm.allModels}
                     />
                 );
             })()}

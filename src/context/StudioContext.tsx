@@ -6,7 +6,7 @@
  */
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import type { JobDeliverable, JobDefinition, EntityInput } from "../types";
+import type { JobDeliverable, JobDefinition, EntityInput, JobTrigger, TriggerEvent } from "../types";
 import type { OutputMapping, InputBinding, StudioStep } from "../components/views/StudioView";
 
 /** The state snapshot returned by getState() */
@@ -14,7 +14,7 @@ export interface StudioState {
     name: string;
     description: string;
     editingJobId: string | null;
-    mode: "serial" | "parallel";
+    mode: "serial" | "parallel" | "mixed";
     steps: StudioStep[];
     deliverables: JobDeliverable[];
     storageEntries: Array<{ key: string; value: string }>;
@@ -38,7 +38,7 @@ export interface StudioAPI {
     updateStepPreCondition: (stepId: string, condition: string) => void;
     updateStepPostCondition: (stepId: string, condition: string) => void;
     updateStepPosition: (stepId: string, x: number, y: number) => void;
-    updateStepFlowType: (stepId: string, flowType: "serial" | "parallel") => void;
+    addParallelGroup: () => string;
     updateStepOutputMappings: (stepId: string, mappings: OutputMapping[]) => void;
     updateStepInputBindings: (stepId: string, bindings: Record<string, InputBinding>) => void;
     updateStepModel: (stepId: string, modelId: string | undefined) => void;
@@ -57,6 +57,11 @@ export interface StudioAPI {
     addInput: (inp: EntityInput) => void;
     updateInput: (index: number, field: keyof EntityInput, value: string) => void;
     removeInput: (index: number) => void;
+
+    // --- Triggers ---
+    addTrigger: (event: TriggerEvent, id?: string, filter?: any, label?: string, cron?: string) => void;
+    updateTrigger: (id: string, patch: Partial<JobTrigger>) => void;
+    removeTrigger: (id: string) => void;
 
     // --- Job lifecycle ---
     saveJob: () => any;

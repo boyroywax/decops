@@ -11,7 +11,7 @@ This document lists all 19 Studio commands available to the AI chatbot when the 
 | `studio_add_step` | commandId, args? | step ID | Add command step to canvas |
 | `studio_remove_step` | stepId | confirmation | Remove step by ID |
 | `studio_set_step_args` | stepId, args | updated args | Update step argument values |
-| `studio_set_step_flow` | stepId, flowType | updated flow | Set serial or parallel execution |
+| `studio_add_parallel_group` | — | group ID | Add parallel container node |
 | `studio_set_step_condition` | stepId, condition | updated condition | Set JS pre-condition |
 | `studio_set_input_bindings` | stepId, bindings | updated bindings | Map args to storage/deliverables |
 | `studio_set_output_mappings` | stepId, mappings | updated mappings | Route outputs to storage/deliverables |
@@ -24,6 +24,8 @@ This document lists all 19 Studio commands available to the AI chatbot when the 
 | `studio_load_job` | jobId | loaded info | Load from catalog into Studio |
 | `studio_clear_canvas` | — | confirmation | Reset Studio (clear all) |
 | `studio_create_job` | name, desc?, steps, deliv?, storage?, save?, run? | full result | Build complete job in one call |
+| `studio_add_trigger` | event, filter?, label?, cron? | trigger ID | Add automated trigger rule |
+| `studio_remove_trigger` | triggerId | confirmation | Remove a trigger by ID |
 
 ## Detailed Command Reference
 
@@ -41,7 +43,7 @@ studio_get_state()
   name: string;
   description: string;
   editingJobId: string | null;
-  mode: "serial" | "parallel";
+  mode: "serial" | "parallel" | "mixed";
   steps: StudioStep[];
   deliverables: JobDeliverable[];
   storageEntries: Array<{ key: string; value: string }>;
@@ -138,20 +140,17 @@ studio_set_step_args({
 
 ---
 
-#### `studio_set_step_flow`
-Set the flow type (execution mode) for a step.
+#### `studio_add_parallel_group`
+Add a parallel container node to the canvas. Steps added as children of this group run concurrently.
 
 ```typescript
-studio_set_step_flow({
-  stepId: string;
-  flowType: "serial" | "parallel"; // serial = wait for completion, parallel = run simultaneously
-})
+studio_add_parallel_group()
 
 // Returns:
-{ stepId: string; flowType: "serial" | "parallel"; }
+{ groupId: string; } // The new parallel group step ID
 ```
 
-**Use case:** Run multiple independent steps in parallel instead of sequentially.
+**Use case:** Group steps that should run in parallel within an otherwise serial job.
 
 ---
 
