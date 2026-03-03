@@ -105,6 +105,8 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
       mode: jobDef.mode,
       ...(jobDef.storageDefaults ? { storageDefaults: jobDef.storageDefaults } : {}),
       ...(jobDef.deliverables ? { deliverables: jobDef.deliverables } : {}),
+      ...(jobDef.inputDefaults && jobDef.inputDefaults.length > 0 ? { inputDefaults: jobDef.inputDefaults } : {}),
+      ...(jobDef.parallelGroups && jobDef.parallelGroups.length > 0 ? { parallelGroups: jobDef.parallelGroups } : {}),
     });
   }, [addJob]);
   const automations = useAutomations();

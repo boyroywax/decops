@@ -56,6 +56,17 @@ interface JobCanvasProps {
     onMultiSelect: (items: NonNullable<SelectedElement>[]) => void;
     onDeleteSelected: () => void;
     onOpenStepCard?: (stepId: string) => void;
+    // Special node position overrides & callbacks
+    storageNodePositions?: Record<number, { x: number; y: number }>;
+    inputNodePositions?: Record<number, { x: number; y: number }>;
+    deliverableNodePositions?: Record<number, { x: number; y: number }>;
+    onUpdateStoragePosition?: (index: number, x: number, y: number) => void;
+    onUpdateInputPosition?: (index: number, x: number, y: number) => void;
+    onUpdateDeliverablePosition?: (index: number, x: number, y: number) => void;
+    // Double-click edit modals
+    onOpenStorageCard?: (index: number) => void;
+    onOpenInputCard?: (index: number) => void;
+    onOpenDeliverableCard?: (index: number) => void;
 }
 
 export function JobCanvas({
@@ -63,9 +74,19 @@ export function JobCanvas({
     onSelect, onRemoveStep, onRemoveDeliverable, onRemoveStorage, onRemoveInput,
     onUpdatePosition, onMoveGroup, onUpdateAnchor, selectedElements, onMultiSelect, onDeleteSelected,
     onOpenStepCard,
+    storageNodePositions, inputNodePositions, deliverableNodePositions,
+    onUpdateStoragePosition, onUpdateInputPosition, onUpdateDeliverablePosition,
+    onOpenStorageCard, onOpenInputCard, onOpenDeliverableCard,
 }: JobCanvasProps) {
     const canvasRef = useRef<HTMLDivElement>(null);
-    const [dragging, setDragging] = useState<{ stepId: string; offsetX: number; offsetY: number; isGroup?: boolean } | null>(null);
+    const [dragging, setDragging] = useState<{
+        stepId: string;
+        offsetX: number;
+        offsetY: number;
+        isGroup?: boolean;
+        specialKind?: "storage" | "input" | "deliverable";
+        specialIndex?: number;
+    } | null>(null);
     const lastGroupPos = useRef<{ x: number; y: number } | null>(null);
     const [isSelecting, setIsSelecting] = useState(false);
     const [selectionRect, setSelectionRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
@@ -111,6 +132,29 @@ export function JobCanvas({
         e.preventDefault();
     }, [steps, onSelect]);
 
+    const handleSpecialNodeMouseDown = useCallback((
+        e: React.MouseEvent,
+        kind: "storage" | "input" | "deliverable",
+        index: number,
+        nodeX: number,
+        nodeY: number,
+    ) => {
+        if ((e.target as HTMLElement).closest('.jm-node__action-btn')) return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const rect = canvas.getBoundingClientRect();
+        setDragging({
+            stepId: "",
+            offsetX: e.clientX - rect.left + canvas.scrollLeft - nodeX,
+            offsetY: e.clientY - rect.top + canvas.scrollTop - nodeY,
+            specialKind: kind,
+            specialIndex: index,
+        });
+        const type = kind === "deliverable" ? "deliverable" : kind;
+        onSelect({ type, index } as any);
+        e.preventDefault();
+    }, [onSelect]);
+
     useEffect(() => {
         if (!dragging) return;
         const handleMove = (e: MouseEvent) => {
@@ -120,7 +164,12 @@ export function JobCanvas({
             const x = Math.max(0, e.clientX - rect.left + canvas.scrollLeft - dragging.offsetX);
             const y = Math.max(0, e.clientY - rect.top + canvas.scrollTop - dragging.offsetY);
 
-            if (dragging.isGroup && lastGroupPos.current) {
+            if (dragging.specialKind && dragging.specialIndex !== undefined) {
+                // Dragging a special node (storage / input / deliverable)
+                if (dragging.specialKind === "storage") onUpdateStoragePosition?.(dragging.specialIndex, x, y);
+                else if (dragging.specialKind === "input") onUpdateInputPosition?.(dragging.specialIndex, x, y);
+                else if (dragging.specialKind === "deliverable") onUpdateDeliverablePosition?.(dragging.specialIndex, x, y);
+            } else if (dragging.isGroup && lastGroupPos.current) {
                 const dx = x - lastGroupPos.current.x;
                 const dy = y - lastGroupPos.current.y;
                 lastGroupPos.current = { x, y };
@@ -140,7 +189,7 @@ export function JobCanvas({
             window.removeEventListener("mousemove", handleMove);
             window.removeEventListener("mouseup", handleUp);
         };
-    }, [dragging, onUpdatePosition, onMoveGroup]);
+    }, [dragging, onUpdatePosition, onMoveGroup, onUpdateStoragePosition, onUpdateInputPosition, onUpdateDeliverablePosition]);
 
     // ── Marquee multi-select ──
     const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
@@ -242,7 +291,7 @@ export function JobCanvas({
     // ── Pre-compute parallel-group bounding boxes ──
     const groupBounds = new Map<string, { x: number; y: number; w: number; h: number }>();
     for (const group of steps.filter(s => isParallelGroup(s))) {
-        const children = steps.filter(s => s.parentId === group.id);
+        const children = steps.filter(s => s.parentId === group.id && s.isGroupChild);
         const padding = 24;
         const headerH = 34;
         if (children.length > 0) {
@@ -266,8 +315,9 @@ export function JobCanvas({
         .filter(s => s.parentId !== null)
         .filter(s => {
             // Skip children of parallel groups — they're visually inside the container
+            // Serial successors of a group (isGroupChild=false) DO get connectors
             const parent = steps.find(p => p.id === s.parentId);
-            return parent && !isParallelGroup(parent);
+            return parent && !(isParallelGroup(parent) && s.isGroupChild);
         })
         .map(step => {
             const parent = steps.find(p => p.id === step.parentId);
@@ -280,17 +330,28 @@ export function JobCanvas({
             let from: { x: number; y: number };
             let to: { x: number; y: number };
 
+            const parentIsGroup = isParallelGroup(parent);
+
             if (isGroupStep) {
                 // Connect from parent node's outgoing anchor to the parallel container edge
                 from = anchorPoint(parent.x, parent.y, NODE_WIDTH, NODE_HEIGHT, outSide);
                 const bounds = groupBounds.get(step.id);
                 if (bounds) {
-                    // Determine which side of the container to connect to (opposite of outSide)
                     const inSide: AnchorSide = step.connectorIn || (outSide === "right" ? "left" : outSide === "bottom" ? "top" : outSide === "left" ? "right" : "bottom");
                     to = anchorPoint(bounds.x, bounds.y, bounds.w, bounds.h, inSide);
                 } else {
                     to = anchorPoint(step.x, step.y, NODE_WIDTH, NODE_HEIGHT, step.connectorIn || "left");
                 }
+            } else if (parentIsGroup) {
+                // Serial successor OF a group — connect from the group bounds outgoing edge
+                const parentBounds = groupBounds.get(parent.id);
+                if (parentBounds) {
+                    from = anchorPoint(parentBounds.x, parentBounds.y, parentBounds.w, parentBounds.h, outSide);
+                } else {
+                    from = anchorPoint(parent.x, parent.y, NODE_WIDTH, NODE_HEIGHT, outSide);
+                }
+                const inSide: AnchorSide = step.connectorIn || (outSide === "right" ? "left" : outSide === "bottom" ? "top" : outSide === "left" ? "right" : "bottom");
+                to = anchorPoint(step.x, step.y, NODE_WIDTH, NODE_HEIGHT, inSide);
             } else {
                 from = anchorPoint(parent.x, parent.y, NODE_WIDTH, NODE_HEIGHT, outSide);
                 const inSide: AnchorSide = step.connectorIn || (outSide === "right" ? "left" : outSide === "bottom" ? "top" : outSide === "left" ? "right" : "bottom");
@@ -327,37 +388,34 @@ export function JobCanvas({
         ? leafSteps.reduce((sum, s) => sum + s.y, 0) / leafSteps.length + NODE_HEIGHT / 2
         : 80;
 
-    // ── Deliverable positions ──
+    // ── Deliverable positions (custom override or auto-computed) ──
     const delivStartX = steps.length > 0 ? leafMaxX + 120 : 400;
     const delivBlockHeight = deliverables.length * (DELIV_HEIGHT + 12) - 12;
     const delivStartY = Math.max(20, leafAvgY - delivBlockHeight / 2);
-    const delivPositions = deliverables.map((_, i) => ({
-        x: delivStartX,
-        y: delivStartY + i * (DELIV_HEIGHT + 12),
-    }));
+    const delivPositions = deliverables.map((_, i) =>
+        deliverableNodePositions?.[i] ?? { x: delivStartX, y: delivStartY + i * (DELIV_HEIGHT + 12) }
+    );
 
-    // ── Storage positions ──
+    // ── Storage positions (custom override or auto-computed) ──
     const storageStartX = 60;
-    const storagePositions = storageEntries.map((_, i) => ({
-        x: storageStartX + i * (STORAGE_WIDTH + 16),
-        y: 10,
-    }));
+    const storagePositions = storageEntries.map((_, i) =>
+        storageNodePositions?.[i] ?? { x: storageStartX + i * (STORAGE_WIDTH + 16), y: 10 }
+    );
 
-    // ── Input positions (top area, right of storage) ──
+    // ── Input positions (custom override or auto-computed) ──
     const inputStartX = storageEntries.length > 0
         ? storageStartX + storageEntries.length * (STORAGE_WIDTH + 16) + 24
         : 60;
-    const inputPositions = inputs.map((_, i) => ({
-        x: inputStartX + i * (INPUT_WIDTH + 16),
-        y: 10,
-    }));
+    const inputPositions = inputs.map((_, i) =>
+        inputNodePositions?.[i] ?? { x: inputStartX + i * (INPUT_WIDTH + 16), y: 10 }
+    );
 
     // Update ref for marquee intersection checks
     marqueeDataRef.current = { steps, delivPositions, storagePositions, inputPositions };
 
     // ── Canvas bounds ──
-    const allXs = [800, ...steps.map(s => s.x + NODE_WIDTH + 100), ...delivPositions.map(p => p.x + DELIV_WIDTH + 60), ...inputPositions.map(p => p.x + INPUT_WIDTH + 60)];
-    const allYs = [400, ...steps.map(s => s.y + NODE_HEIGHT + 100), ...delivPositions.map(p => p.y + DELIV_HEIGHT + 60)];
+    const allXs = [800, ...steps.map(s => s.x + NODE_WIDTH + 100), ...delivPositions.map(p => p.x + DELIV_WIDTH + 60), ...inputPositions.map(p => p.x + INPUT_WIDTH + 60), ...storagePositions.map(p => p.x + STORAGE_WIDTH + 60)];
+    const allYs = [400, ...steps.map(s => s.y + NODE_HEIGHT + 100), ...delivPositions.map(p => p.y + DELIV_HEIGHT + 60), ...storagePositions.map(p => p.y + STORAGE_HEIGHT + 60), ...inputPositions.map(p => p.y + INPUT_HEIGHT + 60)];
     const maxX = Math.max(...allXs);
     const maxY = Math.max(...allYs);
 
@@ -497,9 +555,10 @@ export function JobCanvas({
                     return (
                         <div
                             key={`storage-${idx}`}
-                            className={`jm-storage-node ${isSelected ? "jm-storage-node--selected" : ""}`}
-                            style={{ position: "absolute", left: pos.x, top: pos.y }}
-                            onClick={() => onSelect({ type: "storage", index: idx })}
+                            className={`jm-storage-node ${isSelected ? "jm-storage-node--selected" : ""} ${dragging?.specialKind === "storage" && dragging.specialIndex === idx ? "jm-storage-node--dragging" : ""}`}
+                            style={{ position: "absolute", left: pos.x, top: pos.y, cursor: "grab", zIndex: dragging?.specialKind === "storage" && dragging.specialIndex === idx ? 10 : 1 }}
+                            onMouseDown={(e) => handleSpecialNodeMouseDown(e, "storage", idx, pos.x, pos.y)}
+                            onDoubleClick={() => onOpenStorageCard?.(idx)}
                         >
                             <div className="jm-storage-node__header">
                                 <Database size={12} className="jm-storage-node__icon" />
@@ -534,9 +593,10 @@ export function JobCanvas({
                     return (
                         <div
                             key={`input-${idx}`}
-                            className={`jm-input-node ${isSelected ? "jm-input-node--selected" : ""}`}
-                            style={{ position: "absolute", left: pos.x, top: pos.y }}
-                            onClick={() => onSelect({ type: "input", index: idx })}
+                            className={`jm-input-node ${isSelected ? "jm-input-node--selected" : ""} ${dragging?.specialKind === "input" && dragging.specialIndex === idx ? "jm-input-node--dragging" : ""}`}
+                            style={{ position: "absolute", left: pos.x, top: pos.y, cursor: "grab", zIndex: dragging?.specialKind === "input" && dragging.specialIndex === idx ? 10 : 1 }}
+                            onMouseDown={(e) => handleSpecialNodeMouseDown(e, "input", idx, pos.x, pos.y)}
+                            onDoubleClick={() => onOpenInputCard?.(idx)}
                         >
                             <div className="jm-input-node__header">
                                 <Tag size={12} className="jm-input-node__icon" />
@@ -562,7 +622,7 @@ export function JobCanvas({
 
                 {/* ── Parallel Group Containers ── */}
                 {steps.filter(s => isParallelGroup(s)).map(group => {
-                    const children = steps.filter(s => s.parentId === group.id);
+                    const children = steps.filter(s => s.parentId === group.id && s.isGroupChild);
                     const padding = 24;
                     const headerH = 34;
                     let boxX = group.x;
@@ -701,9 +761,10 @@ export function JobCanvas({
                     return (
                         <div
                             key={`deliv-${idx}`}
-                            className={`jm-deliverable-node ${isSelected ? "jm-deliverable-node--selected" : ""}`}
-                            style={{ position: "absolute", left: pos.x, top: pos.y }}
-                            onClick={() => onSelect({ type: "deliverable", index: idx })}
+                            className={`jm-deliverable-node ${isSelected ? "jm-deliverable-node--selected" : ""} ${dragging?.specialKind === "deliverable" && dragging.specialIndex === idx ? "jm-deliverable-node--dragging" : ""}`}
+                            style={{ position: "absolute", left: pos.x, top: pos.y, cursor: "grab", zIndex: dragging?.specialKind === "deliverable" && dragging.specialIndex === idx ? 10 : 1 }}
+                            onMouseDown={(e) => handleSpecialNodeMouseDown(e, "deliverable", idx, pos.x, pos.y)}
+                            onDoubleClick={() => onOpenDeliverableCard?.(idx)}
                         >
                             <div className="jm-deliverable-node__header">
                                 <Package size={12} className="jm-deliverable-node__icon" />

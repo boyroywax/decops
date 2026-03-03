@@ -6,7 +6,7 @@ import type { JobDeliverable, ArtifactType, EntityInput } from "../../types";
 import type { LLMModel } from "../../context/LLMContext";
 
 const ARTIFACT_TYPES: ArtifactType[] = ["markdown", "json", "yaml", "csv", "image", "code", "txt"];
-const ENTITY_INPUT_TYPES: EntityInput["type"][] = ["agent", "channel", "group", "network"];
+const ENTITY_INPUT_TYPES: EntityInput["type"][] = ["agent", "channel", "group", "network", "text", "number_range", "list"];
 
 interface NodeEditorProps {
     selectedElement: SelectedElement;
@@ -91,7 +91,7 @@ export function NodeEditor({
                         </div>
                     </div>
                     <div className="jm-editor__section">
-                        <div className="jm-editor__section-title">Entity Type</div>
+                        <div className="jm-editor__section-title">Input Type</div>
                         <select
                             className="jm-editor__condition-input"
                             value={inputEntry.type}
@@ -101,16 +101,25 @@ export function NodeEditor({
                         </select>
                     </div>
                     <div className="jm-editor__section">
-                        <div className="jm-editor__section-title">Entity ID</div>
+                        <div className="jm-editor__section-title">
+                            {["agent", "channel", "group", "network"].includes(inputEntry.type) ? "Entity ID" : "Value"}
+                        </div>
                         <input
-                            type="text"
+                            type={inputEntry.type === "number_range" ? "number" : "text"}
                             className="jm-editor__condition-input"
                             value={inputEntry.entityId}
                             onChange={(e) => onUpdateInput(inputIndex, "entityId", e.target.value)}
-                            placeholder="Entity ID or leave blank for runtime"
+                            placeholder={
+                                inputEntry.type === "text" ? "Default text value"
+                                : inputEntry.type === "number_range" ? "Default number"
+                                : inputEntry.type === "list" ? "Selected value"
+                                : "Entity ID or leave blank for runtime"
+                            }
                         />
                         <div className="jm-editor__condition-hint">
-                            The ID of the {inputEntry.type} entity this input refers to.
+                            {["agent", "channel", "group", "network"].includes(inputEntry.type)
+                                ? `The ID of the ${inputEntry.type} entity this input refers to.`
+                                : `Resolved as $input.${inputEntry.name || "name"} at runtime.`}
                         </div>
                     </div>
                 </div>

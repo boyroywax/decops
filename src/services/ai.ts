@@ -643,7 +643,7 @@ The Studio is a visual canvas-based job editor where steps are drag-and-drop nod
 - studio_remove_storage(index) — Remove storage entry by 0-based index.
 
 **Entity Inputs:**
-- studio_add_input(name, type, entityId) — Add a named entity input. type: "agent"|"channel"|"group"|"network". Steps reference via \`$input.name\`.
+- studio_add_input(name, type, entityId) — Add a named entity input. type: "agent"|"channel"|"group"|"network"|"text"|"number_range"|"list". Steps reference via \`$input.name\`. Text/number_range/list inputs use entityId for the literal value.
 - studio_update_input(index, field, value) — Update an input's name, type, or entityId.
 - studio_remove_input(index) — Remove an input by 0-based index.
 

@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3, Eye } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
-import { chatWithWorkspace, streamChatWithWorkspace, getChatModel } from "../../services/ai";
+import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "../../services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "../../services/ai";
 import { useLLM } from "../../context/LLMContext";
 import MessageBubble from "../chat/MessageBubble";
@@ -46,6 +46,8 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const [studioMode, setStudioMode] = useState(true);
     const [editorMode, setEditorMode] = useState(true);
     const [pendingCommand, setPendingCommand] = useState<{ command: CommandDefinition; initialArgs: Record<string, any>; convoId: string; msgs: ChatMessage[] } | null>(null);
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+    const [mentionIndex, setMentionIndex] = useState(0);
     const endRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const initialScrollDone = useRef(false);
@@ -140,6 +142,37 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
 
     const workspaceCtx = useWorkspaceContext(); // This gives us setters too!
 
+    // @mention autocomplete candidates
+    const mentionCandidates = useMemo(() => {
+        if (mentionQuery === null) return [];
+        const q = mentionQuery.toLowerCase();
+        const agents = (workspaceCtx.agents || []).map((a: any) => ({
+            type: "agent" as const, id: a.id as string, name: a.name as string,
+            detail: (a.title || a.role || "") as string,
+        }));
+        const groups = (workspaceCtx.groups || []).map((g: any) => ({
+            type: "group" as const, id: g.id as string, name: g.name as string,
+            detail: `${g.governance} · ${g.members.length} members`,
+        }));
+        return [...agents, ...groups]
+            .filter(c => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q))
+            .slice(0, 8);
+    }, [mentionQuery, workspaceCtx.agents, workspaceCtx.groups]);
+
+    const insertMention = useCallback((candidate: { name: string }) => {
+        const cursorPos = inputRef.current?.selectionStart || input.length;
+        const before = input.slice(0, cursorPos);
+        const after = input.slice(cursorPos);
+        const m = before.match(/(^|.*\s)@(\w*)$/);
+        if (m) {
+            const prefix = m[1];
+            const tag = `@${candidate.name.replace(/\s+/g, "_")}`;
+            setInput(prefix + tag + (after.startsWith(" ") ? "" : " ") + after);
+        }
+        setMentionQuery(null);
+        inputRef.current?.focus();
+    }, [input]);
+
     // Determine which ecosystem object to use. 
     // If passed via props, use it. usage of useEcosystem inside ChatPanel would be wrong.
     // If not passed, we can't run ecosystem commands safely.
@@ -188,6 +221,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         const text = input.trim();
         if (!text || loading) return;
         setInput("");
+        setMentionQuery(null);
 
         // Auto-create conversation if none active
         let currentId = activeId;
@@ -266,6 +300,48 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                 setLoading(false);
                 return;
             } else {
+                // @mention routing — direct agent or group chat
+                const mentionRe = /@([A-Za-z0-9_]+)/g;
+                let mMatch;
+                const targetAgents: any[] = [];
+                const mentionLabels: string[] = [];
+                while ((mMatch = mentionRe.exec(text)) !== null) {
+                    const mName = mMatch[1].replace(/_/g, " ");
+                    const agent = (workspaceCtx.agents || []).find((a: any) =>
+                        a.name.toLowerCase() === mName.toLowerCase() || a.id.toLowerCase() === mName.toLowerCase()
+                    );
+                    if (agent && !targetAgents.find((a: any) => a.id === agent.id)) {
+                        targetAgents.push(agent);
+                        mentionLabels.push(agent.name);
+                        continue;
+                    }
+                    const group = (workspaceCtx.groups || []).find((g: any) =>
+                        g.name.toLowerCase() === mName.toLowerCase() || g.id.toLowerCase() === mName.toLowerCase()
+                    );
+                    if (group) {
+                        const members = (workspaceCtx.agents || []).filter((a: any) => group.members.includes(a.id));
+                        for (const mem of members) {
+                            if (!targetAgents.find((a: any) => a.id === mem.id)) targetAgents.push(mem);
+                        }
+                        mentionLabels.push(`${group.name} (group)`);
+                    }
+                }
+                if (targetAgents.length > 0) {
+                    const cleanText = text.replace(/@[A-Za-z0-9_]+/g, "").trim();
+                    const replies = await Promise.all(
+                        targetAgents.map((a: any) => chatWithAgent(a, cleanText, currentMessages.slice(-10)))
+                    );
+                    const combined = targetAgents.length === 1
+                        ? `**${targetAgents[0].name}** says:\n\n${replies[0]}`
+                        : targetAgents.map((a: any, i: number) =>
+                            `**${a.name}** (${a.title || a.role}):\n${replies[i]}`
+                        ).join("\n\n---\n\n");
+                    const finalMsgs = [...updatedMsgs, { role: "assistant" as const, content: combined }];
+                    updateConversation(currentId!, finalMsgs);
+                    addLog?.(`Chat: @${mentionLabels.join(", @")} — "${cleanText.slice(0, 30)}…"`);
+                    return;
+                }
+
                 // Streaming chat
                 setStreamingText("");
                 setStreamingToolCalls([]);
@@ -330,7 +406,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         } finally {
             setLoading(false);
         }
-    }, [input, loading, activeId, conversations, context, addLog, updateConversation, commandContext, queueCommandAsJob]);
+    }, [input, loading, activeId, conversations, context, addLog, updateConversation, commandContext, queueCommandAsJob, workspaceCtx]);
 
     // Handle prompt modal submission
     const handlePromptSubmit = useCallback((commandId: string, args: Record<string, any>) => {
@@ -561,6 +637,25 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
             {/* Input (always visible) */}
             {!showConvos && (
                 <div className="chat-panel__input-area">
+                    {/* @mention autocomplete picker */}
+                    {mentionQuery !== null && mentionCandidates.length > 0 && (
+                        <div className="chat-panel__mention-picker">
+                            {mentionCandidates.map((c, i) => (
+                                <div
+                                    key={`${c.type}-${c.id}`}
+                                    className={`chat-panel__mention-item${i === mentionIndex ? " chat-panel__mention-item--active" : ""}`}
+                                    onMouseDown={e => { e.preventDefault(); insertMention(c); }}
+                                    onMouseEnter={() => setMentionIndex(i)}
+                                >
+                                    <span className={`chat-panel__mention-badge chat-panel__mention-badge--${c.type}`}>
+                                        {c.type === "agent" ? "A" : "G"}
+                                    </span>
+                                    <span className="chat-panel__mention-name">{c.name}</span>
+                                    <span className="chat-panel__mention-detail">{c.detail}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     {studioAvailable && (
                         <button
                             className={`chat-panel__studio-input-badge${!studioMode ? " chat-panel__studio-input-badge--off" : ""}`}
@@ -582,9 +677,25 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                     <input
                         ref={inputRef}
                         value={input}
-                        onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-                        placeholder={studioActive ? "Ask the AI to build on the Studio canvas..." : editorActive ? "Ask the AI to help edit your file..." : "Ask about your workspace..."}
+                        onChange={e => {
+                            const val = e.target.value;
+                            setInput(val);
+                            const cur = e.target.selectionStart ?? val.length;
+                            const before = val.slice(0, cur);
+                            const mt = before.match(/(^|\s)@(\w*)$/);
+                            if (mt) { setMentionQuery(mt[2]); setMentionIndex(0); }
+                            else { setMentionQuery(null); }
+                        }}
+                        onKeyDown={e => {
+                            if (mentionQuery !== null && mentionCandidates.length > 0) {
+                                if (e.key === "ArrowDown") { e.preventDefault(); setMentionIndex(j => (j + 1) % mentionCandidates.length); return; }
+                                if (e.key === "ArrowUp") { e.preventDefault(); setMentionIndex(j => (j - 1 + mentionCandidates.length) % mentionCandidates.length); return; }
+                                if (e.key === "Enter" || e.key === "Tab" || e.key === " ") { e.preventDefault(); insertMention(mentionCandidates[mentionIndex]); return; }
+                                if (e.key === "Escape") { e.preventDefault(); setMentionQuery(null); return; }
+                            }
+                            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+                        }}
+                        placeholder={studioActive ? "Ask the AI to build on the Studio canvas..." : editorActive ? "Ask the AI to help edit your file..." : "Ask about your workspace — type @ to mention agents..."}
                         disabled={loading}
                         className={`chat-panel__input${studioActive ? " chat-panel__input--studio" : editorActive ? " chat-panel__input--editor" : ""}`}
                     />

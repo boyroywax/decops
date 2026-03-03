@@ -1,0 +1,502 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+ * NodeEditModal — Storage / Input / Deliverable edit card
+ * Extends the tc-* (trading-card) base pattern from step-card-modal.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Card sizing ── */
+.nem-card {
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  background: var(--bg-modal, var(--bg-card, #1a1a2e));
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 0 24px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  padding: 0;
+}
+
+/* ── Type accents ── */
+.nem-card--storage {
+  border-color: rgba(6, 182, 212, 0.25);
+}
+.nem-card--input {
+  border-color: rgba(245, 158, 11, 0.25);
+}
+.nem-card--deliverable {
+  border-color: rgba(168, 85, 247, 0.25);
+}
+
+/* ── Header ── */
+.nem-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.nem-header__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.nem-header__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.nem-header__type {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #e2e8f0);
+}
+
+.nem-header__index {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: var(--text-ghost, #64748b);
+  margin-top: 2px;
+}
+
+.nem-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: var(--text-ghost, #64748b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.nem-close:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+/* ── Body ── */
+.nem-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Field ── */
+.nem-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nem-field__label {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-ghost, #64748b);
+}
+
+.nem-field__input,
+.nem-field__select,
+.nem-field__textarea {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--text-primary, #e2e8f0);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 8px 10px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.nem-field__input:focus,
+.nem-field__select:focus,
+.nem-field__textarea:focus {
+  border-color: var(--nem-accent, #06b6d4);
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.15);
+}
+
+.nem-field__select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2364748b' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 24px;
+}
+
+.nem-field__textarea {
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.5;
+}
+
+.nem-field__hint {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  color: var(--text-ghost, #64748b);
+  margin-top: 2px;
+}
+
+.nem-field__hint code {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--nem-accent, #06b6d4);
+}
+
+/* ── Section ── */
+.nem-section {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nem-section__title {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-ghost, #64748b);
+}
+
+/* ── Source kind grid ── */
+.nem-source-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.nem-source-btn {
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  padding: 5px 4px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-ghost, #64748b);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.nem-source-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary, #94a3b8);
+}
+
+.nem-source-btn--active {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.nem-source-detail {
+  margin-top: 4px;
+}
+
+/* ── List options (checkboxes for multi-select) ── */
+.nem-list-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.nem-list-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  transition: background 0.12s ease;
+}
+
+.nem-list-option:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.nem-list-option input[type="checkbox"] {
+  accent-color: var(--nem-accent, #f59e0b);
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .nem-list-option:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] .nem-list-option {
+  color: #475569;
+}
+
+[data-theme="solar"] .nem-list-option:hover {
+  background: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .nem-list-option {
+  color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Light theme
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .nem-card {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .nem-card--storage {
+  border-color: rgba(6, 182, 212, 0.3);
+}
+[data-theme="light"] .nem-card--input {
+  border-color: rgba(245, 158, 11, 0.3);
+}
+[data-theme="light"] .nem-card--deliverable {
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+[data-theme="light"] .nem-header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .nem-close {
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #94a3b8;
+}
+
+[data-theme="light"] .nem-close:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+[data-theme="light"] .nem-field__input,
+[data-theme="light"] .nem-field__select,
+[data-theme="light"] .nem-field__textarea {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #1e293b;
+}
+
+[data-theme="light"] .nem-field__input:focus,
+[data-theme="light"] .nem-field__select:focus,
+[data-theme="light"] .nem-field__textarea:focus {
+  border-color: var(--nem-accent, #06b6d4);
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.12);
+  background: #fff;
+}
+
+[data-theme="light"] .nem-field__hint code {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .nem-source-btn {
+  border-color: rgba(0, 0, 0, 0.1);
+  background: #f8fafc;
+  color: #64748b;
+}
+
+[data-theme="light"] .nem-source-btn:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+[data-theme="light"] .nem-source-btn--active {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #d97706;
+}
+
+/* ── Light text colors ── */
+[data-theme="light"] .nem-header__type {
+  color: #1e293b;
+}
+
+[data-theme="light"] .nem-header__index {
+  color: #94a3b8;
+}
+
+[data-theme="light"] .nem-field__label {
+  color: #64748b;
+}
+
+[data-theme="light"] .nem-section__title {
+  color: #64748b;
+}
+
+[data-theme="light"] .nem-field__hint {
+  color: #94a3b8;
+}
+
+[data-theme="light"] .nem-field__hint code {
+  background: rgba(0, 0, 0, 0.04);
+  color: #0284c7;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Solar theme — warm cream palette matching StepCardModal
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Card shell — higher specificity to beat generic [data-theme="solar"] .tc-card */
+[data-theme="solar"] .tc-card.nem-card {
+  background: var(--bg-modal, #fefaf0);
+  border-color: rgba(120, 80, 20, 0.18);
+  box-shadow:
+    0 8px 40px rgba(80, 50, 10, 0.12),
+    0 0 80px -20px var(--nem-accent, #9c6d10);
+}
+
+[data-theme="solar"] .tc-card.nem-card.nem-card--storage {
+  border-color: rgba(6, 182, 212, 0.25);
+}
+[data-theme="solar"] .tc-card.nem-card.nem-card--input {
+  border-color: rgba(180, 110, 20, 0.30);
+}
+[data-theme="solar"] .tc-card.nem-card.nem-card--deliverable {
+  border-color: rgba(140, 60, 200, 0.22);
+}
+
+/* ── Header ── */
+[data-theme="solar"] .nem-header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .nem-header__type {
+  color: var(--text-primary);
+}
+
+[data-theme="solar"] .nem-header__index {
+  color: var(--text-subtle);
+}
+
+/* ── Close button ── */
+[data-theme="solar"] .nem-close {
+  background: rgba(120, 80, 20, 0.08);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: var(--text-muted);
+}
+
+[data-theme="solar"] .nem-close:hover {
+  background: rgba(120, 80, 20, 0.15);
+  border-color: rgba(120, 80, 20, 0.25);
+  color: var(--text-primary);
+}
+
+/* ── Labels ── */
+[data-theme="solar"] .nem-field__label {
+  color: var(--text-subtle);
+}
+
+[data-theme="solar"] .nem-section__title {
+  color: var(--text-subtle);
+}
+
+/* ── Inputs, selects, textareas ── */
+[data-theme="solar"] .nem-field__input,
+[data-theme="solar"] .nem-field__select,
+[data-theme="solar"] .nem-field__textarea {
+  background: rgba(120, 80, 20, 0.06);
+  border-color: rgba(120, 80, 20, 0.15);
+  color: var(--text-primary);
+}
+
+[data-theme="solar"] .nem-field__input:focus,
+[data-theme="solar"] .nem-field__select:focus,
+[data-theme="solar"] .nem-field__textarea:focus {
+  border-color: #9c6d10;
+  background: rgba(120, 80, 20, 0.08);
+  box-shadow: 0 0 0 2px rgba(156, 109, 16, 0.12);
+}
+
+[data-theme="solar"] .nem-field__input::placeholder,
+[data-theme="solar"] .nem-field__select::placeholder,
+[data-theme="solar"] .nem-field__textarea::placeholder {
+  color: var(--text-ghost);
+}
+
+/* ── Hints ── */
+[data-theme="solar"] .nem-field__hint {
+  color: var(--text-ghost);
+}
+
+[data-theme="solar"] .nem-field__hint code {
+  background: rgba(120, 80, 20, 0.08);
+  color: #9c6d10;
+}
+
+/* ── Source kind buttons ── */
+[data-theme="solar"] .nem-source-btn {
+  border-color: rgba(120, 80, 20, 0.12);
+  background: rgba(120, 80, 20, 0.04);
+  color: var(--text-muted);
+}
+
+[data-theme="solar"] .nem-source-btn:hover {
+  background: rgba(120, 80, 20, 0.08);
+  border-color: rgba(120, 80, 20, 0.2);
+  color: var(--text-secondary);
+}
+
+[data-theme="solar"] .nem-source-btn--active {
+  background: rgba(156, 109, 16, 0.12);
+  border-color: rgba(156, 109, 16, 0.30);
+  color: #9c6d10;
+}
+
+/* ── Scrollbar ── */
+[data-theme="solar"] .tc-card.nem-card::-webkit-scrollbar-thumb {
+  background: rgba(120, 80, 20, 0.12);
+}
+[data-theme="solar"] .tc-card.nem-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ── Scrollbar ── */
+.nem-card::-webkit-scrollbar {
+  width: 5px;
+}
+.nem-card::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+.nem-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-theme="light"] .nem-card::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}

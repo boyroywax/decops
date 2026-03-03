@@ -6,6 +6,7 @@ import { registry } from "../../services/commands/registry";
 import { JobCanvas } from "../jobs/JobCanvas";
 import { NodeEditor } from "../jobs/NodeEditor";
 import { StepCardModal } from "../jobs/StepCardModal";
+import { NodeEditModal } from "../jobs/NodeEditModal";
 import { isSeedJob } from "../../services/jobs/seedCatalog";
 import { useStudioContext } from "../../context/StudioContext";
 import { useLLM } from "../../context/LLMContext";
@@ -58,6 +59,9 @@ export interface StudioStep {
     label?: string;    // display label for parallel groups
     connectorOut?: AnchorSide;  // Where outgoing connector leaves this node (default: right)
     connectorIn?: AnchorSide;   // Where incoming connector enters this node (default: left)
+    /** True when this step runs inside a parallel group (concurrent sibling).
+     *  False/undefined means serial successor even if parentId points to a group. */
+    isGroupChild?: boolean;
     x: number;
     y: number;
 }
@@ -74,15 +78,52 @@ const NODE_SPACING_Y = 180;
 const INITIAL_X = 60;
 const INITIAL_Y = 80;
 
+// ── Auto-save draft to survive page refresh ──
+const STUDIO_DRAFT_KEY = "decops_studio_draft";
+const DRAFT_SAVE_DELAY = 800; // ms debounce
+
+interface StudioDraft {
+    name: string;
+    description: string;
+    editingJobId: string | null;
+    steps: StudioStep[];
+    deliverables: JobDeliverable[];
+    storageEntries: Array<{ key: string; value: string }>;
+    inputs: EntityInput[];
+    triggers: JobTrigger[];
+    storageNodePositions: Record<number, { x: number; y: number }>;
+    inputNodePositions: Record<number, { x: number; y: number }>;
+    deliverableNodePositions: Record<number, { x: number; y: number }>;
+    savedAt: number;
+}
+
+function readDraft(): StudioDraft | null {
+    try {
+        const raw = localStorage.getItem(STUDIO_DRAFT_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw) as StudioDraft;
+    } catch {
+        return null;
+    }
+}
+
+function clearDraft() {
+    try { localStorage.removeItem(STUDIO_DRAFT_KEY); } catch { /* noop */ }
+}
+
 export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: StudioViewProps) {
     const llm = useLLM();
+
+    // Restore draft (if any) to seed initial state
+    const [draft] = useState<StudioDraft | null>(() => readDraft());
+
     // ── Job metadata ──
-    const [name, setName] = useState("");
-    const [description, setDescription] = useState("");
-    const [editingJobId, setEditingJobId] = useState<string | null>(null);
+    const [name, setName] = useState(draft?.name ?? "");
+    const [description, setDescription] = useState(draft?.description ?? "");
+    const [editingJobId, setEditingJobId] = useState<string | null>(draft?.editingJobId ?? null);
 
     // ── Steps ──
-    const [steps, setSteps] = useState<StudioStep[]>([]);
+    const [steps, setSteps] = useState<StudioStep[]>(draft?.steps ?? []);
     const [selectedElement, setSelectedElement] = useState<SelectedElement>(null);
     const [selectedElements, setSelectedElements] = useState<NonNullable<SelectedElement>[]>([]);
 
@@ -93,21 +134,55 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const [modalStepId, setModalStepId] = useState<string | null>(null);
 
     // ── Deliverables ──
-    const [deliverables, setDeliverables] = useState<JobDeliverable[]>([]);
+    const [deliverables, setDeliverables] = useState<JobDeliverable[]>(draft?.deliverables ?? []);
 
     // ── Storage defaults ──
-    const [storageEntries, setStorageEntries] = useState<Array<{ key: string; value: string }>>([]);
+    const [storageEntries, setStorageEntries] = useState<Array<{ key: string; value: string }>>(draft?.storageEntries ?? []);
 
     // ── Entity Inputs (name → ID mappings) ──
-    const [inputs, setInputs] = useState<EntityInput[]>([]);
+    const [inputs, setInputs] = useState<EntityInput[]>(draft?.inputs ?? []);
 
     // ── Triggers (automated job execution rules) ──
-    const [triggers, setTriggers] = useState<JobTrigger[]>([]);
+    const [triggers, setTriggers] = useState<JobTrigger[]>(draft?.triggers ?? []);
     const [showTriggerPanel, setShowTriggerPanel] = useState(false);
+
+    // ── Special node draggable positions (index → {x,y}) ──
+    const [storageNodePositions, setStorageNodePositions] = useState<Record<number, { x: number; y: number }>>(draft?.storageNodePositions ?? {});
+    const [inputNodePositions, setInputNodePositions] = useState<Record<number, { x: number; y: number }>>(draft?.inputNodePositions ?? {});
+    const [deliverableNodePositions, setDeliverableNodePositions] = useState<Record<number, { x: number; y: number }>>(draft?.deliverableNodePositions ?? {});
+
+    // ── Node edit modal (storage / input / deliverable) ──
+    const [modalNodeType, setModalNodeType] = useState<"storage" | "input" | "deliverable" | null>(null);
+    const [modalNodeIndex, setModalNodeIndex] = useState<number>(-1);
 
     // ── Catalog modal ──
     const [showCatalog, setShowCatalog] = useState(false);
     const del = useDeleteConfirm();
+
+    // ── Auto-save draft to localStorage (debounced) ──
+    useEffect(() => {
+        // Skip saving the very first render if nothing has changed from the restored draft
+        const timer = setTimeout(() => {
+            const hasSomething = name || description || steps.length || deliverables.length
+                || storageEntries.length || inputs.length || triggers.length;
+            if (!hasSomething) {
+                // Canvas is empty — clear any stale draft
+                clearDraft();
+                return;
+            }
+            const snapshot: StudioDraft = {
+                name, description, editingJobId,
+                steps, deliverables, storageEntries, inputs, triggers,
+                storageNodePositions, inputNodePositions, deliverableNodePositions,
+                savedAt: Date.now(),
+            };
+            try {
+                localStorage.setItem(STUDIO_DRAFT_KEY, JSON.stringify(snapshot));
+            } catch { /* storage full — silently skip */ }
+        }, DRAFT_SAVE_DELAY);
+        return () => clearTimeout(timer);
+    }, [name, description, editingJobId, steps, deliverables, storageEntries,
+        inputs, triggers, storageNodePositions, inputNodePositions, deliverableNodePositions]);
 
     const effectiveStepId = selectedElement?.type === "step" ? selectedElement.id : null;
     const selectedStep = effectiveStepId ? steps.find(s => s.id === effectiveStepId) || null : null;
@@ -126,44 +201,72 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         });
         const newId = `step-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
         setSteps(prev => {
-            // Determine parent: selected step, or last leaf (excluding parallel group internals), or null
             let parentId: string | null = null;
-            // Collect IDs of all parallel groups
+            let addAsGroupChild = false;
             const parallelGroupIds = new Set(prev.filter(s => s.commandId === PARALLEL_GROUP_CMD).map(s => s.id));
 
             if (effectiveStepId && prev.find(s => s.id === effectiveStepId)) {
                 const sel = prev.find(s => s.id === effectiveStepId)!;
-                // If the selected step is inside a parallel group, parent to the group instead
-                if (sel.parentId && parallelGroupIds.has(sel.parentId)) {
-                    parentId = sel.parentId; // add as sibling inside the group
+                if (parallelGroupIds.has(sel.id)) {
+                    // ── Selected step IS a parallel group container ──
+                    // Add as serial successor AFTER the group
+                    parentId = sel.id;
+                    addAsGroupChild = false;
+                } else if (sel.isGroupChild && sel.parentId && parallelGroupIds.has(sel.parentId)) {
+                    // ── Selected step is a child inside a parallel group ──
+                    // Add as sibling inside the same group
+                    parentId = sel.parentId;
+                    addAsGroupChild = true;
                 } else {
                     parentId = effectiveStepId;
                 }
             } else if (prev.length > 0) {
-                // Find last leaf that is NOT a child of a parallel group
+                // Find last serial leaf (excluding parallel group children)
                 const idsBeingParent = new Set(prev.filter(s => s.parentId !== null).map(s => s.parentId!));
-                const leaves = prev.filter(s => !idsBeingParent.has(s.id) && !parallelGroupIds.has(s.parentId ?? ""));
-                // Also include parallel groups themselves as potential parents
-                const candidates = leaves.length > 0 ? leaves : prev.filter(s => !parallelGroupIds.has(s.parentId ?? ""));
+                const serialSteps = prev.filter(s => !s.isGroupChild);
+                const leaves = serialSteps.filter(s => !idsBeingParent.has(s.id));
+                const candidates = leaves.length > 0 ? leaves : serialSteps;
                 parentId = candidates.length > 0 ? candidates[candidates.length - 1].id : prev[prev.length - 1].id;
             }
 
             const parent = parentId ? prev.find(s => s.id === parentId) : null;
             const isParentAGroup = parent ? parent.commandId === PARALLEL_GROUP_CMD : false;
-            const siblings = parentId ? prev.filter(s => s.parentId === parentId) : [];
+
+            // Only count relevant siblings for positioning
+            const siblings = parentId
+                ? prev.filter(s => s.parentId === parentId && (addAsGroupChild ? s.isGroupChild : !s.isGroupChild))
+                : [];
 
             let x: number, y: number;
-            if (isParentAGroup) {
+            if (isParentAGroup && addAsGroupChild) {
                 // Place inside the parallel group, stacked vertically
+                const groupChildren = prev.filter(s => s.parentId === parentId && s.isGroupChild);
                 x = parent!.x;
-                y = siblings.length > 0
-                    ? Math.max(...siblings.map(s => s.y)) + NODE_SPACING_Y
+                y = groupChildren.length > 0
+                    ? Math.max(...groupChildren.map(s => s.y)) + NODE_SPACING_Y
                     : parent!.y;
             } else {
+                // Serial placement: to the right of parent
                 x = parent ? parent.x + NODE_SPACING_X : INITIAL_X;
                 y = siblings.length > 0
                     ? Math.max(...siblings.map(s => s.y)) + NODE_SPACING_Y
                     : (parent ? parent.y : INITIAL_Y);
+            }
+
+            // ── Auto output-mapping for steps inside a parallel group ──
+            let outputMappings: Array<{ outputKey: string; target: "storage" | "deliverable"; targetKey: string }> = [];
+            if (addAsGroupChild && isParentAGroup) {
+                const groupLabel = parent!.label || "parallel";
+                const safeName = groupLabel.replace(/[^A-Za-z0-9]+/g, "_").toLowerCase();
+                const childIndex = prev.filter(s => s.parentId === parentId && s.isGroupChild && !parallelGroupIds.has(s.id)).length;
+                const storageKey = `${safeName}_result_${childIndex}`;
+                outputMappings = [{ outputKey: "*", target: "storage", targetKey: storageKey }];
+
+                // Auto-create the storage entry if it doesn't exist
+                setStorageEntries(entries => {
+                    if (entries.some(e => e.key === storageKey)) return entries;
+                    return [...entries, { key: storageKey, value: "" }];
+                });
             }
 
             return [...prev, {
@@ -174,7 +277,8 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                 preCondition: "",
                 postCondition: "",
                 parentId,
-                outputMappings: [],
+                outputMappings,
+                isGroupChild: addAsGroupChild || undefined,
                 x,
                 y,
             }];
@@ -261,6 +365,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     };
     const removeDeliverable = (index: number) => {
         setDeliverables(prev => prev.filter((_, i) => i !== index));
+        setDeliverableNodePositions({});
     };
 
     // ── Storage CRUD ──
@@ -272,6 +377,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     };
     const removeStorageEntry = (index: number) => {
         setStorageEntries(prev => prev.filter((_, i) => i !== index));
+        setStorageNodePositions({});
     };
 
     // ── Entity Inputs CRUD ──
@@ -283,7 +389,37 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     };
     const removeInput = (index: number) => {
         setInputs(prev => prev.filter((_, i) => i !== index));
+        setInputNodePositions({});
     };
+
+    // ── Special node position updates ──
+    const updateStoragePosition = useCallback((index: number, x: number, y: number) => {
+        setStorageNodePositions(prev => ({ ...prev, [index]: { x, y } }));
+    }, []);
+    const updateInputPosition = useCallback((index: number, x: number, y: number) => {
+        setInputNodePositions(prev => ({ ...prev, [index]: { x, y } }));
+    }, []);
+    const updateDeliverablePosition = useCallback((index: number, x: number, y: number) => {
+        setDeliverableNodePositions(prev => ({ ...prev, [index]: { x, y } }));
+    }, []);
+
+    // ── Special node edit modals ──
+    const handleOpenStorageCard = useCallback((index: number) => {
+        setModalNodeType("storage");
+        setModalNodeIndex(index);
+    }, []);
+    const handleOpenInputCard = useCallback((index: number) => {
+        setModalNodeType("input");
+        setModalNodeIndex(index);
+    }, []);
+    const handleOpenDeliverableCard = useCallback((index: number) => {
+        setModalNodeType("deliverable");
+        setModalNodeIndex(index);
+    }, []);
+    const handleCloseNodeModal = useCallback(() => {
+        setModalNodeType(null);
+        setModalNodeIndex(-1);
+    }, []);
 
     // ── Triggers CRUD ──
     const addTrigger = (event: TriggerEvent = "artifact:updated") => {
@@ -301,24 +437,24 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const addParallelGroup = useCallback((): string => {
         const newId = `pgroup-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
         setSteps(prev => {
-            // Determine parent: selected step or last leaf (excluding parallel group internals)
             let parentId: string | null = null;
             const parallelGroupIds = new Set(prev.filter(s => s.commandId === PARALLEL_GROUP_CMD).map(s => s.id));
 
             if (effectiveStepId && prev.find(s => s.id === effectiveStepId)) {
                 const sel = prev.find(s => s.id === effectiveStepId)!;
-                // If selected step is inside a parallel group, parent the new group to the group's parent
-                if (sel.parentId && parallelGroupIds.has(sel.parentId)) {
-                    parentId = prev.find(s => s.id === sel.parentId)?.parentId ?? null;
-                } else if (parallelGroupIds.has(sel.id)) {
-                    // Selected step IS a parallel group — parent to its parent
+                if (sel.isGroupChild && sel.parentId && parallelGroupIds.has(sel.parentId)) {
+                    // Selected step is a child inside a group — place new group after the group container
                     parentId = sel.parentId;
+                } else if (parallelGroupIds.has(sel.id)) {
+                    // Selected step IS a parallel group — place new group as serial successor
+                    parentId = sel.id;
                 } else {
                     parentId = effectiveStepId;
                 }
             } else if (prev.length > 0) {
                 const idsBeingParent = new Set(prev.filter(s => s.parentId !== null).map(s => s.parentId!));
-                const leaves = prev.filter(s => !idsBeingParent.has(s.id) && !parallelGroupIds.has(s.parentId ?? ""));
+                const serialSteps = prev.filter(s => !s.isGroupChild);
+                const leaves = serialSteps.filter(s => !idsBeingParent.has(s.id));
                 parentId = leaves.length > 0 ? leaves[leaves.length - 1].id : prev[prev.length - 1].id;
             }
             const parent = parentId ? prev.find(s => s.id === parentId) : null;
@@ -427,7 +563,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         const pGroups = steps.filter(s => isParallelGroup(s)).map(g => ({
             id: g.id,
             label: g.label || "Parallel",
-            stepIds: steps.filter(s => s.parentId === g.id && !isParallelGroup(s)).map(s => s.id),
+            stepIds: steps.filter(s => s.parentId === g.id && s.isGroupChild && !isParallelGroup(s)).map(s => s.id),
         }));
         return {
             id: editingJobId || `job-def-${Date.now()}`,
@@ -475,6 +611,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         if (job) {
             onSaveJob(job);
             setEditingJobId(job.id);
+            clearDraft(); // saved — no longer a draft
         }
     };
 
@@ -484,7 +621,13 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         setDescription(job.description);
         setEditingJobId(job.id);
 
-        // Reconstruct task steps
+        // Collect all parallel-group child IDs for quick lookup
+        const allGroupChildIds = new Set<string>();
+        for (const g of (job.parallelGroups || [])) {
+            for (const sid of g.stepIds) allGroupChildIds.add(sid);
+        }
+
+        // Reconstruct task steps with args + bindings (parentId set to placeholder for now)
         const taskSteps: StudioStep[] = job.steps.map((s, i) => {
             // Restore inputBindings: either from saved field, or reverse-engineer from $storage./$deliverable. args
             const savedBindings: Record<string, InputBinding> = (s as any).inputBindings || {};
@@ -509,37 +652,97 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                 inputBindings: bindings,
                 preCondition: s.condition || "",
                 postCondition: "",
-                parentId: i > 0 ? (job.steps[i - 1].id || null) : null,
+                parentId: null as string | null, // will be set below
                 outputMappings: s.outputMappings || [],
                 modelId: s.modelId,
-                x: INITIAL_X + i * NODE_SPACING_X,
-                y: INITIAL_Y,
+                x: 0, // positioned below
+                y: 0,
             };
         });
 
-        // Reconstruct parallel groups from saved metadata
-        const pGroups: StudioStep[] = (job.parallelGroups || []).map((g, gi) => {
-            // Re-parent the group's child steps
-            const groupStep: StudioStep = {
-                id: g.id,
-                commandId: PARALLEL_GROUP_CMD,
-                args: {},
-                inputBindings: {},
-                preCondition: "",
-                postCondition: "",
-                parentId: null,
-                outputMappings: [],
-                label: g.label || "Parallel",
-                x: INITIAL_X + (job.steps.length + gi) * NODE_SPACING_X,
-                y: INITIAL_Y,
-            };
-            // Reparent child tasks to this group
+        // ── Build the serial chain, inserting parallel groups where they belong ──
+        // Walk through job.steps in order. When we encounter the first step of a
+        // parallel group, insert the group at that position in the serial chain.
+        // Skip subsequent steps of the same group (they're siblings inside the group).
+        const groupStepMap = new Map<string, { id: string; label: string; stepIds: string[] }>();
+        for (const g of (job.parallelGroups || [])) {
+            for (const sid of g.stepIds) groupStepMap.set(sid, g);
+        }
+        const insertedGroups = new Set<string>();
+        // serialOrder holds the effective serial chain: step IDs and group IDs in order
+        const serialOrder: string[] = [];
+        for (const s of job.steps) {
+            const sid = s.id || "";
+            if (allGroupChildIds.has(sid)) {
+                const grp = groupStepMap.get(sid)!;
+                if (!insertedGroups.has(grp.id)) {
+                    insertedGroups.add(grp.id);
+                    serialOrder.push(grp.id); // group placeholder in serial chain
+                }
+                // skip — child will be parented to its group
+            } else {
+                serialOrder.push(sid);
+            }
+        }
+
+        // Build parallel group StudioSteps and assign parentIds along the serial chain
+        const pGroups: StudioStep[] = (job.parallelGroups || []).map(g => ({
+            id: g.id,
+            commandId: PARALLEL_GROUP_CMD,
+            args: {},
+            inputBindings: {},
+            preCondition: "",
+            postCondition: "",
+            parentId: null as string | null,
+            outputMappings: [],
+            label: g.label || "Parallel",
+            x: 0,
+            y: 0,
+        }));
+
+        const allNodes = new Map<string, StudioStep>();
+        for (const ts of taskSteps) allNodes.set(ts.id, ts);
+        for (const pg of pGroups) allNodes.set(pg.id, pg);
+
+        // Set parentId along the serial chain
+        for (let i = 0; i < serialOrder.length; i++) {
+            const node = allNodes.get(serialOrder[i]);
+            if (!node) continue;
+            node.parentId = i > 0 ? serialOrder[i - 1] : null;
+        }
+
+        // Reparent parallel group children to their group (+ mark as group children)
+        for (const g of (job.parallelGroups || [])) {
             for (const sid of g.stepIds) {
                 const child = taskSteps.find(ts => ts.id === sid);
-                if (child) child.parentId = g.id;
+                if (child) {
+                    child.parentId = g.id;
+                    child.isGroupChild = true;
+                }
             }
-            return groupStep;
-        });
+        }
+
+        // ── Position nodes ──
+        let serialIdx = 0;
+        for (const nodeId of serialOrder) {
+            const node = allNodes.get(nodeId);
+            if (!node) continue;
+            node.x = INITIAL_X + serialIdx * NODE_SPACING_X;
+            node.y = INITIAL_Y;
+            serialIdx++;
+        }
+        // Position parallel group children stacked vertically inside their group
+        for (const g of (job.parallelGroups || [])) {
+            const groupNode = pGroups.find(pg => pg.id === g.id);
+            if (!groupNode) continue;
+            g.stepIds.forEach((sid, ci) => {
+                const child = taskSteps.find(ts => ts.id === sid);
+                if (child) {
+                    child.x = groupNode.x;
+                    child.y = groupNode.y + ci * NODE_SPACING_Y;
+                }
+            });
+        }
 
         setSteps([...taskSteps, ...pGroups]);
         setDeliverables(job.deliverables || []);
@@ -554,6 +757,9 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         setSelectedElement(null);
         setSelectedElements([]);
         setShowCatalog(false);
+        setStorageNodePositions({});
+        setInputNodePositions({});
+        setDeliverableNodePositions({});
     };
 
     const handleNew = () => {
@@ -567,6 +773,10 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         setStorageEntries([]);
         setInputs([]);
         setTriggers([]);
+        setStorageNodePositions({});
+        setInputNodePositions({});
+        setDeliverableNodePositions({});
+        clearDraft(); // reset — discard any saved draft
     };
 
     // ── Register Studio API with context for external access (commands/AI) ──
@@ -675,6 +885,10 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
             updateStepPostCondition: (sid, cond) => updateStepPostConditionRef.current(sid, cond),
             updateStepPosition: (sid, x, y) => updateStepPositionRef.current(sid, x, y),
             addParallelGroup: () => addParallelGroupRef.current(),
+            reparentStep: (stepId, newParentId, asGroupChild = false) => {
+                setSteps(prev => prev.map(s => s.id === stepId ? { ...s, parentId: newParentId, isGroupChild: asGroupChild } : s));
+                stepsRef.current = stepsRef.current.map(s => s.id === stepId ? { ...s, parentId: newParentId, isGroupChild: asGroupChild } : s);
+            },
             updateStepOutputMappings: (sid, m) => updateStepOutputMappingsRef.current(sid, m),
             updateStepInputBindings: (sid, b) => updateStepInputBindingsRef.current(sid, b),
             updateStepModel: (sid, modelId) => {
@@ -1045,6 +1259,15 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                     onMultiSelect={handleMultiSelect}
                     onDeleteSelected={handleDeleteSelected}
                     onOpenStepCard={handleOpenStepCard}
+                    storageNodePositions={storageNodePositions}
+                    inputNodePositions={inputNodePositions}
+                    deliverableNodePositions={deliverableNodePositions}
+                    onUpdateStoragePosition={updateStoragePosition}
+                    onUpdateInputPosition={updateInputPosition}
+                    onUpdateDeliverablePosition={updateDeliverablePosition}
+                    onOpenStorageCard={handleOpenStorageCard}
+                    onOpenInputCard={handleOpenInputCard}
+                    onOpenDeliverableCard={handleOpenDeliverableCard}
                 />
 
                 {/* Right-side node editor — hidden while styling is incomplete */}
@@ -1056,15 +1279,40 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                 const stepIdx = steps.findIndex(s => s.id === modalStepId);
                 const modalStep = stepIdx >= 0 ? steps[stepIdx] : null;
                 if (!modalStep) return null;
+
+                // Navigate left from first step → last node (deliverable > input > storage)
+                const prevFromFirstStep = () => {
+                    if (deliverables.length > 0) {
+                        setModalStepId(null);
+                        setModalNodeType("deliverable");
+                        setModalNodeIndex(deliverables.length - 1);
+                    } else if (inputs.length > 0) {
+                        setModalStepId(null);
+                        setModalNodeType("input");
+                        setModalNodeIndex(inputs.length - 1);
+                    } else if (storageEntries.length > 0) {
+                        setModalStepId(null);
+                        setModalNodeType("storage");
+                        setModalNodeIndex(storageEntries.length - 1);
+                    }
+                };
+
+                const hasPrev = stepIdx > 0 || deliverables.length > 0 || inputs.length > 0 || storageEntries.length > 0;
+                const totalAll = storageEntries.length + inputs.length + deliverables.length + steps.length;
+                const globalPos = storageEntries.length + inputs.length + deliverables.length + stepIdx + 1;
+
                 return (
                     <StepCardModal
                         step={modalStep}
                         stepIndex={stepIdx}
                         isOpen
                         onClose={() => setModalStepId(null)}
-                        onPrev={stepIdx > 0 ? () => setModalStepId(steps[stepIdx - 1].id) : undefined}
+                        onPrev={hasPrev ? (stepIdx > 0
+                            ? () => setModalStepId(steps[stepIdx - 1].id)
+                            : prevFromFirstStep
+                        ) : undefined}
                         onNext={stepIdx < steps.length - 1 ? () => setModalStepId(steps[stepIdx + 1].id) : undefined}
-                        position={`${stepIdx + 1} / ${steps.length}`}
+                        position={`${globalPos} / ${totalAll}`}
                         onUpdateArg={updateStepArg}
                         onUpdatePreCondition={updateStepPreCondition}
                         onUpdatePostCondition={updateStepPostCondition}
@@ -1076,6 +1324,95 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                         inputs={inputs}
                         allSteps={steps}
                         allModels={llm.allModels}
+                    />
+                );
+            })()}
+
+            {/* ═══ NODE EDIT MODAL (Storage / Input / Deliverable) ═══ */}
+            {modalNodeType && modalNodeIndex >= 0 && (() => {
+                const modalData = modalNodeType === "storage" && storageEntries[modalNodeIndex]
+                    ? { type: "storage" as const, index: modalNodeIndex, entry: storageEntries[modalNodeIndex] }
+                    : modalNodeType === "input" && inputs[modalNodeIndex]
+                    ? { type: "input" as const, index: modalNodeIndex, entry: inputs[modalNodeIndex] }
+                    : modalNodeType === "deliverable" && deliverables[modalNodeIndex]
+                    ? { type: "deliverable" as const, index: modalNodeIndex, entry: deliverables[modalNodeIndex] }
+                    : null;
+                if (!modalData) return null;
+
+                // ── Unified navigation: Storage → Inputs → Deliverables → Steps ──
+                const totalAll = storageEntries.length + inputs.length + deliverables.length + steps.length;
+                const globalPos = modalNodeType === "storage"
+                    ? modalNodeIndex + 1
+                    : modalNodeType === "input"
+                    ? storageEntries.length + modalNodeIndex + 1
+                    : storageEntries.length + inputs.length + modalNodeIndex + 1;
+
+                const nodeLabel = modalNodeType === "storage" ? "Storage"
+                    : modalNodeType === "input" ? "Input"
+                    : "Deliverable";
+
+                const handleNodePrev = () => {
+                    // Move within current type
+                    if (modalNodeIndex > 0) {
+                        setModalNodeIndex(modalNodeIndex - 1);
+                        return;
+                    }
+                    // Cross into previous type
+                    if (modalNodeType === "deliverable") {
+                        if (inputs.length > 0) { setModalNodeType("input"); setModalNodeIndex(inputs.length - 1); }
+                        else if (storageEntries.length > 0) { setModalNodeType("storage"); setModalNodeIndex(storageEntries.length - 1); }
+                    } else if (modalNodeType === "input") {
+                        if (storageEntries.length > 0) { setModalNodeType("storage"); setModalNodeIndex(storageEntries.length - 1); }
+                    }
+                    // storage at index 0 — no prev (left arrow hidden)
+                };
+
+                const handleNodeNext = () => {
+                    // Move within current type
+                    const maxIdx = modalNodeType === "storage" ? storageEntries.length - 1
+                        : modalNodeType === "input" ? inputs.length - 1
+                        : deliverables.length - 1;
+                    if (modalNodeIndex < maxIdx) {
+                        setModalNodeIndex(modalNodeIndex + 1);
+                        return;
+                    }
+                    // Cross into next type or steps
+                    if (modalNodeType === "storage") {
+                        if (inputs.length > 0) { setModalNodeType("input"); setModalNodeIndex(0); }
+                        else if (deliverables.length > 0) { setModalNodeType("deliverable"); setModalNodeIndex(0); }
+                        else if (steps.length > 0) { handleCloseNodeModal(); setModalStepId(steps[0].id); }
+                    } else if (modalNodeType === "input") {
+                        if (deliverables.length > 0) { setModalNodeType("deliverable"); setModalNodeIndex(0); }
+                        else if (steps.length > 0) { handleCloseNodeModal(); setModalStepId(steps[0].id); }
+                    } else if (modalNodeType === "deliverable") {
+                        if (steps.length > 0) { handleCloseNodeModal(); setModalStepId(steps[0].id); }
+                    }
+                };
+
+                // Determine if prev/next exist
+                const hasPrev = !(modalNodeType === "storage" && modalNodeIndex === 0)
+                    && !(modalNodeType === "input" && modalNodeIndex === 0 && storageEntries.length === 0)
+                    && !(modalNodeType === "deliverable" && modalNodeIndex === 0 && inputs.length === 0 && storageEntries.length === 0);
+
+                const isLastInType = modalNodeType === "storage" ? modalNodeIndex >= storageEntries.length - 1
+                    : modalNodeType === "input" ? modalNodeIndex >= inputs.length - 1
+                    : modalNodeIndex >= deliverables.length - 1;
+                const hasNextType = modalNodeType === "storage" ? (inputs.length > 0 || deliverables.length > 0 || steps.length > 0)
+                    : modalNodeType === "input" ? (deliverables.length > 0 || steps.length > 0)
+                    : steps.length > 0;
+                const hasNext = !isLastInType || hasNextType;
+
+                return (
+                    <NodeEditModal
+                        data={modalData}
+                        isOpen
+                        onClose={handleCloseNodeModal}
+                        onPrev={hasPrev ? handleNodePrev : undefined}
+                        onNext={hasNext ? handleNodeNext : undefined}
+                        position={`${nodeLabel} ${modalNodeIndex + 1} \u2022 ${globalPos} / ${totalAll}`}
+                        onUpdateStorage={updateStorageEntry}
+                        onUpdateInput={updateInput}
+                        onUpdateDeliverable={updateDeliverable}
                     />
                 );
             })()}

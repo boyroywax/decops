@@ -39,6 +39,8 @@ export interface StudioAPI {
     updateStepPostCondition: (stepId: string, condition: string) => void;
     updateStepPosition: (stepId: string, x: number, y: number) => void;
     addParallelGroup: () => string;
+    /** Re-parent a step (move it to a different parent). Set asGroupChild=true for parallel group membership. */
+    reparentStep: (stepId: string, newParentId: string | null, asGroupChild?: boolean) => void;
     updateStepOutputMappings: (stepId: string, mappings: OutputMapping[]) => void;
     updateStepInputBindings: (stepId: string, bindings: Record<string, InputBinding>) => void;
     updateStepModel: (stepId: string, modelId: string | undefined) => void;

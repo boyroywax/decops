@@ -218,21 +218,51 @@ export function useJobExecutor({
                         },
                     };
 
-                    /** Recursively resolve $storage.key, $deliverable.key, and $input.name references in step args */
+                    /** Recursively resolve $storage.key, $deliverable.key, and $input.name references in step args.
+                     *  - Whole-string references (e.g. "$storage.key") return the raw stored value (may be object/array).
+                     *  - Embedded references within a larger string are interpolated in-place as strings.
+                     */
                     const resolveRefs = (value: any): any => {
                         if (typeof value === 'string') {
-                            if (value.startsWith('$storage.')) {
+                            // Whole-string exact match → return raw value (preserves non-string types)
+                            if (value.startsWith('$storage.') && !value.includes('\n') && !value.includes(' ')) {
                                 const key = value.slice('$storage.'.length);
-                                return key in jobStorage ? jobStorage[key] : value;
+                                if (key in jobStorage) return jobStorage[key];
                             }
-                            if (value.startsWith('$deliverable.')) {
+                            if (value.startsWith('$deliverable.') && !value.includes('\n') && !value.includes(' ')) {
                                 const key = value.slice('$deliverable.'.length);
-                                return key in deliverableContents ? deliverableContents[key] : value;
+                                if (key in deliverableContents) return deliverableContents[key];
                             }
-                            if (value.startsWith('$input.')) {
+                            if (value.startsWith('$input.') && !value.includes('\n') && !value.includes(' ')) {
                                 const key = value.slice('$input.'.length);
-                                return key in inputMap ? inputMap[key] : value;
+                                if (key in inputMap) return inputMap[key];
                             }
+
+                            // Inline interpolation — replace all $storage.xxx / $deliverable.xxx / $input.xxx
+                            // occurrences embedded in a larger string
+                            let resolved = value;
+                            resolved = resolved.replace(/\$storage\.([A-Za-z0-9_]+)/g, (_match, key) => {
+                                if (key in jobStorage) {
+                                    const v = jobStorage[key];
+                                    return typeof v === 'string' ? v : JSON.stringify(v);
+                                }
+                                return _match; // leave unresolved refs intact
+                            });
+                            resolved = resolved.replace(/\$deliverable\.([A-Za-z0-9_]+)/g, (_match, key) => {
+                                if (key in deliverableContents) {
+                                    const v = deliverableContents[key];
+                                    return typeof v === 'string' ? v : JSON.stringify(v);
+                                }
+                                return _match;
+                            });
+                            resolved = resolved.replace(/\$input\.([A-Za-z0-9_]+)/g, (_match, key) => {
+                                if (key in inputMap) {
+                                    const v = inputMap[key];
+                                    return typeof v === 'string' ? v : JSON.stringify(v);
+                                }
+                                return _match;
+                            });
+                            return resolved;
                         }
                         if (Array.isArray(value)) return value.map(resolveRefs);
                         if (value && typeof value === 'object') {
@@ -463,6 +493,112 @@ export function useJobExecutor({
                             }
 
                             finalResult = "All steps completed";
+                        } else if (queuedJob.mode === "mixed" && queuedJob.parallelGroups && queuedJob.parallelGroups.length > 0) {
+                            // ═══ MIXED MODE: serial chain + parallel groups ═══
+                            const steps = [...queuedJob.steps];
+                            const groups: Array<{ id: string; label: string; stepIds: string[] }> = queuedJob.parallelGroups;
+                            const groupChildIds = new Set<string>();
+                            const stepToGroup = new Map<string, string>();
+                            for (const g of groups) {
+                                for (const sid of g.stepIds) {
+                                    groupChildIds.add(sid);
+                                    stepToGroup.set(sid, g.id);
+                                }
+                            }
+
+                            // Build serialOrder: step IDs and group IDs in execution order
+                            const insertedGroups = new Set<string>();
+                            const serialOrder: string[] = [];
+                            for (const s of steps) {
+                                if (groupChildIds.has(s.id)) {
+                                    const gid = stepToGroup.get(s.id)!;
+                                    if (!insertedGroups.has(gid)) {
+                                        insertedGroups.add(gid);
+                                        serialOrder.push(gid); // group placeholder
+                                    }
+                                } else {
+                                    serialOrder.push(s.id);
+                                }
+                            }
+
+                            // Helper: execute a single step by ID, update its status in the `steps` array
+                            const executeStep = async (stepId: string): Promise<{ status: string; result?: string; error?: string }> => {
+                                const idx = steps.findIndex(s => s.id === stepId);
+                                if (idx < 0) return { status: 'failed', error: `Step ${stepId} not found` };
+                                const step = steps[idx];
+
+                                // Condition check
+                                if (step.condition) {
+                                    try {
+                                        const stepMap = steps.reduce((acc: any, s: any) => { acc[s.id] = s; if (s.name) acc[s.name] = s; return acc; }, {});
+                                        const fn = new Function('steps', 'context', `return ${step.condition}`);
+                                        if (!fn(stepMap, context)) {
+                                            steps[idx] = { ...steps[idx], status: 'skipped', result: 'Condition not met' };
+                                            if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                            return { status: 'skipped' };
+                                        }
+                                    } catch { /* condition eval failed — continue */ }
+                                }
+
+                                // Mark running
+                                steps[idx] = { ...steps[idx], status: 'running' };
+                                if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+
+                                try {
+                                    const boundArgs = { ...step.args };
+                                    if (step.inputBindings) {
+                                        for (const [argKey, binding] of Object.entries(step.inputBindings as Record<string, { source: string; sourceKey: string }>)) {
+                                            if (binding.source === 'storage' && binding.sourceKey in jobStorage) boundArgs[argKey] = jobStorage[binding.sourceKey];
+                                            else if (binding.source === 'deliverable' && binding.sourceKey in deliverableContents) boundArgs[argKey] = deliverableContents[binding.sourceKey];
+                                        }
+                                    }
+                                    const resolvedArgs = resolveRefs(boundArgs);
+                                    const stepCtx = getStepContext(step);
+                                    const res = await registry.execute(step.commandId, resolvedArgs, stepCtx);
+                                    const resultStr = typeof res === 'string' ? res : JSON.stringify(res);
+                                    steps[idx] = { ...steps[idx], status: 'completed', result: resultStr };
+
+                                    // Output mappings
+                                    if (step.outputMappings && res != null) {
+                                        for (const mapping of step.outputMappings) {
+                                            const outputValue = mapping.outputKey === '*' ? res : (typeof res === 'object' ? res[mapping.outputKey] : res);
+                                            if (mapping.target === 'storage' && mapping.targetKey) jobStorage[mapping.targetKey] = outputValue;
+                                            else if (mapping.target === 'deliverable' && mapping.targetKey) {
+                                                context.addDeliverable({ key: mapping.targetKey, name: mapping.targetKey, type: typeof outputValue === 'string' ? 'markdown' : 'json', content: typeof outputValue === 'string' ? outputValue : JSON.stringify(outputValue, null, 2) });
+                                            }
+                                        }
+                                    }
+                                    if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                    return { status: 'completed', result: resultStr };
+                                } catch (e: any) {
+                                    steps[idx] = { ...steps[idx], status: 'failed', result: e.message };
+                                    if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                    return { status: 'failed', error: e.message };
+                                }
+                            };
+
+                            // Walk the serial order
+                            let mixedFailed = false;
+                            for (const nodeId of serialOrder) {
+                                if (mixedFailed) break;
+                                const group = groups.find(g => g.id === nodeId);
+                                if (group) {
+                                    // Run all group children in parallel
+                                    const childResults = await Promise.all(group.stepIds.map(sid => executeStep(sid)));
+                                    if (childResults.some(r => r.status === 'failed')) {
+                                        mixedFailed = true;
+                                    }
+                                } else {
+                                    // Serial step
+                                    const result = await executeStep(nodeId);
+                                    if (result.status === 'failed') {
+                                        mixedFailed = true;
+                                    }
+                                }
+                            }
+
+                            if (mixedFailed) throw new Error("One or more steps failed");
+                            finalResult = "Sequence completed";
                         } else {
                             // Serial - We can update incrementally safely!
                             const steps = [...queuedJob.steps];

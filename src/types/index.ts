@@ -616,12 +616,21 @@ export type InputSource =
   | { kind: "hardcoded"; value: string }                                // Literal value
   | { kind: "artifact";  artifactId?: string; tag?: string };           // Workspace artifact
 
-/** A named entity input that maps a friendly name to an entity ID */
+/** A named entity input that maps a friendly name to an entity ID or user-provided value */
 export interface EntityInput {
   name: string;         // Reference name (e.g. "Scout", "DataChannel") — used as $input.name
-  type: "agent" | "channel" | "group" | "network"; // Entity type for picker filtering
-  entityId: string;     // Resolved entity ID from the workspace
+  type: "agent" | "channel" | "group" | "network" | "text" | "number_range" | "list"; // Input type
+  entityId: string;     // Resolved entity ID (workspace entities) or literal value (text/number_range/list)
   source?: InputSource; // How this input resolves its value (default: hardcoded via entityId)
+  // ── text config ──
+  placeholder?: string; // Placeholder text shown for text inputs
+  // ── number_range config ──
+  min?: number;         // Minimum value for number_range
+  max?: number;         // Maximum value for number_range
+  step?: number;        // Step increment for number_range (default: 1)
+  // ── list config ──
+  options?: string[];   // Available options for list type
+  multiSelect?: boolean;// If true, allow multiple selections (entityId stores comma-separated values)
 }
 
 /**
@@ -748,7 +757,7 @@ export type JobRequest =
   | { type: "create_network"; request: CreateNetworkRequest }
   | { type: "reset_workspace"; request: ResetWorkspaceRequest }
   // Fallback for dynamic/other jobs
-  | { type: string; request: Record<string, any>; steps?: JobStep[]; mode?: 'serial' | 'parallel' | 'mixed' };
+  | { type: string; request: Record<string, any>; steps?: JobStep[]; mode?: 'serial' | 'parallel' | 'mixed'; parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }> };
 
 export interface Job {
   id: string;
@@ -772,6 +781,9 @@ export interface Job {
   storage?: Record<string, any>;
   deliverables?: JobDeliverable[];
   inputs?: EntityInput[];                  // Named entity inputs for $input.name resolution
+
+  /** Parallel group definitions for mixed-mode jobs */
+  parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>;
 
   /** When true, the job executor validates without executing — produces a dry-run report */
   dryRun?: boolean;

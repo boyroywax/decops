@@ -55,7 +55,6 @@
   display: flex;
   flex-direction: column;
   transition: all var(--transition-base);
-  overflow: hidden;
 }
 
 .job-catalog__card:hover {

@@ -134,9 +134,12 @@ export class CommandRegistry {
                 }
             }
 
-            // Type check (basic)
+            // Type coercion & check (basic)
+            // Storage/deliverable refs may resolve to objects — coerce to string when arg expects string
             if (value !== undefined && value !== null) {
-                if (argDef.type === 'string' && typeof value !== 'string') throw new Error(`Argument ${argName} must be a string`);
+                if (argDef.type === 'string' && typeof value !== 'string') {
+                    (args as any)[argName] = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+                }
                 if (argDef.type === 'number' && typeof value !== 'number') throw new Error(`Argument ${argName} must be a number`);
                 if (argDef.type === 'boolean' && typeof value !== 'boolean') throw new Error(`Argument ${argName} must be a boolean`);
                 if (argDef.type === 'array' && !Array.isArray(value)) throw new Error(`Argument ${argName} must be an array`);

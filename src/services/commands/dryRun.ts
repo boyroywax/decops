@@ -108,7 +108,7 @@ function getEntityCollection(argType: string, context: any): any[] | undefined {
   }
 }
 
-/** Find $storage, $deliverable, $input references in args */
+/** Find $storage, $deliverable, $input references in args (both whole-string and embedded) */
 function findUnresolvedRefs(
   args: Record<string, any>,
   storage: Record<string, any>,
@@ -119,17 +119,37 @@ function findUnresolvedRefs(
 
   const check = (val: any) => {
     if (typeof val === "string") {
-      if (val.startsWith("$storage.")) {
+      // Check whole-string refs
+      if (val.startsWith("$storage.") && !val.includes('\n') && !val.includes(' ')) {
         const key = val.slice("$storage.".length);
         if (!(key in storage)) unresolved.push(val);
+        return;
       }
-      if (val.startsWith("$deliverable.")) {
+      if (val.startsWith("$deliverable.") && !val.includes('\n') && !val.includes(' ')) {
         const key = val.slice("$deliverable.".length);
         if (!(key in deliverables)) unresolved.push(val);
+        return;
       }
-      if (val.startsWith("$input.")) {
+      if (val.startsWith("$input.") && !val.includes('\n') && !val.includes(' ')) {
         const key = val.slice("$input.".length);
         if (!(key in inputs)) unresolved.push(val);
+        return;
+      }
+      // Check embedded refs within larger strings
+      const storageRefs = val.match(/\$storage\.([A-Za-z0-9_]+)/g) || [];
+      for (const ref of storageRefs) {
+        const key = ref.slice("$storage.".length);
+        if (!(key in storage)) unresolved.push(ref);
+      }
+      const delivRefs = val.match(/\$deliverable\.([A-Za-z0-9_]+)/g) || [];
+      for (const ref of delivRefs) {
+        const key = ref.slice("$deliverable.".length);
+        if (!(key in deliverables)) unresolved.push(ref);
+      }
+      const inputRefs = val.match(/\$input\.([A-Za-z0-9_]+)/g) || [];
+      for (const ref of inputRefs) {
+        const key = ref.slice("$input.".length);
+        if (!(key in inputs)) unresolved.push(ref);
       }
     } else if (Array.isArray(val)) {
       val.forEach(check);

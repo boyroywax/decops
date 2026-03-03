@@ -309,7 +309,7 @@ export const studioAddInputCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: {
         name: { name: "name", type: "string", description: "Friendly name for the entity input (used as $input.name)", required: true },
-        type: { name: "type", type: "string", description: "Entity type", required: true, enum: ["agent", "channel", "group", "network"] },
+        type: { name: "type", type: "string", description: "Input type — workspace entity or value type", required: true, enum: ["agent", "channel", "group", "network", "text", "number_range", "list"] },
         entityId: { name: "entityId", type: "string", description: "The entity ID to map to", required: false, defaultValue: "" },
     },
     output: "Added entity input",
@@ -345,7 +345,7 @@ export const studioUpdateInputCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: {
         index: { name: "index", type: "number", description: "Index of the input to update (0-based)", required: true },
-        field: { name: "field", type: "string", description: "Field to update", required: true, enum: ["name", "type", "entityId"] },
+        field: { name: "field", type: "string", description: "Field to update", required: true, enum: ["name", "type", "entityId", "placeholder", "min", "max", "step", "options", "multiSelect"] },
         value: { name: "value", type: "string", description: "New value for the field", required: true },
     },
     output: "Updated input",
@@ -517,6 +517,14 @@ export const studioCreateJobCommand: CommandDefinition = {
             // Set output mappings
             if (stepDef.outputMappings) {
                 studio.updateStepOutputMappings(stepId, stepDef.outputMappings);
+            }
+
+            // Assign to parallel group if specified
+            if (stepDef.parallelGroup !== undefined && typeof stepDef.parallelGroup === "number") {
+                const gid = groupIds[stepDef.parallelGroup];
+                if (gid) {
+                    studio.reparentStep(stepId, gid, true);
+                }
             }
         }
 

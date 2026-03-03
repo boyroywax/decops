@@ -1779,11 +1779,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  backdrop-filter: blur(4px);
 }
 
 .jm-catalog-modal {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  background: var(--bg-modal, #0f0f14);
+  border: 1px solid var(--border-medium, rgba(255, 255, 255, 0.08));
   border-radius: var(--radius-2xl);
   width: 90%;
   max-width: 600px;
@@ -1791,6 +1792,9 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
 }
 
 .jm-catalog-modal__header {
@@ -1810,20 +1814,37 @@
 
 .jm-catalog-modal__close {
   background: none;
-  border: none;
+  border: 1px solid var(--border-subtle);
   cursor: pointer;
   color: var(--text-ghost);
   padding: 4px;
   border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
 }
 .jm-catalog-modal__close:hover {
   color: var(--text-primary);
+  background: var(--bg-surface-hover);
+  border-color: var(--border-default);
 }
 
 .jm-catalog-modal__body {
   flex: 1;
   overflow-y: auto;
   padding: var(--space-lg);
+}
+
+.jm-catalog-modal__body::-webkit-scrollbar {
+  width: 5px;
+}
+.jm-catalog-modal__body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+.jm-catalog-modal__body::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .jm-catalog-modal__item {
@@ -1834,9 +1855,11 @@
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all var(--transition-base);
+  border: 1px solid transparent;
 }
 .jm-catalog-modal__item:hover {
   background: var(--bg-surface-hover);
+  border-color: var(--border-subtle);
 }
 .jm-catalog-modal__item-info {
   flex: 1;
@@ -1856,4 +1879,70 @@
 .jm-catalog-modal__item-actions {
   display: flex;
   gap: var(--space-xs);
+}
+
+/* ── Light theme — catalog modal ── */
+[data-theme="light"] .jm-catalog-overlay {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="light"] .jm-catalog-modal {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .jm-catalog-modal__close {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .jm-catalog-modal__close:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .jm-catalog-modal__item:hover {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .jm-catalog-modal__body::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* ── Solar theme — catalog modal ── */
+[data-theme="solar"] .jm-catalog-overlay {
+  background: rgba(60, 40, 10, 0.25);
+}
+
+[data-theme="solar"] .jm-catalog-modal {
+  background: var(--bg-modal, #fefaf0);
+  border-color: rgba(120, 80, 20, 0.18);
+  box-shadow:
+    0 16px 48px rgba(80, 50, 10, 0.12),
+    0 0 0 1px rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .jm-catalog-modal__header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .jm-catalog-modal__close {
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .jm-catalog-modal__close:hover {
+  background: rgba(120, 80, 20, 0.08);
+  border-color: rgba(120, 80, 20, 0.2);
+}
+
+[data-theme="solar"] .jm-catalog-modal__item:hover {
+  background: rgba(120, 80, 20, 0.06);
+  border-color: rgba(120, 80, 20, 0.1);
+}
+
+[data-theme="solar"] .jm-catalog-modal__body::-webkit-scrollbar-thumb {
+  background: rgba(120, 80, 20, 0.12);
 }

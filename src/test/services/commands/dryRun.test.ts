@@ -266,6 +266,39 @@ describe('dryRunJob', () => {
         expect(result.unresolvedRefs).toContain('$storage.missing_key');
     });
 
+    it('detects embedded $storage refs in larger strings', () => {
+        const steps = [
+            {
+                id: 's1',
+                commandId: 'test_cmd',
+                args: { name: '# Report\n$storage.section_a\n$storage.section_b' },
+            },
+        ];
+        const result = dryRunJob(steps, 'serial', getCmd, ctx);
+        expect(result.unresolvedRefs).toContain('$storage.section_a');
+        expect(result.unresolvedRefs).toContain('$storage.section_b');
+    });
+
+    it('does not flag embedded refs when storage key exists via output mappings', () => {
+        const steps = [
+            {
+                id: 's1',
+                commandId: 'test_cmd',
+                args: { name: 'step1' },
+                outputMappings: [
+                    { outputKey: '*', target: 'storage' as const, targetKey: 'data_a' },
+                ],
+            },
+            {
+                id: 's2',
+                commandId: 'test_cmd',
+                args: { name: 'Combined: $storage.data_a and more text' },
+            },
+        ];
+        const result = dryRunJob(steps, 'serial', getCmd, ctx);
+        expect(result.unresolvedRefs).not.toContain('$storage.data_a');
+    });
+
     it('provides aggregate check counts', () => {
         const steps = [
             { id: 's1', commandId: 'test_cmd', args: { name: 'ok' } },
