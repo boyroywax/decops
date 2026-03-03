@@ -4,39 +4,12 @@ import { JobNode } from "./JobNode";
 import type { StudioStep, SelectedElement, AnchorSide } from "../views/StudioView";
 import { isParallelGroup, PARALLEL_GROUP_CMD } from "../views/StudioView";
 import type { JobDeliverable, EntityInput } from "../../types";
-
-const NODE_WIDTH = 240;
-const NODE_HEIGHT = 140;
-const DELIV_WIDTH = 180;
-const DELIV_HEIGHT = 70;
-const STORAGE_WIDTH = 160;
-const STORAGE_HEIGHT = 56;
-const INPUT_WIDTH = 170;
-const INPUT_HEIGHT = 72;
-
-const ANCHOR_ORDER: AnchorSide[] = ["right", "bottom", "left", "top"];
-
-function nextAnchor(current: AnchorSide | undefined): AnchorSide {
-    const idx = ANCHOR_ORDER.indexOf(current || "right");
-    return ANCHOR_ORDER[(idx + 1) % ANCHOR_ORDER.length];
-}
-
-/** Compute the (x,y) point on a node's edge for a given anchor side. */
-function anchorPoint(nodeX: number, nodeY: number, w: number, h: number, side: AnchorSide): { x: number; y: number } {
-    switch (side) {
-        case "top":    return { x: nodeX + w / 2, y: nodeY };
-        case "bottom": return { x: nodeX + w / 2, y: nodeY + h };
-        case "left":   return { x: nodeX,         y: nodeY + h / 2 };
-        case "right":  return { x: nodeX + w,      y: nodeY + h / 2 };
-    }
-}
-
-function rectsIntersect(
-    a: { x: number; y: number; w: number; h: number },
-    b: { x: number; y: number; w: number; h: number },
-): boolean {
-    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-}
+import {
+    NODE_WIDTH, NODE_HEIGHT, DELIV_WIDTH, DELIV_HEIGHT,
+    STORAGE_WIDTH, STORAGE_HEIGHT, INPUT_WIDTH, INPUT_HEIGHT,
+    nextAnchor, rectsIntersect,
+} from "./canvasGeometry";
+import { computeCanvasLayout } from "./canvasConnectors";
 
 interface JobCanvasProps {
     steps: StudioStep[];
@@ -288,170 +261,19 @@ export function JobCanvas({
         }
     }, [onDeleteSelected, onSelect]);
 
-    // ── Pre-compute parallel-group bounding boxes ──
-    const groupBounds = new Map<string, { x: number; y: number; w: number; h: number }>();
-    for (const group of steps.filter(s => isParallelGroup(s))) {
-        const children = steps.filter(s => s.parentId === group.id && s.isGroupChild);
-        const padding = 24;
-        const headerH = 34;
-        if (children.length > 0) {
-            const minX = Math.min(...children.map(c => c.x));
-            const maxX = Math.max(...children.map(c => c.x + NODE_WIDTH));
-            const minY = Math.min(...children.map(c => c.y));
-            const maxY = Math.max(...children.map(c => c.y + NODE_HEIGHT));
-            groupBounds.set(group.id, {
-                x: minX - padding,
-                y: minY - padding - headerH,
-                w: Math.max(300, maxX - minX + NODE_WIDTH + padding * 2),
-                h: maxY - minY + NODE_HEIGHT + padding * 2 + headerH,
-            });
-        } else {
-            groupBounds.set(group.id, { x: group.x, y: group.y, w: 300, h: headerH + padding * 2 });
-        }
-    }
-
-    // ── Build graph-based connectors from parentId ──
-    const connectors = steps
-        .filter(s => s.parentId !== null)
-        .filter(s => {
-            // Skip children of parallel groups — they're visually inside the container
-            // Serial successors of a group (isGroupChild=false) DO get connectors
-            const parent = steps.find(p => p.id === s.parentId);
-            return parent && !(isParallelGroup(parent) && s.isGroupChild);
-        })
-        .map(step => {
-            const parent = steps.find(p => p.id === step.parentId);
-            if (!parent) return null;
-            const isGroupStep = isParallelGroup(step);
-
-            // Determine anchor sides from step properties
-            const outSide: AnchorSide = parent.connectorOut || "right";
-
-            let from: { x: number; y: number };
-            let to: { x: number; y: number };
-
-            const parentIsGroup = isParallelGroup(parent);
-
-            if (isGroupStep) {
-                // Connect from parent node's outgoing anchor to the parallel container edge
-                from = anchorPoint(parent.x, parent.y, NODE_WIDTH, NODE_HEIGHT, outSide);
-                const bounds = groupBounds.get(step.id);
-                if (bounds) {
-                    const inSide: AnchorSide = step.connectorIn || (outSide === "right" ? "left" : outSide === "bottom" ? "top" : outSide === "left" ? "right" : "bottom");
-                    to = anchorPoint(bounds.x, bounds.y, bounds.w, bounds.h, inSide);
-                } else {
-                    to = anchorPoint(step.x, step.y, NODE_WIDTH, NODE_HEIGHT, step.connectorIn || "left");
-                }
-            } else if (parentIsGroup) {
-                // Serial successor OF a group — connect from the group bounds outgoing edge
-                const parentBounds = groupBounds.get(parent.id);
-                if (parentBounds) {
-                    from = anchorPoint(parentBounds.x, parentBounds.y, parentBounds.w, parentBounds.h, outSide);
-                } else {
-                    from = anchorPoint(parent.x, parent.y, NODE_WIDTH, NODE_HEIGHT, outSide);
-                }
-                const inSide: AnchorSide = step.connectorIn || (outSide === "right" ? "left" : outSide === "bottom" ? "top" : outSide === "left" ? "right" : "bottom");
-                to = anchorPoint(step.x, step.y, NODE_WIDTH, NODE_HEIGHT, inSide);
-            } else {
-                from = anchorPoint(parent.x, parent.y, NODE_WIDTH, NODE_HEIGHT, outSide);
-                const inSide: AnchorSide = step.connectorIn || (outSide === "right" ? "left" : outSide === "bottom" ? "top" : outSide === "left" ? "right" : "bottom");
-                to = anchorPoint(step.x, step.y, NODE_WIDTH, NODE_HEIGHT, inSide);
-            }
-
-            const isVertical = outSide === "top" || outSide === "bottom";
-
-            return {
-                key: `${parent.id}-${step.id}`,
-                from,
-                to,
-                mid: { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 },
-                isParallel: false,  // unified styling now
-                isVertical,
-                parentId: parent.id,
-            };
-        })
-        .filter(Boolean) as Array<{
-            key: string;
-            from: { x: number; y: number };
-            to: { x: number; y: number };
-            mid: { x: number; y: number };
-            isParallel: boolean;
-            isVertical: boolean;
-            parentId: string;
-        }>;
-
-    // ── Leaf steps (steps with no children) for deliverable connections ──
-    const idsBeingParent = new Set(steps.filter(s => s.parentId !== null).map(s => s.parentId!));
-    const leafSteps = steps.filter(s => !idsBeingParent.has(s.id) && !isParallelGroup(s));
-    const leafMaxX = leafSteps.length > 0 ? Math.max(...leafSteps.map(s => s.x + NODE_WIDTH)) : 60;
-    const leafAvgY = leafSteps.length > 0
-        ? leafSteps.reduce((sum, s) => sum + s.y, 0) / leafSteps.length + NODE_HEIGHT / 2
-        : 80;
-
-    // ── Deliverable positions (custom override or auto-computed) ──
-    const delivStartX = steps.length > 0 ? leafMaxX + 120 : 400;
-    const delivBlockHeight = deliverables.length * (DELIV_HEIGHT + 12) - 12;
-    const delivStartY = Math.max(20, leafAvgY - delivBlockHeight / 2);
-    const delivPositions = deliverables.map((_, i) =>
-        deliverableNodePositions?.[i] ?? { x: delivStartX, y: delivStartY + i * (DELIV_HEIGHT + 12) }
-    );
-
-    // ── Storage positions (custom override or auto-computed) ──
-    const storageStartX = 60;
-    const storagePositions = storageEntries.map((_, i) =>
-        storageNodePositions?.[i] ?? { x: storageStartX + i * (STORAGE_WIDTH + 16), y: 10 }
-    );
-
-    // ── Input positions (custom override or auto-computed) ──
-    const inputStartX = storageEntries.length > 0
-        ? storageStartX + storageEntries.length * (STORAGE_WIDTH + 16) + 24
-        : 60;
-    const inputPositions = inputs.map((_, i) =>
-        inputNodePositions?.[i] ?? { x: inputStartX + i * (INPUT_WIDTH + 16), y: 10 }
+    // ── Compute all layout: group bounds, connectors, positions, canvas extents ──
+    const {
+        groupBounds, connectors, leafSteps,
+        delivPositions, storagePositions, inputPositions,
+        delivConnectors, storageConnectors, inputConnectors,
+        maxX, maxY,
+    } = computeCanvasLayout(
+        steps, deliverables, storageEntries, inputs,
+        deliverableNodePositions, storageNodePositions, inputNodePositions,
     );
 
     // Update ref for marquee intersection checks
     marqueeDataRef.current = { steps, delivPositions, storagePositions, inputPositions };
-
-    // ── Canvas bounds ──
-    const allXs = [800, ...steps.map(s => s.x + NODE_WIDTH + 100), ...delivPositions.map(p => p.x + DELIV_WIDTH + 60), ...inputPositions.map(p => p.x + INPUT_WIDTH + 60), ...storagePositions.map(p => p.x + STORAGE_WIDTH + 60)];
-    const allYs = [400, ...steps.map(s => s.y + NODE_HEIGHT + 100), ...delivPositions.map(p => p.y + DELIV_HEIGHT + 60), ...storagePositions.map(p => p.y + STORAGE_HEIGHT + 60), ...inputPositions.map(p => p.y + INPUT_HEIGHT + 60)];
-    const maxX = Math.max(...allXs);
-    const maxY = Math.max(...allYs);
-
-    // ── Deliverable connectors (leaf steps → deliverable nodes) ──
-    const delivConnectors = deliverables.flatMap((_, di) => {
-        const dp = delivPositions[di];
-        if (!dp) return [];
-        return leafSteps.map(leaf => ({
-            key: `deliv-${leaf.id}-${di}`,
-            from: { x: leaf.x + NODE_WIDTH, y: leaf.y + NODE_HEIGHT / 2 },
-            to: { x: dp.x, y: dp.y + DELIV_HEIGHT / 2 },
-        }));
-    });
-
-    // ── Storage connectors (storage → first root step) ──
-    const rootSteps = steps.filter(s => s.parentId === null && !isParallelGroup(s));
-    const storageConnectors = storageEntries.flatMap((_, si) => {
-        const sp = storagePositions[si];
-        if (!sp) return [];
-        return rootSteps.slice(0, 1).map(rs => ({
-            key: `storage-${si}-${rs.id}`,
-            from: { x: sp.x + STORAGE_WIDTH / 2, y: sp.y + STORAGE_HEIGHT },
-            to: { x: rs.x + NODE_WIDTH / 2, y: rs.y },
-        }));
-    });
-
-    // ── Input connectors (input → first root step) ──
-    const inputConnectors = inputs.flatMap((_, ii) => {
-        const ip = inputPositions[ii];
-        if (!ip) return [];
-        return rootSteps.slice(0, 1).map(rs => ({
-            key: `input-${ii}-${rs.id}`,
-            from: { x: ip.x + INPUT_WIDTH / 2, y: ip.y + INPUT_HEIGHT },
-            to: { x: rs.x + NODE_WIDTH / 2, y: rs.y },
-        }));
-    });
 
     if (steps.length === 0 && deliverables.length === 0 && storageEntries.length === 0 && inputs.length === 0) {
         return (

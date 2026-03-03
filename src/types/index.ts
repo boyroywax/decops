@@ -1,4 +1,7 @@
 import type React from "react";
+import type { AieosEntity } from "./aieos";
+import type { MeshConfig } from "./mesh";
+import type { Job, JobArtifact, JobStep } from "./jobs";
 
 export type RoleId = "researcher" | "builder" | "curator" | "validator" | "orchestrator";
 
@@ -140,131 +143,11 @@ export interface KeyPair {
 }
 
 // ── AIEOS v1.1.0 — AI Entity Object Specification ──
-
-export interface AieosSkill {
-  name: string;
-  description: string;
-  uri?: string;
-  version?: string;
-  auto_activate?: boolean;
-  priority?: number; // 1 (highest) – 10 (lowest)
-}
-
-export interface AieosIdentity {
-  names: { first: string; middle?: string; last?: string; nickname?: string };
-  bio?: { birthday?: string; age_biological?: number; age_perceived?: number; gender?: string };
-  origin?: { nationality?: string; ethnicity?: string; birthplace?: { city?: string; country?: string } };
-  residence?: { current_city?: string; current_country?: string; dwelling_type?: string };
-}
-
-export interface AieosPhysicality {
-  face?: {
-    shape?: string;
-    skin?: { tone?: string; texture?: string; details?: string[] };
-    eyes?: { color?: string; shape?: string; eyebrows?: string; corrective_lenses?: string };
-    hair?: { color?: string; style?: string; texture?: string };
-    facial_hair?: string;
-    nose?: string;
-    mouth?: string;
-    distinguishing_features?: string[];
-  };
-  body?: {
-    height_cm?: number;
-    weight_kg?: number;
-    somatotype?: "Ectomorph" | "Mesomorph" | "Endomorph" | string;
-    build_description?: string;
-    posture?: string;
-    scars_tattoos?: string[];
-  };
-  style?: {
-    aesthetic_archetype?: string;
-    clothing_preferences?: string[];
-    accessories?: string[];
-    color_palette?: string[];
-  };
-  image_prompts?: { portrait?: string; full_body?: string };
-}
-
-export interface AieosPsychology {
-  neural_matrix?: {
-    creativity?: number; empathy?: number; logic?: number;
-    adaptability?: number; charisma?: number; reliability?: number;
-  };
-  traits?: {
-    ocean?: { openness?: number; conscientiousness?: number; extraversion?: number; agreeableness?: number; neuroticism?: number };
-    mbti?: string;
-    enneagram?: string;
-    temperament?: string;
-  };
-  moral_compass?: { alignment?: string; core_values?: string[]; conflict_resolution_style?: string };
-  mental_patterns?: { decision_making_style?: string; attention_span?: string; learning_style?: string };
-  emotional_profile?: {
-    base_mood?: string;
-    volatility?: number;
-    resilience?: string;
-    triggers?: { joy?: string[]; anger?: string[]; sadness?: string[] };
-  };
-  idiosyncrasies?: { phobias?: string[]; obsessions?: string[]; tics?: string[] };
-}
-
-export interface AieosLinguistics {
-  voice?: {
-    tts_config?: { provider?: string; voice_id?: string; stability?: number; similarity_boost?: number };
-    acoustics?: { pitch?: string; speed?: string; roughness?: number; breathiness?: number };
-    accent?: { region?: string; strength?: number };
-  };
-  text_style?: {
-    formality_level?: number;
-    verbosity_level?: number;
-    vocabulary_level?: string;
-    slang_usage?: boolean;
-    style_descriptors?: string[];
-  };
-  syntax?: { sentence_structure?: string; use_contractions?: boolean; active_passive_ratio?: number };
-  interaction?: { turn_taking?: string; dominance_score?: number; emotional_coloring?: string };
-  idiolect?: { catchphrases?: string[]; forbidden_words?: string[]; hesitation_markers?: boolean };
-}
-
-export interface AieosHistory {
-  origin_story?: string;
-  education?: { level?: string; field?: string; institution?: string; graduation_year?: number };
-  occupation?: { title?: string; industry?: string; years_experience?: number; previous_jobs?: string[] };
-  family?: { relationship_status?: string; parents?: string; siblings?: string; children?: string; pets?: string };
-  key_life_events?: Array<{ year?: number; event?: string; impact?: string }>;
-}
-
-export interface AieosInterests {
-  hobbies?: string[];
-  favorites?: { music_genre?: string; book?: string; movie?: string; color?: string; food?: string; season?: string };
-  aversions?: string[];
-  lifestyle?: { diet?: string; sleep_schedule?: string; digital_habits?: string };
-}
-
-export interface AieosMotivations {
-  core_drive?: string;
-  goals?: { short_term?: string[]; long_term?: string[] };
-  fears?: { rational?: string[]; irrational?: string[] };
-}
-
-/** AIEOS v1.1.0 — full entity object attached to an agent */
-export interface AieosEntity {
-  standard: { protocol: "AIEOS"; version: "1.1.0"; schema_url: string };
-  metadata: {
-    instance_id: string;
-    instance_version: string;
-    generator: string;
-    created_at: string;
-    last_updated: string;
-  };
-  capabilities?: { skills: AieosSkill[] };
-  identity?: AieosIdentity;
-  physicality?: AieosPhysicality;
-  psychology?: AieosPsychology;
-  linguistics?: AieosLinguistics;
-  history?: AieosHistory;
-  interests?: AieosInterests;
-  motivations?: AieosMotivations;
-}
+export type {
+  AieosSkill, AieosIdentity, AieosPhysicality, AieosPsychology,
+  AieosLinguistics, AieosHistory, AieosInterests, AieosMotivations,
+  AieosEntity,
+} from "./aieos";
 
 export interface Agent {
   id: string;
@@ -376,53 +259,11 @@ export interface DeployProgress {
   total: number;
 }
 
-export interface MeshConfig {
-  networks?: MeshConfigNetwork[];
-  agents: MeshConfigAgent[];
-  channels: MeshConfigChannel[];
-  groups: MeshConfigGroup[];
-  bridges?: MeshConfigBridge[];
-  exampleMessages: MeshConfigMessage[];
-}
-
-export interface MeshConfigNetwork {
-  name: string;
-  description?: string;
-  agents: number[]; // indices into agents array
-}
-
-export interface MeshConfigBridge {
-  fromNetwork: number; // index into networks array
-  toNetwork: number;
-  fromAgent: number; // index into agents array
-  toAgent: number;
-  type: string; // channel type
-}
-
-export interface MeshConfigAgent {
-  name: string;
-  role: string;
-  prompt: string;
-  network?: number; // index into networks array (alternative to MeshConfigNetwork.agents)
-}
-
-export interface MeshConfigChannel {
-  from: number;
-  to: number;
-  type: string;
-}
-
-export interface MeshConfigGroup {
-  name: string;
-  governance: string;
-  members: number[];
-  threshold: number;
-}
-
-export interface MeshConfigMessage {
-  channelIdx: number;
-  message: string;
-}
+// ── MeshConfig types ──
+export type {
+  MeshConfig, MeshConfigNetwork, MeshConfigBridge, MeshConfigAgent,
+  MeshConfigChannel, MeshConfigGroup, MeshConfigMessage,
+} from "./mesh";
 
 export interface NewAgentForm {
   name: string;
@@ -456,227 +297,20 @@ export interface BridgeForm {
   type: ChannelTypeId;
 }
 
-// Credebl / SSI Types
+// ── Credebl / SSI Types ──
+export type {
+  ApiResponse, DIDDocument, VerifiableCredential, CredentialOffer,
+  VerificationRequest, ProofRequest, Connection, Schema,
+  CredentialDefinition, EmailRegistrationCredential,
+  AgentType, OrgAgentConfig, EmailOTPRequest, EmailOTPVerification,
+} from "./ssi";
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: string;
-}
-
-export interface DIDDocument {
-  id: string;
-  controller: string;
-  verificationMethod: any[];
-  authentication: string[];
-  assertionMethod: string[];
-}
-
-export interface VerifiableCredential {
-  '@context': string[];
-  id: string;
-  type: string[];
-  issuer: { id: string; name?: string } | string;
-  issuanceDate: string;
-  credentialSubject: Record<string, any>;
-  proof?: any;
-}
-
-export interface CredentialOffer {
-  credentialRecordId?: string;
-  credentialDefinitionId: string;
-  attributes: { name: string; value: string }[];
-}
-
-export interface VerificationRequest {
-  proofRecordId?: string;
-  state: string;
-  presentationRequest?: any;
-}
-
-export interface ProofRequest {
-  name: string;
-  version: string;
-  attributes: Record<string, any>;
-}
-
-export interface Connection {
-  connectionId: string;
-  state: string;
-  theirDid: string;
-  theirLabel: string;
-}
-
-export interface Schema {
-  schemaId: string;
-  name: string;
-  version: string;
-  attributes: string[];
-}
-
-export interface CredentialDefinition {
-  credentialDefinitionId: string;
-  tag: string;
-  schemaId: string;
-}
-
-export interface EmailRegistrationCredential extends VerifiableCredential {
-  credentialSubject: {
-    id: string;
-    email: string;
-    registrationDate: string;
-    serviceName: string;
-    serviceProvider: string;
-    verifiedAt?: string;
-  };
-}
-
-export type AgentType = 'DEDICATED' | 'SHARED';
-
-export interface OrgAgentConfig {
-  orgId: string;
-  orgDid: string;
-  agentType: AgentType;
-  agentEndpoint: string;
-  tenantId?: string;
-  isActive: boolean;
-  ledger?: string;
-  network?: string;
-}
-
-export interface EmailOTPRequest {
-  email: string;
-}
-
-
-export interface EmailOTPVerification {
-  email: string;
-  otp: string;
-}
-
-// Job Queue Types
-
-export type JobStatus = "queued" | "running" | "completed" | "failed";
-
-export type ArtifactType = "markdown" | "json" | "yaml" | "csv" | "image" | "code" | "txt";
-
-export interface JobArtifact {
-  id: string;
-  type: ArtifactType;
-  content?: string; // Text content
-  url?: string; // URL for images or downloads
-  name: string;
-  tags?: string[];  // Tag-based organization (e.g. "type:json", "agent:alice", "network:alpha")
-  createdAt?: number;  // Unix timestamp
-  description?: string;  // Optional description
-  source?: "job" | "import" | "command" | "user";  // Where the artifact came from
-}
-
-export interface JobStep {
-  id: string;
-  commandId: string;
-  args: Record<string, any>;
-  name?: string;
-  status?: "pending" | "running" | "completed" | "failed" | "skipped";
-  result?: string;
-  condition?: string; // JS expression string
-  modelId?: string;  // LLM model override for this step (overrides command/global default)
-  outputMappings?: Array<{
-    outputKey: string;       // key from command outputSchema, or "*" for entire output
-    target: "storage" | "deliverable";
-    targetKey: string;       // storage key or deliverable key to write to
-  }>;
-  inputBindings?: Record<string, {
-    source: "storage" | "deliverable";
-    sourceKey: string;       // storage key or deliverable key to read from
-  }>;
-}
-
-/** A named deliverable the job is expected to produce */
-export interface JobDeliverable {
-  key: string;          // Unique key to reference this deliverable (e.g. "report", "result")
-  label: string;        // Human-readable label
-  type: ArtifactType;   // Expected artifact type
-  description?: string; // What this deliverable contains
-}
-
-/**
- * How an input node resolves its value at runtime.
- * - prompt:    Ask the user in the chat for the desired value before running.
- * - storage:   Pull value from a storage key (optionally scoped by path).
- * - hardcoded: A literal value baked into the job definition.
- * - artifact:  Resolve from a workspace artifact (by ID or latest-matching tag).
- */
-export type InputSourceKind = "prompt" | "storage" | "hardcoded" | "artifact";
-
-export type InputSource =
-  | { kind: "prompt";    promptText?: string }                          // Ask user at run-time
-  | { kind: "storage";   storageKey: string; path?: string }            // Read from storage object
-  | { kind: "hardcoded"; value: string }                                // Literal value
-  | { kind: "artifact";  artifactId?: string; tag?: string };           // Workspace artifact
-
-/** A named entity input that maps a friendly name to an entity ID or user-provided value */
-export interface EntityInput {
-  name: string;         // Reference name (e.g. "Scout", "DataChannel") — used as $input.name
-  type: "agent" | "channel" | "group" | "network" | "text" | "number_range" | "list"; // Input type
-  entityId: string;     // Resolved entity ID (workspace entities) or literal value (text/number_range/list)
-  source?: InputSource; // How this input resolves its value (default: hardcoded via entityId)
-  // ── text config ──
-  placeholder?: string; // Placeholder text shown for text inputs
-  // ── number_range config ──
-  min?: number;         // Minimum value for number_range
-  max?: number;         // Maximum value for number_range
-  step?: number;        // Step increment for number_range (default: 1)
-  // ── list config ──
-  options?: string[];   // Available options for list type
-  multiSelect?: boolean;// If true, allow multiple selections (entityId stores comma-separated values)
-}
-
-/**
- * Workspace event types that can trigger automatic job execution.
- */
-export type TriggerEvent =
-  | "artifact:created"   | "artifact:updated"  | "artifact:deleted"
-  | "agent:created"      | "agent:updated"
-  | "group:created"      | "group:updated"
-  | "channel:created"    | "channel:updated"
-  | "network:created"    | "network:updated"
-  | "job:completed"      | "job:failed"
-  | "schedule:cron";
-
-/** A single trigger rule that can fire a job automatically. */
-export interface JobTrigger {
-  id: string;
-  event: TriggerEvent;
-  enabled: boolean;
-  /** Optional filter — e.g. only fire for artifacts with a specific tag or entity with a given ID */
-  filter?: {
-    entityId?: string;    // Specific entity ID to match
-    tag?: string;         // Artifact tag to match
-    name?: string;        // Entity name pattern (substring)
-  };
-  /** Cron expression when event === 'schedule:cron' */
-  cron?: string;
-  /** Human-readable label */
-  label?: string;
-}
-
-export interface JobDefinition {
-  id: string;
-  name: string;
-  description: string;
-  mode: 'serial' | 'parallel' | 'mixed';
-  icon?: string;               // Base64 data-URI or URL for a custom icon image
-  steps: JobStep[];
-  deliverables?: JobDeliverable[];         // Declared deliverables
-  storageDefaults?: Record<string, any>;   // Default inter-step shared storage values
-  inputDefaults?: EntityInput[];           // Named entity inputs (name → ID mappings)
-  parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>;
-  triggers?: JobTrigger[];                 // Automated trigger rules
-  createdAt: number;
-  updatedAt: number;
-}
+// ── Job Queue Types ──
+export type {
+  JobStatus, ArtifactType, JobArtifact, JobStep, JobDeliverable,
+  InputSourceKind, InputSource, EntityInput, TriggerEvent,
+  JobTrigger, JobDefinition, Job,
+} from "./jobs";
 
 
 export interface CreateAgentRequest {
@@ -758,36 +392,6 @@ export type JobRequest =
   | { type: "reset_workspace"; request: ResetWorkspaceRequest }
   // Fallback for dynamic/other jobs
   | { type: string; request: Record<string, any>; steps?: JobStep[]; mode?: 'serial' | 'parallel' | 'mixed'; parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }> };
-
-export interface Job {
-  id: string;
-  type: string; // We keep string here to match JobRequest.type easily, or we can stricter it to JobRequest['type']
-  status: JobStatus;
-  request: Record<string, any>; // Keeping flexible for storage, but addJob enforces JobRequest
-
-  result?: string;
-  artifacts: JobArtifact[];
-  createdAt: number;
-  updatedAt: number;
-
-  // Multi-step job fields
-  jobDefinitionId?: string;
-  steps?: JobStep[];
-  currentStepIndex?: number;
-  stepResults?: Record<string, any>;
-  mode?: 'serial' | 'parallel' | 'mixed';
-
-  // Inter-step shared storage & deliverables
-  storage?: Record<string, any>;
-  deliverables?: JobDeliverable[];
-  inputs?: EntityInput[];                  // Named entity inputs for $input.name resolution
-
-  /** Parallel group definitions for mixed-mode jobs */
-  parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>;
-
-  /** When true, the job executor validates without executing — produces a dry-run report */
-  dryRun?: boolean;
-}
 
 
 export interface WorkspaceMetadata {

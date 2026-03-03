@@ -4,111 +4,30 @@ import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
 import { registry } from "../../services/commands/registry";
 import { JobCanvas } from "../jobs/JobCanvas";
-import { NodeEditor } from "../jobs/NodeEditor";
 import { StepCardModal } from "../jobs/StepCardModal";
 import { NodeEditModal } from "../jobs/NodeEditModal";
 import { isSeedJob } from "../../services/jobs/seedCatalog";
 import { useStudioContext } from "../../context/StudioContext";
 import { useLLM } from "../../context/LLMContext";
-import type { StudioAPI } from "../../context/StudioContext";
-import type { JobDefinition, JobStep, JobDeliverable, EntityInput, JobTrigger, TriggerEvent } from "../../types";
+import { readDraft, clearDraft, saveDraft, DRAFT_SAVE_DELAY } from "../../utils/studioDraft";
+import { buildJobDef as buildJobDefFn, loadJobToStudioState } from "../../utils/studioJobBuilder";
+import { createStudioAPI } from "../../utils/studioApi";
+import type { JobDefinition, JobDeliverable, EntityInput, JobTrigger, TriggerEvent } from "../../types";
+import type { StudioDraft } from "../../utils/studioDraft";
 import "../../styles/components/job-manager.css";
+
+// Re-export types & constants from the canonical location for backward compat
+export type { OutputMapping, InputBinding, StudioStep, SelectedElement, AnchorSide } from "../../types/studio";
+export { PARALLEL_GROUP_CMD, isParallelGroup } from "../../types/studio";
+
+import type { StudioStep, SelectedElement, OutputMapping, InputBinding, AnchorSide } from "../../types/studio";
+import { PARALLEL_GROUP_CMD, isParallelGroup, NODE_SPACING_X, NODE_SPACING_Y, INITIAL_X, INITIAL_Y } from "../../types/studio";
 
 interface StudioViewProps {
     savedJobs: JobDefinition[];
     onSaveJob: (job: JobDefinition) => void;
     onDeleteJob: (id: string) => void;
     onRunJob: (job: JobDefinition) => void;
-}
-
-export interface OutputMapping {
-    outputKey: string;       // key from the command's outputSchema (or "*" for entire output)
-    target: "storage" | "deliverable";
-    targetKey: string;       // storage key or deliverable key to write to
-}
-
-export interface InputBinding {
-    source: "storage" | "deliverable" | "input";
-    sourceKey: string;       // storage key or deliverable key or input name to read from
-}
-
-/**
- * Sentinel commandId for parallel-group container steps.
- * A parallel group is not a real task — it groups child steps that execute concurrently.
- * Children whose parentId points to a parallel-group step run in parallel.
- */
-export const PARALLEL_GROUP_CMD = "__parallel__";
-
-/** Returns true if the step is a parallel-group container (not a real task). */
-export function isParallelGroup(step: StudioStep): boolean {
-    return step.commandId === PARALLEL_GROUP_CMD;
-}
-
-export type AnchorSide = "top" | "right" | "bottom" | "left";
-
-export interface StudioStep {
-    id: string;
-    commandId: string;  // PARALLEL_GROUP_CMD for parallel containers
-    args: Record<string, any>;
-    inputBindings: Record<string, InputBinding>;  // argName → source binding
-    preCondition: string;
-    postCondition: string;
-    parentId: string | null;
-    outputMappings: OutputMapping[];
-    modelId?: string;  // LLM model override for this step
-    label?: string;    // display label for parallel groups
-    connectorOut?: AnchorSide;  // Where outgoing connector leaves this node (default: right)
-    connectorIn?: AnchorSide;   // Where incoming connector enters this node (default: left)
-    /** True when this step runs inside a parallel group (concurrent sibling).
-     *  False/undefined means serial successor even if parentId points to a group. */
-    isGroupChild?: boolean;
-    x: number;
-    y: number;
-}
-
-export type SelectedElement =
-    | { type: "step"; id: string }
-    | { type: "deliverable"; index: number }
-    | { type: "storage"; index: number }
-    | { type: "input"; index: number }
-    | null;
-
-const NODE_SPACING_X = 320;
-const NODE_SPACING_Y = 180;
-const INITIAL_X = 60;
-const INITIAL_Y = 80;
-
-// ── Auto-save draft to survive page refresh ──
-const STUDIO_DRAFT_KEY = "decops_studio_draft";
-const DRAFT_SAVE_DELAY = 800; // ms debounce
-
-interface StudioDraft {
-    name: string;
-    description: string;
-    editingJobId: string | null;
-    steps: StudioStep[];
-    deliverables: JobDeliverable[];
-    storageEntries: Array<{ key: string; value: string }>;
-    inputs: EntityInput[];
-    triggers: JobTrigger[];
-    storageNodePositions: Record<number, { x: number; y: number }>;
-    inputNodePositions: Record<number, { x: number; y: number }>;
-    deliverableNodePositions: Record<number, { x: number; y: number }>;
-    savedAt: number;
-}
-
-function readDraft(): StudioDraft | null {
-    try {
-        const raw = localStorage.getItem(STUDIO_DRAFT_KEY);
-        if (!raw) return null;
-        return JSON.parse(raw) as StudioDraft;
-    } catch {
-        return null;
-    }
-}
-
-function clearDraft() {
-    try { localStorage.removeItem(STUDIO_DRAFT_KEY); } catch { /* noop */ }
 }
 
 export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: StudioViewProps) {
@@ -170,15 +89,12 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                 clearDraft();
                 return;
             }
-            const snapshot: StudioDraft = {
+            saveDraft({
                 name, description, editingJobId,
                 steps, deliverables, storageEntries, inputs, triggers,
                 storageNodePositions, inputNodePositions, deliverableNodePositions,
                 savedAt: Date.now(),
-            };
-            try {
-                localStorage.setItem(STUDIO_DRAFT_KEY, JSON.stringify(snapshot));
-            } catch { /* storage full — silently skip */ }
+            });
         }, DRAFT_SAVE_DELAY);
         return () => clearTimeout(timer);
     }, [name, description, editingJobId, steps, deliverables, storageEntries,
@@ -538,67 +454,16 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         setSelectedElements([]);
     }, [selectedElements, selectedElement]);
 
-    const buildStorageDefaults = (): Record<string, any> | undefined => {
-        const entries = storageEntries.filter(e => e.key.trim());
-        if (entries.length === 0) return undefined;
-        const obj: Record<string, any> = {};
-        entries.forEach(({ key, value }) => {
-            try { obj[key] = JSON.parse(value); }
-            catch { obj[key] = value; }
-        });
-        return obj;
-    };
-
     // ── Derive exec mode from steps ──
     const hasParallelGroups = steps.some(s => isParallelGroup(s));
     const derivedMode: "serial" | "parallel" | "mixed" = hasParallelGroups ? "mixed" : "serial";
 
-    // ── Build job definition ──
+    // ── Build job definition (delegates to extracted helper) ──
     const buildJobDef = (): JobDefinition | null => {
-        if (!name.trim()) { alert("Job name is required"); return null; }
-        const taskSteps = steps.filter(s => !isParallelGroup(s));
-        if (taskSteps.length === 0) { alert("Add at least one step"); return null; }
-        const validDeliverables = deliverables.filter(d => d.key.trim() && d.label.trim());
-        // Build parallel group metadata for serialization
-        const pGroups = steps.filter(s => isParallelGroup(s)).map(g => ({
-            id: g.id,
-            label: g.label || "Parallel",
-            stepIds: steps.filter(s => s.parentId === g.id && s.isGroupChild && !isParallelGroup(s)).map(s => s.id),
-        }));
-        return {
-            id: editingJobId || `job-def-${Date.now()}`,
-            name,
-            description,
-            mode: derivedMode,
-            steps: taskSteps.map(s => {
-                // Merge inputBindings into args as $storage.key / $deliverable.key refs
-                const mergedArgs = { ...s.args };
-                for (const [argName, binding] of Object.entries(s.inputBindings)) {
-                    if (binding.sourceKey) {
-                        mergedArgs[argName] = `$${binding.source}.${binding.sourceKey}`;
-                    }
-                }
-                return {
-                    id: s.id,
-                    commandId: s.commandId,
-                    args: mergedArgs,
-                    condition: s.preCondition || undefined,
-                    name: s.commandId,
-                    modelId: s.modelId || undefined,
-                    outputMappings: s.outputMappings.length > 0 ? s.outputMappings : undefined,
-                    inputBindings: Object.keys(s.inputBindings).length > 0 ? s.inputBindings : undefined,
-                };
-            }) as JobStep[],
-            deliverables: validDeliverables.length > 0 ? validDeliverables : undefined,
-            storageDefaults: buildStorageDefaults(),
-            inputDefaults: inputs.filter(inp => inp.name.trim() && inp.entityId.trim()).length > 0
-                ? inputs.filter(inp => inp.name.trim() && inp.entityId.trim())
-                : undefined,
-            parallelGroups: pGroups.length > 0 ? pGroups : undefined,
-            triggers: triggers.length > 0 ? triggers : undefined,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-        };
+        return buildJobDefFn({
+            name, description, editingJobId, steps, deliverables,
+            storageEntries, inputs, triggers, derivedMode,
+        });
     };
 
     const handleRun = () => {
@@ -615,145 +480,17 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         }
     };
 
-    // ── Load from catalog ──
+    // ── Load from catalog (delegates to extracted helper) ──
     const loadJob = (job: JobDefinition) => {
+        const result = loadJobToStudioState(job);
         setName(job.name);
         setDescription(job.description);
         setEditingJobId(job.id);
-
-        // Collect all parallel-group child IDs for quick lookup
-        const allGroupChildIds = new Set<string>();
-        for (const g of (job.parallelGroups || [])) {
-            for (const sid of g.stepIds) allGroupChildIds.add(sid);
-        }
-
-        // Reconstruct task steps with args + bindings (parentId set to placeholder for now)
-        const taskSteps: StudioStep[] = job.steps.map((s, i) => {
-            // Restore inputBindings: either from saved field, or reverse-engineer from $storage./$deliverable. args
-            const savedBindings: Record<string, InputBinding> = (s as any).inputBindings || {};
-            const cleanArgs: Record<string, any> = {};
-            const bindings: Record<string, InputBinding> = { ...savedBindings };
-            for (const [k, v] of Object.entries(s.args || {})) {
-                if (typeof v === "string" && v.startsWith("$storage.") && !bindings[k]) {
-                    bindings[k] = { source: "storage", sourceKey: v.slice("$storage.".length) };
-                } else if (typeof v === "string" && v.startsWith("$deliverable.") && !bindings[k]) {
-                    bindings[k] = { source: "deliverable", sourceKey: v.slice("$deliverable.".length) };
-                } else {
-                    cleanArgs[k] = v;
-                }
-            }
-            for (const argName of Object.keys(bindings)) {
-                if (!(argName in cleanArgs)) cleanArgs[argName] = "";
-            }
-            return {
-                id: s.id || crypto.randomUUID(),
-                commandId: s.commandId,
-                args: cleanArgs,
-                inputBindings: bindings,
-                preCondition: s.condition || "",
-                postCondition: "",
-                parentId: null as string | null, // will be set below
-                outputMappings: s.outputMappings || [],
-                modelId: s.modelId,
-                x: 0, // positioned below
-                y: 0,
-            };
-        });
-
-        // ── Build the serial chain, inserting parallel groups where they belong ──
-        // Walk through job.steps in order. When we encounter the first step of a
-        // parallel group, insert the group at that position in the serial chain.
-        // Skip subsequent steps of the same group (they're siblings inside the group).
-        const groupStepMap = new Map<string, { id: string; label: string; stepIds: string[] }>();
-        for (const g of (job.parallelGroups || [])) {
-            for (const sid of g.stepIds) groupStepMap.set(sid, g);
-        }
-        const insertedGroups = new Set<string>();
-        // serialOrder holds the effective serial chain: step IDs and group IDs in order
-        const serialOrder: string[] = [];
-        for (const s of job.steps) {
-            const sid = s.id || "";
-            if (allGroupChildIds.has(sid)) {
-                const grp = groupStepMap.get(sid)!;
-                if (!insertedGroups.has(grp.id)) {
-                    insertedGroups.add(grp.id);
-                    serialOrder.push(grp.id); // group placeholder in serial chain
-                }
-                // skip — child will be parented to its group
-            } else {
-                serialOrder.push(sid);
-            }
-        }
-
-        // Build parallel group StudioSteps and assign parentIds along the serial chain
-        const pGroups: StudioStep[] = (job.parallelGroups || []).map(g => ({
-            id: g.id,
-            commandId: PARALLEL_GROUP_CMD,
-            args: {},
-            inputBindings: {},
-            preCondition: "",
-            postCondition: "",
-            parentId: null as string | null,
-            outputMappings: [],
-            label: g.label || "Parallel",
-            x: 0,
-            y: 0,
-        }));
-
-        const allNodes = new Map<string, StudioStep>();
-        for (const ts of taskSteps) allNodes.set(ts.id, ts);
-        for (const pg of pGroups) allNodes.set(pg.id, pg);
-
-        // Set parentId along the serial chain
-        for (let i = 0; i < serialOrder.length; i++) {
-            const node = allNodes.get(serialOrder[i]);
-            if (!node) continue;
-            node.parentId = i > 0 ? serialOrder[i - 1] : null;
-        }
-
-        // Reparent parallel group children to their group (+ mark as group children)
-        for (const g of (job.parallelGroups || [])) {
-            for (const sid of g.stepIds) {
-                const child = taskSteps.find(ts => ts.id === sid);
-                if (child) {
-                    child.parentId = g.id;
-                    child.isGroupChild = true;
-                }
-            }
-        }
-
-        // ── Position nodes ──
-        let serialIdx = 0;
-        for (const nodeId of serialOrder) {
-            const node = allNodes.get(nodeId);
-            if (!node) continue;
-            node.x = INITIAL_X + serialIdx * NODE_SPACING_X;
-            node.y = INITIAL_Y;
-            serialIdx++;
-        }
-        // Position parallel group children stacked vertically inside their group
-        for (const g of (job.parallelGroups || [])) {
-            const groupNode = pGroups.find(pg => pg.id === g.id);
-            if (!groupNode) continue;
-            g.stepIds.forEach((sid, ci) => {
-                const child = taskSteps.find(ts => ts.id === sid);
-                if (child) {
-                    child.x = groupNode.x;
-                    child.y = groupNode.y + ci * NODE_SPACING_Y;
-                }
-            });
-        }
-
-        setSteps([...taskSteps, ...pGroups]);
-        setDeliverables(job.deliverables || []);
-        setStorageEntries(
-            Object.entries(job.storageDefaults || {}).map(([key, value]) => ({
-                key,
-                value: typeof value === "string" ? value : JSON.stringify(value)
-            }))
-        );
-        setInputs(job.inputDefaults || []);
-        setTriggers(job.triggers || []);
+        setSteps(result.steps);
+        setDeliverables(result.deliverables);
+        setStorageEntries(result.storageEntries);
+        setInputs(result.inputs);
+        setTriggers(result.triggers);
         setSelectedElement(null);
         setSelectedElements([]);
         setShowCatalog(false);
@@ -837,234 +574,24 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     handleNewRef.current = handleNew;
 
     useEffect(() => {
-        const api: StudioAPI = {
-            getState: () => ({
-                name: nameRef.current,
-                description: descRef.current,
-                editingJobId: editingIdRef.current,
-                mode: derivedModeRef.current as "serial" | "parallel",
-                steps: stepsRef.current,
-                deliverables: deliverablesRef.current,
-                storageEntries: storageRef.current,
-                inputs: inputsRef.current,
-            }),
-            setName: (n) => { setName(n); nameRef.current = n; },
-            setDescription: (d) => { setDescription(d); descRef.current = d; },
-            addStep: (cid) => {
-                const stepId = addStepRef.current(cid);
-                // Sync ref: addStep uses setSteps(prev => [...prev, newStep]) so we need to
-                // push to the ref manually for same-tick reads
-                if (stepId) {
-                    const command = registry.get(cid);
-                    if (command) {
-                        const args: Record<string, any> = {};
-                        Object.entries(command.args).forEach(([key, def]) => {
-                            if (def.defaultValue !== undefined) args[key] = def.defaultValue;
-                            else if (def.type === "boolean") args[key] = false;
-                            else if (def.type === "string") args[key] = "";
-                            else if (def.type === "number") args[key] = 0;
-                            else args[key] = null;
-                        });
-                        stepsRef.current = [...stepsRef.current, {
-                            id: stepId, commandId: cid, args, inputBindings: {},
-                            preCondition: "", postCondition: "",
-                            parentId: null, outputMappings: [], x: 0, y: 0,
-                        }];
-                    }
-                }
-                return stepId;
+        const api = createStudioAPI(
+            {
+                name: nameRef, description: descRef, editingJobId: editingIdRef,
+                derivedMode: derivedModeRef, steps: stepsRef, deliverables: deliverablesRef,
+                storageEntries: storageRef, inputs: inputsRef, triggers: triggersRef,
+                savedJobs: savedJobsRef,
+                addStep: addStepRef, removeStep: removeStepRef,
+                updateStepArg: updateStepArgRef, updateStepPreCondition: updateStepPreConditionRef,
+                updateStepPostCondition: updateStepPostConditionRef, updateStepPosition: updateStepPositionRef,
+                addParallelGroup: addParallelGroupRef, updateStepOutputMappings: updateStepOutputMappingsRef,
+                updateStepInputBindings: updateStepInputBindingsRef, updateStepModel: updateStepModelRef,
+                buildJobDef: buildJobDefRef, handleRun: handleRunRef, handleSave: handleSaveRef,
+                loadJob: loadJobRef, handleNew: handleNewRef,
             },
-            removeStep: (id) => removeStepRef.current(id),
-            updateStepArg: (sid, arg, val) => {
-                updateStepArgRef.current(sid, arg, val);
-                stepsRef.current = stepsRef.current.map(s =>
-                    s.id === sid ? { ...s, args: { ...s.args, [arg]: val } } : s
-                );
-            },
-            updateStepPreCondition: (sid, cond) => updateStepPreConditionRef.current(sid, cond),
-            updateStepPostCondition: (sid, cond) => updateStepPostConditionRef.current(sid, cond),
-            updateStepPosition: (sid, x, y) => updateStepPositionRef.current(sid, x, y),
-            addParallelGroup: () => addParallelGroupRef.current(),
-            reparentStep: (stepId, newParentId, asGroupChild = false) => {
-                setSteps(prev => prev.map(s => s.id === stepId ? { ...s, parentId: newParentId, isGroupChild: asGroupChild } : s));
-                stepsRef.current = stepsRef.current.map(s => s.id === stepId ? { ...s, parentId: newParentId, isGroupChild: asGroupChild } : s);
-            },
-            updateStepOutputMappings: (sid, m) => updateStepOutputMappingsRef.current(sid, m),
-            updateStepInputBindings: (sid, b) => updateStepInputBindingsRef.current(sid, b),
-            updateStepModel: (sid, modelId) => {
-                updateStepModelRef.current(sid, modelId || undefined);
-                stepsRef.current = stepsRef.current.map(s =>
-                    s.id === sid ? { ...s, modelId: modelId || undefined } : s
-                );
-            },
-            addDeliverableEntry: (d) => {
-                setDeliverables(prev => [...prev, d]);
-                deliverablesRef.current = [...deliverablesRef.current, d];
-            },
-            updateDeliverable: (index, field, value) => {
-                setDeliverables(prev => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
-            },
-            removeDeliverableEntry: (index) => {
-                setDeliverables(prev => prev.filter((_, i) => i !== index));
-            },
-            addStorageEntryWithValues: (key, value) => {
-                setStorageEntries(prev => [...prev, { key, value }]);
-                storageRef.current = [...storageRef.current, { key, value }];
-            },
-            updateStorageEntry: (index, field, val) => {
-                setStorageEntries(prev => prev.map((e, i) => i === index ? { ...e, [field]: val } : e));
-            },
-            removeStorageEntry: (index) => {
-                setStorageEntries(prev => prev.filter((_, i) => i !== index));
-            },
-            addInput: (inp: EntityInput) => {
-                setInputs(prev => [...prev, inp]);
-                inputsRef.current = [...inputsRef.current, inp];
-            },
-            updateInput: (index, field, value) => {
-                setInputs(prev => prev.map((inp, i) => i === index ? { ...inp, [field]: value } : inp));
-                inputsRef.current = inputsRef.current.map((inp, i) => i === index ? { ...inp, [field]: value } : inp);
-            },
-            removeInput: (index) => {
-                setInputs(prev => prev.filter((_, i) => i !== index));
-                inputsRef.current = inputsRef.current.filter((_, i) => i !== index);
-            },
-            addTrigger: (event, id, filter, label, cron) => {
-                const triggerId = id || `trigger-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-                const newTrigger: JobTrigger = { id: triggerId, event, enabled: true, filter, label, cron };
-                setTriggers(prev => [...prev, newTrigger]);
-                triggersRef.current = [...triggersRef.current, newTrigger];
-            },
-            updateTrigger: (id, patch) => {
-                setTriggers(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t));
-                triggersRef.current = triggersRef.current.map(t => t.id === id ? { ...t, ...patch } : t);
-            },
-            removeTrigger: (id) => {
-                setTriggers(prev => prev.filter(t => t.id !== id));
-                triggersRef.current = triggersRef.current.filter(t => t.id !== id);
-            },
-            saveJob: () => {
-                // Build job from refs (not closure state) to avoid stale reads
-                const jobName = nameRef.current;
-                const jobSteps = stepsRef.current;
-                if (!jobName.trim()) return { error: "Cannot save job — name is required." };
-                if (jobSteps.length === 0) return { error: "Cannot save job — add at least one step." };
-                const validDeliverables = deliverablesRef.current.filter(d => d.key.trim() && d.label.trim());
-                const storageObj = storageRef.current.filter(e => e.key.trim()).reduce((acc, { key, value }) => {
-                    try { acc[key] = JSON.parse(value); } catch { acc[key] = value; }
-                    return acc;
-                }, {} as Record<string, any>);
-                const taskSteps = jobSteps.filter(s => !isParallelGroup(s));
-                const hasGroups = jobSteps.some(s => isParallelGroup(s));
-                const mode = hasGroups ? "mixed" : "serial";
-                const pGroups = jobSteps.filter(s => isParallelGroup(s)).map(g => ({
-                    id: g.id,
-                    label: g.label || "Parallel",
-                    stepIds: jobSteps.filter(s => s.parentId === g.id && !isParallelGroup(s)).map(s => s.id),
-                }));
-                const job: JobDefinition = {
-                    id: editingIdRef.current || `job-def-${Date.now()}`,
-                    name: jobName,
-                    description: descRef.current,
-                    mode,
-                    steps: taskSteps.map(s => {
-                        const mergedArgs = { ...s.args };
-                        for (const [argName, binding] of Object.entries(s.inputBindings)) {
-                            if (binding.sourceKey) mergedArgs[argName] = `$${binding.source}.${binding.sourceKey}`;
-                        }
-                        return {
-                            id: s.id, commandId: s.commandId, args: mergedArgs,
-                            condition: s.preCondition || undefined, name: s.commandId,
-                            modelId: s.modelId || undefined,
-                            outputMappings: s.outputMappings.length > 0 ? s.outputMappings : undefined,
-                            inputBindings: Object.keys(s.inputBindings).length > 0 ? s.inputBindings : undefined,
-                        };
-                    }) as JobStep[],
-                    deliverables: validDeliverables.length > 0 ? validDeliverables : undefined,
-                    storageDefaults: Object.keys(storageObj).length > 0 ? storageObj : undefined,
-                    inputDefaults: inputsRef.current.filter(inp => inp.name.trim() && inp.entityId.trim()).length > 0
-                        ? inputsRef.current.filter(inp => inp.name.trim() && inp.entityId.trim())
-                        : undefined,
-                    parallelGroups: pGroups.length > 0 ? pGroups : undefined,
-                    triggers: triggersRef.current.length > 0 ? triggersRef.current : undefined,
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                };
-                onSaveJob(job);
-                setEditingJobId(job.id);
-                editingIdRef.current = job.id;
-                return { saved: true, id: job.id, name: job.name };
-            },
-            runJob: () => {
-                // Build job from refs (not closure state) to avoid stale reads
-                const jobName = nameRef.current;
-                const jobSteps = stepsRef.current;
-                if (!jobName.trim()) return { error: "Cannot run job — name is required." };
-                if (jobSteps.length === 0) return { error: "Cannot run job — add at least one step." };
-                const validDeliverables = deliverablesRef.current.filter(d => d.key.trim() && d.label.trim());
-                const storageObj = storageRef.current.filter(e => e.key.trim()).reduce((acc, { key, value }) => {
-                    try { acc[key] = JSON.parse(value); } catch { acc[key] = value; }
-                    return acc;
-                }, {} as Record<string, any>);
-                const taskSteps = jobSteps.filter(s => !isParallelGroup(s));
-                const hasGroups = jobSteps.some(s => isParallelGroup(s));
-                const mode = hasGroups ? "mixed" : "serial";
-                const pGroups = jobSteps.filter(s => isParallelGroup(s)).map(g => ({
-                    id: g.id,
-                    label: g.label || "Parallel",
-                    stepIds: jobSteps.filter(s => s.parentId === g.id && !isParallelGroup(s)).map(s => s.id),
-                }));
-                const job: JobDefinition = {
-                    id: editingIdRef.current || `job-def-${Date.now()}`,
-                    name: jobName,
-                    description: descRef.current,
-                    mode,
-                    steps: taskSteps.map(s => {
-                        const mergedArgs = { ...s.args };
-                        for (const [argName, binding] of Object.entries(s.inputBindings)) {
-                            if (binding.sourceKey) mergedArgs[argName] = `$${binding.source}.${binding.sourceKey}`;
-                        }
-                        return {
-                            id: s.id, commandId: s.commandId, args: mergedArgs,
-                            condition: s.preCondition || undefined, name: s.commandId,
-                            modelId: s.modelId || undefined,
-                            outputMappings: s.outputMappings.length > 0 ? s.outputMappings : undefined,
-                            inputBindings: Object.keys(s.inputBindings).length > 0 ? s.inputBindings : undefined,
-                        };
-                    }) as JobStep[],
-                    deliverables: validDeliverables.length > 0 ? validDeliverables : undefined,
-                    storageDefaults: Object.keys(storageObj).length > 0 ? storageObj : undefined,
-                    inputDefaults: inputsRef.current.filter(inp => inp.name.trim() && inp.entityId.trim()).length > 0
-                        ? inputsRef.current.filter(inp => inp.name.trim() && inp.entityId.trim())
-                        : undefined,
-                    parallelGroups: pGroups.length > 0 ? pGroups : undefined,
-                    triggers: triggersRef.current.length > 0 ? triggersRef.current : undefined,
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                };
-                onRunJob(job);
-                return { running: true, id: job.id, name: job.name, stepCount: job.steps.length };
-            },
-            loadJobById: (id) => {
-                const catalog = savedJobsRef.current;
-                const job = catalog.find(j => j.id === id);
-                if (!job) return { error: `Job definition "${id}" not found in catalog.` };
-                loadJobRef.current(job);
-                return { loaded: true, id: job.id, name: job.name };
-            },
-            clearCanvas: () => {
-                handleNewRef.current();
-                // Sync refs immediately so subsequent API calls in the same tick see empty state
-                nameRef.current = "";
-                descRef.current = "";
-                editingIdRef.current = null;
-                stepsRef.current = [];
-                deliverablesRef.current = [];
-                storageRef.current = [];
-                inputsRef.current = [];
-                triggersRef.current = [];
-            },
-        };
+            { setName, setDescription, setEditingJobId, setSteps, setDeliverables, setStorageEntries, setInputs, setTriggers },
+            onSaveJob,
+            onRunJob,
+        );
         register(api);
         return () => unregister();
     }, []); // stable — uses refs for fresh closures

@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3, Eye } from "lucide-react";
 import { GradientIcon } from "../shared/GradientIcon";
 import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "../../services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "../../services/ai";
 import { useLLM } from "../../context/LLMContext";
 import MessageBubble from "../chat/MessageBubble";
-import { loadConversations, saveConversations, loadActiveId, saveActiveId, makeId, deriveTitle } from "../chat/utils";
+import { makeId } from "../chat/utils";
 import type { Conversation } from "../chat/types";
 import { useCommandContext } from "../../hooks/useCommandContext";
 import { useJobsContext } from "../../context/JobsContext";
@@ -20,6 +20,8 @@ import { useStudioContext } from "../../context/StudioContext";
 import { useEditorContext } from "../../context/EditorContext";
 import type { ChatPosition } from "../../context/ThemeContext";
 import type { ViewId, JobStep } from "../../types";
+import { useConversations } from "../../hooks/useConversations";
+import { useChatResize } from "../../hooks/useChatResize";
 import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {
@@ -36,49 +38,24 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeight, isExpanded, onToggleExpand, position = "bottom", view }: ChatPanelProps) {
-    const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
-    const [activeId, setActiveId] = useState<string | null>(loadActiveId);
+    const {
+        conversations, setConversations,
+        activeId, setActiveId,
+        showConvos, setShowConvos,
+        active, messages,
+        endRef, inputRef, initialScrollDone,
+        updateConversation, createNewChat, switchTo, deleteConvo,
+    } = useConversations();
+
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
     const [streamingText, setStreamingText] = useState<string | null>(null);
     const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallDisplay[]>([]);
-    const [showConvos, setShowConvos] = useState(false);
     const [studioMode, setStudioMode] = useState(true);
     const [editorMode, setEditorMode] = useState(true);
     const [pendingCommand, setPendingCommand] = useState<{ command: CommandDefinition; initialArgs: Record<string, any>; convoId: string; msgs: ChatMessage[] } | null>(null);
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionIndex, setMentionIndex] = useState(0);
-    const endRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
-    const initialScrollDone = useRef(false);
-
-    // Derive active conversation
-    const active = conversations.find(c => c.id === activeId) || null;
-    const messages = active?.messages || [];
-
-    // Persist
-    useEffect(() => {
-        saveConversations(conversations);
-    }, [conversations]);
-
-    useEffect(() => {
-        saveActiveId(activeId);
-    }, [activeId]);
-
-    // Instant scroll to bottom on initial mount / conversation switch
-    useEffect(() => {
-        initialScrollDone.current = false;
-    }, [activeId]);
-
-    useEffect(() => {
-        if (!initialScrollDone.current && messages.length > 0) {
-            // Use requestAnimationFrame to ensure DOM has rendered
-            requestAnimationFrame(() => {
-                endRef.current?.scrollIntoView({ behavior: "instant" });
-            });
-            initialScrollDone.current = true;
-        }
-    }, [messages.length]);
 
     // Smooth scroll for new messages / streaming updates
     useEffect(() => {
@@ -88,46 +65,10 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     }, [messages.length, loading, streamingText]);
 
     useEffect(() => {
-        // Only focus when the panel is actually visible (not display:none)
         if (!showConvos && inputRef.current?.offsetParent !== null) {
             inputRef.current?.focus();
         }
     }, [showConvos, activeId]);
-
-    const updateConversation = useCallback((id: string, msgs: ChatMessage[]) => {
-        setConversations(prev => prev.map(c =>
-            c.id === id
-                ? { ...c, messages: msgs, title: deriveTitle(msgs), updatedAt: Date.now() }
-                : c
-        ));
-    }, []);
-
-    const createNewChat = useCallback(() => {
-        const id = makeId();
-        const convo: Conversation = {
-            id,
-            title: "New Chat",
-            messages: [],
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-        };
-        setConversations(prev => [convo, ...prev]);
-        setActiveId(id);
-        setShowConvos(false);
-    }, []);
-
-    const switchTo = useCallback((id: string) => {
-        setActiveId(id);
-        setShowConvos(false);
-    }, []);
-
-    const deleteConvo = useCallback((id: string) => {
-        setConversations(prev => prev.filter(c => c.id !== id));
-        if (activeId === id) {
-            const remaining = conversations.filter(c => c.id !== id);
-            setActiveId(remaining.length > 0 ? remaining[0].id : null);
-        }
-    }, [activeId, conversations]);
 
     // Build Commmand Context for CLI
     const { user } = useAuth();
@@ -423,46 +364,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         setPendingCommand(null);
     }, [pendingCommand, updateConversation]);
 
-    const [isResizing, setIsResizing] = useState(false);
-    const isSide = position === "left" || position === "right";
-
-    const startResizing = useCallback((e: React.MouseEvent) => {
-        e.preventDefault();
-        setIsResizing(true);
-    }, []);
-
-    const stopResizing = useCallback(() => {
-        setIsResizing(false);
-    }, []);
-
-    const resize = useCallback((e: MouseEvent) => {
-        if (isResizing) {
-            if (isSide) {
-                const newWidth = position === "left"
-                    ? e.clientX
-                    : window.innerWidth - e.clientX;
-                if (newWidth > 280 && newWidth < window.innerWidth - 400) {
-                    setHeight(newWidth); // height prop is used as generic "size"
-                }
-            } else {
-                const newHeight = window.innerHeight - e.clientY;
-                if (newHeight > 200 && newHeight < window.innerHeight - 100) {
-                    setHeight(newHeight);
-                }
-            }
-        }
-    }, [isResizing, setHeight, isSide, position]);
-
-    useEffect(() => {
-        if (isResizing) {
-            window.addEventListener("mousemove", resize);
-            window.addEventListener("mouseup", stopResizing);
-        }
-        return () => {
-            window.removeEventListener("mousemove", resize);
-            window.removeEventListener("mouseup", stopResizing);
-        };
-    }, [isResizing, resize, stopResizing]);
+    const { isResizing, isSide, startResizing } = useChatResize(position, height, setHeight);
 
     const modelId = getChatModel();
     const llm = useLLM();

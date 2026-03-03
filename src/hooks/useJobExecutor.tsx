@@ -9,6 +9,10 @@ import type { CommandContext } from "../services/commands/types";
 import type { WorkspaceContextType } from "../context/WorkspaceContext";
 import type { User } from "../types";
 import { useStudioContext } from "../context/StudioContext";
+import {
+    resolveRefs, applyInputBindings, applyOutputMappings,
+    evaluateCondition, getStepContext, type RefContext,
+} from "../utils/jobRuntime";
 
 // Define strict types for the complex objects we're passing in
 // Ideally these should be exported from their respective hooks, but for now we'll define the shape or use 'any' for the complex rendering hooks if strict types aren't available easily.
@@ -218,74 +222,11 @@ export function useJobExecutor({
                         },
                     };
 
-                    /** Recursively resolve $storage.key, $deliverable.key, and $input.name references in step args.
-                     *  - Whole-string references (e.g. "$storage.key") return the raw stored value (may be object/array).
-                     *  - Embedded references within a larger string are interpolated in-place as strings.
-                     */
-                    const resolveRefs = (value: any): any => {
-                        if (typeof value === 'string') {
-                            // Whole-string exact match → return raw value (preserves non-string types)
-                            if (value.startsWith('$storage.') && !value.includes('\n') && !value.includes(' ')) {
-                                const key = value.slice('$storage.'.length);
-                                if (key in jobStorage) return jobStorage[key];
-                            }
-                            if (value.startsWith('$deliverable.') && !value.includes('\n') && !value.includes(' ')) {
-                                const key = value.slice('$deliverable.'.length);
-                                if (key in deliverableContents) return deliverableContents[key];
-                            }
-                            if (value.startsWith('$input.') && !value.includes('\n') && !value.includes(' ')) {
-                                const key = value.slice('$input.'.length);
-                                if (key in inputMap) return inputMap[key];
-                            }
-
-                            // Inline interpolation — replace all $storage.xxx / $deliverable.xxx / $input.xxx
-                            // occurrences embedded in a larger string
-                            let resolved = value;
-                            resolved = resolved.replace(/\$storage\.([A-Za-z0-9_]+)/g, (_match, key) => {
-                                if (key in jobStorage) {
-                                    const v = jobStorage[key];
-                                    return typeof v === 'string' ? v : JSON.stringify(v);
-                                }
-                                return _match; // leave unresolved refs intact
-                            });
-                            resolved = resolved.replace(/\$deliverable\.([A-Za-z0-9_]+)/g, (_match, key) => {
-                                if (key in deliverableContents) {
-                                    const v = deliverableContents[key];
-                                    return typeof v === 'string' ? v : JSON.stringify(v);
-                                }
-                                return _match;
-                            });
-                            resolved = resolved.replace(/\$input\.([A-Za-z0-9_]+)/g, (_match, key) => {
-                                if (key in inputMap) {
-                                    const v = inputMap[key];
-                                    return typeof v === 'string' ? v : JSON.stringify(v);
-                                }
-                                return _match;
-                            });
-                            return resolved;
-                        }
-                        if (Array.isArray(value)) return value.map(resolveRefs);
-                        if (value && typeof value === 'object') {
-                            const out: any = {};
-                            for (const [k, v] of Object.entries(value)) out[k] = resolveRefs(v);
-                            return out;
-                        }
-                        return value;
-                    };
+                    /** Ref context for $storage / $deliverable / $input resolution */
+                    const refs: RefContext = { storage: jobStorage, deliverables: deliverableContents, inputs: inputMap };
 
                     /** Build a step-scoped context that overrides model resolution if step has modelId */
-                    const getStepContext = (step: any): CommandContext => {
-                        const stepModelId = step.modelId;
-                        if (!stepModelId) return context;
-                        return {
-                            ...context,
-                            system: {
-                                ...context.system,
-                                getModelForCommand: (_commandId: string) => stepModelId,
-                                getModelForAgent: (_agentId: string) => stepModelId,
-                            },
-                        };
-                    };
+                    const stepCtxFor = (step: any): CommandContext => getStepContext(step, context);
 
                     let finalResult;
 
@@ -384,19 +325,9 @@ export function useJobExecutor({
 
                             const promises = queuedJob.steps.map(async (step: any, idx: number) => {
                                 try {
-                                    // Apply input bindings before resolving refs
-                                    const boundArgs = { ...step.args };
-                                    if (step.inputBindings) {
-                                        for (const [argKey, binding] of Object.entries(step.inputBindings as Record<string, { source: string; sourceKey: string }>)) {
-                                            if (binding.source === 'storage' && binding.sourceKey in jobStorage) {
-                                                boundArgs[argKey] = jobStorage[binding.sourceKey];
-                                            } else if (binding.source === 'deliverable' && binding.sourceKey in deliverableContents) {
-                                                boundArgs[argKey] = deliverableContents[binding.sourceKey];
-                                            }
-                                        }
-                                    }
-                                    const resolvedArgs = resolveRefs(boundArgs);
-                                    const stepCtx = getStepContext(step);
+                                    const boundArgs = applyInputBindings(step.args, step.inputBindings, jobStorage, deliverableContents);
+                                    const resolvedArgs = resolveRefs(boundArgs, refs);
+                                    const stepCtx = stepCtxFor(step);
                                     const res = await registry.execute(step.commandId, resolvedArgs, stepCtx);
                                     if (updateJob) {
                                         // We need latest steps? No, just update this specific step.
@@ -474,21 +405,7 @@ export function useJobExecutor({
                             // Apply output mappings from parallel results
                             for (const r of results) {
                                 if (r.status === 'completed' && r.outputMappings && r.result != null) {
-                                    for (const mapping of r.outputMappings) {
-                                        const outputValue = mapping.outputKey === '*'
-                                            ? r.result
-                                            : (typeof r.result === 'object' ? r.result[mapping.outputKey] : r.result);
-                                        if (mapping.target === 'storage' && mapping.targetKey) {
-                                            jobStorage[mapping.targetKey] = outputValue;
-                                        } else if (mapping.target === 'deliverable' && mapping.targetKey) {
-                                            context.addDeliverable({
-                                                key: mapping.targetKey,
-                                                name: mapping.targetKey,
-                                                type: typeof outputValue === 'string' ? 'markdown' : 'json',
-                                                content: typeof outputValue === 'string' ? outputValue : JSON.stringify(outputValue, null, 2),
-                                            });
-                                        }
-                                    }
+                                    applyOutputMappings(r.outputMappings, r.result, jobStorage, context.addDeliverable);
                                 }
                             }
 
@@ -529,15 +446,11 @@ export function useJobExecutor({
 
                                 // Condition check
                                 if (step.condition) {
-                                    try {
-                                        const stepMap = steps.reduce((acc: any, s: any) => { acc[s.id] = s; if (s.name) acc[s.name] = s; return acc; }, {});
-                                        const fn = new Function('steps', 'context', `return ${step.condition}`);
-                                        if (!fn(stepMap, context)) {
-                                            steps[idx] = { ...steps[idx], status: 'skipped', result: 'Condition not met' };
-                                            if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
-                                            return { status: 'skipped' };
-                                        }
-                                    } catch { /* condition eval failed — continue */ }
+                                    if (!evaluateCondition(step.condition, context, steps)) {
+                                        steps[idx] = { ...steps[idx], status: 'skipped', result: 'Condition not met' };
+                                        if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                        return { status: 'skipped' };
+                                    }
                                 }
 
                                 // Mark running
@@ -545,29 +458,16 @@ export function useJobExecutor({
                                 if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
 
                                 try {
-                                    const boundArgs = { ...step.args };
-                                    if (step.inputBindings) {
-                                        for (const [argKey, binding] of Object.entries(step.inputBindings as Record<string, { source: string; sourceKey: string }>)) {
-                                            if (binding.source === 'storage' && binding.sourceKey in jobStorage) boundArgs[argKey] = jobStorage[binding.sourceKey];
-                                            else if (binding.source === 'deliverable' && binding.sourceKey in deliverableContents) boundArgs[argKey] = deliverableContents[binding.sourceKey];
-                                        }
-                                    }
-                                    const resolvedArgs = resolveRefs(boundArgs);
-                                    const stepCtx = getStepContext(step);
+                                    const boundArgs = applyInputBindings(step.args, step.inputBindings, jobStorage, deliverableContents);
+                                    const resolvedArgs = resolveRefs(boundArgs, refs);
+                                    const stepCtx = stepCtxFor(step);
                                     const res = await registry.execute(step.commandId, resolvedArgs, stepCtx);
                                     const resultStr = typeof res === 'string' ? res : JSON.stringify(res);
                                     steps[idx] = { ...steps[idx], status: 'completed', result: resultStr };
 
                                     // Output mappings
-                                    if (step.outputMappings && res != null) {
-                                        for (const mapping of step.outputMappings) {
-                                            const outputValue = mapping.outputKey === '*' ? res : (typeof res === 'object' ? res[mapping.outputKey] : res);
-                                            if (mapping.target === 'storage' && mapping.targetKey) jobStorage[mapping.targetKey] = outputValue;
-                                            else if (mapping.target === 'deliverable' && mapping.targetKey) {
-                                                context.addDeliverable({ key: mapping.targetKey, name: mapping.targetKey, type: typeof outputValue === 'string' ? 'markdown' : 'json', content: typeof outputValue === 'string' ? outputValue : JSON.stringify(outputValue, null, 2) });
-                                            }
-                                        }
-                                    }
+                                    applyOutputMappings(step.outputMappings, res, jobStorage, context.addDeliverable);
+
                                     if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
                                     return { status: 'completed', result: resultStr };
                                 } catch (e: any) {
@@ -603,36 +503,10 @@ export function useJobExecutor({
                             // Serial - We can update incrementally safely!
                             const steps = [...queuedJob.steps];
 
-                            // Helper for simple condition evaluation
-                            const evaluateCondition = (condition: string, context: CommandContext, previousSteps: any[]) => {
-                                try {
-                                    // Safe(ish) evaluation: we can provide a context with previous results
-                                    // e.g. condition: "step1.result === 'success'" or "context.activeChannel"
-
-                                    // Construct an evaluation context
-                                    const stepMap = previousSteps.reduce((acc, s) => {
-                                        // Use name as identifier if available, else id (shortened?) or index?
-                                        // For simplicity, let's allow accessing by index via steps[i] or id
-                                        acc[s.id] = s;
-                                        if (s.name) acc[s.name] = s;
-                                        return acc;
-                                    }, {} as any);
-
-                                    // Create a function to evaluate
-                                    // eslint-disable-next-line no-new-func
-                                    const fn = new Function('steps', 'context', `return ${condition}`);
-                                    return fn(stepMap, context);
-                                } catch (e) {
-                                    console.warn(`Condition evaluation failed: ${condition}`, e);
-                                    return false; // Fail safe
-                                }
-                            };
-
                             for (let i = 0; i < steps.length; i++) {
                                 // Check condition if exists
                                 if (steps[i].condition) {
-                                    const shouldRun = evaluateCondition(steps[i].condition, context, steps);
-                                    if (!shouldRun) {
+                                    if (!evaluateCondition(steps[i].condition, context, steps)) {
                                         steps[i] = { ...steps[i], status: 'skipped', result: 'Condition not met' };
                                         if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
                                         continue;
@@ -644,40 +518,14 @@ export function useJobExecutor({
                                 if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
 
                                 try {
-                                    // Apply input bindings before resolving refs
-                                    const boundArgs = { ...steps[i].args };
-                                    if (steps[i].inputBindings) {
-                                        for (const [argKey, binding] of Object.entries(steps[i].inputBindings as Record<string, { source: string; sourceKey: string }>)) {
-                                            if (binding.source === 'storage' && binding.sourceKey in jobStorage) {
-                                                boundArgs[argKey] = jobStorage[binding.sourceKey];
-                                            } else if (binding.source === 'deliverable' && binding.sourceKey in deliverableContents) {
-                                                boundArgs[argKey] = deliverableContents[binding.sourceKey];
-                                            }
-                                        }
-                                    }
-                                    const resolvedArgs = resolveRefs(boundArgs);
-                                    const stepCtx = getStepContext(steps[i]);
+                                    const boundArgs = applyInputBindings(steps[i].args, steps[i].inputBindings, jobStorage, deliverableContents);
+                                    const resolvedArgs = resolveRefs(boundArgs, refs);
+                                    const stepCtx = stepCtxFor(steps[i]);
                                     const res = await registry.execute(steps[i].commandId, resolvedArgs, stepCtx);
                                     steps[i] = { ...steps[i], status: 'completed', result: typeof res === 'string' ? res : JSON.stringify(res) };
 
-                                    // Apply output mappings (step.outputMappings → storage / deliverable)
-                                    if (steps[i].outputMappings && res != null) {
-                                        for (const mapping of steps[i].outputMappings!) {
-                                            const outputValue = mapping.outputKey === '*'
-                                                ? res
-                                                : (typeof res === 'object' ? res[mapping.outputKey] : res);
-                                            if (mapping.target === 'storage' && mapping.targetKey) {
-                                                jobStorage[mapping.targetKey] = outputValue;
-                                            } else if (mapping.target === 'deliverable' && mapping.targetKey) {
-                                                context.addDeliverable({
-                                                    key: mapping.targetKey,
-                                                    name: mapping.targetKey,
-                                                    type: typeof outputValue === 'string' ? 'markdown' : 'json',
-                                                    content: typeof outputValue === 'string' ? outputValue : JSON.stringify(outputValue, null, 2),
-                                                });
-                                            }
-                                        }
-                                    }
+                                    // Apply output mappings
+                                    applyOutputMappings(steps[i].outputMappings, res, jobStorage, context.addDeliverable);
                                 } catch (e: any) {
                                     steps[i] = { ...steps[i], status: 'failed', result: e.message };
                                     if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
