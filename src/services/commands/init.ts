@@ -103,6 +103,7 @@ import {
     studioAddTriggerCommand,
     studioRemoveTriggerCommand,
 } from "./definitions/studio";
+import { autonomyCommands } from "./definitions/autonomy";
 
 export function initializeRegistry() {
     // Workspace
@@ -214,4 +215,7 @@ export function initializeRegistry() {
     registry.register(studioCreateJobCommand);
     registry.register(studioAddTriggerCommand);
     registry.register(studioRemoveTriggerCommand);
+
+    // Autonomy (autonomous agent task execution, delegation, consensus)
+    autonomyCommands.forEach(cmd => registry.register(cmd));
 }
