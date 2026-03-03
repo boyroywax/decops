@@ -55,6 +55,7 @@
   display: flex;
   flex-direction: column;
   transition: all var(--transition-base);
+  overflow: hidden;
 }
 
 .job-catalog__card:hover {
@@ -133,6 +134,15 @@
   display: flex;
   gap: var(--space-md);
   margin-top: auto;
+}
+
+.job-catalog__actions--confirm {
+  justify-content: center;
+}
+
+.job-catalog__actions--confirm .delete-confirm--compact {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .job-catalog__run-btn {

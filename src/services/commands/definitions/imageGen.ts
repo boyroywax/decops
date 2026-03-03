@@ -58,10 +58,11 @@ export const generateImageCommand: CommandDefinition = {
             defaultValue: false,
         },
     },
-    output: "JSON object with image metadata: cacheKey, mimeType, byteSize, cached status.",
+    output: "JSON object with image metadata: artifactId, cacheKey, mimeType, byteSize, cached status.",
     outputSchema: {
         type: "object",
         properties: {
+            artifactId: { type: "string", description: "ID of the created image artifact" },
             cacheKey: { type: "string", description: "IndexedDB cache key" },
             mimeType: { type: "string" },
             byteSize: { type: "number" },
@@ -149,14 +150,46 @@ export const generateImageCommand: CommandDefinition = {
 
         const byteSize = Math.ceil((result.data.length * 3) / 4); // base64 → bytes
 
-        workspace.addLog(`Image generated: ${result.mimeType}, ${(byteSize / 1024).toFixed(0)} KB, cached as ${cacheKey}`);
+        // ── Create artifact from generated image ──
+        const artifactId = crypto.randomUUID();
+        const artifactName = target === "agent_portrait"
+            ? `portrait-${entityId!.slice(0, 8)}.png`
+            : target === "group_badge"
+                ? `badge-${entityId!.slice(0, 8)}.png`
+                : `image-${cacheKey}.png`;
+
+        const artifact = {
+            id: artifactId,
+            name: artifactName,
+            type: "image" as const,
+            content: result.data,          // base64 image data
+            url: `data:${result.mimeType};base64,${result.data}`,
+            tags: [
+                "type:image",
+                `source:generate_image`,
+                `target:${target}`,
+                ...(entityId ? [`entity:${entityId}`] : []),
+            ],
+            createdAt: Date.now(),
+            description: `Generated ${target} image — ${finalPrompt.slice(0, 100)}`,
+            source: "command" as const,
+        };
+        context.jobs.importArtifact(artifact);
+
+        // Write to shared storage for downstream steps
+        context.storage.lastArtifactId = artifactId;
+        context.storage[`artifact_${artifactName}`] = artifactId;
+
+        workspace.addLog(`Image generated: ${result.mimeType}, ${(byteSize / 1024).toFixed(0)} KB, cached as ${cacheKey}, artifact ${artifactId.slice(0, 8)}…`);
 
         return {
+            artifactId,
             cacheKey,
             mimeType: result.mimeType,
             byteSize,
             cached: true,
             prompt: finalPrompt,
+            ref: `[[artifact:${artifactId}|${artifactName}]]`,
         };
     },
 };

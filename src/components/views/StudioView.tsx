@@ -43,6 +43,8 @@ export function isParallelGroup(step: StudioStep): boolean {
     return step.commandId === PARALLEL_GROUP_CMD;
 }
 
+export type AnchorSide = "top" | "right" | "bottom" | "left";
+
 export interface StudioStep {
     id: string;
     commandId: string;  // PARALLEL_GROUP_CMD for parallel containers
@@ -54,6 +56,8 @@ export interface StudioStep {
     outputMappings: OutputMapping[];
     modelId?: string;  // LLM model override for this step
     label?: string;    // display label for parallel groups
+    connectorOut?: AnchorSide;  // Where outgoing connector leaves this node (default: right)
+    connectorIn?: AnchorSide;   // Where incoming connector enters this node (default: left)
     x: number;
     y: number;
 }
@@ -122,23 +126,45 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         });
         const newId = `step-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
         setSteps(prev => {
-            // Determine parent: selected step, or last leaf, or null
+            // Determine parent: selected step, or last leaf (excluding parallel group internals), or null
             let parentId: string | null = null;
+            // Collect IDs of all parallel groups
+            const parallelGroupIds = new Set(prev.filter(s => s.commandId === PARALLEL_GROUP_CMD).map(s => s.id));
+
             if (effectiveStepId && prev.find(s => s.id === effectiveStepId)) {
-                parentId = effectiveStepId;
+                const sel = prev.find(s => s.id === effectiveStepId)!;
+                // If the selected step is inside a parallel group, parent to the group instead
+                if (sel.parentId && parallelGroupIds.has(sel.parentId)) {
+                    parentId = sel.parentId; // add as sibling inside the group
+                } else {
+                    parentId = effectiveStepId;
+                }
             } else if (prev.length > 0) {
+                // Find last leaf that is NOT a child of a parallel group
                 const idsBeingParent = new Set(prev.filter(s => s.parentId !== null).map(s => s.parentId!));
-                const leaves = prev.filter(s => !idsBeingParent.has(s.id));
-                parentId = leaves.length > 0 ? leaves[leaves.length - 1].id : prev[prev.length - 1].id;
+                const leaves = prev.filter(s => !idsBeingParent.has(s.id) && !parallelGroupIds.has(s.parentId ?? ""));
+                // Also include parallel groups themselves as potential parents
+                const candidates = leaves.length > 0 ? leaves : prev.filter(s => !parallelGroupIds.has(s.parentId ?? ""));
+                parentId = candidates.length > 0 ? candidates[candidates.length - 1].id : prev[prev.length - 1].id;
             }
 
             const parent = parentId ? prev.find(s => s.id === parentId) : null;
+            const isParentAGroup = parent ? parent.commandId === PARALLEL_GROUP_CMD : false;
             const siblings = parentId ? prev.filter(s => s.parentId === parentId) : [];
 
-            const x = parent ? parent.x + NODE_SPACING_X : INITIAL_X;
-            const y = siblings.length > 0
-                ? Math.max(...siblings.map(s => s.y)) + NODE_SPACING_Y
-                : (parent ? parent.y : INITIAL_Y);
+            let x: number, y: number;
+            if (isParentAGroup) {
+                // Place inside the parallel group, stacked vertically
+                x = parent!.x;
+                y = siblings.length > 0
+                    ? Math.max(...siblings.map(s => s.y)) + NODE_SPACING_Y
+                    : parent!.y;
+            } else {
+                x = parent ? parent.x + NODE_SPACING_X : INITIAL_X;
+                y = siblings.length > 0
+                    ? Math.max(...siblings.map(s => s.y)) + NODE_SPACING_Y
+                    : (parent ? parent.y : INITIAL_Y);
+            }
 
             return [...prev, {
                 id: newId,
@@ -184,6 +210,19 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
 
     const updateStepPosition = useCallback((stepId: string, x: number, y: number) => {
         setSteps(prev => prev.map(s => s.id === stepId ? { ...s, x, y } : s));
+    }, []);
+
+    const moveGroup = useCallback((groupId: string, dx: number, dy: number) => {
+        setSteps(prev => prev.map(s => {
+            if (s.id === groupId || s.parentId === groupId) {
+                return { ...s, x: Math.max(0, s.x + dx), y: Math.max(0, s.y + dy) };
+            }
+            return s;
+        }));
+    }, []);
+
+    const updateStepAnchor = useCallback((stepId: string, which: "connectorOut" | "connectorIn", side: AnchorSide) => {
+        setSteps(prev => prev.map(s => s.id === stepId ? { ...s, [which]: side } : s));
     }, []);
 
     const updateStepOutputMappings = useCallback((stepId: string, outputMappings: OutputMapping[]) => {
@@ -262,13 +301,24 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const addParallelGroup = useCallback((): string => {
         const newId = `pgroup-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
         setSteps(prev => {
-            // Determine parent: selected step, or last leaf, or null
+            // Determine parent: selected step or last leaf (excluding parallel group internals)
             let parentId: string | null = null;
+            const parallelGroupIds = new Set(prev.filter(s => s.commandId === PARALLEL_GROUP_CMD).map(s => s.id));
+
             if (effectiveStepId && prev.find(s => s.id === effectiveStepId)) {
-                parentId = effectiveStepId;
+                const sel = prev.find(s => s.id === effectiveStepId)!;
+                // If selected step is inside a parallel group, parent the new group to the group's parent
+                if (sel.parentId && parallelGroupIds.has(sel.parentId)) {
+                    parentId = prev.find(s => s.id === sel.parentId)?.parentId ?? null;
+                } else if (parallelGroupIds.has(sel.id)) {
+                    // Selected step IS a parallel group — parent to its parent
+                    parentId = sel.parentId;
+                } else {
+                    parentId = effectiveStepId;
+                }
             } else if (prev.length > 0) {
                 const idsBeingParent = new Set(prev.filter(s => s.parentId !== null).map(s => s.parentId!));
-                const leaves = prev.filter(s => !idsBeingParent.has(s.id));
+                const leaves = prev.filter(s => !idsBeingParent.has(s.id) && !parallelGroupIds.has(s.parentId ?? ""));
                 parentId = leaves.length > 0 ? leaves[leaves.length - 1].id : prev[prev.length - 1].id;
             }
             const parent = parentId ? prev.find(s => s.id === parentId) : null;
@@ -819,11 +869,6 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                             onChange={e => setName(e.target.value)}
                             placeholder="Job Name"
                         />
-                        <div className="jm-toolbar__mode-badge">
-                            <span className={`jm-toolbar__mode-indicator jm-toolbar__mode-indicator--${derivedMode}`}>
-                                {derivedMode}
-                            </span>
-                        </div>
                     </div>
                     <div className="jm-toolbar__file-actions">
                         <button className="jm-toolbar__icon-btn" onClick={handleNew} title="New job">
@@ -994,6 +1039,8 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                     onRemoveStorage={removeStorageEntry}
                     onRemoveInput={removeInput}
                     onUpdatePosition={updateStepPosition}
+                    onMoveGroup={moveGroup}
+                    onUpdateAnchor={updateStepAnchor}
                     selectedElements={selectedElements}
                     onMultiSelect={handleMultiSelect}
                     onDeleteSelected={handleDeleteSelected}

@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { Workflow, Package, Database, Tag, X, GitFork } from "lucide-react";
 import { JobNode } from "./JobNode";
-import type { StudioStep, SelectedElement } from "../views/StudioView";
+import type { StudioStep, SelectedElement, AnchorSide } from "../views/StudioView";
 import { isParallelGroup, PARALLEL_GROUP_CMD } from "../views/StudioView";
 import type { JobDeliverable, EntityInput } from "../../types";
 
@@ -13,6 +13,23 @@ const STORAGE_WIDTH = 160;
 const STORAGE_HEIGHT = 56;
 const INPUT_WIDTH = 170;
 const INPUT_HEIGHT = 72;
+
+const ANCHOR_ORDER: AnchorSide[] = ["right", "bottom", "left", "top"];
+
+function nextAnchor(current: AnchorSide | undefined): AnchorSide {
+    const idx = ANCHOR_ORDER.indexOf(current || "right");
+    return ANCHOR_ORDER[(idx + 1) % ANCHOR_ORDER.length];
+}
+
+/** Compute the (x,y) point on a node's edge for a given anchor side. */
+function anchorPoint(nodeX: number, nodeY: number, w: number, h: number, side: AnchorSide): { x: number; y: number } {
+    switch (side) {
+        case "top":    return { x: nodeX + w / 2, y: nodeY };
+        case "bottom": return { x: nodeX + w / 2, y: nodeY + h };
+        case "left":   return { x: nodeX,         y: nodeY + h / 2 };
+        case "right":  return { x: nodeX + w,      y: nodeY + h / 2 };
+    }
+}
 
 function rectsIntersect(
     a: { x: number; y: number; w: number; h: number },
@@ -33,6 +50,8 @@ interface JobCanvasProps {
     onRemoveStorage: (idx: number) => void;
     onRemoveInput: (idx: number) => void;
     onUpdatePosition: (stepId: string, x: number, y: number) => void;
+    onMoveGroup: (groupId: string, dx: number, dy: number) => void;
+    onUpdateAnchor: (stepId: string, which: "connectorOut" | "connectorIn", side: AnchorSide) => void;
     selectedElements: NonNullable<SelectedElement>[];
     onMultiSelect: (items: NonNullable<SelectedElement>[]) => void;
     onDeleteSelected: () => void;
@@ -42,11 +61,12 @@ interface JobCanvasProps {
 export function JobCanvas({
     steps, deliverables, storageEntries, inputs, selectedElement,
     onSelect, onRemoveStep, onRemoveDeliverable, onRemoveStorage, onRemoveInput,
-    onUpdatePosition, selectedElements, onMultiSelect, onDeleteSelected,
+    onUpdatePosition, onMoveGroup, onUpdateAnchor, selectedElements, onMultiSelect, onDeleteSelected,
     onOpenStepCard,
 }: JobCanvasProps) {
     const canvasRef = useRef<HTMLDivElement>(null);
-    const [dragging, setDragging] = useState<{ stepId: string; offsetX: number; offsetY: number } | null>(null);
+    const [dragging, setDragging] = useState<{ stepId: string; offsetX: number; offsetY: number; isGroup?: boolean } | null>(null);
+    const lastGroupPos = useRef<{ x: number; y: number } | null>(null);
     const [isSelecting, setIsSelecting] = useState(false);
     const [selectionRect, setSelectionRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
     const marqueeStart = useRef({ x: 0, y: 0 });
@@ -77,10 +97,15 @@ export function JobCanvas({
         const step = steps.find(s => s.id === stepId);
         if (!step) return;
         const rect = canvas.getBoundingClientRect();
+        const isGroup = isParallelGroup(step);
+        if (isGroup) {
+            lastGroupPos.current = { x: step.x, y: step.y };
+        }
         setDragging({
             stepId,
             offsetX: e.clientX - rect.left + canvas.scrollLeft - step.x,
             offsetY: e.clientY - rect.top + canvas.scrollTop - step.y,
+            isGroup,
         });
         onSelect({ type: "step", id: stepId });
         e.preventDefault();
@@ -94,16 +119,28 @@ export function JobCanvas({
             const rect = canvas.getBoundingClientRect();
             const x = Math.max(0, e.clientX - rect.left + canvas.scrollLeft - dragging.offsetX);
             const y = Math.max(0, e.clientY - rect.top + canvas.scrollTop - dragging.offsetY);
-            onUpdatePosition(dragging.stepId, x, y);
+
+            if (dragging.isGroup && lastGroupPos.current) {
+                const dx = x - lastGroupPos.current.x;
+                const dy = y - lastGroupPos.current.y;
+                lastGroupPos.current = { x, y };
+                // Move group + all children in one batch
+                onMoveGroup(dragging.stepId, dx, dy);
+            } else {
+                onUpdatePosition(dragging.stepId, x, y);
+            }
         };
-        const handleUp = () => setDragging(null);
+        const handleUp = () => {
+            lastGroupPos.current = null;
+            setDragging(null);
+        };
         window.addEventListener("mousemove", handleMove);
         window.addEventListener("mouseup", handleUp);
         return () => {
             window.removeEventListener("mousemove", handleMove);
             window.removeEventListener("mouseup", handleUp);
         };
-    }, [dragging, onUpdatePosition]);
+    }, [dragging, onUpdatePosition, onMoveGroup]);
 
     // ── Marquee multi-select ──
     const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
@@ -202,43 +239,72 @@ export function JobCanvas({
         }
     }, [onDeleteSelected, onSelect]);
 
+    // ── Pre-compute parallel-group bounding boxes ──
+    const groupBounds = new Map<string, { x: number; y: number; w: number; h: number }>();
+    for (const group of steps.filter(s => isParallelGroup(s))) {
+        const children = steps.filter(s => s.parentId === group.id);
+        const padding = 24;
+        const headerH = 34;
+        if (children.length > 0) {
+            const minX = Math.min(...children.map(c => c.x));
+            const maxX = Math.max(...children.map(c => c.x + NODE_WIDTH));
+            const minY = Math.min(...children.map(c => c.y));
+            const maxY = Math.max(...children.map(c => c.y + NODE_HEIGHT));
+            groupBounds.set(group.id, {
+                x: minX - padding,
+                y: minY - padding - headerH,
+                w: Math.max(300, maxX - minX + NODE_WIDTH + padding * 2),
+                h: maxY - minY + NODE_HEIGHT + padding * 2 + headerH,
+            });
+        } else {
+            groupBounds.set(group.id, { x: group.x, y: group.y, w: 300, h: headerH + padding * 2 });
+        }
+    }
+
     // ── Build graph-based connectors from parentId ──
     const connectors = steps
         .filter(s => s.parentId !== null)
+        .filter(s => {
+            // Skip children of parallel groups — they're visually inside the container
+            const parent = steps.find(p => p.id === s.parentId);
+            return parent && !isParallelGroup(parent);
+        })
         .map(step => {
             const parent = steps.find(p => p.id === step.parentId);
             if (!parent) return null;
-            const siblings = steps.filter(s => s.parentId === step.parentId);
-            const isParallel = isParallelGroup(parent);
+            const isGroupStep = isParallelGroup(step);
 
-            // Determine direction: vertical if child is more below than to the right
-            const parentCX = parent.x + NODE_WIDTH / 2;
-            const parentCY = parent.y + NODE_HEIGHT / 2;
-            const childCX = step.x + NODE_WIDTH / 2;
-            const childCY = step.y + NODE_HEIGHT / 2;
-            const isVertical = Math.abs(childCY - parentCY) > Math.abs(childCX - parentCX);
+            // Determine anchor sides from step properties
+            const outSide: AnchorSide = parent.connectorOut || "right";
 
-            let fromX: number, fromY: number, toX: number, toY: number;
-            if (isVertical) {
-                // Bottom-center of parent → top-center of child
-                fromX = parentCX;
-                fromY = parent.y + NODE_HEIGHT;
-                toX = childCX;
-                toY = step.y;
+            let from: { x: number; y: number };
+            let to: { x: number; y: number };
+
+            if (isGroupStep) {
+                // Connect from parent node's outgoing anchor to the parallel container edge
+                from = anchorPoint(parent.x, parent.y, NODE_WIDTH, NODE_HEIGHT, outSide);
+                const bounds = groupBounds.get(step.id);
+                if (bounds) {
+                    // Determine which side of the container to connect to (opposite of outSide)
+                    const inSide: AnchorSide = step.connectorIn || (outSide === "right" ? "left" : outSide === "bottom" ? "top" : outSide === "left" ? "right" : "bottom");
+                    to = anchorPoint(bounds.x, bounds.y, bounds.w, bounds.h, inSide);
+                } else {
+                    to = anchorPoint(step.x, step.y, NODE_WIDTH, NODE_HEIGHT, step.connectorIn || "left");
+                }
             } else {
-                // Right-center of parent → left-center of child
-                fromX = parent.x + NODE_WIDTH;
-                fromY = parent.y + NODE_HEIGHT / 2;
-                toX = step.x;
-                toY = step.y + NODE_HEIGHT / 2;
+                from = anchorPoint(parent.x, parent.y, NODE_WIDTH, NODE_HEIGHT, outSide);
+                const inSide: AnchorSide = step.connectorIn || (outSide === "right" ? "left" : outSide === "bottom" ? "top" : outSide === "left" ? "right" : "bottom");
+                to = anchorPoint(step.x, step.y, NODE_WIDTH, NODE_HEIGHT, inSide);
             }
+
+            const isVertical = outSide === "top" || outSide === "bottom";
 
             return {
                 key: `${parent.id}-${step.id}`,
-                from: { x: fromX, y: fromY },
-                to: { x: toX, y: toY },
-                mid: { x: (fromX + toX) / 2, y: (fromY + toY) / 2 },
-                isParallel,
+                from,
+                to,
+                mid: { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 },
+                isParallel: false,  // unified styling now
                 isVertical,
                 parentId: parent.id,
             };
@@ -371,7 +437,7 @@ export function JobCanvas({
 
                     {/* Step→Step connectors */}
                     {connectors.map(conn => {
-                        const cpOffset = 40;
+                        const cpOffset = 50;
                         const d = conn.isVertical
                             ? `M ${conn.from.x} ${conn.from.y} C ${conn.from.x} ${conn.from.y + cpOffset}, ${conn.to.x} ${conn.to.y - cpOffset}, ${conn.to.x} ${conn.to.y}`
                             : `M ${conn.from.x} ${conn.from.y} C ${conn.from.x + cpOffset} ${conn.from.y}, ${conn.to.x - cpOffset} ${conn.to.y}, ${conn.to.x} ${conn.to.y}`;
@@ -379,8 +445,8 @@ export function JobCanvas({
                             <path
                                 key={conn.key}
                                 d={d}
-                                className={`jm-canvas__connector-line ${conn.isParallel ? "jm-canvas__connector-line--parallel" : ""}`}
-                                markerEnd={conn.isParallel ? "url(#arrowhead-parallel)" : "url(#arrowhead)"}
+                                className="jm-canvas__connector-line"
+                                markerEnd="url(#arrowhead)"
                             />
                         );
                     })}
@@ -497,9 +563,12 @@ export function JobCanvas({
                 {/* ── Parallel Group Containers ── */}
                 {steps.filter(s => isParallelGroup(s)).map(group => {
                     const children = steps.filter(s => s.parentId === group.id);
-                    const padding = 20;
-                    const headerH = 32;
-                    let boxX = group.x, boxY = group.y, boxW = 280, boxH = 80;
+                    const padding = 24;
+                    const headerH = 34;
+                    let boxX = group.x;
+                    let boxY = group.y;
+                    let boxW = 300;
+                    let boxH = headerH + padding * 2;
                     if (children.length > 0) {
                         const minX = Math.min(...children.map(c => c.x));
                         const maxX = Math.max(...children.map(c => c.x + NODE_WIDTH));
@@ -507,21 +576,29 @@ export function JobCanvas({
                         const maxY = Math.max(...children.map(c => c.y + NODE_HEIGHT));
                         boxX = minX - padding;
                         boxY = minY - padding - headerH;
-                        boxW = maxX - minX + NODE_WIDTH + padding * 2;
+                        boxW = Math.max(300, maxX - minX + NODE_WIDTH + padding * 2);
                         boxH = maxY - minY + NODE_HEIGHT + padding * 2 + headerH;
                     }
                     const isSelected = (selectedElement?.type === "step" && selectedElement.id === group.id) || isInMultiSelect("step", group.id);
+                    const isDraggingGroup = dragging?.stepId === group.id;
                     return (
                         <div
                             key={`pg-${group.id}`}
-                            className={`jm-parallel-group ${isSelected ? "jm-parallel-group--selected" : ""}`}
-                            style={{ position: "absolute", left: boxX, top: boxY, width: boxW, height: boxH }}
+                            className={`jm-parallel-group ${isSelected ? "jm-parallel-group--selected" : ""} ${isDraggingGroup ? "jm-parallel-group--dragging" : ""}`}
+                            style={{
+                                position: "absolute",
+                                left: boxX,
+                                top: boxY,
+                                width: boxW,
+                                height: boxH,
+                                zIndex: isDraggingGroup ? 5 : 0,
+                            }}
                             onMouseDown={(e) => handleNodeMouseDown(e, group.id)}
                         >
                             <div className="jm-parallel-group__header">
                                 <GitFork size={12} />
                                 <span className="jm-parallel-group__label">{group.label || "Parallel"}</span>
-                                <span className="jm-parallel-group__count">{children.length} tasks</span>
+                                <span className="jm-parallel-group__count">{children.length} {children.length === 1 ? "task" : "tasks"}</span>
                                 <button
                                     className="jm-node__action-btn jm-node__action-btn--danger"
                                     onClick={(e) => { e.stopPropagation(); onRemoveStep(group.id); }}
@@ -530,6 +607,11 @@ export function JobCanvas({
                                     <X size={10} />
                                 </button>
                             </div>
+                            {children.length === 0 && (
+                                <div className="jm-parallel-group__empty">
+                                    Drag steps here or set their parent to this group
+                                </div>
+                            )}
                         </div>
                     );
                 })}
@@ -540,6 +622,7 @@ export function JobCanvas({
                         // BFS order index based on parentId tree
                         return steps.indexOf(s) <= steps.indexOf(step);
                     }).length;
+                    const isSelected = (selectedElement?.type === "step" && selectedElement.id === step.id) || isInMultiSelect("step", step.id);
                     return (
                         <div
                             key={step.id}
@@ -556,11 +639,56 @@ export function JobCanvas({
                                 step={step}
                                 index={idx}
                                 total={steps.filter(s => !isParallelGroup(s)).length}
-                                selected={(selectedElement?.type === "step" && selectedElement.id === step.id) || isInMultiSelect("step", step.id)}
+                                selected={isSelected}
                                 isDragging={dragging?.stepId === step.id}
                                 onRemove={() => onRemoveStep(step.id)}
                                 childCount={steps.filter(s => s.parentId === step.id).length}
                             />
+                            {/* Anchor dots — visible when selected */}
+                            {isSelected && (
+                                <>
+                                    {(["top", "right", "bottom", "left"] as AnchorSide[]).map(side => {
+                                        const isOut = step.connectorOut === side || (!step.connectorOut && side === "right");
+                                        const isIn = step.connectorIn === side || (!step.connectorIn && side === "left");
+                                        const pos = (() => {
+                                            switch (side) {
+                                                case "top":    return { left: NODE_WIDTH / 2 - 6, top: -6 };
+                                                case "bottom": return { left: NODE_WIDTH / 2 - 6, top: NODE_HEIGHT - 6 };
+                                                case "left":   return { left: -6, top: NODE_HEIGHT / 2 - 6 };
+                                                case "right":  return { left: NODE_WIDTH - 6, top: NODE_HEIGHT / 2 - 6 };
+                                            }
+                                        })();
+                                        return (
+                                            <div
+                                                key={`anchor-${side}`}
+                                                className={`jm-anchor-dot ${isOut ? "jm-anchor-dot--out" : ""} ${isIn ? "jm-anchor-dot--in" : ""}`}
+                                                style={{ position: "absolute", ...pos }}
+                                                title={`${side}: ${isOut ? "OUT" : ""}${isIn ? "IN" : ""}${!isOut && !isIn ? "click to set" : ""}`}
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    // Left click cycles outgoing anchor, right-click would cycle incoming
+                                                    if (isOut) {
+                                                        // Cycle out to next side
+                                                        onUpdateAnchor(step.id, "connectorOut", nextAnchor(step.connectorOut));
+                                                    } else if (isIn) {
+                                                        onUpdateAnchor(step.id, "connectorIn", nextAnchor(step.connectorIn));
+                                                    } else {
+                                                        // Set this side as outgoing
+                                                        onUpdateAnchor(step.id, "connectorOut", side);
+                                                    }
+                                                }}
+                                                onContextMenu={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    // Right click sets incoming anchor
+                                                    onUpdateAnchor(step.id, "connectorIn", side);
+                                                }}
+                                            />
+                                        );
+                                    })}
+                                </>
+                            )}
                         </div>
                     );
                 })}

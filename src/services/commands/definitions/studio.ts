@@ -425,7 +425,7 @@ export const studioClearCanvasCommand: CommandDefinition = {
 
 export const studioCreateJobCommand: CommandDefinition = {
     id: "studio_create_job",
-    description: "Creates a complete job in the Studio in one call. Clears the canvas first, then sets name, description, steps (with args, bindings, output mappings), deliverables, and storage defaults. Optionally saves and/or runs it immediately.",
+    description: "Creates a complete job in the Studio in one call. Clears the canvas first, then sets name, description, steps (with args, bindings, output mappings), parallel groups, deliverables, storage defaults, entity inputs, and triggers. Optionally saves and/or runs it immediately.",
     tags: ["studio", "job", "create"],
     rbac: ["orchestrator", "builder"],
     args: {
@@ -434,8 +434,14 @@ export const studioCreateJobCommand: CommandDefinition = {
         steps: {
             name: "steps",
             type: "array",
-            description: "Array of step objects: [{ commandId, args?, inputBindings?, outputMappings?, condition? }]",
+            description: "Array of step objects: [{ commandId, args?, inputBindings?, outputMappings?, condition?, parallelGroup?: number }]. Use parallelGroup index to assign steps into a parallel group (0-based index into the parallelGroups array).",
             required: true,
+        },
+        parallelGroups: {
+            name: "parallelGroups",
+            type: "array",
+            description: "Array of parallel group labels: ['Research Tasks', 'Data Collection']. Steps reference these by index via the parallelGroup field.",
+            required: false,
         },
         deliverables: {
             name: "deliverables",
@@ -455,6 +461,12 @@ export const studioCreateJobCommand: CommandDefinition = {
             description: "Entity inputs: [{ name, type: 'agent'|'channel'|'group'|'network', entityId }]",
             required: false,
         },
+        triggers: {
+            name: "triggers",
+            type: "array",
+            description: "Trigger rules: [{ event, filter?, label?, cron? }]. Events: artifact:created, artifact:updated, artifact:deleted, agent:created, agent:updated, group:created, group:updated, channel:created, channel:updated, network:created, network:updated, job:completed, job:failed, schedule:cron.",
+            required: false,
+        },
         save: { name: "save", type: "boolean", description: "Save the job to catalog after creation", required: false, defaultValue: false },
         run: { name: "run", type: "boolean", description: "Run the job immediately after creation", required: false, defaultValue: false },
     },
@@ -470,7 +482,16 @@ export const studioCreateJobCommand: CommandDefinition = {
         studio.setName(args.name);
         studio.setDescription(args.description || "");
 
-        // 3. Add steps
+        // 3. Create parallel groups first (we need their IDs for child assignment)
+        const groupIds: string[] = [];
+        if (args.parallelGroups && Array.isArray(args.parallelGroups)) {
+            for (const _label of args.parallelGroups) {
+                const gid = studio.addParallelGroup();
+                groupIds.push(gid);
+            }
+        }
+
+        // 4. Add steps
         const stepIds: string[] = [];
         for (const stepDef of args.steps) {
             const stepId = studio.addStep(stepDef.commandId);
@@ -482,8 +503,6 @@ export const studioCreateJobCommand: CommandDefinition = {
                     studio.updateStepArg(stepId, key, value);
                 }
             }
-
-            // (flowType removed — use parallel groups instead)
 
             // Set condition
             if (stepDef.condition) {
@@ -501,7 +520,7 @@ export const studioCreateJobCommand: CommandDefinition = {
             }
         }
 
-        // 4. Add deliverables
+        // 5. Add deliverables
         if (args.deliverables) {
             for (const d of args.deliverables) {
                 studio.addDeliverableEntry({
@@ -513,22 +532,41 @@ export const studioCreateJobCommand: CommandDefinition = {
             }
         }
 
-        // 5. Add storage defaults
+        // 6. Add storage defaults
         if (args.storageDefaults) {
             for (const [key, value] of Object.entries(args.storageDefaults)) {
                 studio.addStorageEntryWithValues(key, typeof value === "string" ? value : JSON.stringify(value));
             }
         }
 
-        // 6. Add entity inputs
+        // 7. Add entity inputs
         if (args.inputs) {
             for (const inp of args.inputs) {
                 studio.addInput({ name: inp.name, type: inp.type || "agent", entityId: inp.entityId || "" });
             }
         }
 
-        // 7. Optionally save and/or run
-        const result: any = { name: args.name, stepCount: stepIds.length, stepIds };
+        // 8. Add triggers
+        if (args.triggers && Array.isArray(args.triggers) && (studio as any).addTrigger) {
+            for (const t of args.triggers) {
+                const id = `trigger-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                let filter: any = undefined;
+                if (t.filter) {
+                    const val = t.filter;
+                    const isId = /^[a-z0-9-]{8,}$/i.test(val);
+                    const isTag = val.includes(":");
+                    filter = {
+                        entityId: isId ? val : undefined,
+                        tag: isTag ? val : undefined,
+                        name: (!isId && !isTag) ? val : undefined,
+                    };
+                }
+                (studio as any).addTrigger(t.event, id, filter, t.label, t.cron);
+            }
+        }
+
+        // 9. Optionally save and/or run
+        const result: any = { name: args.name, stepCount: stepIds.length, stepIds, groupCount: groupIds.length, groupIds };
 
         if (args.save) {
             result.saved = studio.saveJob();

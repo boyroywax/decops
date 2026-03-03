@@ -58,6 +58,17 @@ export function JobCatalog({ jobs, onRun, onDryRun, onEdit, onDelete }: JobCatal
                         {job.description || "No description provided."}
                     </div>
 
+                    {!isBuiltIn && del.isPending(job.id) ? (
+                        <div className="job-catalog__actions job-catalog__actions--confirm">
+                            <DeleteConfirmInline
+                                entityName="Job"
+                                entityLabel={job.name}
+                                onConfirm={() => del.confirm(() => onDelete(job.id))}
+                                onCancel={del.cancel}
+                                compact
+                            />
+                        </div>
+                    ) : (
                     <div className="job-catalog__actions">
                         <button
                             onClick={() => onRun(job)}
@@ -82,15 +93,6 @@ export function JobCatalog({ jobs, onRun, onDryRun, onEdit, onDelete }: JobCatal
                             <Edit size={12} />
                         </button>
                         {!isBuiltIn && (
-                        del.isPending(job.id) ? (
-                            <DeleteConfirmInline
-                                entityName="Job"
-                                entityLabel={job.name}
-                                onConfirm={() => del.confirm(() => onDelete(job.id))}
-                                onCancel={del.cancel}
-                                compact
-                            />
-                        ) : (
                         <button
                             onClick={() => del.requestDelete(job.id)}
                             className="btn btn-secondary job-catalog__action-btn job-catalog__action-btn--danger"
@@ -98,9 +100,9 @@ export function JobCatalog({ jobs, onRun, onDryRun, onEdit, onDelete }: JobCatal
                         >
                             <Trash2 size={12} />
                         </button>
-                        )
                         )}
                     </div>
+                    )}
                 </div>
                 );
             })}

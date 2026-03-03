@@ -364,37 +364,75 @@
   stroke-dasharray: 6 3;
   stroke: var(--color-warning, #fbbf24);
 }
-.jm-canvas__connector-line--parallel {
-  stroke: #a78bfa;
-  stroke-width: 2.5;
-  stroke-dasharray: 8 4;
+
+/* ── Anchor dots — shown on selected nodes ── */
+.jm-anchor-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--border-medium);
+  background: var(--bg-primary, #1a1a2e);
+  cursor: pointer;
+  z-index: 20;
+  transition: background var(--transition-base), border-color var(--transition-base), transform 0.15s ease;
+}
+.jm-anchor-dot:hover {
+  transform: scale(1.4);
+  border-color: var(--color-accent, #60a5fa);
+  background: var(--color-accent, #60a5fa);
+}
+.jm-anchor-dot--out {
+  background: var(--color-accent, #60a5fa);
+  border-color: var(--color-accent, #60a5fa);
+}
+.jm-anchor-dot--in {
+  background: #34d399;
+  border-color: #34d399;
+}
+.jm-anchor-dot--out.jm-anchor-dot--in {
+  background: linear-gradient(135deg, var(--color-accent, #60a5fa) 50%, #34d399 50%);
+  border-color: var(--color-accent, #60a5fa);
 }
 
 /* ── Parallel Group Container ── */
 .jm-parallel-group {
   border: 2px dashed #a78bfa50;
   border-radius: var(--radius-lg);
-  background: #a78bfa06;
-  z-index: 0;
+  background: #a78bfa08;
   pointer-events: auto;
-  transition: border-color var(--transition-base), background var(--transition-base);
+  cursor: grab;
+  transition: border-color var(--transition-base), background var(--transition-base), box-shadow var(--transition-base);
+  box-shadow: 0 0 0 1px #a78bfa10;
+  min-height: 80px;
+}
+.jm-parallel-group:hover {
+  border-color: #a78bfa80;
+  background: #a78bfa0d;
+  box-shadow: 0 2px 12px #a78bfa18;
 }
 .jm-parallel-group--selected {
   border-color: #a78bfa;
-  background: #a78bfa10;
+  background: #a78bfa12;
+  box-shadow: 0 0 0 2px #a78bfa30, 0 4px 16px #a78bfa18;
+}
+.jm-parallel-group--dragging {
+  cursor: grabbing;
+  opacity: 0.92;
+  box-shadow: 0 8px 32px #a78bfa30;
 }
 .jm-parallel-group__header {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 6px 12px;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: #a78bfa;
   border-bottom: 1px dashed #a78bfa30;
-  background: #a78bfa08;
+  background: #a78bfa0c;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  user-select: none;
 }
 .jm-parallel-group__label {
   flex: 1;
@@ -405,6 +443,17 @@
   font-size: 9px;
   color: #a78bfa80;
   font-weight: 500;
+}
+.jm-parallel-group__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  font-size: 11px;
+  color: #a78bfa50;
+  font-style: italic;
+  text-align: center;
+  min-height: 48px;
 }
 
 /* ── Parallel toolbar button ── */
