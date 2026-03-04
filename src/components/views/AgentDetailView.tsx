@@ -1,12 +1,12 @@
 import { useState, useRef } from "react";
-import type { Agent, Channel, Group, Message, Network, ViewId, NavContext, AieosEntity } from "@/types";
-import { ROLES, CHANNEL_TYPES } from "@/constants";
+import type { Agent, Channel, Group, Message, Network, ViewId, NavContext, AieosEntity, ToolkitId } from "@/types";
+import { ROLES, CHANNEL_TYPES, TOOLKITS } from "@/constants";
 import {
   Users, Calendar, Trash2, Radio,
   MessageSquare, Key, FileText, Edit3, Check, X,
   Download, Upload, ChevronDown, ChevronUp,
   Brain, Sparkles, Compass, BookOpen, Heart, Mic,
-  Shield, Target, Cpu,
+  Shield, Target, Cpu, Wrench, Globe, ScanText, AudioLines, Video, ChevronRight,
 } from "lucide-react";
 import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
@@ -14,6 +14,7 @@ import { AgentChat } from "@/components/chat/AgentChat";
 import { CopyableId } from "@/components/shared/CopyableId";
 import { AgentPortrait } from "@/components/shared/AgentPortrait";
 import { AgentTradingCard } from "@/components/shared/AgentTradingCard";
+import { GradientIcon } from "@/components/shared/GradientIcon";
 import { downloadAgentAieos, aieosToAgent, validateAieos } from "@/utils/aieos";
 import { AieosEditor } from "./AieosEditor";
 import { useLLM } from "@/context/LLMContext";
@@ -113,6 +114,94 @@ function AgentModelPicker({ agentId, recommendedModel }: { agentId: string; reco
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Toolkit icon map ──
+const TOOLKIT_ICON_MAP: Record<string, any> = { Globe, ScanText, AudioLines, Video };
+
+// ── Agent Toolkits Section ──
+
+function AgentToolkitsSection({
+  agent, navigateTo, networkId, groupId, updateAgent,
+}: {
+  agent: Agent;
+  navigateTo: (view: ViewId, ctx: NavContext) => void;
+  networkId: string;
+  groupId?: string;
+  updateAgent?: (id: string, patch: Partial<Agent>) => void;
+}) {
+  const enabledToolkitIds = new Set((agent.toolkits || []).map(t => t.toolkitId));
+  const hasNetworkContext = !!networkId;
+
+  const handleToggle = (toolkitId: ToolkitId) => {
+    if (!updateAgent) return;
+    if (enabledToolkitIds.has(toolkitId)) {
+      updateAgent(agent.id, {
+        toolkits: (agent.toolkits || []).filter(t => t.toolkitId !== toolkitId),
+      });
+    } else {
+      updateAgent(agent.id, {
+        toolkits: [...(agent.toolkits || []), { toolkitId, enabledAt: new Date().toISOString(), config: {} }],
+      });
+    }
+  };
+
+  const handleNavigateToToolkit = (toolkitId: ToolkitId) => {
+    if (hasNetworkContext) {
+      navigateTo("networks", { networkId, groupId, agentId: agent.id, toolkitId });
+    } else {
+      navigateTo("agents", { agentId: agent.id, toolkitId });
+    }
+  };
+
+  return (
+    <div className="agent-detail__section">
+      <div className="agent-detail__section-title">
+        <Wrench size={11} style={{ display: "inline", verticalAlign: "middle" }} /> Toolkits ({enabledToolkitIds.size}/{TOOLKITS.length})
+      </div>
+      <div className="agent-detail__toolkits">
+        {TOOLKITS.map((tk) => {
+          const Icon = TOOLKIT_ICON_MAP[tk.icon] || Globe;
+          const isEnabled = enabledToolkitIds.has(tk.id);
+          const isComingSoon = tk.status === "coming-soon";
+          return (
+            <div
+              key={tk.id}
+              className={`agent-detail__toolkit${isEnabled ? " agent-detail__toolkit--active" : ""}${isComingSoon ? " agent-detail__toolkit--coming-soon" : ""}`}
+              style={{ "--tk-color": tk.color, "--tk-color-bg": `${tk.color}12`, "--tk-color-border": `${tk.color}25` } as React.CSSProperties}
+            >
+              <button
+                className="agent-detail__toolkit-main"
+                onClick={() => {
+                  if (!isComingSoon) {
+                    handleNavigateToToolkit(tk.id);
+                  }
+                }}
+                disabled={isComingSoon}
+              >
+                <div className="agent-detail__toolkit-icon">
+                  <GradientIcon icon={Icon} size={16} gradient={tk.gradient} />
+                </div>
+                <div className="agent-detail__toolkit-info">
+                  <span className="agent-detail__toolkit-name">{tk.name}</span>
+                  <span className="agent-detail__toolkit-tool-count">{tk.tools.length} tools</span>
+                </div>
+                <ChevronRight size={12} className="agent-detail__toolkit-arrow" />
+              </button>
+              <button
+                className={`agent-detail__toolkit-toggle${isEnabled ? " agent-detail__toolkit-toggle--on" : ""}`}
+                onClick={(e) => { e.stopPropagation(); if (!isComingSoon) handleToggle(tk.id); }}
+                disabled={isComingSoon}
+                title={isComingSoon ? "Coming soon" : isEnabled ? "Disable toolkit" : "Enable toolkit"}
+              >
+                {isComingSoon ? "Soon" : isEnabled ? "On" : "Off"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -280,6 +369,9 @@ export function AgentDetailView({
 
       {/* LLM Model */}
       <AgentModelPicker agentId={agent.id} recommendedModel={agent.recommendedModel} />
+
+      {/* Toolkits */}
+      <AgentToolkitsSection agent={agent} navigateTo={navigateTo} networkId={networkId} groupId={groupId} updateAgent={updateAgent} />
 
       {/* Prompt */}
       <div className="agent-detail__section">

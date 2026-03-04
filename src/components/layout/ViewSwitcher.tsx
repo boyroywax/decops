@@ -1,4 +1,4 @@
-import type { ViewId, NavContext } from "@/types";
+import type { ViewId, NavContext, ToolkitId } from "@/types";
 import { NetworksView } from "@/components/views/NetworksView";
 import { NetworkDetailView } from "@/components/views/NetworkDetailView";
 import { GroupDetailView } from "@/components/views/GroupDetailView";
@@ -8,6 +8,7 @@ import { ChannelsView } from "@/components/views/ChannelsView";
 import { ChannelDetailView } from "@/components/views/ChannelDetailView";
 import { GroupsView } from "@/components/views/GroupsView";
 import { MessagesView } from "@/components/views/MessagesView";
+import { ToolkitDetailView } from "@/components/views/ToolkitDetailView";
 import { NetworkView } from "@/components/views/NetworkView";
 import { ArtifactsView } from "@/components/views/ArtifactsView";
 import { ActivityView } from "@/components/views/ActivityView";
@@ -60,7 +61,7 @@ export function ViewSwitcher({
     onSaveJob,
     onDeleteJob
 }: ViewSwitcherProps) {
-    const breadcrumb = (navContext.networkId || navContext.groupId || navContext.agentId || navContext.channelId) ? (
+    const breadcrumb = (navContext.networkId || navContext.groupId || navContext.agentId || navContext.channelId || navContext.toolkitId) ? (
         <Breadcrumb
             navContext={navContext}
             navigateTo={navigateTo}
@@ -68,11 +69,29 @@ export function ViewSwitcher({
             agents={workspace.agents}
             groups={workspace.groups}
             channels={workspace.channels}
+            agentRoot={view === "agents"}
         />
     ) : null;
 
     if (view === "networks" || view === "ecosystem") {
-        // Drill-down: Agent detail (deepest)
+        // Drill-down: Toolkit detail (deepest — under agent)
+        if (navContext.agentId && navContext.networkId && navContext.toolkitId) {
+            const agent = workspace.agents.find(a => a.id === navContext.agentId);
+            if (agent) {
+                return (
+                    <>
+                        {breadcrumb}
+                        <ToolkitDetailView
+                            toolkitId={navContext.toolkitId as ToolkitId}
+                            agent={agent}
+                            updateAgent={workspace.updateAgent}
+                            navigateTo={navigateTo}
+                        />
+                    </>
+                );
+            }
+        }
+        // Drill-down: Agent detail
         if (navContext.agentId && navContext.networkId) {
             return (
                 <>
@@ -156,6 +175,48 @@ export function ViewSwitcher({
     }
 
     if (view === "agents") {
+        // Drill-down: Toolkit detail for agent
+        if (navContext.agentId && navContext.toolkitId) {
+            const agent = workspace.agents.find(a => a.id === navContext.agentId);
+            if (agent) {
+                return (
+                    <>
+                        {breadcrumb}
+                        <ToolkitDetailView
+                            toolkitId={navContext.toolkitId as ToolkitId}
+                            agent={agent}
+                            updateAgent={workspace.updateAgent}
+                            navigateTo={navigateTo}
+                        />
+                    </>
+                );
+            }
+        }
+        // Drill-down: Agent detail (from agents list)
+        if (navContext.agentId) {
+            const agent = workspace.agents.find(a => a.id === navContext.agentId);
+            if (agent) {
+                return (
+                    <>
+                        {breadcrumb}
+                        <AgentDetailView
+                            agentId={navContext.agentId}
+                            networkId={agent.networkId || ""}
+                            agents={workspace.agents}
+                            channels={workspace.channels}
+                            groups={workspace.groups}
+                            messages={workspace.messages}
+                            ecosystems={ecosystem.ecosystems}
+                            navigateTo={navigateTo}
+                            updateAgentPrompt={workspace.updateAgentPrompt}
+                            updateAgent={workspace.updateAgent}
+                            removeAgent={workspace.removeAgent}
+                        />
+                    </>
+                );
+            }
+        }
+        // Top level: Agents list
         return (
             <AgentsView
                 agents={workspace.agents}

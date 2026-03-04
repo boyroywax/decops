@@ -1,5 +1,6 @@
 import type { ViewId, NavContext, Network, Agent, Group, Channel } from "@/types";
-import { ChevronRight, Globe } from "lucide-react";
+import { ChevronRight, Globe, Bot } from "lucide-react";
+import { TOOLKITS } from "@/constants";
 import "../../styles/components/breadcrumb.css";
 
 interface BreadcrumbProps {
@@ -9,57 +10,92 @@ interface BreadcrumbProps {
   agents: Agent[];
   groups: Group[];
   channels?: Channel[];
+  /** When true, the trail starts from "Agents" instead of "Networks" */
+  agentRoot?: boolean;
 }
 
-export function Breadcrumb({ navContext, navigateTo, ecosystems, agents, groups, channels = [] }: BreadcrumbProps) {
+export function Breadcrumb({ navContext, navigateTo, ecosystems, agents, groups, channels = [], agentRoot }: BreadcrumbProps) {
   const network = ecosystems.find(n => n.id === navContext.networkId);
   const group = groups.find(g => g.id === navContext.groupId);
   const agent = agents.find(a => a.id === navContext.agentId);
   const channel = channels.find(c => c.id === navContext.channelId);
+  const toolkit = navContext.toolkitId ? TOOLKITS.find(t => t.id === navContext.toolkitId) : null;
 
-  const items: { label: string; color?: string; onClick?: () => void }[] = [];
+  const items: { label: string; color?: string; icon?: React.ReactNode; onClick?: () => void }[] = [];
 
-  // Root: "Networks"
-  items.push({
-    label: "Networks",
-    onClick: () => navigateTo("networks", {}),
-  });
-
-  // Network level
-  if (network) {
-    const isActive = !navContext.groupId && !navContext.agentId;
+  if (agentRoot) {
+    // Agent-rooted breadcrumb: Agents → Agent Name → Toolkit
     items.push({
-      label: network.name,
-      color: network.color,
-      onClick: isActive ? undefined : () => navigateTo("networks", { networkId: network.id }),
+      label: "Agents",
+      icon: <Bot size={12} />,
+      onClick: () => navigateTo("agents", {}),
     });
-  }
 
-  // Group level
-  if (group && navContext.networkId) {
-    const isActive = !navContext.agentId;
-    items.push({
-      label: group.name,
-      color: group.color,
-      onClick: isActive ? undefined : () => navigateTo("networks", { networkId: navContext.networkId!, groupId: group.id }),
-    });
-  }
+    if (agent) {
+      const isActive = !navContext.toolkitId;
+      items.push({
+        label: agent.name,
+        color: "#00e5a0",
+        onClick: isActive ? undefined : () => navigateTo("agents", { agentId: agent.id }),
+      });
+    }
 
-  // Agent level (always the active/leaf node)
-  if (agent) {
+    if (toolkit) {
+      items.push({
+        label: toolkit.name,
+        color: toolkit.color,
+      });
+    }
+  } else {
+    // Network-rooted breadcrumb: Networks → Network → Group → Agent → Toolkit
     items.push({
-      label: agent.name,
+      label: "Networks",
+      icon: <Globe size={12} />,
+      onClick: () => navigateTo("networks", {}),
     });
-  }
 
-  // Channel level (leaf node from network → channel path)
-  if (channel && navContext.networkId) {
-    const fromAgent = agents.find(a => a.id === channel.from);
-    const toAgent = agents.find(a => a.id === channel.to);
-    items.push({
-      label: `${fromAgent?.name || "?"} → ${toAgent?.name || "?"}`,
-      color: "#a78bfa",
-    });
+    if (network) {
+      const isActive = !navContext.groupId && !navContext.agentId;
+      items.push({
+        label: network.name,
+        color: network.color,
+        onClick: isActive ? undefined : () => navigateTo("networks", { networkId: network.id }),
+      });
+    }
+
+    if (group && navContext.networkId) {
+      const isActive = !navContext.agentId;
+      items.push({
+        label: group.name,
+        color: group.color,
+        onClick: isActive ? undefined : () => navigateTo("networks", { networkId: navContext.networkId!, groupId: group.id }),
+      });
+    }
+
+    if (agent) {
+      const isActive = !navContext.toolkitId;
+      items.push({
+        label: agent.name,
+        onClick: isActive ? undefined : () => navigateTo("networks", { networkId: navContext.networkId!, groupId: navContext.groupId, agentId: agent.id }),
+      });
+    }
+
+    if (toolkit) {
+      items.push({
+        label: toolkit.name,
+        color: toolkit.color,
+      });
+    }
+
+    // Channel level (leaf node from network → channel path)
+    if (channel && navContext.networkId) {
+      const fromAgent = agents.find(a => a.id === channel.from);
+      const toAgent = agents.find(a => a.id === channel.to);
+      items.push({
+        label: `${fromAgent?.name || "?"} → ${toAgent?.name || "?"}`,
+        color: "#a78bfa",
+      });
+    }
   }
 
   return (
@@ -78,7 +114,7 @@ export function Breadcrumb({ navContext, navigateTo, ecosystems, agents, groups,
               onClick={item.onClick}
               disabled={!item.onClick}
             >
-              {i === 0 && <Globe size={12} />}
+              {item.icon}
               {item.color && (
                 <span
                   className="breadcrumb__color-dot"

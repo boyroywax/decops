@@ -36,6 +36,7 @@ export interface NavContext {
   agentId?: string;
   channelId?: string;
   artifactId?: string;
+  toolkitId?: string;
 }
 
 export type NotebookCategory = "action" | "output" | "navigation" | "system" | "narrative";
@@ -149,6 +150,35 @@ export type {
   AieosEntity,
 } from "./aieos";
 
+// ── Toolkit System ──
+
+export type ToolkitId = "web-crawler" | "ocr" | "audio-to-text" | "video-to-text";
+
+export interface ToolkitTool {
+  id: string;
+  name: string;
+  description: string;
+  inputSchema?: Record<string, any>;
+}
+
+export interface Toolkit {
+  id: ToolkitId;
+  name: string;
+  description: string;
+  icon: string;        // lucide icon name
+  color: string;
+  gradient: [string, string];
+  category: "data-ingestion" | "media" | "analysis";
+  tools: ToolkitTool[];
+  status: "available" | "coming-soon";
+}
+
+export interface AgentToolkitBinding {
+  toolkitId: ToolkitId;
+  enabledAt: string;
+  config?: Record<string, any>;  // Toolkit-specific settings
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -162,6 +192,7 @@ export interface Agent {
   networkId?: string;  // Which network this agent belongs to
   aieos: AieosEntity;  // AIEOS v1.1.0 portable entity spec (always created on agent init)
   recommendedModel?: string; // Suggested LLM model id (e.g. "claude-sonnet-4-20250514")
+  toolkits?: AgentToolkitBinding[];  // Enabled toolkits for this agent
 }
 
 export interface Channel {

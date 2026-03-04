@@ -2,7 +2,7 @@ import type { Agent, Channel, Group, Message, NewAgentForm, Network, ViewId, Nav
 import { ROLES, PROMPT_TEMPLATES } from "@/constants";
 import { inputStyle, SectionTitle, PillButton, BulkCheckbox, BulkActionBar } from "@/components/shared/ui";
 import { useState, useCallback } from "react";
-import { Bot, Hexagon, X, Globe, Download, Sparkles, ExternalLink, MessageSquare, GitBranch, Users, Zap, LayoutGrid, List, Cpu } from "lucide-react";
+import { Bot, Hexagon, X, Globe, Download, Sparkles, ExternalLink, MessageSquare, GitBranch, Users, Zap, LayoutGrid, List, Cpu, Wrench } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { CopyableId } from "@/components/shared/CopyableId";
 import { AgentPortrait } from "@/components/shared/AgentPortrait";
@@ -277,6 +277,11 @@ export function AgentsView({
                     <span className="agent-flip__badge agent-flip__badge--aieos" style={{ color: aieosColor, borderColor: `${aieosColor}40` }}>
                       <Sparkles size={9} /> {pct}%
                     </span>
+                    {(a.toolkits?.length ?? 0) > 0 && (
+                      <span className="agent-flip__badge" style={{ color: "#38bdf8", background: "rgba(56,189,248,0.1)", borderColor: "rgba(56,189,248,0.25)" }}>
+                        <Wrench size={9} /> {a.toolkits!.length}
+                      </span>
+                    )}
                     <div className="agent-flip__status-dot" />
                   </div>
 
@@ -414,15 +419,15 @@ export function AgentsView({
                         onCancel={del.cancel}
                         compact
                       />
-                    ) : a.networkId ? (
+                    ) : (
                       <button
                         className="agent-flip__detail-link"
-                        onClick={(e) => { e.stopPropagation(); navigateTo("networks", { networkId: a.networkId!, ...(agentGroups.length > 0 ? { groupId: agentGroups[0].id } : {}), agentId: a.id }); }}
+                        onClick={(e) => { e.stopPropagation(); navigateTo("agents", { agentId: a.id }); }}
                         title="Go to agent detail page"
                       >
                         <ExternalLink size={10} /> View Detail
                       </button>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               </div>
@@ -523,15 +528,13 @@ export function AgentsView({
                         >
                           <Download size={10} />
                         </button>
-                        {a.networkId && (
-                          <button
-                            onClick={() => navigateTo("networks", { networkId: a.networkId!, ...(agentGroups.length > 0 ? { groupId: agentGroups[0].id } : {}), agentId: a.id })}
+                        <button
+                            onClick={() => navigateTo("agents", { agentId: a.id })}
                             className="agents-table-action-btn"
                             title="View Detail"
                           >
                             <ExternalLink size={10} />
                           </button>
-                        )}
                         <button
                           onClick={() => { del.requestDelete(a.id); }}
                           className="agents-table-action-btn agents-table-action-btn--danger"
