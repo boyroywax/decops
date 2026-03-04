@@ -27,7 +27,7 @@ interface StudioViewProps {
     savedJobs: JobDefinition[];
     onSaveJob: (job: JobDefinition) => void;
     onDeleteJob: (id: string) => void;
-    onRunJob: (job: JobDefinition) => void;
+    onRunJob: (job: JobDefinition) => any;
 }
 
 export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: StudioViewProps) {

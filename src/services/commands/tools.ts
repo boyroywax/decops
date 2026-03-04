@@ -54,6 +54,10 @@ interface PendingToolJob {
 const pendingToolJobs = new Map<string, PendingToolJob>();
 
 const TOOL_JOB_TIMEOUT_MS = 30_000; // 30 second timeout
+const JOB_RUNNER_TIMEOUT_MS = 180_000; // 3 minute timeout for commands that spawn child jobs
+
+/** Commands that spawn and wait for child jobs — need longer timeouts */
+const JOB_RUNNER_COMMANDS = new Set(["studio_run_job", "studio_create_job"]);
 
 /** Called by the job executor when a tool-initiated job completes */
 export function resolveToolJob(jobId: string, result: any): boolean {
@@ -75,6 +79,24 @@ export function rejectToolJob(jobId: string, error: string): boolean {
     return true;
   }
   return false;
+}
+
+/**
+ * Watch a child job spawned by a command (e.g. studio_run_job).
+ * Returns a Promise that resolves when the child job completes or rejects on failure.
+ * The job executor already calls resolveToolJob/rejectToolJob for every job,
+ * so registering here piggy-backs on that mechanism.
+ */
+export function watchChildJob(childJobId: string, timeoutMs = JOB_RUNNER_TIMEOUT_MS): Promise<any> {
+  return new Promise<any>((resolve, reject) => {
+    pendingToolJobs.set(childJobId, { resolve, reject });
+    setTimeout(() => {
+      if (pendingToolJobs.has(childJobId)) {
+        pendingToolJobs.delete(childJobId);
+        resolve({ _childTimeout: true, message: `Child job ${childJobId.slice(0, 12)} is still running after ${timeoutMs / 1000}s. Check the job history for results.` });
+      }
+    }, timeoutMs);
+  });
 }
 
 // ── Type Mapping ───────────────────────────────────
@@ -234,12 +256,14 @@ export async function executeToolCall(
       pendingToolJobs.set(jobId, { resolve, reject });
 
       // Timeout safety — don't block the tool loop forever
+      // Job-running commands get a longer timeout since they wait for child jobs
+      const timeout = JOB_RUNNER_COMMANDS.has(toolName) ? JOB_RUNNER_TIMEOUT_MS : TOOL_JOB_TIMEOUT_MS;
       setTimeout(() => {
         if (pendingToolJobs.has(jobId)) {
           pendingToolJobs.delete(jobId);
-          resolve({ _timeout: true, message: `Job ${jobId.slice(0, 8)} is still running after ${TOOL_JOB_TIMEOUT_MS / 1000}s` });
+          resolve({ _timeout: true, message: `Job ${jobId.slice(0, 8)} is still running after ${timeout / 1000}s` });
         }
-      }, TOOL_JOB_TIMEOUT_MS);
+      }, timeout);
     });
 
     const duration_ms = Math.round(performance.now() - start);

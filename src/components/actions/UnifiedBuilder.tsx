@@ -9,7 +9,7 @@ import type { DeclarativeAutomationDefinition, AutomationStep } from "@/services
 const ARTIFACT_TYPES: ArtifactType[] = ["markdown", "json", "yaml", "csv", "image", "code", "txt"];
 
 interface UnifiedBuilderProps {
-    onRunJob: (job: JobDefinition) => void;
+    onRunJob: (job: JobDefinition) => any;
     onSaveAutomation: (automation: DeclarativeAutomationDefinition) => void;
     onCancel: () => void;
     initialJob?: JobDefinition | null;

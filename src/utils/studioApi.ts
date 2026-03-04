@@ -59,7 +59,7 @@ export function createStudioAPI(
     refs: StudioRefs,
     setters: StudioSetters,
     onSaveJob: (job: JobDefinition) => void,
-    onRunJob: (job: JobDefinition) => void,
+    onRunJob: (job: JobDefinition) => any,
 ): StudioAPI {
     return {
         getState: (): StudioState => ({
@@ -206,8 +206,14 @@ export function createStudioAPI(
                 triggers: refs.triggers.current,
             });
             if ("error" in result) return result;
-            onRunJob(result);
-            return { running: true, id: result.id, name: result.name, stepCount: result.steps.length };
+            const runtimeJob = onRunJob(result);
+            return {
+                running: true,
+                id: result.id,
+                name: result.name,
+                stepCount: result.steps.length,
+                ...(runtimeJob?.id ? { runtimeJobId: runtimeJob.id } : {}),
+            };
         },
         loadJobById: (id) => {
             const catalog = refs.savedJobs.current;

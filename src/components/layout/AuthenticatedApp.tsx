@@ -96,9 +96,10 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   const workspace = useWorkspaceContext();
   const architect = useArchitect(addLog, addJob, jobs);
 
-  /** Convert a JobDefinition into a JobRequest and submit it */
+  /** Convert a JobDefinition into a JobRequest and submit it.
+   *  Returns the newly queued Job so callers (e.g. AI tool) can track it. */
   const runJobDef = useCallback((jobDef: JobDefinition) => {
-    addJob({
+    return addJob({
       type: jobDef.name,
       request: { description: jobDef.description },
       steps: jobDef.steps,

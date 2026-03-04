@@ -4,6 +4,7 @@
  */
 
 import { CommandDefinition } from "@/services/commands/types";
+import { watchChildJob } from "@/services/commands/tools";
 
 // ────────────────────────────────────────────────────
 // Studio State Queries
@@ -76,15 +77,35 @@ export const studioSaveJobCommand: CommandDefinition = {
 
 export const studioRunJobCommand: CommandDefinition = {
     id: "studio_run_job",
-    description: "Builds the current Studio job definition and submits it for execution. The job must have a name and at least one step.",
+    description: "Builds the current Studio job definition, submits it for execution, and monitors it until completion. The job must have a name and at least one step. Returns the final job result or error.",
     tags: ["studio", "job", "run"],
     rbac: ["orchestrator", "builder"],
     args: {},
-    output: "Run status message",
+    output: "Run status with final job result",
     execute: async (_args, context) => {
         const studio = context.studio;
         if (!studio) return { error: "Studio is not available." };
         const result = studio.runJob();
+        if ("error" in result) return result;
+
+        // If we got a runtimeJobId, wait for the spawned job to finish
+        if (result.runtimeJobId) {
+            try {
+                const childResult = await watchChildJob(result.runtimeJobId);
+                return {
+                    ...result,
+                    completed: !childResult?._childTimeout,
+                    jobResult: childResult,
+                };
+            } catch (err: any) {
+                return {
+                    ...result,
+                    completed: false,
+                    jobError: err.message || "Job failed",
+                };
+            }
+        }
+
         return result;
     },
 };
@@ -284,7 +305,20 @@ export const studioCreateJobCommand: CommandDefinition = {
         }
 
         if (args.run) {
-            result.ran = studio.runJob();
+            const runResult = studio.runJob();
+            result.ran = runResult;
+
+            // If the spawned job has a runtime ID, wait for it to finish
+            if (runResult && !("error" in runResult) && runResult.runtimeJobId) {
+                try {
+                    const childResult = await watchChildJob(runResult.runtimeJobId);
+                    result.ranCompleted = !childResult?._childTimeout;
+                    result.jobResult = childResult;
+                } catch (err: any) {
+                    result.ranCompleted = false;
+                    result.jobError = err.message || "Job failed";
+                }
+            }
         }
 
         return result;
