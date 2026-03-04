@@ -70,6 +70,80 @@ export function useEcosystem({
     }
   }, [legacyNetworks, legacyBridges, ecosystem]);
 
+  // ─── Auto-adopt orphaned entities ───
+  // If entities exist without a networkId (or with a networkId that doesn't match
+  // any known network), create a default network and assign them.
+  // Runs whenever entities or networks change, but debounced via a ref to avoid loops.
+  const adoptionInProgress = useRef(false);
+  useEffect(() => {
+    if (adoptionInProgress.current) return;
+    const totalEntities = agents.length + channels.length + groups.length;
+    if (totalEntities === 0) return;
+
+    const networkIds = new Set(ecosystem.networks.map(n => n.id));
+
+    // Find orphaned entities — no networkId or networkId doesn't match any network
+    const orphanedAgents = agents.filter(a => !a.networkId || !networkIds.has(a.networkId));
+    const orphanedChannels = channels.filter(c => !c.networkId || !networkIds.has(c.networkId));
+    const orphanedGroups = groups.filter(g => !g.networkId || !networkIds.has(g.networkId));
+
+    if (orphanedAgents.length === 0 && orphanedChannels.length === 0 && orphanedGroups.length === 0) return;
+
+    adoptionInProgress.current = true;
+
+    // Determine which network to assign orphans to
+    let targetNetworkId: string;
+
+    if (ecosystem.networks.length === 1) {
+      // Use the sole existing network
+      targetNetworkId = ecosystem.networks[0].id;
+    } else if (ecosystem.networks.length === 0) {
+      // Create a default network
+      targetNetworkId = crypto.randomUUID();
+      const defaultNetwork: Network = {
+        id: targetNetworkId,
+        name: "Default Network",
+        did: generateNetworkDID(),
+        color: NETWORK_COLORS?.[0] || "#00e5a0",
+        agents: [],
+        channels: [],
+        groups: [],
+        messages: [],
+        createdAt: new Date().toISOString(),
+        description: "Auto-created network for workspace entities.",
+      };
+      setEcosystem(prev => ({
+        ...prev,
+        networks: [...prev.networks, defaultNetwork],
+      }));
+      addLog(`Created default network for ${orphanedAgents.length + orphanedChannels.length + orphanedGroups.length} orphaned entities.`);
+    } else {
+      // Multiple networks — can't guess which one to adopt into
+      adoptionInProgress.current = false;
+      return;
+    }
+
+    // Tag orphaned entities with the target network
+    if (orphanedAgents.length > 0) {
+      setAgents(prev => prev.map(a =>
+        (!a.networkId || !networkIds.has(a.networkId)) ? { ...a, networkId: targetNetworkId } : a
+      ));
+    }
+    if (orphanedChannels.length > 0) {
+      setChannels(prev => prev.map(c =>
+        (!c.networkId || !networkIds.has(c.networkId)) ? { ...c, networkId: targetNetworkId } : c
+      ));
+    }
+    if (orphanedGroups.length > 0) {
+      setGroups(prev => prev.map(g =>
+        (!g.networkId || !networkIds.has(g.networkId)) ? { ...g, networkId: targetNetworkId } : g
+      ));
+    }
+
+    // Allow re-adoption after state settles
+    setTimeout(() => { adoptionInProgress.current = false; }, 500);
+  }, [agents, channels, groups, ecosystem.networks]);
+
   // ─── Derived references for backward compat (views still use these) ───
   const ecosystems = ecosystem.networks;
   const bridges = ecosystem.bridges;
