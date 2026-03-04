@@ -421,3 +421,26 @@
   font-size: var(--text-sm);
   color: var(--text-secondary);
 }
+
+/* ── Commands ── */
+
+.toolkit-detail__commands {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.toolkit-detail__command-chip {
+  display: inline-flex;
+  align-items: center;
+}
+
+.toolkit-detail__command-chip code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}

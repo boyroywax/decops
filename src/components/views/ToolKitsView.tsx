@@ -265,7 +265,14 @@ export function ToolKitsView({ navigateTo }: ToolKitsViewProps) {
                     )}
                   </div>
                 </div>
-                <div className="toolkits__card-expand">
+                <div className="toolkits__card-actions">
+                  <button
+                    className="btn-ghost toolkits__details-btn"
+                    onClick={(e) => { e.stopPropagation(); navigateTo("toolkits", { toolkitId: tk.id }); }}
+                    title="View details"
+                  >
+                    <ExternalLink size={12} />
+                  </button>
                   {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </div>
               </button>

@@ -217,6 +217,27 @@
   padding-top: var(--space-sm);
 }
 
+.toolkits__card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-shrink: 0;
+  color: var(--text-faint);
+  padding-top: var(--space-sm);
+}
+
+.toolkits__details-btn {
+  font-size: 11px !important;
+  padding: 2px 6px !important;
+  gap: 3px;
+  color: var(--text-faint) !important;
+  transition: color 0.15s ease !important;
+}
+
+.toolkits__details-btn:hover {
+  color: var(--text-primary) !important;
+}
+
 /* ── Badge ── */
 
 .toolkits__badge {

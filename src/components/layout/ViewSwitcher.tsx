@@ -71,27 +71,11 @@ export function ViewSwitcher({
             groups={workspace.groups}
             channels={workspace.channels}
             agentRoot={view === "agents"}
+            toolkitRoot={view === "toolkits"}
         />
     ) : null;
 
     if (view === "networks" || view === "ecosystem") {
-        // Drill-down: Toolkit detail (deepest — under agent)
-        if (navContext.agentId && navContext.networkId && navContext.toolkitId) {
-            const agent = workspace.agents.find(a => a.id === navContext.agentId);
-            if (agent) {
-                return (
-                    <>
-                        {breadcrumb}
-                        <ToolkitDetailView
-                            toolkitId={navContext.toolkitId as ToolkitId}
-                            agent={agent}
-                            updateAgent={workspace.updateAgent}
-                            navigateTo={navigateTo}
-                        />
-                    </>
-                );
-            }
-        }
         // Drill-down: Agent detail
         if (navContext.agentId && navContext.networkId) {
             return (
@@ -176,23 +160,6 @@ export function ViewSwitcher({
     }
 
     if (view === "agents") {
-        // Drill-down: Toolkit detail for agent
-        if (navContext.agentId && navContext.toolkitId) {
-            const agent = workspace.agents.find(a => a.id === navContext.agentId);
-            if (agent) {
-                return (
-                    <>
-                        {breadcrumb}
-                        <ToolkitDetailView
-                            toolkitId={navContext.toolkitId as ToolkitId}
-                            agent={agent}
-                            updateAgent={workspace.updateAgent}
-                            navigateTo={navigateTo}
-                        />
-                    </>
-                );
-            }
-        }
         // Drill-down: Agent detail (from agents list)
         if (navContext.agentId) {
             const agent = workspace.agents.find(a => a.id === navContext.agentId);
@@ -406,6 +373,18 @@ export function ViewSwitcher({
     }
 
     if (view === "toolkits") {
+        // Drill-down: Toolkit detail
+        if (navContext.toolkitId) {
+            return (
+                <>
+                    {breadcrumb}
+                    <ToolkitDetailView
+                        toolkitId={navContext.toolkitId as ToolkitId}
+                        navigateTo={navigateTo}
+                    />
+                </>
+            );
+        }
         return (
             <ErrorBoundary>
                 <ToolKitsView

@@ -149,11 +149,7 @@ function AgentToolkitsSection({
   };
 
   const handleNavigateToToolkit = (toolkitId: ToolkitId) => {
-    if (hasNetworkContext) {
-      navigateTo("networks", { networkId, groupId, agentId: agent.id, toolkitId });
-    } else {
-      navigateTo("agents", { agentId: agent.id, toolkitId });
-    }
+    navigateTo("toolkits", { toolkitId });
   };
 
   return (

@@ -1,5 +1,5 @@
 import type { ViewId, NavContext, Network, Agent, Group, Channel } from "@/types";
-import { ChevronRight, Globe, Bot } from "lucide-react";
+import { ChevronRight, Globe, Bot, Wrench } from "lucide-react";
 import { TOOLKITS } from "@/constants";
 import "../../styles/components/breadcrumb.css";
 
@@ -12,9 +12,11 @@ interface BreadcrumbProps {
   channels?: Channel[];
   /** When true, the trail starts from "Agents" instead of "Networks" */
   agentRoot?: boolean;
+  /** When true, the trail starts from "Tool Kits" */
+  toolkitRoot?: boolean;
 }
 
-export function Breadcrumb({ navContext, navigateTo, ecosystems, agents, groups, channels = [], agentRoot }: BreadcrumbProps) {
+export function Breadcrumb({ navContext, navigateTo, ecosystems, agents, groups, channels = [], agentRoot, toolkitRoot }: BreadcrumbProps) {
   const network = ecosystems.find(n => n.id === navContext.networkId);
   const group = groups.find(g => g.id === navContext.groupId);
   const agent = agents.find(a => a.id === navContext.agentId);
@@ -23,8 +25,22 @@ export function Breadcrumb({ navContext, navigateTo, ecosystems, agents, groups,
 
   const items: { label: string; color?: string; icon?: React.ReactNode; onClick?: () => void }[] = [];
 
-  if (agentRoot) {
-    // Agent-rooted breadcrumb: Agents → Agent Name → Toolkit
+  if (toolkitRoot) {
+    // Toolkit-rooted breadcrumb: Tool Kits → Toolkit Name
+    items.push({
+      label: "Tool Kits",
+      icon: <Wrench size={12} />,
+      onClick: () => navigateTo("toolkits", {}),
+    });
+
+    if (toolkit) {
+      items.push({
+        label: toolkit.name,
+        color: toolkit.color,
+      });
+    }
+  } else if (agentRoot) {
+    // Agent-rooted breadcrumb: Agents → Agent Name
     items.push({
       label: "Agents",
       icon: <Bot size={12} />,
@@ -32,18 +48,9 @@ export function Breadcrumb({ navContext, navigateTo, ecosystems, agents, groups,
     });
 
     if (agent) {
-      const isActive = !navContext.toolkitId;
       items.push({
         label: agent.name,
         color: "#00e5a0",
-        onClick: isActive ? undefined : () => navigateTo("agents", { agentId: agent.id }),
-      });
-    }
-
-    if (toolkit) {
-      items.push({
-        label: toolkit.name,
-        color: toolkit.color,
       });
     }
   } else {
@@ -73,17 +80,8 @@ export function Breadcrumb({ navContext, navigateTo, ecosystems, agents, groups,
     }
 
     if (agent) {
-      const isActive = !navContext.toolkitId;
       items.push({
         label: agent.name,
-        onClick: isActive ? undefined : () => navigateTo("networks", { networkId: navContext.networkId!, groupId: navContext.groupId, agentId: agent.id }),
-      });
-    }
-
-    if (toolkit) {
-      items.push({
-        label: toolkit.name,
-        color: toolkit.color,
       });
     }
 

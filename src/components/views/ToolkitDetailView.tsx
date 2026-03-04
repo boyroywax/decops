@@ -2,7 +2,10 @@ import { useState } from "react";
 import type { Agent, ToolkitId, ViewId, NavContext } from "@/types";
 import { TOOLKITS } from "@/constants";
 import {
-  Globe, ScanText, AudioLines, Video,
+  Globe, ScanText, AudioLines, Video, Bot, ArrowLeftRight,
+  MessageSquare, Network, Download, Zap, Vote, FileText,
+  Clapperboard, ListChecks, Image, Settings, FolderOpen,
+  Sparkles, Wrench, Terminal,
   ExternalLink, Play, Link2, Search, Camera,
   Layers, Clock, CheckCircle2, AlertCircle,
   ChevronDown, ChevronUp,
@@ -12,12 +15,15 @@ import "../../styles/components/toolkit-detail.css";
 
 /** Map toolkit icon names to actual Lucide components */
 const ICON_MAP: Record<string, any> = {
-  Globe, ScanText, AudioLines, Video,
+  Globe, ScanText, AudioLines, Video, Bot, ArrowLeftRight,
+  MessageSquare, Network, Download, Zap, Vote, FileText,
+  Clapperboard, ListChecks, Image, Settings, FolderOpen,
+  Sparkles, Search, Wrench,
 };
 
 interface ToolkitDetailViewProps {
   toolkitId: ToolkitId;
-  agent: Agent;
+  agent?: Agent;
   updateAgent?: (id: string, patch: Partial<Agent>) => void;
   navigateTo: (view: ViewId, ctx: NavContext) => void;
 }
@@ -51,13 +57,13 @@ export function ToolkitDetailView({ toolkitId, agent, updateAgent, navigateTo }:
     );
   }
 
-  const isEnabled = agent.toolkits?.some(t => t.toolkitId === toolkitId) ?? false;
-  const binding = agent.toolkits?.find(t => t.toolkitId === toolkitId);
+  const isEnabled = agent?.toolkits?.some(t => t.toolkitId === toolkitId) ?? false;
+  const binding = agent?.toolkits?.find(t => t.toolkitId === toolkitId);
   const IconComponent = ICON_MAP[toolkit.icon] || Globe;
   const isComingSoon = toolkit.status === "coming-soon";
 
   const handleToggleToolkit = () => {
-    if (!updateAgent) return;
+    if (!updateAgent || !agent) return;
     if (isEnabled) {
       // Remove toolkit
       updateAgent(agent.id, {
@@ -103,7 +109,7 @@ export function ToolkitDetailView({ toolkitId, agent, updateAgent, navigateTo }:
             </div>
           </div>
         </div>
-        {!isComingSoon && (
+        {!isComingSoon && agent && (
           <button
             className={`toolkit-detail__toggle ${isEnabled ? "toolkit-detail__toggle--active" : ""}`}
             onClick={handleToggleToolkit}
@@ -114,13 +120,29 @@ export function ToolkitDetailView({ toolkitId, agent, updateAgent, navigateTo }:
       </div>
 
       {/* Enabled status */}
-      {isEnabled && binding && (
+      {isEnabled && binding && agent && (
         <div className="toolkit-detail__enabled-bar" style={{ borderColor: `${toolkit.color}30` }}>
           <CheckCircle2 size={12} style={{ color: toolkit.color }} />
           <span>Enabled for <strong>{agent.name}</strong></span>
           <span className="toolkit-detail__enabled-date">
             since {new Date(binding.enabledAt).toLocaleDateString()}
           </span>
+        </div>
+      )}
+
+      {/* Commands List */}
+      {toolkit.commands.length > 0 && (
+        <div className="toolkit-detail__section">
+          <div className="toolkit-detail__section-title">
+            <Terminal size={12} style={{ display: "inline", verticalAlign: "middle" }} /> Commands ({toolkit.commands.length})
+          </div>
+          <div className="toolkit-detail__commands">
+            {toolkit.commands.map(cmdId => (
+              <span key={cmdId} className="toolkit-detail__command-chip">
+                <code>{cmdId}</code>
+              </span>
+            ))}
+          </div>
         </div>
       )}
 
