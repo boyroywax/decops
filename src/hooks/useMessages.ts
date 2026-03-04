@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { useLocalStorage } from "./useLocalStorage";
+import { useWorkspaceStore } from "@/stores";
 import type { Message, Agent, Channel, JobRequest } from "@/types";
 
 export function useMessages(
@@ -9,7 +9,8 @@ export function useMessages(
     activeChannel: string | null,
     broadcastGroup: string | null
 ) {
-    const [messages, setMessages] = useLocalStorage<Message[]>("decops_messages", []);
+    const messages = useWorkspaceStore((s) => s.messages);
+    const setMessages = useWorkspaceStore((s) => s.setMessages);
 
     // UI State
     const [msgInput, setMsgInput] = useState("");

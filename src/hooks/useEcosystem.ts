@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocalStorage } from "./useLocalStorage";
+import { useEcosystemStore } from "@/stores";
 import type {
   Agent, Channel, Group, Message, Network, Bridge,
   BridgeMessage, BridgeForm, ViewId, Ecosystem,
@@ -21,30 +21,13 @@ interface UseEcosystemDeps {
   setView: (view: ViewId) => void;
 }
 
-/** Create a default empty ecosystem */
-function createDefaultEcosystem(): Ecosystem {
-  return {
-    id: crypto.randomUUID(),
-    name: "Default Ecosystem",
-    did: generateEcosystemDID(),
-    networks: [],
-    bridges: [],
-    bridgeMessages: [],
-    createdAt: new Date().toISOString(),
-  };
-}
-
 export function useEcosystem({
   addLog, agents, channels, groups, messages,
   setAgents, setChannels, setGroups, setMessages, setView,
 }: UseEcosystemDeps, addJob?: (job: any) => void) {
-  // ─── Ecosystem state ───
-  // The canonical ecosystem object. For backward compat with existing localStorage,
-  // we also maintain legacy `decops_ecosystems` / `decops_bridges` keys and migrate on load.
-  const [ecosystem, setEcosystem] = useLocalStorage<Ecosystem>(
-    "decops_ecosystem",
-    createDefaultEcosystem()
-  );
+  // ─── Ecosystem state (backed by Zustand store) ───
+  const ecosystem = useEcosystemStore((s) => s.ecosystem);
+  const setEcosystem = useEcosystemStore((s) => s.setEcosystem);
 
   // ─── Auto-adopt orphaned entities ───
   // If entities exist without a networkId (or with a networkId that doesn't match

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useLocalStorage } from "./useLocalStorage";
+import { useWorkspaceStore } from "@/stores";
 import type { Agent, NewAgentForm, JobRequest } from "@/types";
 
 export function useAgents(addJob: (job: JobRequest) => void) {
-    const [agents, setAgents] = useLocalStorage<Agent[]>("decops_agents", []);
+    const agents = useWorkspaceStore((s) => s.agents);
+    const setAgents = useWorkspaceStore((s) => s.setAgents);
 
     // UI State
     const [showCreate, setShowCreate] = useState(false);

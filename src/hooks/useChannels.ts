@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useLocalStorage } from "./useLocalStorage";
+import { useWorkspaceStore } from "@/stores";
 import type { Channel, ChannelForm, JobRequest } from "@/types";
 
 export function useChannels(addJob: (job: JobRequest) => void) {
-    const [channels, setChannels] = useLocalStorage<Channel[]>("decops_channels", []);
+    const channels = useWorkspaceStore((s) => s.channels);
+    const setChannels = useWorkspaceStore((s) => s.setChannels);
 
     // UI State
     const [channelForm, setChannelForm] = useState<ChannelForm>({ from: "", to: "", type: "data", networkId: "" });

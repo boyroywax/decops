@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useLocalStorage } from "./useLocalStorage";
+import { useWorkspaceStore } from "@/stores";
 import type { Group, GroupForm, JobRequest } from "@/types";
 
 export function useGroups(addJob: (job: JobRequest) => void) {
-    const [groups, setGroups] = useLocalStorage<Group[]>("decops_groups", []);
+    const groups = useWorkspaceStore((s) => s.groups);
+    const setGroups = useWorkspaceStore((s) => s.setGroups);
 
     // UI State
     const [showGroupCreate, setShowGroupCreate] = useState(false);
