@@ -161,7 +161,7 @@ export const TOOLKITS: Toolkit[] = [
     gradient: ["#38bdf8", "#60a5fa"],
     category: "infrastructure",
     status: "available",
-    commands: ["create_network", "list_networks", "update_network", "destroy_network", "save_ecosystem", "load_ecosystem", "list_ecosystems", "delete_ecosystem"],
+    commands: ["create_network", "list_networks", "update_network", "destroy_network"],
     tags: ["ecosystem", "network", "create", "query", "destroy"],
     tools: [],
   },

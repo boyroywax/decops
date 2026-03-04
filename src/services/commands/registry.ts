@@ -27,7 +27,7 @@ function resolveEntityName(
                 );
                 if (match) return match.id;
                 // Fall through to check ecosystem network agents
-                const nets: any[] = context?.ecosystem?.ecosystems ?? [];
+                const nets: any[] = context?.ecosystem?.networks ?? [];
                 for (const net of nets) {
                     const netAgents: any[] = net.agents ?? [];
                     const netMatch = netAgents.find(
@@ -50,7 +50,7 @@ function resolveEntityName(
             entities = context?.workspace?.channels;
             break;
         case "network":
-            entities = context?.ecosystem?.ecosystems;
+            entities = context?.ecosystem?.networks;
             break;
         default:
             return value;

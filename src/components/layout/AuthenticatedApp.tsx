@@ -135,7 +135,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           activeNetworkId: ecosystem.activeNetworkId || undefined,
           userId: user?.id,
           // Legacy fields kept for backward compat
-          networks: ecosystem.ecosystems || [],
+          networks: ecosystem.networks || [],
           bridges: ecosystem.bridges || [],
           jobs: jobsToSave,
           artifacts: allArtifacts,
@@ -157,7 +157,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
       if (newWorkspace.ecosystem && ecosystem.setEcosystem) {
         ecosystem.setEcosystem(newWorkspace.ecosystem);
       } else {
-        if (ecosystem.setEcosystems) ecosystem.setEcosystems(newWorkspace.networks || []);
+        if (ecosystem.setNetworks) ecosystem.setNetworks(newWorkspace.networks || []);
         if (ecosystem.setBridges) ecosystem.setBridges(newWorkspace.bridges || []);
       }
 
@@ -190,7 +190,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           ecosystem: ecosystem.ecosystem,
           activeNetworkId: ecosystem.activeNetworkId || undefined,
           userId: user?.id,
-          networks: ecosystem.ecosystems || [],
+          networks: ecosystem.networks || [],
           bridges: ecosystem.bridges || [],
           jobs: jobsToSave,
           artifacts: allArtifacts,
@@ -237,10 +237,10 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
         agentCount: workspace.agents.length,
         channelCount: workspace.channels.length,
         groupCount: workspace.groups.length,
-        networkCount: ecosystem.ecosystems?.length || 0,
+        networkCount: ecosystem.networks?.length || 0,
       });
     }
-  }, [activeWorkspaceId, workspace.agents.length, workspace.channels.length, workspace.groups.length, ecosystem.ecosystems?.length]);
+  }, [activeWorkspaceId, workspace.agents.length, workspace.channels.length, workspace.groups.length, ecosystem.networks?.length]);
 
   // Use the new hook for job execution
   useJobExecutor({
@@ -370,9 +370,9 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
 
   const chatWorkspaceContext = useMemo(() => ({
     agents: workspace.agents, channels: workspace.channels, groups: workspace.groups,
-    messages: workspace.messages, ecosystems: ecosystem.ecosystems, bridges: ecosystem.bridges,
+    messages: workspace.messages, networks: ecosystem.networks, bridges: ecosystem.bridges,
     addJob, jobs,
-  }), [workspace.agents, workspace.channels, workspace.groups, workspace.messages, ecosystem.ecosystems, ecosystem.bridges, addJob, jobs]);
+  }), [workspace.agents, workspace.channels, workspace.groups, workspace.messages, ecosystem.networks, ecosystem.bridges, addJob, jobs]);
 
   const isSideChat = chatPosition === "left" || chatPosition === "right";
 
@@ -407,7 +407,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
             <Sidebar
               view={view}
               setView={setView}
-              ecosystems={ecosystem.ecosystems}
+              networks={ecosystem.networks}
               messages={workspace.messages}
               bridgeMessages={ecosystem.bridgeMessages}
               agents={workspace.agents}
@@ -474,7 +474,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           groups={workspace.groups}
           messages={workspace.messages}
 
-          ecosystems={ecosystem.ecosystems}
+          networks={ecosystem.networks}
           bridges={ecosystem.bridges}
           ecosystem={ecosystem}
           addLog={addLog}

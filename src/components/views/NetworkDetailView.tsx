@@ -13,7 +13,7 @@ interface NetworkDetailViewProps {
   agents: Agent[];
   channels: Channel[];
   groups: Group[];
-  ecosystems: Network[];
+  networks: Network[];
   bridges: Bridge[];
   navigateTo: (view: ViewId, ctx: NavContext) => void;
   dissolveNetwork: (id: string) => void;
@@ -21,9 +21,9 @@ interface NetworkDetailViewProps {
 
 export function NetworkDetailView({
   networkId, agents, channels, groups,
-  ecosystems, bridges, navigateTo, dissolveNetwork,
+  networks, bridges, navigateTo, dissolveNetwork,
 }: NetworkDetailViewProps) {
-  const network = ecosystems.find(n => n.id === networkId);
+  const network = networks.find(n => n.id === networkId);
   if (!network) {
     return (
       <div className="network-detail__empty">
@@ -254,7 +254,7 @@ export function NetworkDetailView({
           <div className="network-detail__grid">
             {networkBridges.map(bridge => {
               const otherNetId = bridge.fromNetworkId === networkId ? bridge.toNetworkId : bridge.fromNetworkId;
-              const otherNet = ecosystems.find(n => n.id === otherNetId);
+              const otherNet = networks.find(n => n.id === otherNetId);
               const fromAgent = agents.find(a => a.id === bridge.fromAgentId);
               const toAgent = agents.find(a => a.id === bridge.toAgentId);
               return (

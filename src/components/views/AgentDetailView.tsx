@@ -28,7 +28,7 @@ interface AgentDetailViewProps {
   channels: Channel[];
   groups: Group[];
   messages: Message[];
-  ecosystems: Network[];
+  networks: Network[];
   navigateTo: (view: ViewId, ctx: NavContext) => void;
   updateAgentPrompt: (id: string, prompt: string) => void;
   updateAgent?: (id: string, patch: Partial<Agent>) => void;
@@ -205,11 +205,11 @@ function AgentToolkitsSection({
 export function AgentDetailView({
   agentId, networkId, groupId,
   agents, channels, groups, messages,
-  ecosystems, navigateTo,
+  networks, navigateTo,
   updateAgentPrompt, updateAgent, importAgentFromAieos, removeAgent,
 }: AgentDetailViewProps) {
   const agent = agents.find(a => a.id === agentId);
-  const network = ecosystems.find(n => n.id === networkId);
+  const network = networks.find(n => n.id === networkId);
 
   const [editingPrompt, setEditingPrompt] = useState(false);
   const [promptText, setPromptText] = useState(agent?.prompt || "");

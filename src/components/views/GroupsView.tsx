@@ -15,7 +15,7 @@ import "../../styles/components/groups.css";
 interface GroupsViewProps {
   agents: Agent[];
   groups: Group[];
-  ecosystems: Network[];
+  networks: Network[];
   showGroupCreate: boolean;
   setShowGroupCreate: (v: boolean) => void;
   groupForm: GroupForm;
@@ -31,7 +31,7 @@ interface GroupsViewProps {
 }
 
 export function GroupsView({
-  agents, groups, ecosystems,
+  agents, groups, networks,
   showGroupCreate, setShowGroupCreate, groupForm, setGroupForm,
   selectedGroup, setSelectedGroup,
   createGroup, removeGroup, removeGroups, toggleGroupMember,
@@ -43,7 +43,7 @@ export function GroupsView({
 
   const getNetworkName = (networkId?: string) => {
     if (!networkId) return null;
-    const net = ecosystems.find(n => n.id === networkId);
+    const net = networks.find(n => n.id === networkId);
     return net ? { name: net.name, color: net.color } : null;
   };
 
@@ -70,7 +70,7 @@ export function GroupsView({
 
       {showGroupCreate && (
         <div className="group-form">
-          {ecosystems.length === 0 ? (
+          {networks.length === 0 ? (
             <div className="group-form-no-networks">
               <Globe size={24} className="group-form-no-networks-icon" />
               <div className="group-form-no-networks-title">No networks available</div>
@@ -85,7 +85,7 @@ export function GroupsView({
                 className="input group-form-select"
               >
                 <option value="">Select network...</option>
-                {ecosystems.map((n) => (
+                {networks.map((n) => (
                   <option key={n.id} value={n.id}>{n.name}</option>
                 ))}
               </select>

@@ -6,7 +6,7 @@ import "../../styles/components/breadcrumb.css";
 interface BreadcrumbProps {
   navContext: NavContext;
   navigateTo: (view: ViewId, ctx: NavContext) => void;
-  ecosystems: Network[];
+  networks: Network[];
   agents: Agent[];
   groups: Group[];
   channels?: Channel[];
@@ -16,8 +16,8 @@ interface BreadcrumbProps {
   toolkitRoot?: boolean;
 }
 
-export function Breadcrumb({ navContext, navigateTo, ecosystems, agents, groups, channels = [], agentRoot, toolkitRoot }: BreadcrumbProps) {
-  const network = ecosystems.find(n => n.id === navContext.networkId);
+export function Breadcrumb({ navContext, navigateTo, networks, agents, groups, channels = [], agentRoot, toolkitRoot }: BreadcrumbProps) {
+  const network = networks.find(n => n.id === navContext.networkId);
   const group = groups.find(g => g.id === navContext.groupId);
   const agent = agents.find(a => a.id === navContext.agentId);
   const channel = channels.find(c => c.id === navContext.channelId);

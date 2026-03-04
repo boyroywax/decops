@@ -26,10 +26,10 @@ function makeContext(overrides?: Partial<CommandContext>): CommandContext {
     addDeliverable: vi.fn(),
     ecosystem: {
       ecosystem: null, setEcosystem: vi.fn(), activeNetworkId: null, setActiveNetworkId: vi.fn(),
-      ecosystems: [], bridges: [], bridgeMessages: [],
-      setEcosystems: vi.fn(), setBridges: vi.fn(), setBridgeMessages: vi.fn(),
+      networks: [], bridges: [], bridgeMessages: [],
+      setNetworks: vi.fn(), setBridges: vi.fn(), setBridgeMessages: vi.fn(),
       setActiveBridges: vi.fn(), createBridge: vi.fn(), removeBridge: vi.fn(),
-      saveCurrentNetwork: vi.fn(), loadNetwork: vi.fn(), dissolveNetwork: vi.fn(),
+      dissolveNetwork: vi.fn(),
     },
     system: {
       setApiKey: vi.fn(), setModel: vi.fn(),

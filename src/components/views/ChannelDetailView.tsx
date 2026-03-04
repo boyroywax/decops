@@ -14,7 +14,7 @@ interface ChannelDetailViewProps {
   agents: Agent[];
   channels: Channel[];
   messages: Message[];
-  ecosystems: Network[];
+  networks: Network[];
   navigateTo: (view: ViewId, ctx: NavContext) => void;
   removeChannel: (id: string) => void;
   setActiveChannel: (id: string) => void;
@@ -22,7 +22,7 @@ interface ChannelDetailViewProps {
 }
 
 export function ChannelDetailView({
-  channelId, networkId, agents, channels, messages, ecosystems,
+  channelId, networkId, agents, channels, messages, networks,
   navigateTo, removeChannel, setActiveChannel, setView,
 }: ChannelDetailViewProps) {
   const channel = channels.find(c => c.id === channelId);
@@ -37,7 +37,7 @@ export function ChannelDetailView({
   const fromAgent = agents.find(a => a.id === channel.from);
   const toAgent = agents.find(a => a.id === channel.to);
   const channelMessages = messages.filter(m => m.channelId === channelId);
-  const network = ecosystems.find(n => n.id === (channel.networkId || networkId));
+  const network = networks.find(n => n.id === (channel.networkId || networkId));
   const chType = CHANNEL_TYPES.find(t => t.id === channel.type);
   const fromRole = ROLES.find(r => r.id === fromAgent?.role);
   const toRole = ROLES.find(r => r.id === toAgent?.role);

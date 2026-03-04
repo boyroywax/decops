@@ -5,7 +5,6 @@ import type { ViewId, NavContext } from "@/types";
 /** Map ViewId to URL path segment */
 const VIEW_TO_PATH: Record<string, string> = {
   networks: "/networks",
-  ecosystem: "/networks",  // Legacy alias
   agents: "/agents",
   channels: "/channels",
   groups: "/groups",
@@ -44,7 +43,7 @@ const PATH_TO_VIEW: Record<string, ViewId> = {
 export function buildPath(view: ViewId, ctx: NavContext): string {
   const base = VIEW_TO_PATH[view] || "/networks";
 
-  if (view === "networks" || view === "ecosystem") {
+  if (view === "networks") {
     if (ctx.agentId && ctx.networkId) {
       const groupSeg = ctx.groupId ? `/groups/${ctx.groupId}` : "";
       return `/networks/${ctx.networkId}${groupSeg}/agents/${ctx.agentId}`;

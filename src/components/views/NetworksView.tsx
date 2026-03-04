@@ -18,7 +18,7 @@ interface NetworksViewProps {
   agents: Agent[];
   channels: Channel[];
   groups: Group[];
-  ecosystems: Network[];
+  networks: Network[];
   bridges: Bridge[];
   bridgeMessages: BridgeMessage[];
   activeBridges: Set<string>;
@@ -38,7 +38,7 @@ type ManagerTab = "networks" | "bridges" | "topology";
 
 export function NetworksView({
   agents, channels, groups,
-  ecosystems, bridges, bridgeMessages, activeBridges,
+  networks, bridges, bridgeMessages, activeBridges,
   bridgeForm, setBridgeForm,
   bridgeFromNet, bridgeToNet,
   dissolveNetwork,
@@ -51,7 +51,7 @@ export function NetworksView({
   const [expandedNetwork, setExpandedNetwork] = useState<string | null>(null);
 
   const tabs: { id: ManagerTab; label: string; icon: any; count?: number }[] = [
-    { id: "networks", label: "Networks", icon: Globe, count: ecosystems.length },
+    { id: "networks", label: "Networks", icon: Globe, count: networks.length },
     { id: "bridges", label: "Bridges", icon: Link2, count: bridges.length },
     { id: "topology", label: "Topology", icon: Layers },
   ];
@@ -100,14 +100,14 @@ export function NetworksView({
       {activeTab === "networks" && (
         <div className="networks-tab-content">
           {/* Network Cards Grid */}
-          {ecosystems.length > 0 ? (
+          {networks.length > 0 ? (
             <div className="networks-grid">
-              {ecosystems.map((net) => (
+              {networks.map((net) => (
                 <NetworkCard
                   key={net.id}
                   net={net}
                   bridges={bridges}
-                  ecosystems={ecosystems}
+                  networks={networks}
                   workspaceAgents={agents}
                   workspaceChannels={channels}
                   workspaceGroups={groups}
@@ -157,7 +157,7 @@ export function NetworksView({
             <div className="bridges-desc">
               Bridges connect agents across different networks. Bridges are a channel type ({`p2p → bridge`}).
             </div>
-            {ecosystems.length >= 2 && (
+            {networks.length >= 2 && (
               <button
                 onClick={() => setShowBridgeBuilder(!showBridgeBuilder)}
                 className={`bridges-new-btn${showBridgeBuilder ? " bridges-new-btn--active" : ""}`}
@@ -168,9 +168,9 @@ export function NetworksView({
           </div>
 
           {/* Bridge Builder */}
-          {showBridgeBuilder && ecosystems.length >= 2 && (
+          {showBridgeBuilder && networks.length >= 2 && (
             <BridgeBuilder
-              ecosystems={ecosystems}
+              networks={networks}
               agents={agents}
               groups={groups}
               bridgeForm={bridgeForm}
@@ -190,7 +190,7 @@ export function NetworksView({
                   key={b.id}
                   bridge={b}
                   agents={agents}
-                  ecosystems={ecosystems}
+                  networks={networks}
                   bridgeMessages={bridgeMessages}
                   removeBridge={removeBridge}
                 />
@@ -201,7 +201,7 @@ export function NetworksView({
               <Link2 size={28} color="#3f3f46" className="bridges-empty__icon" />
               <div className="bridges-empty__title">No bridges yet</div>
               <div className="bridges-empty__desc">
-                {ecosystems.length < 2
+                {networks.length < 2
                   ? "You need at least 2 saved networks to create bridges between them."
                   : "Create a bridge to connect agents across different networks."}
               </div>
@@ -213,7 +213,7 @@ export function NetworksView({
       {/* ─── Topology Tab ─── */}
       {activeTab === "topology" && (
         <div className="networks-tab-content--no-scroll">
-          <TopologyPanel ecosystems={ecosystems} bridges={bridges} activeBridges={activeBridges} />
+          <TopologyPanel networks={networks} bridges={bridges} activeBridges={activeBridges} />
         </div>
       )}
 

@@ -265,7 +265,7 @@ function InputFields({
     onUpdate?: (index: number, field: keyof EntityInput, value: any) => void;
 }) {
     const { agents, channels, groups } = useWorkspaceContext();
-    const { ecosystems } = useEcosystemContext();
+    const { networks } = useEcosystemContext();
     const { allArtifacts } = useJobsContext();
 
     const sourceKind: InputSourceKind = entry.source?.kind || "hardcoded";
@@ -302,7 +302,7 @@ function InputFields({
             case "group":
                 return groups.map(g => ({ value: g.id, label: `${g.name} — ${g.id.slice(0, 8)}` }));
             case "network":
-                return ecosystems.map(n => ({ value: n.id, label: `${n.name} — ${n.id.slice(0, 8)}` }));
+                return networks.map(n => ({ value: n.id, label: `${n.name} — ${n.id.slice(0, 8)}` }));
             default:
                 return [];
         }

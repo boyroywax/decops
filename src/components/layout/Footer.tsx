@@ -17,7 +17,7 @@ interface FooterProps {
     channels: Channel[];
     groups: Group[];
     messages: Message[];
-    ecosystems: Network[];
+    networks: Network[];
     bridges: Bridge[];
     ecosystem?: any; // Automated ecosystem object
     addLog?: (msg: string) => void;
@@ -51,7 +51,7 @@ export type PanelMode = "none" | "chat" | "jobs" | "artifacts" | "llm" | "displa
 
 const DEFAULT_PANEL_HEIGHT = 420;
 
-export function Footer({ agents, channels, groups, messages, ecosystems, bridges, ecosystem, addLog, setView, jobs, removeJob, clearJobs, addJob, allArtifacts, importArtifact, removeArtifact, updateArtifact, savedJobs, saveJob, deleteJob, view, panel, setPanel, chatPosition, sideChatVisible, toggleSideChat, ...jobsProps }: FooterProps) {
+export function Footer({ agents, channels, groups, messages, networks, bridges, ecosystem, addLog, setView, jobs, removeJob, clearJobs, addJob, allArtifacts, importArtifact, removeArtifact, updateArtifact, savedJobs, saveJob, deleteJob, view, panel, setPanel, chatPosition, sideChatVisible, toggleSideChat, ...jobsProps }: FooterProps) {
     const isSideChat = chatPosition === "left" || chatPosition === "right";
     const [panelHeight, setPanelHeight] = useState(DEFAULT_PANEL_HEIGHT);
     const [isExpanded, setIsExpanded] = useState(false);

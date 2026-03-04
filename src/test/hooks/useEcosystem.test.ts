@@ -22,41 +22,10 @@ describe('useEcosystem', () => {
         vi.clearAllMocks();
     });
 
-    it('initializes with empty ecosystems', () => {
+    it('initializes with empty networks', () => {
         const { result } = renderHook(() => useEcosystem(mockDeps, mockAddJob));
-        expect(result.current.ecosystems).toEqual([]);
+        expect(result.current.networks).toEqual([]);
         expect(result.current.bridges).toEqual([]);
-    });
-
-    it('queues save_ecosystem job (deprecated)', () => {
-        const { result } = renderHook(() => useEcosystem({ ...mockDeps, agents: [{ id: 'a1' } as any] }, mockAddJob));
-
-        act(() => {
-            result.current.setEcoSaveName('Backup');
-        });
-
-        act(() => {
-            result.current.saveCurrentNetwork();
-        });
-
-        expect(mockAddJob).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'save_ecosystem',
-            request: { name: 'Backup' }
-        }));
-    });
-
-    it('queues load_ecosystem job (deprecated)', () => {
-        const { result } = renderHook(() => useEcosystem(mockDeps, mockAddJob));
-
-        act(() => {
-            result.current.loadNetwork('net-1');
-        });
-
-        expect(mockAddJob).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'load_ecosystem',
-            request: { id: 'net-1' }
-        }));
-        expect(mockDeps.setView).toHaveBeenCalledWith('agents');
     });
 
     it('queues destroy_network job', () => {

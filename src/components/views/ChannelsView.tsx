@@ -12,7 +12,7 @@ interface ChannelsViewProps {
   agents: Agent[];
   channels: Channel[];
   messages: Message[];
-  ecosystems: Network[];
+  networks: Network[];
   channelForm: ChannelForm;
   setChannelForm: (v: ChannelForm) => void;
   createChannel: () => void;
@@ -24,7 +24,7 @@ interface ChannelsViewProps {
 }
 
 export function ChannelsView({
-  agents, channels, messages, ecosystems,
+  agents, channels, messages, networks,
   channelForm, setChannelForm,
   createChannel, removeChannel, removeChannels, setActiveChannel, setView,
   navigateTo,
@@ -34,7 +34,7 @@ export function ChannelsView({
 
   const getNetworkName = (networkId?: string) => {
     if (!networkId) return null;
-    const net = ecosystems.find(n => n.id === networkId);
+    const net = networks.find(n => n.id === networkId);
     return net ? { name: net.name, color: net.color } : null;
   };
 
@@ -56,7 +56,7 @@ export function ChannelsView({
         )}
       </div>
 
-      {ecosystems.length === 0 ? (
+      {networks.length === 0 ? (
         <div className="channels-empty-state">
           <Globe size={24} className="channels-empty-icon" />
           <div className="channels-empty-title">No networks available</div>
@@ -72,7 +72,7 @@ export function ChannelsView({
               className="input input-channel channel-form-select"
             >
               <option value="">Select network...</option>
-              {ecosystems.map((n) => (
+              {networks.map((n) => (
                 <option key={n.id} value={n.id}>{n.name}</option>
               ))}
             </select>

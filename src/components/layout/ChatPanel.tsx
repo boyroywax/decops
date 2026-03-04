@@ -129,7 +129,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         workspace: workspaceCtx,
         user,
         jobs,
-        ecosystem: ecosystem || { ecosystems: [], bridges: [] }, // Fallback if missing, some cmds might fail
+        ecosystem: ecosystem || { networks: [], bridges: [] }, // Fallback if missing, some cmds might fail
         architect,
         addLog: addLog || (() => { }) as (msg: string) => void
     });
@@ -646,7 +646,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                         agents: workspaceCtx.agents.map((a: any) => ({ id: a.id, name: a.name })),
                         channels: workspaceCtx.channels.map((c: any) => ({ id: c.id, from: c.from, to: c.to, type: c.type })),
                         groups: workspaceCtx.groups.map((g: any) => ({ id: g.id, name: g.name })),
-                        networks: (ecosystem?.ecosystems || []).map((n: any) => ({ id: n.id, name: n.name, color: n.color })),
+                        networks: (ecosystem?.networks || []).map((n: any) => ({ id: n.id, name: n.name, color: n.color })),
                     }}
                     currentUser={user}
                     onSubmit={handlePromptSubmit}

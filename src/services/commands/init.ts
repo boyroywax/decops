@@ -44,10 +44,6 @@ import {
     updateNetworkCommand,
     destroyNetworkCommand,
     listNetworksCommand,
-    saveEcosystemCommand,
-    loadEcosystemCommand,
-    listEcosystemsCommand,
-    deleteEcosystemCommand
 } from "./definitions/ecosystem";
 import {
     createBridgeCommand,
@@ -160,10 +156,6 @@ export function initializeRegistry() {
     registry.register(updateNetworkCommand);
     registry.register(destroyNetworkCommand);
     registry.register(listNetworksCommand);
-    registry.register(saveEcosystemCommand);
-    registry.register(loadEcosystemCommand);
-    registry.register(listEcosystemsCommand);
-    registry.register(deleteEcosystemCommand);
 
     // Topology
     registry.register(createBridgeCommand);

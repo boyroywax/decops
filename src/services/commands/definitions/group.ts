@@ -91,7 +91,7 @@ export const createGroupCommand: CommandDefinition = {
                 did: generateGroupDID(),
                 color: GROUP_COLORS[(groups.length + createdGroups.length) % GROUP_COLORS.length],
                 createdAt: new Date().toISOString(),
-                networkId: spec.networkId || context.ecosystem?.activeNetworkId || (context.ecosystem?.ecosystems?.length === 1 ? context.ecosystem.ecosystems[0].id : undefined),
+                networkId: spec.networkId || context.ecosystem?.activeNetworkId || (context.ecosystem?.networks?.length === 1 ? context.ecosystem.networks[0].id : undefined),
             };
 
             createdGroups.push(newGroup);
@@ -113,7 +113,7 @@ export const createGroupCommand: CommandDefinition = {
                             type: "consensus",
                             offset: Math.random() * 100,
                             createdAt: new Date().toISOString(),
-                            networkId: context.ecosystem?.activeNetworkId || (context.ecosystem?.ecosystems?.length === 1 ? context.ecosystem.ecosystems[0].id : undefined),
+                            networkId: context.ecosystem?.activeNetworkId || (context.ecosystem?.networks?.length === 1 ? context.ecosystem.networks[0].id : undefined),
                         });
                     }
                 }

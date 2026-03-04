@@ -37,7 +37,7 @@ interface MessagesViewProps {
   unreadCounts?: Record<string, number>;
   markChannelRead?: (channelId: string) => void;
   // Bridge messaging props
-  ecosystems: Network[];
+  networks: Network[];
   bridges: Bridge[];
   bridgeMessages: BridgeMessage[];
   selectedBridge: string | null;
@@ -62,7 +62,7 @@ export function MessagesView({
   msgEndRef, channelMessages, acFrom, acTo,
   sendMessage, sendBroadcast, removeMessages,
   unreadCounts, markChannelRead,
-  ecosystems, bridges, bridgeMessages,
+  networks, bridges, bridgeMessages,
   selectedBridge, setSelectedBridge, bridgeMsgInput, setBridgeMsgInput,
   bridgeSending, selBridgeFrom, selBridgeTo, selBridgeFromNet, selBridgeToNet,
   sendBridgeMessage,
@@ -129,9 +129,9 @@ export function MessagesView({
   const allAgentsMap = useMemo(() => {
     const map = new Map<string, Agent>();
     agents.forEach(a => map.set(a.id, a));
-    ecosystems.forEach(net => net.agents?.forEach(a => { if (!map.has(a.id)) map.set(a.id, a); }));
+    networks.forEach(net => net.agents?.forEach(a => { if (!map.has(a.id)) map.set(a.id, a); }));
     return map;
-  }, [agents, ecosystems]);
+  }, [agents, networks]);
 
   type UnifiedMsg = {
     id: string;
@@ -171,7 +171,7 @@ export function MessagesView({
     });
 
     // 3) Network-internal messages (from each ecosystem network)
-    ecosystems.forEach(net => {
+    networks.forEach(net => {
       (net.messages || []).forEach(m => {
         // Avoid duplicates if already in workspace messages
         if (!unified.some(u => u.id === m.id)) {
@@ -188,7 +188,7 @@ export function MessagesView({
     // Sort chronologically
     unified.sort((a, b) => a.ts - b.ts);
     return unified;
-  }, [ecosystemOverview, messages, bridgeMessages, ecosystems]);
+  }, [ecosystemOverview, messages, bridgeMessages, networks]);
 
   const handleBulkDelete = () => {
     removeMessages(bulk.selected);
@@ -208,7 +208,7 @@ export function MessagesView({
           className={`channel-btn${ecosystemOverview ? " channel-btn--active-eco" : ""}`}
         >
           <div className="channel-btn__label"><Globe size={10} /> All Messages</div>
-          <div className="channel-btn__meta">{messages.length + bridgeMessages.length + ecosystems.reduce((s, n) => s + (n.messages?.length || 0), 0)} total</div>
+          <div className="channel-btn__meta">{messages.length + bridgeMessages.length + networks.reduce((s, n) => s + (n.messages?.length || 0), 0)} total</div>
         </button>
 
         <div className="messages-sidebar__section-gap"><SectionTitle text="P2P Channels" /></div>
@@ -251,8 +251,8 @@ export function MessagesView({
           <>
             <div className="messages-sidebar__section-gap"><SectionTitle text="Bridge Channels" /></div>
             {bridges.map((b) => {
-              const fNet = ecosystems.find((n) => n.id === b.fromNetworkId);
-              const tNet = ecosystems.find((n) => n.id === b.toNetworkId);
+              const fNet = networks.find((n) => n.id === b.fromNetworkId);
+              const tNet = networks.find((n) => n.id === b.toNetworkId);
               const fA = agents.find((a) => a.id === b.fromAgentId) || fNet?.agents.find((a) => a.id === b.fromAgentId);
               const tA = agents.find((a) => a.id === b.toAgentId) || tNet?.agents.find((a) => a.id === b.toAgentId);
               const bmCount = bridgeMessages.filter((m) => m.bridgeId === b.id).length;

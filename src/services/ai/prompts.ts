@@ -12,7 +12,7 @@ export interface WorkspaceContext {
   channels: Channel[];
   groups: Group[];
   messages: Message[];
-  ecosystems: Network[];
+  networks: Network[];
   bridges: Bridge[];
   addJob?: (job: { type: string; request: any }) => void;
   jobs: Job[];
@@ -44,8 +44,8 @@ export function buildWorkspaceSystemPrompt(ctx: WorkspaceContext): string {
     return `  [${from?.name || "?"}→${to?.name || "?"}]: ${m.content.slice(0, 80)}${m.content.length > 80 ? "…" : ""}${m.response ? ` → ${m.response.slice(0, 60)}…` : ""}`;
   }).join("\n") || "  (none)";
 
-  const netSummary = ctx.ecosystems.length > 0
-    ? ctx.ecosystems.map(n => `  - "${n.name}" (${n.agents.length} agents, ${n.channels.length} channels)`).join("\n")
+  const netSummary = ctx.networks.length > 0
+    ? ctx.networks.map(n => `  - "${n.name}" (${n.agents.length} agents, ${n.channels.length} channels)`).join("\n")
     : "  (none)";
 
   const jobSummary = ctx.jobs.length > 0
@@ -94,7 +94,7 @@ ${groupSummary}
 Recent Messages (last ${Math.min(ctx.messages.length, 10)} of ${ctx.messages.length}):
 ${recentMsgs}
 
-Ecosystem Networks (${ctx.ecosystems.length}):
+Ecosystem Networks (${ctx.networks.length}):
 ${netSummary}
 
 Bridges: ${ctx.bridges.length}

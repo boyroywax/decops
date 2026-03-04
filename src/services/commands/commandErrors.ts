@@ -65,9 +65,7 @@ export const COMMAND_ERRORS: Record<string, CommandError[]> = {
   destroy_network: [
     { message: "Network {id} not found in ecosystem", cause: "Network ID doesn't exist" },
   ],
-  load_ecosystem: [
-    { message: "Network not found in ecosystem", cause: "Network ID doesn't exist" },
-  ],
+
 
   // ── Architect ────────────
   prompt_architect: [],

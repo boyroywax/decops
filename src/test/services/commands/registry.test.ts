@@ -87,7 +87,7 @@ describe('CommandRegistry', () => {
                 channels: [],
             },
             ecosystem: {
-                ecosystems: [
+                networks: [
                     { id: 'n-001', name: 'Marketing Net', agents: [] },
                 ],
             },

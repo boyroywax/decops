@@ -6,7 +6,7 @@ import { GradientIcon } from "@/components/shared/GradientIcon";
 import "../../../styles/components/bridge-builder.css";
 
 interface BridgeBuilderProps {
-  ecosystems: Network[];
+  networks: Network[];
   agents: Agent[];
   groups: Group[];
   bridgeForm: BridgeForm;
@@ -18,7 +18,7 @@ interface BridgeBuilderProps {
 }
 
 export function BridgeBuilder({
-  ecosystems, agents, groups, bridgeForm, setBridgeForm,
+  networks, agents, groups, bridgeForm, setBridgeForm,
   bridgeFromNet, bridgeToNet,
   createBridge, onClose,
 }: BridgeBuilderProps) {
@@ -51,7 +51,7 @@ export function BridgeBuilder({
             style={{ ...inputStyle, border: "1px solid rgba(251,191,36,0.15)" }}
           >
             <option value="">Select network…</option>
-            {ecosystems.map((n) => {
+            {networks.map((n) => {
               const count = agents.filter(a => a.networkId === n.id).length;
               return <option key={n.id} value={n.id}>{n.name} ({count} agents)</option>;
             })}
@@ -117,7 +117,7 @@ export function BridgeBuilder({
             style={{ ...inputStyle, border: "1px solid rgba(251,191,36,0.15)" }}
           >
             <option value="">Select network…</option>
-            {ecosystems.filter((n) => n.id !== bridgeForm.fromNet).map((n) => {
+            {networks.filter((n) => n.id !== bridgeForm.fromNet).map((n) => {
               const count = agents.filter(a => a.networkId === n.id).length;
               return <option key={n.id} value={n.id}>{n.name} ({count} agents)</option>;
             })}

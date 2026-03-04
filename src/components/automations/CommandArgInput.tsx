@@ -13,7 +13,7 @@ interface CommandArgInputProps {
 
 export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) {
     const { agents, channels, groups } = useWorkspaceContext();
-    const { ecosystems } = useEcosystemContext();
+    const { networks } = useEcosystemContext();
     const { workspaces } = useWorkspaceManager();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -101,7 +101,7 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
                 className="command-arg__select"
             >
                 <option value="">Select a Network</option>
-                {ecosystems.map(n => (
+                {networks.map(n => (
                     <option key={n.id} value={n.id}>{n.name}</option>
                 ))}
             </select>

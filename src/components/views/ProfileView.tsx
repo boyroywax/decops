@@ -17,19 +17,19 @@ interface ProfileViewProps {
     channels: Channel[];
     groups: Group[];
     messages: Message[];
-    ecosystems: Network[];
+    networks: Network[];
     bridges: Bridge[];
     setAgents: (val: Agent[]) => void;
     setChannels: (val: Channel[]) => void;
     setGroups: (val: Group[]) => void;
     setMessages: (val: Message[]) => void;
-    setEcosystems?: (val: Network[]) => void;
+    setNetworks?: (val: Network[]) => void;
     setBridges?: (val: Bridge[]) => void;
 }
 
 export function ProfileView({
-    agents, channels, groups, messages, ecosystems, bridges,
-    setAgents, setChannels, setGroups, setMessages, setEcosystems, setBridges,
+    agents, channels, groups, messages, networks, bridges,
+    setAgents, setChannels, setGroups, setMessages, setNetworks, setBridges,
 }: ProfileViewProps) {
     const { user } = useAuth();
     const [apiKey, setApiKey] = useState("");
@@ -50,8 +50,8 @@ export function ProfileView({
         processImport,
         resetAllData: handleReset,
     } = useDataManagement({
-        agents, channels, groups, messages, ecosystems, bridges,
-        setAgents, setChannels, setGroups, setMessages, setEcosystems, setBridges,
+        agents, channels, groups, messages, networks, bridges,
+        setAgents, setChannels, setGroups, setMessages, setNetworks, setBridges,
     });
 
     useEffect(() => {

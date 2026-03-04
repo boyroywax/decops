@@ -8,13 +8,13 @@ interface SettingsViewProps {
     channels: Channel[];
     groups: Group[];
     messages: Message[];
-    ecosystems: Network[];
+    networks: Network[];
     bridges: Bridge[];
     setAgents: (val: Agent[]) => void;
     setChannels: (val: Channel[]) => void;
     setGroups: (val: Group[]) => void;
     setMessages: (val: Message[]) => void;
-    setEcosystems?: (val: Network[]) => void; // Optional if not all props passed yet
+    setNetworks?: (val: Network[]) => void; // Optional if not all props passed yet
     setBridges?: (val: Bridge[]) => void;
 }
 
@@ -23,13 +23,13 @@ export function SettingsView({
     channels,
     groups,
     messages,
-    ecosystems,
+    networks,
     bridges,
     setAgents,
     setChannels,
     setGroups,
     setMessages,
-    setEcosystems,
+    setNetworks,
     setBridges,
 }: SettingsViewProps) {
     const [importStatus, setImportStatus] = useState<string>("");
@@ -55,7 +55,7 @@ export function SettingsView({
             version: "1.0",
             type: "workspace",
             exportedAt: new Date().toISOString(),
-            data: { agents, channels, groups, messages, networks: ecosystems, bridges },
+            data: { agents, channels, groups, messages, networks, bridges },
         };
         downloadJSON(data, `decops-workspace-${new Date().getTime()}.json`);
     };
@@ -67,7 +67,7 @@ export function SettingsView({
             exportedAt: new Date().toISOString(),
             data: {
                 agents, channels, groups, messages,
-                networks: ecosystems, bridges,
+                networks, bridges,
             },
         };
         downloadJSON(data, `decops-full-backup-${new Date().getTime()}.json`);
@@ -115,8 +115,8 @@ export function SettingsView({
             setGroups(ws.groups || []);
             setMessages(ws.messages || []);
             count++;
-            if (setEcosystems && setBridges) {
-                setEcosystems(eco.networks || eco.ecosystems || []);
+            if (setNetworks && setBridges) {
+                setNetworks(eco.networks || eco.ecosystems || []);
                 setBridges(eco.bridges || []);
                 count++;
             }
@@ -125,16 +125,16 @@ export function SettingsView({
             setChannels(json.data.channels || []);
             setGroups(json.data.groups || []);
             setMessages(json.data.messages || []);
-            if (setEcosystems && (json.data.networks || json.data.ecosystems)) {
-                setEcosystems(json.data.networks || json.data.ecosystems || []);
+            if (setNetworks && (json.data.networks || json.data.ecosystems)) {
+                setNetworks(json.data.networks || json.data.ecosystems || []);
             }
             if (setBridges && json.data.bridges) {
                 setBridges(json.data.bridges || []);
             }
             count++;
-        } else if (json.type === "ecosystem" && setEcosystems && setBridges) {
+        } else if (json.type === "ecosystem" && setNetworks && setBridges) {
             // Legacy ecosystem-only imports
-            setEcosystems(json.data.networks || json.data.ecosystems || []);
+            setNetworks(json.data.networks || json.data.ecosystems || []);
             setBridges(json.data.bridges || []);
             count++;
         } else {

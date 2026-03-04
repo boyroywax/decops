@@ -104,7 +104,7 @@ export const printTopologyCommand: CommandDefinition = {
             agents: context.workspace.agents.map((a: any) => ({ id: a.id, name: a.name, role: a.role, networkId: a.networkId })),
             channels: context.workspace.channels.map((c: any) => ({ from: c.from, to: c.to, type: c.type, networkId: c.networkId })),
             groups: context.workspace.groups.map((g: any) => ({ name: g.name, members: g.members, networkId: g.networkId })),
-            networks: context.ecosystem.ecosystems.map((e: any) => ({
+            networks: context.ecosystem.networks.map((e: any) => ({
                 id: e.id, name: e.name,
                 agentCount: e.agents?.length || 0,
                 channelCount: e.channels?.length || 0,

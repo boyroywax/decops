@@ -49,7 +49,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const handleExportWorkspace = () => {
     downloadJSON({
       version: "1.0", type: "workspace", exportedAt: new Date().toISOString(),
-      data: { agents: workspace.agents, channels: workspace.channels, groups: workspace.groups, messages: workspace.messages, networks: ecosystem.ecosystems, bridges: ecosystem.bridges },
+      data: { agents: workspace.agents, channels: workspace.channels, groups: workspace.groups, messages: workspace.messages, networks: ecosystem.networks, bridges: ecosystem.bridges },
     }, `decops-workspace-${Date.now()}.json`);
   };
 
@@ -58,7 +58,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       version: "1.0", type: "full-backup", exportedAt: new Date().toISOString(),
       data: {
         agents: workspace.agents, channels: workspace.channels, groups: workspace.groups, messages: workspace.messages,
-        networks: ecosystem.ecosystems, bridges: ecosystem.bridges,
+        networks: ecosystem.networks, bridges: ecosystem.bridges,
       },
     }, `decops-full-backup-${Date.now()}.json`);
   };
@@ -89,7 +89,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       workspace.setChannels(ws.channels || []);
       workspace.setGroups(ws.groups || []);
       workspace.setMessages(ws.messages || []);
-      ecosystem.setEcosystems(eco.networks || eco.ecosystems || []);
+      ecosystem.setNetworks(eco.networks || eco.ecosystems || []);
       ecosystem.setBridges(eco.bridges || []);
     } else if (json.type === "workspace") {
       workspace.setAgents(json.data.agents || []);
@@ -97,14 +97,14 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       workspace.setGroups(json.data.groups || []);
       workspace.setMessages(json.data.messages || []);
       if (json.data.networks || json.data.ecosystems) {
-        ecosystem.setEcosystems(json.data.networks || json.data.ecosystems || []);
+        ecosystem.setNetworks(json.data.networks || json.data.ecosystems || []);
       }
       if (json.data.bridges) {
         ecosystem.setBridges(json.data.bridges || []);
       }
     } else if (json.type === "ecosystem") {
       // Legacy ecosystem-only imports
-      ecosystem.setEcosystems(json.data.networks || json.data.ecosystems || []);
+      ecosystem.setNetworks(json.data.networks || json.data.ecosystems || []);
       ecosystem.setBridges(json.data.bridges || []);
     } else { setImportStatus("Error: Unknown file type"); return; }
     setImportStatus(`Loaded from ${json.type || "file"}`);

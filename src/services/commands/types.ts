@@ -73,18 +73,16 @@ export interface CommandContext {
         // Active network
         activeNetworkId: string | null;
         setActiveNetworkId: (id: string | null) => void;
-        // Backward-compat derived arrays
-        ecosystems: any[];
+        // Derived arrays
+        networks: any[];
         bridges: any[];
         bridgeMessages: any[];
-        setEcosystems: React.Dispatch<React.SetStateAction<any[]>>;
+        setNetworks: React.Dispatch<React.SetStateAction<any[]>>;
         setBridges: React.Dispatch<React.SetStateAction<any[]>>;
         setBridgeMessages: React.Dispatch<React.SetStateAction<any[]>>;
         setActiveBridges: React.Dispatch<React.SetStateAction<Set<string>>>;
         createBridge: (from: string, to: string) => void;
         removeBridge: (id: string) => void;
-        saveCurrentNetwork: () => void;
-        loadNetwork: (id: string) => void;
         dissolveNetwork: (id: string) => void;
     };
     system: {

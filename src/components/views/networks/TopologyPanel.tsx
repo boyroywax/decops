@@ -3,13 +3,13 @@ import { Layers } from "lucide-react";
 import { EcosystemCanvas } from "@/components/canvas/EcosystemCanvas";
 
 interface TopologyPanelProps {
-  ecosystems: Network[];
+  networks: Network[];
   bridges: Bridge[];
   activeBridges: Set<string>;
 }
 
-export function TopologyPanel({ ecosystems, bridges, activeBridges }: TopologyPanelProps) {
-  if (ecosystems.length >= 2) {
+export function TopologyPanel({ networks, bridges, activeBridges }: TopologyPanelProps) {
+  if (networks.length >= 2) {
     return (
       <div style={{
         background: "rgba(0,0,0,0.3)",
@@ -18,7 +18,7 @@ export function TopologyPanel({ ecosystems, bridges, activeBridges }: TopologyPa
         height: "calc(100vh - 260px)",
         overflow: "hidden",
       }}>
-        <EcosystemCanvas networks={ecosystems} bridges={bridges} activeBridges={activeBridges} />
+        <EcosystemCanvas networks={networks} bridges={bridges} activeBridges={activeBridges} />
       </div>
     );
   }

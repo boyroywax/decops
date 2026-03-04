@@ -6,13 +6,13 @@ interface DataManagementDeps {
   channels: Channel[];
   groups: Group[];
   messages: Message[];
-  ecosystems: Network[];
+  networks: Network[];
   bridges: Bridge[];
   setAgents: (val: Agent[]) => void;
   setChannels: (val: Channel[]) => void;
   setGroups: (val: Group[]) => void;
   setMessages: (val: Message[]) => void;
-  setEcosystems?: (val: Network[]) => void;
+  setNetworks?: (val: Network[]) => void;
   setBridges?: (val: Bridge[]) => void;
 }
 
@@ -30,8 +30,8 @@ function downloadJSON(data: unknown, filename: string) {
 
 export function useDataManagement(deps: DataManagementDeps) {
   const {
-    agents, channels, groups, messages, ecosystems, bridges,
-    setAgents, setChannels, setGroups, setMessages, setEcosystems, setBridges,
+    agents, channels, groups, messages, networks, bridges,
+    setAgents, setChannels, setGroups, setMessages, setNetworks, setBridges,
   } = deps;
 
   const exportWorkspace = useCallback(() => {
@@ -39,9 +39,9 @@ export function useDataManagement(deps: DataManagementDeps) {
       version: "1.0",
       type: "workspace",
       exportedAt: new Date().toISOString(),
-      data: { agents, channels, groups, messages, networks: ecosystems, bridges },
+      data: { agents, channels, groups, messages, networks, bridges },
     }, `decops-workspace-${Date.now()}.json`);
-  }, [agents, channels, groups, messages, ecosystems, bridges]);
+  }, [agents, channels, groups, messages, networks, bridges]);
 
   const fullBackup = useCallback(() => {
     downloadJSON({
@@ -53,11 +53,11 @@ export function useDataManagement(deps: DataManagementDeps) {
         channels,
         groups,
         messages,
-        networks: ecosystems,
+        networks,
         bridges,
       },
     }, `decops-full-backup-${Date.now()}.json`);
-  }, [agents, channels, groups, messages, ecosystems, bridges]);
+  }, [agents, channels, groups, messages, networks, bridges]);
 
   const processImport = useCallback((json: any): { success: boolean; message: string } => {
     if (!json.data) {
@@ -72,8 +72,8 @@ export function useDataManagement(deps: DataManagementDeps) {
       setChannels(ws.channels || []);
       setGroups(ws.groups || []);
       setMessages(ws.messages || []);
-      if (setEcosystems && setBridges) {
-        setEcosystems(eco.networks || eco.ecosystems || []);
+      if (setNetworks && setBridges) {
+        setNetworks(eco.networks || eco.ecosystems || []);
         setBridges(eco.bridges || []);
       }
     } else if (json.type === "workspace") {
@@ -82,22 +82,22 @@ export function useDataManagement(deps: DataManagementDeps) {
       setGroups(json.data.groups || []);
       setMessages(json.data.messages || []);
       // New workspace exports include networks/bridges
-      if (setEcosystems && (json.data.networks || json.data.ecosystems)) {
-        setEcosystems(json.data.networks || json.data.ecosystems || []);
+      if (setNetworks && (json.data.networks || json.data.ecosystems)) {
+        setNetworks(json.data.networks || json.data.ecosystems || []);
       }
       if (setBridges && json.data.bridges) {
         setBridges(json.data.bridges || []);
       }
-    } else if (json.type === "ecosystem" && setEcosystems && setBridges) {
+    } else if (json.type === "ecosystem" && setNetworks && setBridges) {
       // Legacy ecosystem-only imports
-      setEcosystems(json.data.networks || json.data.ecosystems || []);
+      setNetworks(json.data.networks || json.data.ecosystems || []);
       setBridges(json.data.bridges || []);
     } else {
       return { success: false, message: "Unknown or unsupported file type" };
     }
 
     return { success: true, message: `Loaded data from ${json.type || "file"}.` };
-  }, [setAgents, setChannels, setGroups, setMessages, setEcosystems, setBridges]);
+  }, [setAgents, setChannels, setGroups, setMessages, setNetworks, setBridges]);
 
   const resetAllData = useCallback(() => {
     localStorage.clear();

@@ -14,7 +14,6 @@ export type GovernanceModelId = "majority" | "threshold" | "delegated" | "unanim
 export type ViewId =
   | "architect"
   | "networks"
-  | "ecosystem"  // Legacy alias
   | "agents"
   | "channels"
   | "channel"

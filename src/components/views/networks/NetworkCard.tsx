@@ -11,7 +11,7 @@ import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 interface NetworkCardProps {
   net: Network;
   bridges: Bridge[];
-  ecosystems: Network[];
+  networks: Network[];
   workspaceAgents: Agent[];
   workspaceChannels: Channel[];
   workspaceGroups: Group[];
@@ -22,7 +22,7 @@ interface NetworkCardProps {
 }
 
 export function NetworkCard({
-  net, bridges, ecosystems,
+  net, bridges, networks,
   workspaceAgents, workspaceChannels, workspaceGroups,
   isExpanded, onToggleExpand,
   dissolveNetwork, onNavigate,
@@ -255,7 +255,7 @@ export function NetworkCard({
               <div style={{ fontSize: 10, color: "#71717a", marginBottom: 8, fontWeight: 500 }}>BRIDGES ({netBridges.length})</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                 {netBridges.map((b) => {
-                  const otherNet = ecosystems.find((n) =>
+                  const otherNet = networks.find((n) =>
                     n.id === (b.fromNetworkId === net.id ? b.toNetworkId : b.fromNetworkId)
                   );
                   return (

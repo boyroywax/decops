@@ -96,7 +96,7 @@ export const createChannelCommand: CommandDefinition = {
                 type: spec.type || "data",
                 offset: Math.random() * 100,
                 createdAt: new Date().toISOString(),
-                networkId: spec.networkId || context.ecosystem?.activeNetworkId || fromAgent.networkId || (context.ecosystem?.ecosystems?.length === 1 ? context.ecosystem.ecosystems[0].id : undefined),
+                networkId: spec.networkId || context.ecosystem?.activeNetworkId || fromAgent.networkId || (context.ecosystem?.networks?.length === 1 ? context.ecosystem.networks[0].id : undefined),
             };
 
             created.push(newChannel);

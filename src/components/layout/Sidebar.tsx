@@ -13,7 +13,7 @@ import "../../styles/components/sidebar.css";
 interface SidebarProps {
   view: ViewId;
   setView: (view: ViewId) => void;
-  ecosystems: Network[];
+  networks: Network[];
   messages: Message[];
   bridgeMessages: BridgeMessage[];
   agents: any[];
@@ -41,7 +41,7 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; 
 
 const ECOSYSTEM_VIEWS: Set<ViewId> = new Set(["networks", "agents", "channels", "groups", "messages"]);
 
-export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, agents, channels, groups, collapsed, setCollapsed, isMobile, ecosystemName, totalUnread }: SidebarProps) {
+export function Sidebar({ view, setView, networks, messages, bridgeMessages, agents, channels, groups, collapsed, setCollapsed, isMobile, ecosystemName, totalUnread }: SidebarProps) {
   const navRef = useRef<HTMLElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -69,7 +69,7 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
         };
       }
     }
-  }, [isMobile, ecosystems.length, messages.length, bridgeMessages.length, agents.length, channels.length, groups.length]);
+  }, [isMobile, networks.length, messages.length, bridgeMessages.length, agents.length, channels.length, groups.length]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (navRef.current) {
@@ -125,8 +125,8 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
           }
           {collapsed && !isMobile && (
             <>
-              {(ecosystems.length + agents.length + channels.length + groups.length) > 0 && (
-                <span className="sidebar-badge accent">{ecosystems.length + agents.length + channels.length + groups.length}</span>
+              {(networks.length + agents.length + channels.length + groups.length) > 0 && (
+                <span className="sidebar-badge accent">{networks.length + agents.length + channels.length + groups.length}</span>
               )}
             </>
           )}
@@ -143,7 +143,7 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
           <div className="sidebar-eco-subitems">
             {NAV_ITEMS.map((tab) => {
               const badgeCount =
-                tab.id === "networks" ? ecosystems.length :
+                tab.id === "networks" ? networks.length :
                 tab.id === "agents" ? agents.length :
                 tab.id === "channels" ? channels.length :
                 tab.id === "groups" ? groups.length :

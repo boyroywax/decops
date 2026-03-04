@@ -7,15 +7,15 @@ import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 interface BridgeCardProps {
   bridge: Bridge;
   agents: Agent[];
-  ecosystems: Network[];
+  networks: Network[];
   bridgeMessages: BridgeMessage[];
   removeBridge: (id: string) => void;
 }
 
-export function BridgeCard({ bridge: b, agents, ecosystems, bridgeMessages, removeBridge }: BridgeCardProps) {
+export function BridgeCard({ bridge: b, agents, networks, bridgeMessages, removeBridge }: BridgeCardProps) {
   const del = useDeleteConfirm();
-  const fNet = ecosystems.find((n) => n.id === b.fromNetworkId);
-  const tNet = ecosystems.find((n) => n.id === b.toNetworkId);
+  const fNet = networks.find((n) => n.id === b.fromNetworkId);
+  const tNet = networks.find((n) => n.id === b.toNetworkId);
   const fA = agents.find((a) => a.id === b.fromAgentId) || fNet?.agents.find((a) => a.id === b.fromAgentId);
   const tA = agents.find((a) => a.id === b.toAgentId) || tNet?.agents.find((a) => a.id === b.toAgentId);
   const bmCount = bridgeMessages.filter((m) => m.bridgeId === b.id).length;

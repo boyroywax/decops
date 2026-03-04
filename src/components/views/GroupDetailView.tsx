@@ -17,7 +17,7 @@ interface GroupDetailViewProps {
   networkId: string;
   agents: Agent[];
   groups: Group[];
-  ecosystems: Network[];
+  networks: Network[];
   navigateTo: (view: ViewId, ctx: NavContext) => void;
   removeGroup: (id: string) => void;
   setBroadcastGroup: (id: string | null) => void;
@@ -79,11 +79,11 @@ function GroupModelPicker({ groupId, recommendedModel }: { groupId: string; reco
 
 export function GroupDetailView({
   groupId, networkId, agents, groups,
-  ecosystems, navigateTo, removeGroup,
+  networks, navigateTo, removeGroup,
   setBroadcastGroup, setView,
 }: GroupDetailViewProps) {
   const group = groups.find(g => g.id === groupId);
-  const network = ecosystems.find(n => n.id === networkId);
+  const network = networks.find(n => n.id === networkId);
 
   if (!group) {
     return (

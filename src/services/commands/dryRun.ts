@@ -93,7 +93,7 @@ function getEntityCollection(argType: string, context: any): any[] | undefined {
     case "agent": {
       const agents = context?.workspace?.agents ?? [];
       // Also include agents from ecosystem networks
-      const nets: any[] = context?.ecosystem?.ecosystems ?? [];
+      const nets: any[] = context?.ecosystem?.networks ?? [];
       const netAgents = nets.flatMap((n: any) => n.agents ?? []);
       const storageAgents: any[] = context?.storage?._agents ?? [];
       return [...agents, ...netAgents, ...storageAgents];
@@ -103,7 +103,7 @@ function getEntityCollection(argType: string, context: any): any[] | undefined {
     case "channel":
       return context?.workspace?.channels;
     case "network":
-      return context?.ecosystem?.ecosystems;
+      return context?.ecosystem?.networks;
     default:
       return undefined;
   }

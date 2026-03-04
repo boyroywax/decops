@@ -19,7 +19,7 @@ interface AgentsViewProps {
   channels: Channel[];
   groups: Group[];
   messages: Message[];
-  ecosystems: Network[];
+  networks: Network[];
   showCreate: boolean;
   setShowCreate: (v: boolean) => void;
   newAgent: NewAgentForm;
@@ -38,7 +38,7 @@ interface AgentsViewProps {
 }
 
 export function AgentsView({
-  agents, channels, groups, messages, ecosystems,
+  agents, channels, groups, messages, networks,
   showCreate, setShowCreate, newAgent, setNewAgent,
   selectedAgent, setSelectedAgent, editingPrompt, setEditingPrompt,
   editPromptText, setEditPromptText,
@@ -89,7 +89,7 @@ export function AgentsView({
 
   const getNetworkName = (networkId?: string) => {
     if (!networkId) return null;
-    const net = ecosystems.find(n => n.id === networkId);
+    const net = networks.find(n => n.id === networkId);
     return net ? { name: net.name, color: net.color } : null;
   };
 
@@ -133,7 +133,7 @@ export function AgentsView({
 
       {showCreate && (
         <div className="create-agent-form">
-          {ecosystems.length === 0 ? (
+          {networks.length === 0 ? (
             <div className="create-agent-empty">
               <Globe size={24} className="create-agent-empty-icon" />
               <div className="create-agent-empty-title">No networks available</div>
@@ -149,7 +149,7 @@ export function AgentsView({
                   className="input input-accent"
                 >
                   <option value="">Select network...</option>
-                  {ecosystems.map((n) => (
+                  {networks.map((n) => (
                     <option key={n.id} value={n.id}>{n.name}</option>
                   ))}
                 </select>

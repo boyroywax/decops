@@ -47,7 +47,7 @@ export const createNetworkCommand: CommandDefinition = {
         // Batch mode: create multiple bare networks (architectPrompt not supported)
         if (args.items) {
             const specs = Array.isArray(args.items) ? args.items : [args.items];
-            const existingNetworks = context.ecosystem.ecosystems || [];
+            const existingNetworks = context.ecosystem.networks || [];
             const created: any[] = [];
 
             for (let i = 0; i < specs.length; i++) {
@@ -71,7 +71,7 @@ export const createNetworkCommand: CommandDefinition = {
                 context.storage[`network_${spec.name}`] = netId;
             }
 
-            context.ecosystem.setEcosystems((prev: any[]) => [...prev, ...created]);
+            context.ecosystem.setNetworks((prev: any[]) => [...prev, ...created]);
             context.storage._networks = [...(context.storage._networks || []), ...created];
             context.workspace.addLog(`Created ${created.length} network(s): ${created.map((n: any) => n.name).join(", ")}`);
 
@@ -85,7 +85,7 @@ export const createNetworkCommand: CommandDefinition = {
 
         // Single mode
         const networkId = crypto.randomUUID();
-        const existingNetworks = context.ecosystem.ecosystems || [];
+        const existingNetworks = context.ecosystem.networks || [];
         const colorIdx = existingNetworks.length % (NETWORK_COLORS?.length || 6);
         const color = NETWORK_COLORS?.[colorIdx] || "#00e5a0";
 
@@ -165,7 +165,7 @@ export const createNetworkCommand: CommandDefinition = {
             createdAt: new Date().toISOString(),
         };
 
-        context.ecosystem.setEcosystems((prev: any[]) => [...prev, net]);
+        context.ecosystem.setNetworks((prev: any[]) => [...prev, net]);
         context.workspace.addLog(`Network "${args.name}" created in ecosystem.`);
 
         // Auto-activate the newly created network so subsequent entity creation inherits it
@@ -193,107 +193,6 @@ export const createNetworkCommand: CommandDefinition = {
     }
 };
 
-export const saveEcosystemCommand: CommandDefinition = {
-    id: "save_ecosystem",
-    description: "(Deprecated) Save the current workspace entities as a named network. Use create_network instead.",
-    tags: ["ecosystem", "save"],
-    rbac: ["orchestrator", "curator"],
-    hidden: true,
-    args: {
-        name: {
-            name: "name",
-            type: "string",
-            description: "Name for the saved network",
-        }
-    },
-    output: "JSON object of the saved network configuration.",
-    outputSchema: { type: "object", properties: { success: { type: "boolean" }, network: { type: "object" } } },
-    execute: async (args, context: CommandContext) => {
-        const networkId = crypto.randomUUID();
-
-        // Tag entities with the networkId so they know which network they belong to
-        const taggedAgents = context.workspace.agents.map((a: any) => ({ ...a, networkId }));
-        const taggedChannels = context.workspace.channels.map((c: any) => ({ ...c, networkId }));
-        const taggedGroups = context.workspace.groups.map((g: any) => ({ ...g, networkId }));
-
-        const net = {
-            id: networkId,
-            name: args.name,
-            did: `did:decops:net:${crypto.randomUUID()}`,
-            color: "#00e5a0",
-            agents: taggedAgents,
-            channels: taggedChannels,
-            groups: taggedGroups,
-            messages: [...context.workspace.messages],
-            createdAt: new Date().toISOString()
-        };
-
-        context.ecosystem.setEcosystems((prev: any[]) => [...prev, net]);
-
-        // Also update the workspace-level entities with their new networkId
-        context.workspace.setAgents(taggedAgents);
-        context.workspace.setChannels(taggedChannels);
-        context.workspace.setGroups(taggedGroups);
-
-        context.workspace.addLog(`Network "${args.name}" saved to ecosystem.`);
-        return { success: true, network: net };
-    }
-};
-
-export const loadEcosystemCommand: CommandDefinition = {
-    id: "load_ecosystem",
-    description: "(Deprecated) Load a network into the workspace. Networks are now part of the workspace ecosystem.",
-    tags: ["ecosystem", "load"],
-    rbac: ["orchestrator", "curator"],
-    hidden: true,
-    args: {
-        id: {
-            name: "id",
-            type: "network",
-            description: "ID of the network to load",
-            required: true
-        }
-    },
-    output: "Confirmation of load operation.",
-    outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
-    execute: async (args, context: CommandContext) => {
-        const net = context.ecosystem.ecosystems.find((n: any) => n.id === args.id);
-        if (!net) throw new Error("Network not found in ecosystem");
-
-        const { setAgents, setChannels, setGroups, setMessages, addLog } = context.workspace;
-
-        // Ensure agents/channels/groups carry their networkId
-        setAgents(net.agents.map((a: any) => ({ ...a, networkId: a.networkId || net.id })));
-        setChannels(net.channels.map((c: any) => ({ ...c, networkId: c.networkId || net.id })));
-        setGroups(net.groups.map((g: any) => ({ ...g, networkId: g.networkId || net.id })));
-        setMessages([...net.messages]);
-
-        addLog(`Loaded network "${net.name}" into workspace`);
-        return { success: true };
-    }
-};
-
-export const listEcosystemsCommand: CommandDefinition = {
-    id: "list_ecosystems",
-    description: "(Deprecated) Use list_networks instead.",
-    tags: ["ecosystem", "query"],
-    rbac: ["researcher", "builder", "curator", "orchestrator"],
-    hidden: true,
-    args: {},
-    output: "List of all networks.",
-    outputSchema: { type: "object", properties: { networks: { type: "array", items: { type: "object" } } } },
-    execute: async (args, context: CommandContext) => {
-        const list = context.ecosystem.ecosystems.map((e: any) => ({
-            id: e.id,
-            name: e.name,
-            agentCount: e.agents?.length || 0,
-            channelCount: e.channels?.length || 0,
-            groupCount: e.groups?.length || 0,
-        }));
-        return { networks: list };
-    }
-};
-
 export const listNetworksCommand: CommandDefinition = {
     id: "list_networks",
     description: "List all networks in the workspace ecosystem.",
@@ -303,7 +202,7 @@ export const listNetworksCommand: CommandDefinition = {
     output: "List of all networks in the ecosystem.",
     outputSchema: { type: "object", properties: { networks: { type: "array", items: { type: "object" } } } },
     execute: async (args, context: CommandContext) => {
-        const list = context.ecosystem.ecosystems.map((n: any) => ({
+        const list = context.ecosystem.networks.map((n: any) => ({
             id: n.id,
             name: n.name,
             description: n.description || "",
@@ -364,7 +263,7 @@ export const updateNetworkCommand: CommandDefinition = {
             const specs = Array.isArray(args.items) ? args.items : [args.items];
             const results: any[] = [];
 
-            context.ecosystem.setEcosystems((prev: any[]) => {
+            context.ecosystem.setNetworks((prev: any[]) => {
                 const updated = [...prev];
                 for (const spec of specs) {
                     const idx = updated.findIndex((n: any) => n.id === spec.id);
@@ -385,7 +284,7 @@ export const updateNetworkCommand: CommandDefinition = {
 
         // Single mode
         const id = args.id;
-        const existing = context.ecosystem.ecosystems.find((n: any) => n.id === id);
+        const existing = context.ecosystem.networks.find((n: any) => n.id === id);
         if (!existing) throw new Error("Network not found in ecosystem");
 
         const updates: Record<string, any> = {};
@@ -398,7 +297,7 @@ export const updateNetworkCommand: CommandDefinition = {
         }
 
         let updatedNet: any = null;
-        context.ecosystem.setEcosystems((prev: any[]) =>
+        context.ecosystem.setNetworks((prev: any[]) =>
             prev.map((n: any) => {
                 if (n.id === id) {
                     updatedNet = { ...n, ...updates };
@@ -447,17 +346,17 @@ export const destroyNetworkCommand: CommandDefinition = {
             ? (Array.isArray(args.ids) ? args.ids : [args.ids])
             : [args.id];
 
-        const { setEcosystems, setBridges, ecosystems } = context.ecosystem;
+        const { setNetworks, setBridges, networks } = context.ecosystem;
         const totalRemoved: Record<string, number> = { networks: 0, bridges: 0 };
 
         for (const id of targetIds) {
-            const net = ecosystems.find((n: any) => n.id === id);
+            const net = networks.find((n: any) => n.id === id);
             if (!net) throw new Error(`Network ${id} not found in ecosystem`);
             totalRemoved.networks++;
         }
 
         // Remove all targeted networks
-        setEcosystems((prev: any[]) => prev.filter((n: any) => !targetIds.includes(n.id)));
+        setNetworks((prev: any[]) => prev.filter((n: any) => !targetIds.includes(n.id)));
 
         // Remove bridges referencing any targeted network
         setBridges((prev: any[]) => {
@@ -494,31 +393,4 @@ export const destroyNetworkCommand: CommandDefinition = {
     }
 };
 
-export const deleteEcosystemCommand: CommandDefinition = {
-    id: "delete_ecosystem",
-    description: "Remove a network from the ecosystem (alias for destroy_network without cascade).",
-    tags: ["ecosystem", "delete"],
-    rbac: ["orchestrator"],
-    hidden: true,
-    args: {
-        id: {
-            name: "id",
-            type: "network",
-            description: "ID of the network to remove",
-            required: true
-        }
-    },
-    output: "Confirmation of deletion.",
-    outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
-    execute: async (args, context: CommandContext) => {
-        const { setEcosystems, setBridges } = context.ecosystem;
-        const id = args.id;
 
-        setEcosystems((prev: any[]) => prev.filter((n: any) => n.id !== id));
-        // Also remove bridges that reference this network
-        setBridges((prev: any[]) => prev.filter((b: any) => b.fromNetworkId !== id && b.toNetworkId !== id));
-
-        context.workspace.addLog("Network removed from ecosystem");
-        return { success: true };
-    }
-};

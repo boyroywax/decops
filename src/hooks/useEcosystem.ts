@@ -46,30 +46,6 @@ export function useEcosystem({
     createDefaultEcosystem()
   );
 
-  // Legacy storage keys — used only for one-time migration
-  const [legacyNetworks, setLegacyNetworks] = useLocalStorage<Network[]>("decops_ecosystems", []);
-  const [legacyBridges, setLegacyBridges] = useLocalStorage<Bridge[]>("decops_bridges", []);
-
-  // One-time migration: if legacy keys have data but ecosystem is empty, migrate
-  const hasMigrated = useRef(false);
-  useEffect(() => {
-    if (hasMigrated.current) return;
-    if ((legacyNetworks.length > 0 || legacyBridges.length > 0) && ecosystem.networks.length === 0 && ecosystem.bridges.length === 0) {
-      hasMigrated.current = true;
-      setEcosystem((prev) => ({
-        ...prev,
-        networks: legacyNetworks,
-        bridges: legacyBridges,
-      }));
-      // Clear legacy keys after migration
-      setLegacyNetworks([]);
-      setLegacyBridges([]);
-      addLog("Migrated legacy ecosystem data into workspace ecosystem.");
-    } else {
-      hasMigrated.current = true;
-    }
-  }, [legacyNetworks, legacyBridges, ecosystem]);
-
   // ─── Auto-adopt orphaned entities ───
   // If entities exist without a networkId (or with a networkId that doesn't match
   // any known network), create a default network and assign them.
@@ -144,12 +120,12 @@ export function useEcosystem({
     setTimeout(() => { adoptionInProgress.current = false; }, 500);
   }, [agents, channels, groups, ecosystem.networks]);
 
-  // ─── Derived references for backward compat (views still use these) ───
-  const ecosystems = ecosystem.networks;
+  // ─── Derived references ───
+  const networks = ecosystem.networks;
   const bridges = ecosystem.bridges;
 
   // ─── Setters that update the nested ecosystem ───
-  const setEcosystems = (updater: Network[] | ((prev: Network[]) => Network[])) => {
+  const setNetworks = (updater: Network[] | ((prev: Network[]) => Network[])) => {
     setEcosystem((prev) => ({
       ...prev,
       networks: typeof updater === "function" ? updater(prev.networks) : updater,
@@ -178,7 +154,6 @@ export function useEcosystem({
 
   // ─── Transient UI state (not persisted in ecosystem) ───
   const [activeBridges, setActiveBridges] = useState<Set<string>>(new Set());
-  const [ecoSaveName, setEcoSaveName] = useState("");
   const [bridgeForm, setBridgeForm] = useState<BridgeForm>({
     fromNet: "", toNet: "", fromAgent: "", toAgent: "", type: "data",
   });
@@ -192,27 +167,6 @@ export function useEcosystem({
   }, [ecosystem.bridgeMessages, selectedBridge]);
 
   // ─── Actions ───
-
-  const saveCurrentNetwork = () => {
-    if (!ecoSaveName.trim() || agents.length === 0) return;
-    if (addJob) {
-      addJob({
-        type: "save_ecosystem",
-        request: { name: ecoSaveName.trim() }
-      });
-    }
-    setEcoSaveName("");
-  };
-
-  const loadNetwork = (id: string) => {
-    if (addJob) {
-      addJob({
-        type: "load_ecosystem",
-        request: { id }
-      });
-    }
-    setView("agents");
-  };
 
   const dissolveNetwork = (id: string) => {
     if (addJob) {
@@ -270,24 +224,23 @@ export function useEcosystem({
   // ─── Computed values ───
   const bridgeMessages = ecosystem.bridgeMessages;
   const selBridge = bridges.find((b) => b.id === selectedBridge);
-  const selBridgeFromNet = selBridge ? ecosystems.find((n) => n.id === selBridge.fromNetworkId) : null;
-  const selBridgeToNet = selBridge ? ecosystems.find((n) => n.id === selBridge.toNetworkId) : null;
+  const selBridgeFromNet = selBridge ? networks.find((n) => n.id === selBridge.fromNetworkId) : null;
+  const selBridgeToNet = selBridge ? networks.find((n) => n.id === selBridge.toNetworkId) : null;
   // Resolve bridge agents from workspace-level agents (always fresh) with fallback to Network.agents
   const selBridgeFrom = agents.find((a) => a.id === selBridge?.fromAgentId)
     || selBridgeFromNet?.agents.find((a) => a.id === selBridge?.fromAgentId);
   const selBridgeTo = agents.find((a) => a.id === selBridge?.toAgentId)
     || selBridgeToNet?.agents.find((a) => a.id === selBridge?.toAgentId);
-  const bridgeFromNet = bridgeForm.fromNet ? ecosystems.find((n) => n.id === bridgeForm.fromNet) : null;
-  const bridgeToNet = bridgeForm.toNet ? ecosystems.find((n) => n.id === bridgeForm.toNet) : null;
+  const bridgeFromNet = bridgeForm.fromNet ? networks.find((n) => n.id === bridgeForm.fromNet) : null;
+  const bridgeToNet = bridgeForm.toNet ? networks.find((n) => n.id === bridgeForm.toNet) : null;
 
   return {
     // Ecosystem object
     ecosystem, setEcosystem,
     // Active network
     activeNetworkId, setActiveNetworkId, activeNetwork,
-    // Backward-compat derived arrays
-    ecosystems, bridges, bridgeMessages, activeBridges,
-    ecoSaveName, setEcoSaveName,
+    // Derived arrays
+    networks, bridges, bridgeMessages, activeBridges,
     bridgeForm, setBridgeForm,
     selectedBridge, setSelectedBridge,
     bridgeMsgInput, setBridgeMsgInput,
@@ -296,10 +249,10 @@ export function useEcosystem({
     selBridge, selBridgeFromNet, selBridgeToNet, selBridgeFrom, selBridgeTo,
     bridgeFromNet, bridgeToNet,
     // Actions
-    saveCurrentNetwork, loadNetwork, dissolveNetwork,
+    dissolveNetwork,
     createBridge, removeBridge, sendBridgeMessage,
     // Setters (operate on ecosystem internals)
-    setEcosystems, setBridges,
+    setNetworks, setBridges,
     setBridgeMessages, setActiveBridges,
   };
 }

@@ -18,7 +18,7 @@ export const exportFullBackupCommand: CommandDefinition = {
     },
     execute: async (args, context: CommandContext) => {
         const { agents, channels, groups, messages } = context.workspace;
-        const { ecosystems, bridges } = context.ecosystem;
+        const { networks, bridges } = context.ecosystem;
 
         const data = {
             version: "1.0",
@@ -29,7 +29,7 @@ export const exportFullBackupCommand: CommandDefinition = {
                 channels,
                 groups,
                 messages,
-                networks: ecosystems,
+                networks,
                 bridges,
             },
         };
@@ -64,13 +64,13 @@ export const exportWorkspaceCommand: CommandDefinition = {
     },
     execute: async (args, context: CommandContext) => {
         const { agents, channels, groups, messages } = context.workspace;
-        const { ecosystems, bridges } = context.ecosystem;
+        const { networks, bridges } = context.ecosystem;
 
         const data = {
             version: "1.0",
             type: "workspace",
             exportedAt: new Date().toISOString(),
-            data: { agents, channels, groups, messages, networks: ecosystems, bridges },
+            data: { agents, channels, groups, messages, networks, bridges },
         };
 
         // Produce deliverable
@@ -93,7 +93,7 @@ export const exportEcosystemCommand: CommandDefinition = {
     rbac: ["orchestrator", "curator"],
     hidden: true,
     args: {},
-    output: "JSON export of saved ecosystems.",
+    output: "JSON export of saved networks.",
     outputSchema: {
         type: "object",
         properties: {
@@ -103,13 +103,13 @@ export const exportEcosystemCommand: CommandDefinition = {
         }
     },
     execute: async (args, context: CommandContext) => {
-        const { ecosystems, bridges } = context.ecosystem;
+        const { networks, bridges } = context.ecosystem;
 
         const data = {
             version: "1.0",
             type: "ecosystem",
             exportedAt: new Date().toISOString(),
-            data: { ecosystems, bridges },
+            data: { networks, bridges },
         };
 
         // Produce deliverable
@@ -148,7 +148,7 @@ export const exportDataCommand: CommandDefinition = {
     outputSchema: { type: "object" },
     execute: async (args, context: CommandContext) => {
         const { agents, channels, groups, messages } = context.workspace;
-        const { ecosystems, bridges } = context.ecosystem;
+        const { networks, bridges } = context.ecosystem;
         const { type, id } = args;
 
         let result = null;
@@ -168,7 +168,7 @@ export const exportDataCommand: CommandDefinition = {
                 break;
             case "network":
             case "ecosystem":
-                result = ecosystems.find((e: any) => e.id === id);
+                result = networks.find((e: any) => e.id === id);
                 break;
             case "bridge":
                 result = bridges.find((b: any) => b.id === id);
