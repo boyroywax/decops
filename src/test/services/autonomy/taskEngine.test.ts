@@ -59,6 +59,35 @@ describe("taskEngine (task store)", () => {
       const t2 = createTask("Task 2", "a2", "u1");
       expect(t1.id).not.toBe(t2.id);
     });
+
+    // ── New: workspace storage and chat history ──
+
+    it("initializes workspaceStorage as empty object", () => {
+      const task = createTask("Task", "a1", "u1");
+      expect(task.workspaceStorage).toEqual({});
+    });
+
+    it("initializes chatHistory as empty array", () => {
+      const task = createTask("Task", "a1", "u1");
+      expect(task.chatHistory).toEqual([]);
+    });
+
+    it("includes new config defaults", () => {
+      const task = createTask("Task", "a1", "u1");
+      expect(task.config.maxReplanAttempts).toBe(2);
+      expect(task.config.allowMidExecutionChat).toBe(true);
+    });
+
+    it("allows overriding new config options", () => {
+      const task = createTask("Task", "a1", "u1", undefined, {
+        maxReplanAttempts: 5,
+        allowMidExecutionChat: false,
+        chatModel: "gpt-4o",
+      });
+      expect(task.config.maxReplanAttempts).toBe(5);
+      expect(task.config.allowMidExecutionChat).toBe(false);
+      expect(task.config.chatModel).toBe("gpt-4o");
+    });
   });
 
   describe("getTask", () => {

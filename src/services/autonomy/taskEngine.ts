@@ -4,9 +4,15 @@
  * Lifecycle of a task:
  * 1. CREATED   → task assigned to an agent
  * 2. PLANNING  → agent AI generates a TaskPlan
- * 3. EXECUTING → agent runs planned actions via command registry
- * 4. If blocked → DELEGATION (peer/group) or ESCALATION (network/ecosystem)
+ * 3. EXECUTING → agent runs planned actions (commands AND jobs)
+ * 4. If blocked → REPLAN with AI chat or DELEGATION or ESCALATION
  * 5. COMPLETED or FAILED
+ *
+ * Tasks coordinate:
+ *   - Jobs (multi-step pipelines via the headless executor)
+ *   - Commands (individual units of work via the registry)
+ *   - Workspace storage (artifacts and inter-step data)
+ *   - AI chat bots (mid-execution reasoning and adaptation)
  *
  * The engine supports recursive delegation: when an agent delegates, the
  * target gets a sub-task that goes through the same lifecycle.
@@ -31,6 +37,8 @@ import { generatePlan } from "./planner";
 import { findDelegationTarget, buildDelegationRequest, delegationEvent, escalationEvent } from "./delegation";
 import { identifyGaps } from "./capability";
 import { deliberate, buildAgentProposal } from "./consensus";
+import { runJob, type JobResult } from "@/services/jobs/executor";
+import { chatDuringTask } from "./taskChat";
 
 // ── Task store (module-level, lives for the session) ─────────
 
@@ -71,6 +79,8 @@ export function createTask(
     autoExecuteConsensus: false,
     maxConcurrentSubTasks: 4,
     taskTimeoutMs: 5 * 60 * 1000,
+    maxReplanAttempts: 2,
+    allowMidExecutionChat: true,
   };
 
   const task: AgentTask = {
@@ -92,6 +102,8 @@ export function createTask(
     config: { ...defaultConfig, ...config },
     createdAt: now,
     updatedAt: now,
+    workspaceStorage: {},
+    chatHistory: [],
   };
 
   activeTasks.set(id, task);
@@ -122,11 +134,19 @@ export async function executeTask(
   const groups = context.workspace.groups;
   const networks = context.ecosystem.ecosystem?.networks || [];
 
+  // Initialize task workspace storage on the context so actions/jobs share state
+  if (!task.workspaceStorage) task.workspaceStorage = {};
+  const taskContext: CommandContext = {
+    ...context,
+    storage: { ...context.storage, ...task.workspaceStorage },
+  };
+
   // Timeout guard
   const deadline = Date.now() + task.config.taskTimeoutMs;
 
   let round = 0;
   let escalations = 0;
+  let replanAttempts = 0;
 
   try {
     while (round < task.config.maxRounds && Date.now() < deadline) {
@@ -151,8 +171,9 @@ export async function executeTask(
         task.goal,
         task.constraints || [],
         peerAgents,
-        context.storage,
+        taskContext.storage,
         task.config.planningModel,
+        taskContext.jobs.getCatalog?.() || [],
       );
 
       addEvent(task, {
@@ -167,7 +188,7 @@ export async function executeTask(
         },
       });
 
-      context.workspace.addLog(
+      taskContext.workspace.addLog(
         `🤖 [${currentAgent.name}] Plan (round ${round}): ${plan.canSelfComplete ? `${plan.actions.length} actions` : "needs delegation"} — ${plan.analysis.substring(0, 120)}`,
       );
 
@@ -175,16 +196,53 @@ export async function executeTask(
       if (plan.canSelfComplete && plan.actions.length > 0) {
         updateTask(task, "executing");
 
-        const actionResult = await executeActions(task, plan.actions, context);
+        const actionResult = await executeActions(task, plan.actions, taskContext);
+
+        // Sync workspace storage back to the task
+        Object.assign(task.workspaceStorage!, taskContext.storage);
 
         if (actionResult.success) {
-          return completeTask(task, actionResult, context);
+          return completeTask(task, actionResult, taskContext);
         }
 
-        // Some actions failed — check if we should retry or escalate
-        context.workspace.addLog(
+        // Some actions failed — try AI-assisted re-planning before escalating
+        taskContext.workspace.addLog(
           `⚠️ [${currentAgent.name}] Execution had failures: ${actionResult.summary}`,
         );
+
+        if (task.config.allowMidExecutionChat && replanAttempts < task.config.maxReplanAttempts) {
+          replanAttempts++;
+          const chatResult = await chatDuringTask(task, currentAgent,
+            `Execution of ${plan.actions.length} actions had failures: ${actionResult.summary}\n\n` +
+            `Partial results: ${JSON.stringify(actionResult.data || {}).substring(0, 500)}\n\n` +
+            `Should I re-plan with a different approach, continue with what succeeded, or abort?`,
+            {
+              actionsSummary: actionResult.summary,
+              error: actionResult.summary,
+              storageKeys: Object.keys(taskContext.storage).filter(k => !k.startsWith("_")),
+            },
+          );
+
+          if (chatResult.ok) {
+            const response = chatResult.response.toUpperCase();
+            if (response.startsWith("REPLAN")) {
+              addEvent(task, {
+                kind: "replan_requested",
+                timestamp: new Date().toISOString(),
+                agentId: task.assigneeId,
+                detail: { reason: chatResult.response, attempt: replanAttempts },
+              });
+              taskContext.workspace.addLog(
+                `🔄 [${currentAgent.name}] Re-planning (attempt ${replanAttempts}/${task.config.maxReplanAttempts}): ${chatResult.response.substring(0, 120)}`,
+              );
+              continue; // Loop back to Phase 1
+            }
+            if (response.startsWith("ABORT")) {
+              return failTask(task, `AI recommended abort: ${chatResult.response}`, taskContext);
+            }
+            // "CONTINUE" or unrecognized — fall through to delegation
+          }
+        }
       }
 
       // ── Phase 3: Delegation ──
@@ -203,7 +261,7 @@ export async function executeTask(
 
         if (target && target.type === "agent") {
           // Direct delegation to another agent
-          context.workspace.addLog(
+          taskContext.workspace.addLog(
             `🔀 [${currentAgent.name}] Delegating to ${target.targetId}: ${target.reasoning}`,
           );
 
@@ -216,14 +274,14 @@ export async function executeTask(
 
         if (target && target.type === "group") {
           // Group-level delegation — trigger consensus if needed
-          context.workspace.addLog(
+          taskContext.workspace.addLog(
             `👥 [${currentAgent.name}] Escalating to group: ${target.reasoning}`,
           );
 
           // Check for capability gaps that might require new agent creation
           if (plan.gaps && plan.gaps.length > 0 && task.config.allowAgentCreation) {
             const gapResult = await handleCapabilityGaps(
-              task, plan.gaps, target.targetId, currentAgent, agents, groups, context,
+              task, plan.gaps, target.targetId, currentAgent, agents, groups, taskContext,
             );
             if (gapResult) continue; // New agent created, retry
           }
@@ -242,7 +300,7 @@ export async function executeTask(
             ));
             task.escalationLevel = nextLevel;
 
-            context.workspace.addLog(
+            taskContext.workspace.addLog(
               `⬆️ Escalating task from ${task.escalationLevel} to ${nextLevel} (escalation ${escalations}/${task.config.maxEscalations})`,
             );
             continue;
@@ -252,18 +310,18 @@ export async function executeTask(
 
       // If we get here without continuing, we're stuck
       if (plan.gaps && plan.gaps.length > 0) {
-        context.workspace.addLog(`🔎 Capability gaps identified: ${plan.gaps.join(", ")}`);
+        taskContext.workspace.addLog(`🔎 Capability gaps identified: ${plan.gaps.join(", ")}`);
       }
       break;
     }
 
     // Exhausted all rounds or escalations
-    return failTask(task, "Exhausted all planning rounds and escalation levels", context);
+    return failTask(task, "Exhausted all planning rounds and escalation levels", taskContext);
   } catch (err) {
     return failTask(
       task,
       `Task engine error: ${err instanceof Error ? err.message : String(err)}`,
-      context,
+      taskContext,
     );
   }
 }
@@ -282,6 +340,98 @@ async function executeActions(
 
   for (const action of actions) {
     try {
+      // ── Job action: run a multi-step pipeline via the headless executor ──
+      if (action.type === "job") {
+        const jobDef = resolveJobDefinition(action, context);
+        if (!jobDef) {
+          const msg = `Job definition not found for action ${action.order}`;
+          if (action.optional) {
+            addEvent(task, {
+              kind: "action_failed",
+              timestamp: new Date().toISOString(),
+              agentId: task.assigneeId,
+              detail: { type: "job", error: msg, optional: true },
+            });
+            continue;
+          }
+          errors.push(msg);
+          break;
+        }
+
+        addEvent(task, {
+          kind: "job_queued",
+          timestamp: new Date().toISOString(),
+          agentId: task.assigneeId,
+          detail: {
+            jobName: jobDef.name,
+            jobId: jobDef.id,
+            stepCount: jobDef.steps.length,
+            mode: jobDef.mode,
+            reasoning: action.reasoning,
+          },
+        });
+
+        context.workspace.addLog(
+          `📋 [Task] Running job "${jobDef.name}" (${jobDef.steps.length} steps, ${jobDef.mode} mode)`,
+        );
+
+        const jobResult = await runJob(jobDef, context, {
+          addLog: context.workspace.addLog,
+          onStepUpdate: (stepId, status, result) => {
+            context.workspace.addLog(`  └─ Step ${stepId}: ${status}${result ? ` — ${result.substring(0, 80)}` : ""}`);
+          },
+        }, action.jobInputs);
+
+        if (jobResult.success) {
+          addEvent(task, {
+            kind: "job_completed",
+            timestamp: new Date().toISOString(),
+            agentId: task.assigneeId,
+            detail: {
+              jobName: jobDef.name,
+              summary: jobResult.summary,
+              deliverableCount: jobResult.deliverables.length,
+            },
+          });
+
+          results[`action_${action.order}`] = {
+            type: "job",
+            jobName: jobDef.name,
+            success: true,
+            summary: jobResult.summary,
+            deliverables: jobResult.deliverables,
+          };
+
+          // Merge job storage back into task workspace
+          if (task.workspaceStorage) {
+            Object.assign(task.workspaceStorage, jobResult.storage);
+          }
+
+          jobIds.push(jobDef.id);
+          for (const d of jobResult.deliverables) {
+            artifactIds.push(d.artifactId);
+          }
+        } else {
+          addEvent(task, {
+            kind: "job_failed",
+            timestamp: new Date().toISOString(),
+            agentId: task.assigneeId,
+            detail: {
+              jobName: jobDef.name,
+              error: jobResult.error,
+              summary: jobResult.summary,
+            },
+          });
+
+          if (action.optional) continue;
+          errors.push(`Job "${jobDef.name}": ${jobResult.error || jobResult.summary}`);
+          break;
+        }
+
+        continue;
+      }
+
+      // ── Command action: run a single command via the registry ──
       // Validate command exists
       const cmd = registry.get(action.commandId);
       if (!cmd) {
@@ -361,6 +511,53 @@ async function executeActions(
     resolvedBy: task.assigneeId,
     data: results,
   };
+}
+
+// ── Job definition resolver ────────────────────────
+
+/**
+ * Resolve a job definition from a PlannedAction.
+ *
+ * Sources (in priority order):
+ * 1. Inline `action.jobDefinition` — the AI composed a full job definition
+ * 2. Catalog lookup via `action.jobDefinitionId` — references a saved definition
+ * 3. Fallback: synthesize a single-step job from the action's commandId/args
+ */
+function resolveJobDefinition(
+  action: PlannedAction,
+  context: CommandContext,
+): import("@/types/jobs").JobDefinition | null {
+  // 1. Inline definition
+  if (action.jobDefinition) return action.jobDefinition;
+
+  // 2. Catalog lookup
+  if (action.jobDefinitionId) {
+    const catalog = context.jobs.getCatalog?.() || [];
+    const found = catalog.find((d: any) => d.id === action.jobDefinitionId);
+    if (found) return found;
+    return null;
+  }
+
+  // 3. Synthesize from command
+  if (action.commandId) {
+    const now = Date.now();
+    return {
+      id: `synth-${action.commandId}-${now}`,
+      name: `Synthesized: ${action.commandId}`,
+      description: action.reasoning,
+      mode: "serial" as const,
+      steps: [{
+        id: `step-1`,
+        commandId: action.commandId,
+        args: action.args,
+        name: action.commandId,
+      }],
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  return null;
 }
 
 // ── Capability gap handler ─────────────────────────

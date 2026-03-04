@@ -60,6 +60,10 @@ export interface AgentTask {
   createdAt: string;
   /** ISO timestamp of last update */
   updatedAt: string;
+  /** Persistent workspace storage for cross-action data during task execution */
+  workspaceStorage?: Record<string, any>;
+  /** AI chat message history maintained across re-planning rounds */
+  chatHistory?: Array<{ role: "user" | "assistant"; content: string; timestamp: string }>;
 }
 
 // ── Task events (append-only history) ──────────────
@@ -82,7 +86,12 @@ export type TaskEventKind =
   | "agent_created"
   | "completed"
   | "failed"
-  | "blocked";
+  | "blocked"
+  | "job_queued"
+  | "job_completed"
+  | "job_failed"
+  | "ai_chat"
+  | "replan_requested";
 
 export interface TaskEvent {
   kind: TaskEventKind;
@@ -111,7 +120,9 @@ export interface TaskResult {
 export interface PlannedAction {
   /** Sequential order */
   order: number;
-  /** Which command to invoke */
+  /** Action type: "command" runs a single command, "job" runs a multi-step job pipeline */
+  type?: "command" | "job";
+  /** Which command to invoke (when type is "command" or unset) */
   commandId: string;
   /** Arguments (may contain $storage refs) */
   args: Record<string, any>;
@@ -119,6 +130,12 @@ export interface PlannedAction {
   reasoning: string;
   /** If true, the agent deems this optional / best-effort */
   optional?: boolean;
+  /** Job definition ID from the catalog (when type is "job") */
+  jobDefinitionId?: string;
+  /** Inline job definition (when type is "job" and not referencing the catalog) */
+  jobDefinition?: import("@/types/jobs").JobDefinition;
+  /** Input overrides for the job (when type is "job") */
+  jobInputs?: Record<string, string>;
 }
 
 export interface TaskPlan {
@@ -132,6 +149,8 @@ export interface TaskPlan {
   actions: PlannedAction[];
   /** Capability gaps identified */
   gaps?: string[];
+  /** Job definitions the AI wants to compose (multi-step pipelines) */
+  jobDefinitions?: import("@/types/jobs").JobDefinition[];
 }
 
 // ── Delegation ─────────────────────────────────────
@@ -283,6 +302,12 @@ export interface AutonomyConfig {
   maxConcurrentSubTasks: number;
   /** Timeout in ms for the entire task */
   taskTimeoutMs: number;
+  /** Maximum re-plan attempts after partial execution failure before escalating */
+  maxReplanAttempts: number;
+  /** Whether the task engine can consult AI mid-execution for reasoning/adaptation */
+  allowMidExecutionChat: boolean;
+  /** Model to use for mid-execution AI chat (defaults to planningModel) */
+  chatModel?: string;
 }
 
 export const DEFAULT_AUTONOMY_CONFIG: AutonomyConfig = {
@@ -294,4 +319,6 @@ export const DEFAULT_AUTONOMY_CONFIG: AutonomyConfig = {
   autoExecuteConsensus: false,
   maxConcurrentSubTasks: 4,
   taskTimeoutMs: 5 * 60 * 1000, // 5 minutes
+  maxReplanAttempts: 2,
+  allowMidExecutionChat: true,
 };

@@ -1,6 +1,13 @@
 /**
  * Task planner — uses AI to analyze a goal, assess agent capabilities,
  * and produce an ordered action plan or delegation recommendation.
+ *
+ * The planner is aware of both:
+ *   - Individual commands (atomic units of work)
+ *   - Saved job definitions (multi-step pipelines)
+ *
+ * It can produce PlannedActions of type "command" or "job" so the task
+ * engine can dispatch appropriately.
  */
 
 import type { Agent } from "@/types";
@@ -10,6 +17,7 @@ import type {
   DelegationTarget,
   AgentCapability,
 } from "@/types/autonomy";
+import type { JobDefinition } from "@/types/jobs";
 import { registry } from "@/services/commands/registry";
 import { getAgentModel } from "@/services/ai/models";
 import { getModelProvider, buildProviderRequest, parseProviderResponse } from "@/services/ai/providers";
@@ -38,6 +46,7 @@ export async function generatePlan(
   peerAgents: Agent[],
   storageSnapshot: Record<string, any>,
   modelOverride?: string,
+  jobCatalog?: JobDefinition[],
 ): Promise<TaskPlan> {
   const model = modelOverride || getAgentModel(agent.id, agent.recommendedModel);
   const cap = assessAgent(agent);
@@ -78,7 +87,7 @@ export async function generatePlan(
   // Current storage state (abbreviated)
   const storageKeys = Object.keys(storageSnapshot).filter(k => !k.startsWith("_"));
 
-  const systemPrompt = buildPlannerSystemPrompt(agent, cap, availableCommands, peers, storageKeys);
+  const systemPrompt = buildPlannerSystemPrompt(agent, cap, availableCommands, peers, storageKeys, jobCatalog || []);
   const userMessage = buildPlannerUserMessage(goal, constraints);
 
   const messages = [{ role: "user" as const, content: userMessage }];
@@ -119,6 +128,7 @@ function buildPlannerSystemPrompt(
   commands: any[],
   peers: any[],
   storageKeys: string[],
+  jobCatalog: JobDefinition[],
 ): string {
   return [
     `You are "${agent.name}", a ${cap.role} agent in an autonomous decentralized mesh workspace.`,
@@ -129,6 +139,11 @@ function buildPlannerSystemPrompt(
     `Skills: ${cap.skills.length > 0 ? cap.skills.join(", ") : "general"}`,
     `\n## Available commands (${commands.length}):`,
     commands.map(c => `- **${c.id}**: ${c.description}\n  Args: ${c.args.map((a: any) => `${a.name}(${a.type}${a.required ? "*" : ""})`).join(", ")}`).join("\n"),
+    jobCatalog.length > 0 ? [
+      `\n## Available job pipelines (${jobCatalog.length}):`,
+      `Jobs are multi-step pipelines made of commands. You can reference these by ID instead of listing individual commands.`,
+      jobCatalog.map(j => `- **${j.id}**: "${j.name}" — ${j.description} (${j.steps.length} steps, ${j.mode} mode)`).join("\n"),
+    ].join("\n") : "",
     peers.length > 0 ? [
       `\n## Peer agents you can delegate to (${peers.length}):`,
       peers.map(p => `- **${p.name}** (${p.role}${p.title ? `, ${p.title}` : ""}): ${p.skills.length > 0 ? p.skills.join(", ") : "general purpose"}${p.prompt_excerpt ? ` — "${p.prompt_excerpt}"` : ""}`).join("\n"),
@@ -142,9 +157,19 @@ function buildPlannerSystemPrompt(
     `  "actions": [`,
     `    {`,
     `      "order": 1,`,
+    `      "type": "command",`,
     `      "commandId": "command_id_here",`,
     `      "args": { "argName": "value" },`,
     `      "reasoning": "Why this action"`,
+    `    },`,
+    `    {`,
+    `      "order": 2,`,
+    `      "type": "job",`,
+    `      "commandId": "",`,
+    `      "jobDefinitionId": "job-pipeline-id",`,
+    `      "jobInputs": { "inputName": "entityId" },`,
+    `      "args": {},`,
+    `      "reasoning": "Why this job pipeline"`,
     `    }`,
     `  ],`,
     `  "delegationTarget": {  // only if canSelfComplete is false`,
@@ -155,13 +180,15 @@ function buildPlannerSystemPrompt(
     `  "gaps": ["Any capability shortcomings identified"]`,
     `}`,
     `\n## Rules`,
-    `1. If you can accomplish the goal using your available commands, set canSelfComplete=true and list the actions.`,
-    `2. Use $storage.keyName references to pass data between steps.`,
-    `3. If you cannot complete the task, set canSelfComplete=false and specify a delegationTarget (pick the most relevant peer).`,
-    `4. If no peer is suitable either, set delegationTarget.type to "group" or "network" to escalate.`,
-    `5. Always explain your reasoning. Be concise but thorough.`,
-    `6. Order actions by dependency — earlier steps should produce data that later steps consume.`,
-    `7. Mark optional/best-effort actions with "optional": true.`,
+    `1. If you can accomplish the goal using your available commands or jobs, set canSelfComplete=true and list the actions.`,
+    `2. Use type="command" for individual commands and type="job" for multi-step job pipelines from the catalog.`,
+    `3. Use $storage.keyName references to pass data between steps.`,
+    `4. If you cannot complete the task, set canSelfComplete=false and specify a delegationTarget (pick the most relevant peer).`,
+    `5. If no peer is suitable either, set delegationTarget.type to "group" or "network" to escalate.`,
+    `6. Always explain your reasoning. Be concise but thorough.`,
+    `7. Order actions by dependency — earlier steps should produce data that later steps consume.`,
+    `8. Mark optional/best-effort actions with "optional": true.`,
+    `9. Prefer using existing job pipelines over composing individual commands when a suitable pipeline exists.`,
   ].filter(Boolean).join("\n");
 }
 
@@ -210,10 +237,14 @@ function parsePlanResponse(text: string, peerAgents: Agent[]): TaskPlan {
   // Parse actions
   const actions: PlannedAction[] = (json.actions || []).map((a: any, i: number) => ({
     order: a.order ?? i + 1,
+    type: a.type || "command",
     commandId: a.commandId || a.command_id || "",
     args: a.args || {},
     reasoning: a.reasoning || "",
     optional: a.optional || false,
+    jobDefinitionId: a.jobDefinitionId || a.job_definition_id || undefined,
+    jobDefinition: a.jobDefinition || undefined,
+    jobInputs: a.jobInputs || a.job_inputs || undefined,
   }));
 
   // Parse delegation target

@@ -17,6 +17,10 @@ export {
 // Planning
 export { generatePlan } from "./planner";
 
+// Task-level AI chat
+export { chatDuringTask } from "./taskChat";
+export type { TaskChatMessage, TaskChatResult } from "./taskChat";
+
 // Delegation
 export {
   findDelegationTarget,
