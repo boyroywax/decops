@@ -19,6 +19,26 @@ export interface JobArtifact {
   source?: "job" | "import" | "command" | "user";
 }
 
+/**
+ * Action hook that fires after a step succeeds or fails.
+ * Supports running a follow-up command, writing to storage, logging,
+ * and controlling execution flow.
+ */
+export interface StepHandler {
+  /** Command to execute as a reaction (optional) */
+  commandId?: string;
+  /** Args for the handler command — supports $storage.*, $result.*, $error.* refs */
+  args?: Record<string, any>;
+  /** Key→value pairs to write into shared storage */
+  setStorage?: Record<string, any>;
+  /** Message to add to the job log */
+  log?: string;
+  /** (onFailure only) If true, swallow the error and continue to next step */
+  continueOnFailure?: boolean;
+  /** (onSuccess only) If true, halt the job after this step — skip remaining steps */
+  haltAfterSuccess?: boolean;
+}
+
 export interface JobStep {
   id: string;
   commandId: string;
@@ -28,6 +48,10 @@ export interface JobStep {
   result?: string;
   condition?: string;
   modelId?: string;
+  /** Action hook that runs when this step completes successfully */
+  onSuccess?: StepHandler;
+  /** Action hook that runs when this step fails */
+  onFailure?: StepHandler;
   outputMappings?: Array<{
     outputKey: string;
     target: "storage" | "deliverable";

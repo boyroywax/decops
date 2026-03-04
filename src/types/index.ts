@@ -309,7 +309,7 @@ export type {
 export type {
   JobStatus, ArtifactType, JobArtifact, JobStep, JobDeliverable,
   InputSourceKind, InputSource, EntityInput, TriggerEvent,
-  JobTrigger, JobDefinition, Job,
+  JobTrigger, JobDefinition, Job, StepHandler,
 } from "./jobs";
 
 

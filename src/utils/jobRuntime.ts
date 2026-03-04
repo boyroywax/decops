@@ -5,6 +5,7 @@
  */
 
 import type { CommandContext } from "@/services/commands/types";
+import type { StepHandler } from "@/types/jobs";
 
 // ── Reference Resolution ──────────────────────────
 
@@ -162,4 +163,131 @@ export function getStepContext(step: any, baseContext: CommandContext): CommandC
       getModelForAgent: () => step.modelId,
     },
   };
+}
+
+// ── Step Handler (onSuccess / onFailure) ───────────
+
+/**
+ * Context available when resolving handler refs.
+ * Extends RefContext with $result.* (step output) and $error.* (failure info).
+ */
+export interface HandlerRefContext extends RefContext {
+  /** The step's result value (available in onSuccess) */
+  result?: any;
+  /** The error message string (available in onFailure) */
+  error?: string;
+}
+
+/**
+ * Resolve handler-specific references: $result and $error in addition to
+ * the standard $storage.*, $deliverable.*, $input.* refs.
+ */
+export function resolveHandlerRefs(value: any, refs: HandlerRefContext): any {
+  if (typeof value === 'string') {
+    // Whole-string exact match for $result / $error
+    if (value === '$result' && refs.result !== undefined) return refs.result;
+    if (value === '$error' && refs.error !== undefined) return refs.error;
+    if (value.startsWith('$result.') && !value.includes('\n') && !value.includes(' ')) {
+      const key = value.slice('$result.'.length);
+      if (refs.result != null && typeof refs.result === 'object' && key in refs.result) {
+        return refs.result[key];
+      }
+    }
+
+    // Inline interpolation for $result and $error
+    let resolved = value;
+    resolved = resolved.replace(/\$result\.([A-Za-z0-9_]+)/g, (_match: string, key: string) => {
+      if (refs.result != null && typeof refs.result === 'object' && key in refs.result) {
+        const v = refs.result[key];
+        return typeof v === 'string' ? v : JSON.stringify(v);
+      }
+      return _match;
+    });
+    resolved = resolved.replace(/\$result(?![.\w])/g, () => {
+      if (refs.result !== undefined) {
+        return typeof refs.result === 'string' ? refs.result : JSON.stringify(refs.result);
+      }
+      return '$result';
+    });
+    resolved = resolved.replace(/\$error(?![.\w])/g, () => {
+      return refs.error ?? '$error';
+    });
+
+    // Delegate remaining $storage/$deliverable/$input to resolveRefs
+    return resolveRefs(resolved, refs);
+  }
+  if (Array.isArray(value)) return value.map(v => resolveHandlerRefs(v, refs));
+  if (value && typeof value === 'object') {
+    const out: any = {};
+    for (const [k, v] of Object.entries(value)) out[k] = resolveHandlerRefs(v, refs);
+    return out;
+  }
+  return value;
+}
+
+export interface StepHandlerResult {
+  /** Whether the handler executed without error */
+  ok: boolean;
+  /** If the handler ran a command, its result */
+  commandResult?: any;
+  /** Whether the job should continue after a failure (onFailure.continueOnFailure) */
+  continueOnFailure: boolean;
+  /** Whether the job should halt after success (onSuccess.haltAfterSuccess) */
+  haltAfterSuccess: boolean;
+  /** Log message from the handler */
+  logMessage?: string;
+}
+
+/**
+ * Execute a step handler (onSuccess or onFailure).
+ *
+ * @param handler   The StepHandler definition
+ * @param refs      Handler ref context ($storage, $deliverable, $input, $result, $error)
+ * @param storage   Mutable shared storage — handler.setStorage writes here
+ * @param execute   Callback to run a command: (commandId, args) => Promise<result>
+ * @param addLog    Callback to log a message
+ */
+export async function executeStepHandler(
+  handler: StepHandler | undefined,
+  refs: HandlerRefContext,
+  storage: Record<string, any>,
+  execute: (commandId: string, args: Record<string, any>) => Promise<any>,
+  addLog: (msg: string) => void,
+): Promise<StepHandlerResult> {
+  if (!handler) {
+    return { ok: true, continueOnFailure: false, haltAfterSuccess: false };
+  }
+
+  const result: StepHandlerResult = {
+    ok: true,
+    continueOnFailure: handler.continueOnFailure ?? false,
+    haltAfterSuccess: handler.haltAfterSuccess ?? false,
+  };
+
+  try {
+    // 1. Write storage values (resolved against handler refs)
+    if (handler.setStorage) {
+      for (const [key, val] of Object.entries(handler.setStorage)) {
+        storage[key] = resolveHandlerRefs(val, refs);
+      }
+    }
+
+    // 2. Log message (resolved against handler refs)
+    if (handler.log) {
+      const msg = resolveHandlerRefs(handler.log, refs);
+      result.logMessage = typeof msg === 'string' ? msg : JSON.stringify(msg);
+      addLog(result.logMessage);
+    }
+
+    // 3. Execute handler command (if specified)
+    if (handler.commandId) {
+      const resolvedArgs = resolveHandlerRefs(handler.args || {}, refs);
+      result.commandResult = await execute(handler.commandId, resolvedArgs);
+    }
+  } catch (e: any) {
+    result.ok = false;
+    addLog(`Step handler error: ${e.message || e}`);
+  }
+
+  return result;
 }

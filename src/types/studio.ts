@@ -54,6 +54,10 @@ export interface StudioStep {
     /** True when this step runs inside a parallel group (concurrent sibling).
      *  False/undefined means serial successor even if parentId points to a group. */
     isGroupChild?: boolean;
+    /** Action hook that runs when this step completes successfully */
+    onSuccess?: import('./jobs').StepHandler;
+    /** Action hook that runs when this step fails */
+    onFailure?: import('./jobs').StepHandler;
     x: number;
     y: number;
 }

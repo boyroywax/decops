@@ -514,6 +514,28 @@ export function dryRunJob(
     const command = getCommand(step.commandId);
     const cmdResult = dryRunCommand(command, step.commandId, boundArgs, context);
 
+    // ── Validate onSuccess / onFailure handler commands ──
+    for (const [handlerKey, label] of [['onSuccess', 'onSuccess'], ['onFailure', 'onFailure']] as const) {
+      const handler = (step as any)[handlerKey];
+      if (handler?.commandId) {
+        const handlerCmd = getCommand(handler.commandId);
+        if (!handlerCmd) {
+          cmdResult.checks.push({
+            label: `${label} handler command`,
+            status: 'fail',
+            message: `Handler command "${handler.commandId}" not found`,
+          });
+          cmdResult.valid = false;
+        } else {
+          cmdResult.checks.push({
+            label: `${label} handler command`,
+            status: 'pass',
+            message: `Handler command "${handler.commandId}" exists`,
+          });
+        }
+      }
+    }
+
     // If serial mode and step has output mappings,
     // simulate outputs being available to later steps
     if (mode === "serial" && step.outputMappings) {

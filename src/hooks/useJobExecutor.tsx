@@ -11,7 +11,8 @@ import type { User } from "@/types";
 import { useStudioContext } from "@/context/StudioContext";
 import {
     resolveRefs, applyInputBindings, applyOutputMappings,
-    evaluateCondition, getStepContext, type RefContext,
+    evaluateCondition, getStepContext, executeStepHandler,
+    type RefContext, type HandlerRefContext,
 } from "@/utils/jobRuntime";
 
 // Define strict types for the complex objects we're passing in
@@ -329,65 +330,39 @@ export function useJobExecutor({
                                     const resolvedArgs = resolveRefs(boundArgs, refs);
                                     const stepCtx = stepCtxFor(step);
                                     const res = await registry.execute(step.commandId, resolvedArgs, stepCtx);
-                                    if (updateJob) {
-                                        // We need latest steps? No, just update this specific step.
-                                        // But updateJob merges updates? No, usually it sets the whole object or partial.
-                                        // If we update just one step, we need the whole array.
-                                        // This is tricky with concurrent updates in parallel mode.
-                                        // "updateJob" implementation in useJobs usually updates the whole job object based on ID.
-                                        // If we call updateJob multiple times rapidly, we might have race conditions on "prev" state if utilizing functional updates correctly?
-                                        // check useJobs: setJobs(prev => prev.map(...))
-                                        // It uses functional update, so it's safe IF we use functional update on the specific field properly.
-                                        // But updateJob takes `updates: Partial<Job>`.
-                                        // `...job, ...updates`.
-                                        // If we pass `steps: newSteps`, it replaces steps.
-                                        // If parallel tasks finish at different times, we need to read the latest state?
-                                        // useJobs doesn't expose a way to "update step N".
 
-                                        // Workaround for parallel:
-                                        // Maybe we don't update intermediate "completed" status for parallel steps individually to avoid race condition unless we are careful.
-                                        // Or we rely on the fact that `useLocalStorage` might be synchronous enough or batch? No.
-                                        // Let's just update all at end? No, user wants progress.
-
-                                        // Better: context.jobs.updateJob is available?
-                                        // We passed updateJob to useJobExecutor.
-                                        // We can't easily update single array item without reading current state safely.
-                                        // BUT `useJobs` `updateJob` implementation:
-                                        // setJobs(prev => prev.map(j => j.id === id ? { ...j, ...updates } : j))
-                                        // This is atomic for the job object.
-                                        // But if we do: updateJob(id, { steps: [s1_done, s2_running] })
-                                        // AND concurrently: updateJob(id, { steps: [s1_running, s2_done] })
-                                        // One will overwrite the other.
-
-                                        // So for parallel, maybe we just mark them all done at the end? 
-                                        // OR we accept race conditions for now (UI might flicker).
-                                        // OR we implement `updateJobStep` in useJobs?
-
-                                        // Let's implement `updateJobStep` in useJobs would be cleaner but `useJobExecutor` is what I'm editing now.
-                                        // I'll stick to Serial updates being safe. Parallel updates might be racy.
-                                        // For now, I'll allow parallel race (it's rare they finish exactly same millisecond).
-
-                                        // Re-read current steps from WHERE? `queuedJob` is stale closure?
-                                        // Yes `queuedJob` is from `jobs` prop which changes. But inside `useEffect`, `processJobs` closes over `jobs`.
-                                        // `processJobs` runs, finds `queuedJob`.
-                                        // It starts executing.
-                                        // `jobs` updates in background but our `queuedJob` variable is const.
-
-                                        // So we can't reliably update steps incrementally in parallel mode without a better state manager or `updateStep` method.
-                                        // Let's revert to tracking locally and then batch update?
-                                        // But we want live progress.
-
-                                        // Let's IMPLEMENT `updateJobStep` in `context.jobs`?
-                                        // No, I can't easily change `useJobs` without breaking context interface used everywhere.
-
-                                        // I will use `updateJob` to mark complete.
-                                        // AND I will try to read fresh state? No easy way.
-
-                                        // Let's just do it for Serial mode properly. Parallel mode might just show all running then all done.
+                                    // ── onSuccess handler (parallel) ──
+                                    if (step.onSuccess) {
+                                        const handlerRefs: HandlerRefContext = { ...refs, result: res };
+                                        await executeStepHandler(
+                                            step.onSuccess, handlerRefs, jobStorage,
+                                            (cmdId, args) => registry.execute(cmdId, args, stepCtx),
+                                            addLog,
+                                        );
+                                        // haltAfterSuccess is ignored in parallel mode (all steps already launched)
                                     }
+
                                     return { stepId: step.id, result: res, status: 'completed', outputMappings: step.outputMappings };
                                 } catch (e: any) {
-                                    return { stepId: step.id, error: e.message, status: 'failed', outputMappings: undefined };
+                                    // ── onFailure handler (parallel) ──
+                                    let continueFlag = false;
+                                    if (step.onFailure) {
+                                        const handlerRefs: HandlerRefContext = { ...refs, error: e.message };
+                                        const handlerResult = await executeStepHandler(
+                                            step.onFailure, handlerRefs, jobStorage,
+                                            (cmdId, args) => registry.execute(cmdId, args, stepCtxFor(step)),
+                                            addLog,
+                                        );
+                                        continueFlag = handlerResult.continueOnFailure;
+                                    }
+                                    // In parallel mode, continueOnFailure marks the step as failed but doesn't abort others
+                                    return {
+                                        stepId: step.id,
+                                        error: e.message,
+                                        status: continueFlag ? 'completed' : 'failed',
+                                        outputMappings: undefined,
+                                        continued: continueFlag,
+                                    };
                                 }
                             });
 
@@ -468,10 +443,37 @@ export function useJobExecutor({
                                     // Output mappings
                                     applyOutputMappings(step.outputMappings, res, jobStorage, context.addDeliverable);
 
+                                    // ── onSuccess handler (mixed) ──
+                                    if (step.onSuccess) {
+                                        const handlerRefs: HandlerRefContext = { ...refs, result: res };
+                                        await executeStepHandler(
+                                            step.onSuccess, handlerRefs, jobStorage,
+                                            (cmdId, a) => registry.execute(cmdId, a, stepCtx),
+                                            addLog,
+                                        );
+                                        // haltAfterSuccess not supported in mixed group children
+                                    }
+
                                     if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
                                     return { status: 'completed', result: resultStr };
                                 } catch (e: any) {
                                     steps[idx] = { ...steps[idx], status: 'failed', result: e.message };
+
+                                    // ── onFailure handler (mixed) ──
+                                    if (step.onFailure) {
+                                        const handlerRefs: HandlerRefContext = { ...refs, error: e.message };
+                                        const handlerResult = await executeStepHandler(
+                                            step.onFailure, handlerRefs, jobStorage,
+                                            (cmdId, a) => registry.execute(cmdId, a, stepCtxFor(step)),
+                                            addLog,
+                                        );
+                                        if (handlerResult.continueOnFailure) {
+                                            steps[idx] = { ...steps[idx], status: 'completed', result: `[continued] ${e.message}` };
+                                            if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                            return { status: 'completed', result: e.message };
+                                        }
+                                    }
+
                                     if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
                                     return { status: 'failed', error: e.message };
                                 }
@@ -526,8 +528,43 @@ export function useJobExecutor({
 
                                     // Apply output mappings
                                     applyOutputMappings(steps[i].outputMappings, res, jobStorage, context.addDeliverable);
+
+                                    // ── onSuccess handler ──
+                                    if (steps[i].onSuccess) {
+                                        const handlerRefs: HandlerRefContext = { ...refs, result: res };
+                                        const handlerResult = await executeStepHandler(
+                                            steps[i].onSuccess,
+                                            handlerRefs,
+                                            jobStorage,
+                                            (cmdId, args) => registry.execute(cmdId, args, stepCtxFor(steps[i])),
+                                            addLog,
+                                        );
+                                        if (handlerResult.haltAfterSuccess) {
+                                            if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                            addLog(`Step "${steps[i].name || steps[i].id}" halted job after success.`);
+                                            break;
+                                        }
+                                    }
                                 } catch (e: any) {
                                     steps[i] = { ...steps[i], status: 'failed', result: e.message };
+
+                                    // ── onFailure handler ──
+                                    if (steps[i].onFailure) {
+                                        const handlerRefs: HandlerRefContext = { ...refs, error: e.message };
+                                        const handlerResult = await executeStepHandler(
+                                            steps[i].onFailure,
+                                            handlerRefs,
+                                            jobStorage,
+                                            (cmdId, args) => registry.execute(cmdId, args, stepCtxFor(steps[i])),
+                                            addLog,
+                                        );
+                                        if (handlerResult.continueOnFailure) {
+                                            addLog(`Step "${steps[i].name || steps[i].id}" failed but continuing: ${e.message}`);
+                                            if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                            continue; // Skip throw, proceed to next step
+                                        }
+                                    }
+
                                     if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
                                     throw e; // Stop execution
                                 }
