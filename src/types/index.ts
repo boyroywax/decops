@@ -27,6 +27,7 @@ export type ViewId =
   | "activity"
   | "actions"
   | "jobs"
+  | "toolkits"
   | "editor";
 
 /** Navigation context for hierarchical drill-down: Ecosystem → Network → Group → Agent → Channel */
@@ -152,7 +153,41 @@ export type {
 
 // ── Toolkit System ──
 
-export type ToolkitId = "web-crawler" | "ocr" | "audio-to-text" | "video-to-text";
+export type ToolkitId =
+  // Command-group toolkits
+  | "agent-management"
+  | "infrastructure"
+  | "messaging"
+  | "ecosystem"
+  | "data-export"
+  | "autonomy"
+  | "governance"
+  | "artifacts"
+  | "studio"
+  | "jobs"
+  | "image-gen"
+  | "system"
+  | "topology"
+  | "query"
+  | "workspace-mgmt"
+  | "architect"
+  // Capability toolkits (external)
+  | "web-crawler"
+  | "ocr"
+  | "audio-to-text"
+  | "video-to-text";
+
+export type ToolkitCategory =
+  | "agents"
+  | "infrastructure"
+  | "communication"
+  | "data"
+  | "ai"
+  | "automation"
+  | "system"
+  | "media"
+  | "data-ingestion"
+  | "analysis";
 
 export interface ToolkitTool {
   id: string;
@@ -168,9 +203,13 @@ export interface Toolkit {
   icon: string;        // lucide icon name
   color: string;
   gradient: [string, string];
-  category: "data-ingestion" | "media" | "analysis";
+  category: ToolkitCategory;
   tools: ToolkitTool[];
+  commands: string[];           // Command IDs in this toolkit
+  jobTemplates?: string[];      // Job template IDs
+  automations?: string[];       // Automation/trigger IDs
   status: "available" | "coming-soon";
+  tags?: string[];              // Searchable tags
 }
 
 export interface AgentToolkitBinding {

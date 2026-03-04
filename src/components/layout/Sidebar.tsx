@@ -5,7 +5,7 @@ import {
   Sparkles, Globe, Bot, ArrowLeftRight,
   Hexagon, MessageSquare, Clapperboard,
   ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
-  Activity, Zap, FileText, ChevronDown, Layers,
+  Activity, Zap, FileText, ChevronDown, Layers, Wrench,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import "../../styles/components/sidebar.css";
@@ -29,6 +29,7 @@ interface SidebarProps {
 const EDITOR_ITEM = { id: "editor" as ViewId, label: "Editor", icon: FileText, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] as [string, string] };
 const ARCHITECT_ITEM = { id: "architect" as ViewId, label: "Architect", icon: Sparkles, accent: "#fbbf24", gradient: ["#fbbf24", "#fb923c"] as [string, string] };
 const STUDIO_ITEM = { id: "jobs" as ViewId, label: "Studio", icon: Clapperboard, accent: "#8b5cf6", gradient: ["#8b5cf6", "#a78bfa"] as [string, string] };
+const TOOLKITS_ITEM = { id: "toolkits" as ViewId, label: "Tool Kits", icon: Wrench, accent: "#f97316", gradient: ["#f97316", "#fb923c"] as [string, string] };
 
 const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; gradient: [string, string] }[] = [
   { id: "networks", label: "Networks", icon: Globe, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] },
@@ -226,6 +227,24 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
         {(!collapsed || isMobile) && (
           <>
             {STUDIO_ITEM.label}
+          </>
+        )}
+      </button>
+
+      <button
+        onClick={() => setView(TOOLKITS_ITEM.id)}
+        title={collapsed && !isMobile ? TOOLKITS_ITEM.label : undefined}
+        className={`sidebar-nav-item sidebar-nav-item--toolkits ${view === TOOLKITS_ITEM.id ? 'active' : ''}`}
+        data-accent="warning"
+        style={view === TOOLKITS_ITEM.id ? { color: TOOLKITS_ITEM.accent } : undefined}
+      >
+        {view === TOOLKITS_ITEM.id
+          ? <GradientIcon icon={TOOLKITS_ITEM.icon} size={14} gradient={TOOLKITS_ITEM.gradient} />
+          : <TOOLKITS_ITEM.icon size={14} />
+        }
+        {(!collapsed || isMobile) && (
+          <>
+            {TOOLKITS_ITEM.label}
           </>
         )}
       </button>

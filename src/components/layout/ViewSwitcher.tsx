@@ -9,6 +9,7 @@ import { ChannelDetailView } from "@/components/views/ChannelDetailView";
 import { GroupsView } from "@/components/views/GroupsView";
 import { MessagesView } from "@/components/views/MessagesView";
 import { ToolkitDetailView } from "@/components/views/ToolkitDetailView";
+import { ToolKitsView } from "@/components/views/ToolKitsView";
 import { NetworkView } from "@/components/views/NetworkView";
 import { ArtifactsView } from "@/components/views/ArtifactsView";
 import { ActivityView } from "@/components/views/ActivityView";
@@ -399,6 +400,16 @@ export function ViewSwitcher({
                 <EditorView
                     updateArtifact={updateArtifact}
                     importArtifact={importArtifact}
+                />
+            </ErrorBoundary>
+        );
+    }
+
+    if (view === "toolkits") {
+        return (
+            <ErrorBoundary>
+                <ToolKitsView
+                    navigateTo={navigateTo}
                 />
             </ErrorBoundary>
         );
