@@ -114,6 +114,12 @@ Jobs support these features:
   - "hardcoded" — literal entity ID embedded in the job
   - "artifact" — reference a workspace artifact by ID or tag
   Step args can reference inputs via \`$input.inputName\`.
+- **Step Handlers (onSuccess / onFailure)**: Action hooks that fire after a step succeeds or fails. Each handler can:
+  - Run a follow-up command: \`{ commandId: "send_message", args: { message: "Step done" } }\`
+  - Write to shared storage: \`{ setStorage: { "status": "completed" } }\`
+  - Log a message: \`{ log: "Step X completed successfully" }\`
+  - Control flow: onSuccess supports \`haltAfterSuccess: true\` (stop the job after this step), onFailure supports \`continueOnFailure: true\` (swallow the error and continue to next step)
+  Use onSuccess to chain side-effects (notifications, storage updates) without adding extra steps. Use onFailure with continueOnFailure to make steps fault-tolerant.
 - **Triggers**: Automated rules that fire the job when workspace events occur. Events include: artifact:created, artifact:updated, artifact:deleted, agent:created, agent:updated, group:created, group:updated, channel:created, channel:updated, network:created, network:updated, job:completed, job:failed, schedule:cron. Each trigger can have a filter (entityId, tag, name) and a cron expression for scheduled triggers.
 
 Key commands write to shared storage automatically:
@@ -198,7 +204,8 @@ The Studio is a visual canvas-based job editor where steps are drag-and-drop nod
 
 **Compound: Build & Deploy in One Call:**
 - studio_create_job(name, description?, steps, parallelGroups?, deliverables?, storageDefaults?, inputs?, triggers?, save?, run?)
-  Create a complete job in the Studio in one command. Clears the canvas, sets metadata, creates parallel groups, adds all steps with args/bindings/mappings/conditions, deliverables, storage defaults, entity inputs, and trigger rules. Steps can be assigned to parallel groups by index via the \`parallelGroup\` field. Optionally save to catalog and/or run immediately.
+  Create a complete job in the Studio in one command. Clears the canvas, sets metadata, creates parallel groups, adds all steps with args/bindings/mappings/conditions/handlers, deliverables, storage defaults, entity inputs, and trigger rules. Steps can be assigned to parallel groups by index via the \`parallelGroup\` field. Each step supports \`onSuccess\` and \`onFailure\` handlers for post-execution hooks. Optionally save to catalog and/or run immediately.
+  Step schema: { commandId, args?, inputBindings?, outputMappings?, condition?, parallelGroup?: number, modelId?, onSuccess?: { commandId?, args?, setStorage?, log?, haltAfterSuccess? }, onFailure?: { commandId?, args?, setStorage?, log?, continueOnFailure? } }
   Example with parallel fan-out/fan-in:
     studio_create_job({
       name: "Research Report",

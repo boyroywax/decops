@@ -74,6 +74,8 @@ export function buildJobDef(params: BuildJobDefParams): JobDefinition | null {
                 modelId: s.modelId || undefined,
                 outputMappings: s.outputMappings.length > 0 ? s.outputMappings : undefined,
                 inputBindings: Object.keys(s.inputBindings).length > 0 ? s.inputBindings : undefined,
+                onSuccess: s.onSuccess || undefined,
+                onFailure: s.onFailure || undefined,
             };
         }) as JobStep[],
         deliverables: validDeliverables.length > 0 ? validDeliverables : undefined,
@@ -139,6 +141,8 @@ export function buildJobDefFromRefs(params: BuildJobDefFromRefsParams): JobDefin
                 modelId: s.modelId || undefined,
                 outputMappings: s.outputMappings.length > 0 ? s.outputMappings : undefined,
                 inputBindings: Object.keys(s.inputBindings).length > 0 ? s.inputBindings : undefined,
+                onSuccess: s.onSuccess || undefined,
+                onFailure: s.onFailure || undefined,
             };
         }) as JobStep[],
         deliverables: validDeliverables.length > 0 ? validDeliverables : undefined,
@@ -197,6 +201,8 @@ export function loadJobToStudioState(job: JobDefinition): LoadJobResult {
             parentId: null as string | null,
             outputMappings: (s as any).outputMappings || [],
             modelId: s.modelId,
+            onSuccess: s.onSuccess || undefined,
+            onFailure: s.onFailure || undefined,
             x: 0,
             y: 0,
         };

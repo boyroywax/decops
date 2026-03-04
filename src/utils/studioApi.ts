@@ -6,7 +6,7 @@
  */
 import { registry } from "@/services/commands/registry";
 import type { StudioAPI, StudioState } from "@/context/StudioContext";
-import type { JobDefinition, JobDeliverable, EntityInput, JobTrigger } from "@/types";
+import type { JobDefinition, JobDeliverable, EntityInput, JobTrigger, StepHandler } from "@/types";
 import type { StudioStep, OutputMapping, InputBinding } from "@/types/studio";
 import { isParallelGroup } from "@/types/studio";
 import { buildJobDefFromRefs } from "./studioJobBuilder";
@@ -35,6 +35,8 @@ export interface StudioRefs {
     updateStepOutputMappings: React.MutableRefObject<(sid: string, m: OutputMapping[]) => void>;
     updateStepInputBindings: React.MutableRefObject<(sid: string, b: Record<string, InputBinding>) => void>;
     updateStepModel: React.MutableRefObject<(sid: string, modelId: string | undefined) => void>;
+    updateStepOnSuccess: React.MutableRefObject<(sid: string, handler: StepHandler | undefined) => void>;
+    updateStepOnFailure: React.MutableRefObject<(sid: string, handler: StepHandler | undefined) => void>;
     buildJobDef: React.MutableRefObject<() => JobDefinition | null>;
     handleRun: React.MutableRefObject<() => void>;
     handleSave: React.MutableRefObject<() => void>;
@@ -115,6 +117,18 @@ export function createStudioAPI(
             refs.updateStepModel.current(sid, modelId || undefined);
             refs.steps.current = refs.steps.current.map(s =>
                 s.id === sid ? { ...s, modelId: modelId || undefined } : s
+            );
+        },
+        updateStepOnSuccess: (sid, handler) => {
+            refs.updateStepOnSuccess.current(sid, handler);
+            refs.steps.current = refs.steps.current.map(s =>
+                s.id === sid ? { ...s, onSuccess: handler } : s
+            );
+        },
+        updateStepOnFailure: (sid, handler) => {
+            refs.updateStepOnFailure.current(sid, handler);
+            refs.steps.current = refs.steps.current.map(s =>
+                s.id === sid ? { ...s, onFailure: handler } : s
             );
         },
         addDeliverableEntry: (d) => {

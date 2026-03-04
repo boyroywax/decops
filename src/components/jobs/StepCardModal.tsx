@@ -43,7 +43,7 @@ import { CommandArgInput } from "@/components/automations/CommandArgInput";
 import type { StudioStep, OutputMapping, InputBinding } from "@/components/views/StudioView";
 import type { LLMModel } from "@/context/LLMContext";
 import type { CommandArgType } from "@/services/commands/types";
-import type { JobDeliverable, EntityInput } from "@/types";
+import type { JobDeliverable, EntityInput, StepHandler } from "@/types";
 import "../../styles/components/step-card-modal.css";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -106,6 +106,8 @@ interface StepCardModalProps {
   onUpdateOutputMappings?: (stepId: string, mappings: OutputMapping[]) => void;
   onUpdateInputBindings?: (stepId: string, bindings: Record<string, InputBinding>) => void;
   onUpdateStepModel?: (stepId: string, modelId: string | undefined) => void;
+  onUpdateStepOnSuccess?: (stepId: string, handler: StepHandler | undefined) => void;
+  onUpdateStepOnFailure?: (stepId: string, handler: StepHandler | undefined) => void;
   /* ── Data for binding selectors ── */
   deliverables?: JobDeliverable[];
   storageEntries?: Array<{ key: string; value: string }>;
@@ -128,6 +130,8 @@ export function StepCardModal({
   onUpdateOutputMappings,
   onUpdateInputBindings,
   onUpdateStepModel,
+  onUpdateStepOnSuccess,
+  onUpdateStepOnFailure,
   deliverables = [],
   storageEntries = [],
   inputs = [],
@@ -651,6 +655,177 @@ export function StepCardModal({
                   <div className="scm-condition">
                     <span className="scm-condition__label scm-condition__label--post">Post</span>
                     <code className="scm-condition__expr">{step.postCondition}</code>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ═══ Step Handlers (onSuccess / onFailure) ═══ */}
+        {(step.onSuccess || step.onFailure || editable) && (
+          <div className="scm-section">
+            <div className="tc-section-label">
+              <GitBranch size={10} />
+              Step Handlers
+              <span className="scm-section-count">
+                {(step.onSuccess ? 1 : 0) + (step.onFailure ? 1 : 0)}/2
+              </span>
+            </div>
+
+            {editable && onUpdateStepOnSuccess && onUpdateStepOnFailure ? (
+              <div className="scm-handlers">
+                {/* onSuccess */}
+                <div className={`scm-handler ${step.onSuccess ? "scm-handler--active" : ""}`}>
+                  <div className="scm-handler__header">
+                    <CheckCircle2 size={11} style={{ color: "#22c55e" }} />
+                    <span className="scm-handler__label">On Success</span>
+                    <button
+                      className={`scm-bind-toggle ${step.onSuccess ? "scm-bind-toggle--active" : ""}`}
+                      onClick={() => onUpdateStepOnSuccess(step.id, step.onSuccess ? undefined : { log: "" })}
+                      title={step.onSuccess ? "Remove onSuccess handler" : "Add onSuccess handler"}
+                    >
+                      {step.onSuccess ? <X size={10} /> : <Plus size={10} />}
+                    </button>
+                  </div>
+                  {step.onSuccess && (
+                    <div className="scm-handler__body">
+                      <div className="scm-handler__field">
+                        <label>Command (optional)</label>
+                        <input
+                          type="text"
+                          className="scm-edit-input"
+                          placeholder="e.g. send_message"
+                          value={step.onSuccess.commandId || ""}
+                          onChange={(e) => onUpdateStepOnSuccess(step.id, { ...step.onSuccess!, commandId: e.target.value || undefined })}
+                        />
+                      </div>
+                      <div className="scm-handler__field">
+                        <label>Log message</label>
+                        <input
+                          type="text"
+                          className="scm-edit-input"
+                          placeholder="e.g. Step completed successfully"
+                          value={step.onSuccess.log || ""}
+                          onChange={(e) => onUpdateStepOnSuccess(step.id, { ...step.onSuccess!, log: e.target.value || undefined })}
+                        />
+                      </div>
+                      <div className="scm-handler__field">
+                        <label>Set storage (JSON)</label>
+                        <input
+                          type="text"
+                          className="scm-edit-input"
+                          placeholder='e.g. {"status": "done"}'
+                          value={step.onSuccess.setStorage ? JSON.stringify(step.onSuccess.setStorage) : ""}
+                          onChange={(e) => {
+                            let parsed: Record<string, any> | undefined;
+                            try { parsed = e.target.value ? JSON.parse(e.target.value) : undefined; } catch { return; }
+                            onUpdateStepOnSuccess(step.id, { ...step.onSuccess!, setStorage: parsed });
+                          }}
+                        />
+                      </div>
+                      <div className="scm-handler__field scm-handler__field--toggle">
+                        <label>Halt after success</label>
+                        <input
+                          type="checkbox"
+                          checked={step.onSuccess.haltAfterSuccess || false}
+                          onChange={(e) => onUpdateStepOnSuccess(step.id, { ...step.onSuccess!, haltAfterSuccess: e.target.checked || undefined })}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* onFailure */}
+                <div className={`scm-handler ${step.onFailure ? "scm-handler--active" : ""}`}>
+                  <div className="scm-handler__header">
+                    <AlertCircle size={11} style={{ color: "#ef4444" }} />
+                    <span className="scm-handler__label">On Failure</span>
+                    <button
+                      className={`scm-bind-toggle ${step.onFailure ? "scm-bind-toggle--active" : ""}`}
+                      onClick={() => onUpdateStepOnFailure(step.id, step.onFailure ? undefined : { log: "" })}
+                      title={step.onFailure ? "Remove onFailure handler" : "Add onFailure handler"}
+                    >
+                      {step.onFailure ? <X size={10} /> : <Plus size={10} />}
+                    </button>
+                  </div>
+                  {step.onFailure && (
+                    <div className="scm-handler__body">
+                      <div className="scm-handler__field">
+                        <label>Command (optional)</label>
+                        <input
+                          type="text"
+                          className="scm-edit-input"
+                          placeholder="e.g. send_message"
+                          value={step.onFailure.commandId || ""}
+                          onChange={(e) => onUpdateStepOnFailure(step.id, { ...step.onFailure!, commandId: e.target.value || undefined })}
+                        />
+                      </div>
+                      <div className="scm-handler__field">
+                        <label>Log message</label>
+                        <input
+                          type="text"
+                          className="scm-edit-input"
+                          placeholder="e.g. Step failed — retrying"
+                          value={step.onFailure.log || ""}
+                          onChange={(e) => onUpdateStepOnFailure(step.id, { ...step.onFailure!, log: e.target.value || undefined })}
+                        />
+                      </div>
+                      <div className="scm-handler__field">
+                        <label>Set storage (JSON)</label>
+                        <input
+                          type="text"
+                          className="scm-edit-input"
+                          placeholder='e.g. {"error_count": 1}'
+                          value={step.onFailure.setStorage ? JSON.stringify(step.onFailure.setStorage) : ""}
+                          onChange={(e) => {
+                            let parsed: Record<string, any> | undefined;
+                            try { parsed = e.target.value ? JSON.parse(e.target.value) : undefined; } catch { return; }
+                            onUpdateStepOnFailure(step.id, { ...step.onFailure!, setStorage: parsed });
+                          }}
+                        />
+                      </div>
+                      <div className="scm-handler__field scm-handler__field--toggle">
+                        <label>Continue on failure</label>
+                        <input
+                          type="checkbox"
+                          checked={step.onFailure.continueOnFailure || false}
+                          onChange={(e) => onUpdateStepOnFailure(step.id, { ...step.onFailure!, continueOnFailure: e.target.checked || undefined })}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* Read-only display */
+              <div className="scm-handlers">
+                {step.onSuccess && (
+                  <div className="scm-handler scm-handler--active">
+                    <div className="scm-handler__header">
+                      <CheckCircle2 size={11} style={{ color: "#22c55e" }} />
+                      <span className="scm-handler__label">On Success</span>
+                    </div>
+                    <div className="scm-handler__body scm-handler__body--readonly">
+                      {step.onSuccess.commandId && <div className="scm-handler__detail">Command: <code>{step.onSuccess.commandId}</code></div>}
+                      {step.onSuccess.log && <div className="scm-handler__detail">Log: {step.onSuccess.log}</div>}
+                      {step.onSuccess.setStorage && <div className="scm-handler__detail">Storage: <code>{JSON.stringify(step.onSuccess.setStorage)}</code></div>}
+                      {step.onSuccess.haltAfterSuccess && <div className="scm-handler__detail">Halts job after success</div>}
+                    </div>
+                  </div>
+                )}
+                {step.onFailure && (
+                  <div className="scm-handler scm-handler--active">
+                    <div className="scm-handler__header">
+                      <AlertCircle size={11} style={{ color: "#ef4444" }} />
+                      <span className="scm-handler__label">On Failure</span>
+                    </div>
+                    <div className="scm-handler__body scm-handler__body--readonly">
+                      {step.onFailure.commandId && <div className="scm-handler__detail">Command: <code>{step.onFailure.commandId}</code></div>}
+                      {step.onFailure.log && <div className="scm-handler__detail">Log: {step.onFailure.log}</div>}
+                      {step.onFailure.setStorage && <div className="scm-handler__detail">Storage: <code>{JSON.stringify(step.onFailure.setStorage)}</code></div>}
+                      {step.onFailure.continueOnFailure && <div className="scm-handler__detail">Continues on failure</div>}
+                    </div>
                   </div>
                 )}
               </div>

@@ -6,7 +6,7 @@
  */
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import type { JobDeliverable, JobDefinition, EntityInput, JobTrigger, TriggerEvent } from "@/types";
+import type { JobDeliverable, JobDefinition, EntityInput, JobTrigger, TriggerEvent, StepHandler } from "@/types";
 import type { OutputMapping, InputBinding, StudioStep } from "@/types/studio";
 
 /** The state snapshot returned by getState() */
@@ -44,6 +44,8 @@ export interface StudioAPI {
     updateStepOutputMappings: (stepId: string, mappings: OutputMapping[]) => void;
     updateStepInputBindings: (stepId: string, bindings: Record<string, InputBinding>) => void;
     updateStepModel: (stepId: string, modelId: string | undefined) => void;
+    updateStepOnSuccess: (stepId: string, handler: StepHandler | undefined) => void;
+    updateStepOnFailure: (stepId: string, handler: StepHandler | undefined) => void;
 
     // --- Deliverables ---
     addDeliverableEntry: (d: JobDeliverable) => void;

@@ -1377,3 +1377,130 @@
   color: var(--text-secondary);
   background: rgba(120, 80, 20, 0.06);
 }
+
+/* ═══════════════════════════════════════════════════
+ * Step Handlers (onSuccess / onFailure)
+ * ═══════════════════════════════════════════════════ */
+
+.scm-handlers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scm-handler {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.scm-handler--active {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.scm-handler__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.scm-handler__label {
+  flex: 1;
+}
+
+.scm-handler__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.scm-handler__body--readonly {
+  gap: 3px;
+}
+
+.scm-handler__field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.scm-handler__field label {
+  font-size: 0.65rem;
+  color: var(--text-ghost);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.scm-handler__field--toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.scm-handler__field--toggle input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--tc-accent, #00e5a0);
+}
+
+.scm-handler__detail {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.scm-handler__detail code {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.65rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* Light theme */
+[data-theme="light"] .scm-handler {
+  border-color: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .scm-handler--active {
+  border-color: rgba(0, 0, 0, 0.14);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .scm-handler__body {
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .scm-handler__detail code {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Solar theme */
+[data-theme="solar"] .scm-handler {
+  border-color: rgba(120, 80, 20, 0.12);
+  background: rgba(120, 80, 20, 0.03);
+}
+
+[data-theme="solar"] .scm-handler--active {
+  border-color: rgba(120, 80, 20, 0.2);
+  background: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .scm-handler__body {
+  border-top-color: rgba(120, 80, 20, 0.1);
+}
+
+[data-theme="solar"] .scm-handler__detail code {
+  background: rgba(120, 80, 20, 0.06);
+}

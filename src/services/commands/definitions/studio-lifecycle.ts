@@ -147,7 +147,7 @@ export const studioCreateJobCommand: CommandDefinition = {
         steps: {
             name: "steps",
             type: "array",
-            description: "Array of step objects: [{ commandId, args?, inputBindings?, outputMappings?, condition?, parallelGroup?: number }]. Use parallelGroup index to assign steps into a parallel group (0-based index into the parallelGroups array).",
+            description: "Array of step objects: [{ commandId, args?, inputBindings?, outputMappings?, condition?, parallelGroup?: number, modelId?: string, onSuccess?: { commandId?, args?, setStorage?, log?, haltAfterSuccess? }, onFailure?: { commandId?, args?, setStorage?, log?, continueOnFailure? } }]. Use parallelGroup index to assign steps into a parallel group (0-based index into the parallelGroups array). onSuccess/onFailure are action hooks that fire after step completion/failure — they can run follow-up commands, write to storage, log messages, and control execution flow.",
             required: true,
         },
         parallelGroups: {
@@ -223,6 +223,15 @@ export const studioCreateJobCommand: CommandDefinition = {
             }
             if (stepDef.outputMappings) {
                 studio.updateStepOutputMappings(stepId, stepDef.outputMappings);
+            }
+            if (stepDef.modelId) {
+                studio.updateStepModel(stepId, stepDef.modelId);
+            }
+            if (stepDef.onSuccess && (studio as any).updateStepOnSuccess) {
+                (studio as any).updateStepOnSuccess(stepId, stepDef.onSuccess);
+            }
+            if (stepDef.onFailure && (studio as any).updateStepOnFailure) {
+                (studio as any).updateStepOnFailure(stepId, stepDef.onFailure);
             }
             if (stepDef.parallelGroup !== undefined && typeof stepDef.parallelGroup === "number") {
                 const gid = groupIds[stepDef.parallelGroup];

@@ -257,6 +257,14 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         setSteps(prev => prev.map(s => s.id === stepId ? { ...s, modelId } : s));
     }, []);
 
+    const updateStepOnSuccess = useCallback((stepId: string, handler: import("@/types").StepHandler | undefined) => {
+        setSteps(prev => prev.map(s => s.id === stepId ? { ...s, onSuccess: handler } : s));
+    }, []);
+
+    const updateStepOnFailure = useCallback((stepId: string, handler: import("@/types").StepHandler | undefined) => {
+        setSteps(prev => prev.map(s => s.id === stepId ? { ...s, onFailure: handler } : s));
+    }, []);
+
     const removeStep = useCallback((id: string) => {
         setSteps(prev => {
             const step = prev.find(s => s.id === id);
@@ -562,6 +570,10 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     updateStepInputBindingsRef.current = updateStepInputBindings;
     const updateStepModelRef = useRef(updateStepModel);
     updateStepModelRef.current = updateStepModel;
+    const updateStepOnSuccessRef = useRef(updateStepOnSuccess);
+    updateStepOnSuccessRef.current = updateStepOnSuccess;
+    const updateStepOnFailureRef = useRef(updateStepOnFailure);
+    updateStepOnFailureRef.current = updateStepOnFailure;
     const buildJobDefRef = useRef(buildJobDef);
     buildJobDefRef.current = buildJobDef;
     const handleRunRef = useRef(handleRun);
@@ -585,6 +597,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                 updateStepPostCondition: updateStepPostConditionRef, updateStepPosition: updateStepPositionRef,
                 addParallelGroup: addParallelGroupRef, updateStepOutputMappings: updateStepOutputMappingsRef,
                 updateStepInputBindings: updateStepInputBindingsRef, updateStepModel: updateStepModelRef,
+                updateStepOnSuccess: updateStepOnSuccessRef, updateStepOnFailure: updateStepOnFailureRef,
                 buildJobDef: buildJobDefRef, handleRun: handleRunRef, handleSave: handleSaveRef,
                 loadJob: loadJobRef, handleNew: handleNewRef,
             },
@@ -846,6 +859,8 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                         onUpdateOutputMappings={updateStepOutputMappings}
                         onUpdateInputBindings={updateStepInputBindings}
                         onUpdateStepModel={updateStepModel}
+                        onUpdateStepOnSuccess={updateStepOnSuccess}
+                        onUpdateStepOnFailure={updateStepOnFailure}
                         deliverables={deliverables}
                         storageEntries={storageEntries}
                         inputs={inputs}
