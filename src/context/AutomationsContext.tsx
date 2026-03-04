@@ -39,7 +39,7 @@ export const AutomationsProvider = ({ children, addLog }: { children: ReactNode,
 };
 
 // Split into Inner to use hooks
-import { useWorkspaceContext } from "./WorkspaceContext";
+import { useWorkspaceStore } from "@/stores";
 import { useJobsContext } from "./JobsContext";
 import { CommandContext } from "@/services/commands/types";
 
@@ -47,7 +47,7 @@ import { CommandContext } from "@/services/commands/types";
 // For now I'll implement a basic version
 
 const AutomationsProviderInner = ({ children, addLog }: { children: ReactNode, addLog: (msg: string) => void }) => {
-    const workspace = useWorkspaceContext();
+    const workspace = useWorkspaceStore();
     const jobs = useJobsContext();
     const [automationsList, setAutomationsList] = useState<AutomationDefinition[]>(getAllAutomations());
     const [runs, setRuns] = useState<AutomationRun[]>([]);

@@ -1,5 +1,5 @@
 import { Bot, Sparkles } from "lucide-react";
-import { useWorkspaceContext } from "@/context/WorkspaceContext";
+import { useWorkspaceStore } from "@/stores";
 import type { ViewId } from "@/types";
 
 interface DoneContentProps {
@@ -8,7 +8,7 @@ interface DoneContentProps {
 }
 
 export function DoneContent({ onNavigate, resetArchitect }: DoneContentProps) {
-  const { agents, channels, groups, messages } = useWorkspaceContext();
+  const { agents, channels, groups, messages } = useWorkspaceStore();
 
   return (
     <div className="architect-popup__done">

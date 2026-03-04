@@ -1,5 +1,5 @@
 import { Bot, Sparkles } from "lucide-react";
-import { useWorkspaceContext } from "@/context/WorkspaceContext";
+import { useWorkspaceStore } from "@/stores";
 import type { ViewId } from "@/types";
 
 interface ArchitectDoneProps {
@@ -8,7 +8,7 @@ interface ArchitectDoneProps {
 }
 
 export function ArchitectDone({ setView, resetArchitect }: ArchitectDoneProps) {
-    const { agents, channels, groups, messages } = useWorkspaceContext();
+    const { agents, channels, groups, messages } = useWorkspaceStore();
 
     return (
         <div style={{ textAlign: "center", padding: "40px 0" }}>

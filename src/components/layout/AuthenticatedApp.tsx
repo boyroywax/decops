@@ -19,7 +19,6 @@ import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { useJobExecutor } from "@/hooks/useJobExecutor";
 
 import { useAutomations } from "@/context/AutomationsContext";
-import { EcosystemContext } from "@/context/EcosystemContext";
 import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
 import { useRouteSync } from "@/hooks/useRouteSync";
 import { ProfileModal } from "./ProfileModal";
@@ -401,7 +400,6 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
 
       <Header user={user} logout={logout} setView={setView} onProfileClick={() => setShowProfileModal(true)} activityPulse={activityPulse} onActivityClick={() => setShowActivityModal(true)} />
 
-      <EcosystemContext.Provider value={ecosystem}>
         <div className={`app-content ${isMobile ? "app-content--mobile" : ""}`}>
           <div className={`app-sidebar-wrapper ${isMobile ? "app-sidebar-wrapper--mobile" : ""}`}>
             <Sidebar
@@ -533,7 +531,6 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           resetArchitect={architect.resetArchitect}
           setView={setView}
         />
-      </EcosystemContext.Provider>
     </div>
   );
 }

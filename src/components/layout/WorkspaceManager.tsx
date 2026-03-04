@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
-import { useWorkspaceContext } from "@/context/WorkspaceContext";
+import { useWorkspaceStore } from "@/stores";
 import { Grid, Plus, Download, Upload, Check, Trash2, FolderOpen, Save } from "lucide-react";
 import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
@@ -13,7 +13,7 @@ interface WorkspaceManagerProps {
 
 export function WorkspaceManager({ onClose }: WorkspaceManagerProps) {
     const { workspaces, activeWorkspaceId, setActiveWorkspaceId, createWorkspace, saveWorkspace, loadWorkspace, deleteWorkspace } = useWorkspaceManager();
-    const { exportWorkspace, importWorkspace, clearWorkspace } = useWorkspaceContext();
+    const { exportWorkspace, importWorkspace, clearWorkspace } = useWorkspaceStore();
     const [newWorkspaceName, setNewWorkspaceName] = useState("");
     const [isCreating, setIsCreating] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);

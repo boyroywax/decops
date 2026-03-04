@@ -9,8 +9,7 @@ import { useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { X, Database, Tag, Package, ChevronLeft, ChevronRight } from "lucide-react";
 import type { JobDeliverable, EntityInput, InputSourceKind, InputSource, ArtifactType } from "@/types";
-import { useWorkspaceContext } from "@/context/WorkspaceContext";
-import { useEcosystemContext } from "@/context/EcosystemContext";
+import { useWorkspaceStore, useEcosystemStore } from "@/stores";
 import { useJobsContext } from "@/context/JobsContext";
 import "../../styles/components/node-edit-modal.css";
 
@@ -264,8 +263,8 @@ function InputFields({
     index: number;
     onUpdate?: (index: number, field: keyof EntityInput, value: any) => void;
 }) {
-    const { agents, channels, groups } = useWorkspaceContext();
-    const { networks } = useEcosystemContext();
+    const { agents, channels, groups } = useWorkspaceStore();
+    const networks = useEcosystemStore((s) => s.ecosystem.networks);
     const { allArtifacts } = useJobsContext();
 
     const sourceKind: InputSourceKind = entry.source?.kind || "hardcoded";

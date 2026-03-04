@@ -10,7 +10,7 @@ import type { Conversation } from "@/components/chat/types";
 import { useCommandContext } from "@/hooks/useCommandContext";
 import { useJobsContext } from "@/context/JobsContext";
 import { useArchitect } from "@/hooks/useArchitect";
-import { useEcosystem } from "@/hooks/useEcosystem"; // This might not be needed if ecosystem is passed as prop
+import { useEcosystem } from "@/hooks/useEcosystem"; // Bridge UI — needed for command context ecosystem prop
 import { useAuth } from "@/context/AuthContext";
 import { registry as commandRegistry } from "@/services/commands/registry";
 import type { CommandDefinition } from "@/services/commands/types";
@@ -88,7 +88,8 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     // We need to use the hook `useWorkspaceContext` here to get full context!
     // The prop `context` passed from Footer is just a data snapshot used for AI context.
 
-    const workspaceCtx = useWorkspaceContext(); // This gives us setters too!
+    // Get workspace entity data + setters via the workspace context (required for useCommandContext)
+    const workspaceCtx = useWorkspaceContext();
 
     // @mention autocomplete candidates
     const mentionCandidates = useMemo(() => {

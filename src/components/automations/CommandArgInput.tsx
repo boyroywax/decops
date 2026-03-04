@@ -1,7 +1,6 @@
 import React from "react";
 import { CommandArg, CommandArgType } from "@/services/commands/types";
-import { useWorkspaceContext } from "@/context/WorkspaceContext";
-import { useEcosystemContext } from "@/context/EcosystemContext";
+import { useWorkspaceStore, useEcosystemStore } from "@/stores";
 import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
 import "../../styles/components/command-arg-input.css";
 
@@ -12,8 +11,8 @@ interface CommandArgInputProps {
 }
 
 export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) {
-    const { agents, channels, groups } = useWorkspaceContext();
-    const { networks } = useEcosystemContext();
+    const { agents, channels, groups } = useWorkspaceStore();
+    const networks = useEcosystemStore((s) => s.ecosystem.networks);
     const { workspaces } = useWorkspaceManager();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {

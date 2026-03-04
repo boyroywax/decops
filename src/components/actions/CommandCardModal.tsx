@@ -31,7 +31,7 @@ import {
 import type { CommandDefinition, CommandArg, CommandArgType } from "@/services/commands/types";
 import { getCommandErrors } from "@/services/commands/commandErrors";
 import { useLLM } from "@/context/LLMContext";
-import { useWorkspaceContext } from "@/context/WorkspaceContext";
+import { useWorkspaceStore } from "@/stores";
 import "../../styles/components/command-card-modal.css";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -196,7 +196,7 @@ export function CommandCardModal({ command, isOpen, onClose, onPrev, onNext, pos
   const backdropRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const llm = useLLM();
-  const { agents, channels, groups } = useWorkspaceContext();
+  const { agents, channels, groups } = useWorkspaceStore();
 
   const color = useMemo(() => getCommandColor(command.tags), [command.tags]);
   const initials = useMemo(() => getInitials(command.id), [command.id]);
