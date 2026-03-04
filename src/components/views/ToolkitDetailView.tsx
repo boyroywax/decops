@@ -1,11 +1,12 @@
 import { useState } from "react";
 import type { Agent, ToolkitId, ViewId, NavContext } from "@/types";
 import { TOOLKITS } from "@/constants";
+import { registry } from "@/services/commands/registry";
 import {
   Globe, ScanText, AudioLines, Video, Bot, ArrowLeftRight,
   MessageSquare, Network, Download, Zap, Vote, FileText,
   Clapperboard, ListChecks, Image, Settings, FolderOpen,
-  Sparkles, Wrench, Terminal,
+  Sparkles, Wrench, Terminal, Hash, Shield,
   ExternalLink, Play, Link2, Search, Camera,
   Layers, Clock, CheckCircle2, AlertCircle,
   ChevronDown, ChevronUp,
@@ -44,6 +45,7 @@ const TOOL_ICONS: Record<string, any> = {
 export function ToolkitDetailView({ toolkitId, agent, updateAgent, navigateTo }: ToolkitDetailViewProps) {
   const toolkit = TOOLKITS.find(t => t.id === toolkitId);
   const [expandedTool, setExpandedTool] = useState<string | null>(null);
+  const [expandedCommand, setExpandedCommand] = useState<string | null>(null);
   const [crawlUrl, setCrawlUrl] = useState("");
   const [crawlDepth, setCrawlDepth] = useState(2);
   const [crawlMaxPages, setCrawlMaxPages] = useState(10);
@@ -136,12 +138,92 @@ export function ToolkitDetailView({ toolkitId, agent, updateAgent, navigateTo }:
           <div className="toolkit-detail__section-title">
             <Terminal size={12} style={{ display: "inline", verticalAlign: "middle" }} /> Commands ({toolkit.commands.length})
           </div>
-          <div className="toolkit-detail__commands">
-            {toolkit.commands.map(cmdId => (
-              <span key={cmdId} className="toolkit-detail__command-chip">
-                <code>{cmdId}</code>
-              </span>
-            ))}
+          <div className="toolkit-detail__tools">
+            {toolkit.commands.map(cmdId => {
+              const cmdDef = registry.get(cmdId);
+              const isExpanded = expandedCommand === cmdId;
+              const args = cmdDef ? Object.entries(cmdDef.args) : [];
+              return (
+                <div
+                  key={cmdId}
+                  className={`toolkit-detail__tool ${isExpanded ? "toolkit-detail__tool--expanded" : ""}`}
+                >
+                  <button
+                    className="toolkit-detail__tool-header"
+                    onClick={() => setExpandedCommand(isExpanded ? null : cmdId)}
+                  >
+                    <div className="toolkit-detail__tool-info">
+                      <span className="toolkit-detail__tool-icon" style={{ color: toolkit.color }}>
+                        <Terminal size={14} />
+                      </span>
+                      <div>
+                        <div className="toolkit-detail__tool-name">
+                          <code style={{ fontSize: "inherit", background: "none", padding: 0, border: "none" }}>{cmdId}</code>
+                          {cmdDef?.usesAI && (
+                            <span className="toolkit-detail__ai-badge">
+                              <Sparkles size={9} /> AI
+                            </span>
+                          )}
+                        </div>
+                        <div className="toolkit-detail__tool-desc">
+                          {cmdDef?.description || ""}
+                        </div>
+                      </div>
+                    </div>
+                    {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                  {isExpanded && cmdDef && (
+                    <div className="toolkit-detail__tool-schema">
+                      {args.length > 0 && (
+                        <>
+                          <div className="toolkit-detail__schema-title">Parameters</div>
+                          {args.map(([key, arg]) => (
+                            <div key={key} className="toolkit-detail__schema-row">
+                              <code className="toolkit-detail__schema-key">{arg.name}</code>
+                              <span className="toolkit-detail__schema-type">{arg.type}</span>
+                              <span className="toolkit-detail__schema-desc">{arg.description}</span>
+                              {(arg.required !== false) && <span className="toolkit-detail__schema-required">required</span>}
+                              {arg.defaultValue !== undefined && (
+                                <span className="toolkit-detail__schema-default">default: {String(arg.defaultValue)}</span>
+                              )}
+                              {arg.enum && (
+                                <span className="toolkit-detail__schema-default">options: {arg.enum.join(", ")}</span>
+                              )}
+                            </div>
+                          ))}
+                        </>
+                      )}
+                      {args.length === 0 && (
+                        <div className="toolkit-detail__schema-empty">No parameters required</div>
+                      )}
+                      <div className="toolkit-detail__cmd-footer">
+                        {cmdDef.output && (
+                          <div className="toolkit-detail__cmd-output">
+                            <span className="toolkit-detail__schema-type">output</span>
+                            <span className="toolkit-detail__schema-desc">{cmdDef.output}</span>
+                          </div>
+                        )}
+                        {cmdDef.tags.length > 0 && (
+                          <div className="toolkit-detail__cmd-tags">
+                            {cmdDef.tags.map(tag => (
+                              <span key={tag} className="toolkit-detail__cmd-tag">
+                                <Hash size={8} /> {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="toolkit-detail__cmd-roles">
+                          <Shield size={10} />
+                          {cmdDef.rbac.map(r => (
+                            <span key={r} className="toolkit-detail__cmd-role">{r}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

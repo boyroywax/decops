@@ -444,3 +444,81 @@
   color: var(--text-secondary);
   border: 1px solid var(--border-subtle);
 }
+
+/* ── AI Badge ── */
+
+.toolkit-detail__ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: var(--font-semibold);
+  margin-left: var(--space-xs);
+  vertical-align: middle;
+}
+
+/* ── Command footer (output, tags, roles) ── */
+
+.toolkit-detail__cmd-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.toolkit-detail__cmd-output {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.toolkit-detail__cmd-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.toolkit-detail__cmd-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: var(--bg-tertiary);
+  color: var(--text-faint);
+}
+
+.toolkit-detail__cmd-roles {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  color: var(--text-faint);
+  font-size: 10px;
+}
+
+.toolkit-detail__cmd-role {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-subtle);
+}
+
+.toolkit-detail__schema-empty {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  font-style: italic;
+  font-family: var(--font-mono);
+}
