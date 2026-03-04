@@ -275,8 +275,10 @@ export interface AgentCapability {
   role: string;
   /** Skills from AIEOS spec */
   skills: string[];
-  /** Commands this agent's role allows */
+  /** Commands this agent's role allows (filtered by toolkit bindings if present) */
   allowedCommands: string[];
+  /** Toolkit IDs explicitly enabled for this agent (empty = all via RBAC) */
+  enabledToolkits?: string[];
   /** How well this agent matches a given task (0-1, computed dynamically) */
   relevanceScore?: number;
 }

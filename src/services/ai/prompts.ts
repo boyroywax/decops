@@ -5,6 +5,7 @@
  */
 
 import type { Agent, Channel, Group, Message, Network, Bridge, Job } from "@/types";
+import { TOOLKITS } from "@/constants";
 
 export interface WorkspaceContext {
   agents: Agent[];
@@ -60,6 +61,23 @@ export function buildWorkspaceSystemPrompt(ctx: WorkspaceContext): string {
     }).join("\n")
     : "  (none)";
 
+  // ── Toolkit state per agent ──
+  const agentsWithToolkits = ctx.agents.filter(a => a.toolkits && a.toolkits.length > 0);
+  const toolkitSummary = agentsWithToolkits.length > 0
+    ? agentsWithToolkits.map(a => {
+      const tkNames = a.toolkits!.map(b => {
+        const tk = TOOLKITS.find(t => t.id === b.toolkitId);
+        return tk ? tk.name : b.toolkitId;
+      });
+      return `  - "${a.name}": ${tkNames.join(", ")}`;
+    }).join("\n")
+    : "  (no per-agent toolkit bindings — all agents use full RBAC-gated command set)";
+
+  const availableToolkits = TOOLKITS.filter(t => t.status === "available");
+  const toolkitCatalog = availableToolkits
+    .map(t => `  - "${t.id}" (${t.name}): ${t.commands.length} commands — ${t.description.slice(0, 80)}`)
+    .join("\n");
+
   return `You are the Mesh Workspace AI Assistant. You help the user manage their decentralized agent collaboration workspace.
 
 CURRENT WORKSPACE STATE:
@@ -83,6 +101,9 @@ Bridges: ${ctx.bridges.length}
 
 Jobs (recent ${Math.min(ctx.jobs.length, 8)} of ${ctx.jobs.length}):
 ${jobSummary}
+
+Agent Toolkit Bindings:
+${toolkitSummary}
 ═══════════════════════
 
 HIERARCHY: Ecosystem (= Workspace) → Network → Group → Agent/Channel
@@ -100,6 +121,32 @@ TOOL USE:
 You have access to workspace tools that directly modify or query the workspace. Use them whenever the user asks to create, delete, list, or modify workspace entities. Prefer using tools over suggesting manual actions. When you use a tool, explain what you did after getting the result.
 
 When suggesting complex multi-step operations, you can chain multiple tool calls. For example, to set up a research team: create agents, then channels between them, then a group.
+
+TOOLKITS (Agent Capability Scoping):
+Toolkits group related commands into logical bundles that can be enabled or disabled per agent. This allows fine-grained control over what each agent can do during autonomous task execution.
+
+Available Toolkits (${availableToolkits.length}):
+${toolkitCatalog}
+
+Toolkit Management:
+- **enable_toolkit(agentId, toolkitId)** — Grant an agent access to a toolkit's commands
+- **disable_toolkit(agentId, toolkitId)** — Revoke an agent's access to a toolkit
+- **list_agent_toolkits(agentId)** — Show all toolkits and their status for an agent
+- **set_agent_toolkits(agentId, toolkitIds)** — Set the complete toolkit list for an agent at once
+
+How toolkits affect agent behavior:
+- When an agent has NO toolkit bindings, it has access to all commands allowed by its RBAC role (backward-compatible default).
+- When an agent HAS toolkit bindings, it can ONLY use commands from its enabled toolkits (plus toolkit management commands).
+- Toolkits are essential for creating specialized sub-agents: e.g., a "researcher" agent with only messaging + query + artifacts toolkits, or a "deployer" agent with only infrastructure + ecosystem + architect toolkits.
+- When assigning tasks to agents or creating sub-agents for complex workflows, always consider which toolkits they need.
+- Use set_agent_toolkits to configure an agent's full toolkit profile in one call.
+
+Best practices for autonomous agents:
+1. Give each agent ONLY the toolkits it needs — principle of least privilege
+2. Orchestrator agents should typically have most toolkits enabled
+3. Specialist agents (researchers, builders, curators) should have focused toolkit sets
+4. When proposing new agents via propose_agent, recommend appropriate toolkits
+5. When delegating tasks, verify the target agent has the necessary toolkits enabled
 
 JOB BUILDER:
 Jobs support these features:

@@ -6,6 +6,7 @@
 import type { Agent } from "@/types";
 import type { AgentCapability } from "@/types/autonomy";
 import { registry } from "@/services/commands/registry";
+import { getCommandIdsForAgent } from "@/services/commands/tools";
 import { ROLES } from "@/constants";
 
 /** Extract capabilities for a single agent */
@@ -22,9 +23,18 @@ export function assessAgent(agent: Agent): AgentCapability {
 
   // Commands gated by RBAC role
   const allCommands = registry.getAll();
-  const allowedCommands = allCommands
+  let allowedCommands = allCommands
     .filter(cmd => cmd.rbac.includes(agent.role as any))
     .map(cmd => cmd.id);
+
+  // If agent has toolkit bindings, further restrict to toolkit-scoped commands
+  const toolkitCommands = getCommandIdsForAgent(agent);
+  if (toolkitCommands) {
+    allowedCommands = allowedCommands.filter(cmdId => toolkitCommands.has(cmdId));
+  }
+
+  // Track which toolkits are enabled
+  const enabledToolkits = (agent.toolkits || []).map(b => b.toolkitId);
 
   return {
     agentId: agent.id,
@@ -32,6 +42,7 @@ export function assessAgent(agent: Agent): AgentCapability {
     role: role?.label ?? agent.role,
     skills,
     allowedCommands,
+    enabledToolkits,
   };
 }
 
@@ -74,6 +85,13 @@ export function rankAgentsForGoal(
       // Orchestrators get a small boost for coordination tasks
       if (agent.role === "orchestrator" && /coordinate|organize|manage|plan|delegate/.test(lowerGoal)) {
         score += 0.15;
+      }
+
+      // Toolkit match — agents with toolkits that match goal keywords score higher
+      if (cap.enabledToolkits && cap.enabledToolkits.length > 0) {
+        for (const tkId of cap.enabledToolkits) {
+          if (lowerGoal.includes(tkId.replace(/-/g, " ").toLowerCase())) score += 0.15;
+        }
       }
 
       cap.relevanceScore = Math.min(score, 1.0);

@@ -8,6 +8,8 @@
  */
 
 import type { CommandDefinition, CommandArg, CommandArgType, CommandContext } from "./types";
+import type { Agent } from "@/types";
+import { TOOLKITS } from "@/constants";
 import { registry } from "./registry";
 
 // ── Anthropic Tool Schema Types ────────────────────
@@ -207,6 +209,76 @@ export function getToolsByTags(tags: string[]): AnthropicTool[] {
     .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id) && !cmd.hidden)
     .filter(cmd => tags.some(t => cmd.tags.includes(t)))
     .map(commandToTool);
+}
+
+/**
+ * Get tools filtered by an agent's enabled toolkit bindings.
+ *
+ * Behavior:
+ * - If the agent has NO toolkit bindings (toolkits is empty or undefined),
+ *   returns ALL tools (backward-compatible — RBAC is the only gate).
+ * - If the agent HAS toolkit bindings, returns ONLY tools whose command IDs
+ *   appear in at least one enabled toolkit, PLUS always-available toolkit
+ *   management commands (enable_toolkit, disable_toolkit, etc.).
+ *
+ * This allows fine-grained per-agent command scoping for autonomous tasks.
+ */
+export function getToolsForAgent(agent: Agent): AnthropicTool[] {
+  const bindings = agent.toolkits;
+
+  // No bindings → backward-compatible: all tools available (gated by RBAC only)
+  if (!bindings || bindings.length === 0) {
+    return getAllTools();
+  }
+
+  // Build set of allowed command IDs from enabled toolkits
+  const allowedCommands = new Set<string>();
+
+  for (const binding of bindings) {
+    const toolkit = TOOLKITS.find(t => t.id === binding.toolkitId);
+    if (toolkit) {
+      for (const cmdId of toolkit.commands) {
+        allowedCommands.add(cmdId);
+      }
+    }
+  }
+
+  // Always allow meta-commands for toolkit management and introspection
+  const META_COMMANDS = new Set([
+    "enable_toolkit",
+    "disable_toolkit",
+    "list_agent_toolkits",
+    "set_agent_toolkits",
+  ]);
+
+  return registry
+    .getAll()
+    .filter(cmd =>
+      !EXCLUDED_COMMANDS.has(cmd.id) &&
+      !cmd.hidden &&
+      (allowedCommands.has(cmd.id) || META_COMMANDS.has(cmd.id)),
+    )
+    .map(commandToTool);
+}
+
+/**
+ * Get the set of allowed command IDs for an agent based on toolkit bindings.
+ * Returns null if the agent has no bindings (meaning all commands are allowed).
+ */
+export function getCommandIdsForAgent(agent: Agent): Set<string> | null {
+  const bindings = agent.toolkits;
+  if (!bindings || bindings.length === 0) return null;
+
+  const allowed = new Set<string>();
+  for (const binding of bindings) {
+    const toolkit = TOOLKITS.find(t => t.id === binding.toolkitId);
+    if (toolkit) {
+      for (const cmdId of toolkit.commands) {
+        allowed.add(cmdId);
+      }
+    }
+  }
+  return allowed;
 }
 
 // ── Execution ──────────────────────────────────────

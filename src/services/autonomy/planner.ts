@@ -19,6 +19,7 @@ import type {
 } from "@/types/autonomy";
 import type { JobDefinition } from "@/types/jobs";
 import { registry } from "@/services/commands/registry";
+import { getCommandIdsForAgent } from "@/services/commands/tools";
 import { getAgentModel } from "@/services/ai/models";
 import { getModelProvider, buildProviderRequest, parseProviderResponse } from "@/services/ai/providers";
 import { assessAgent, rankAgentsForGoal } from "./capability";
@@ -53,8 +54,14 @@ export async function generatePlan(
 
   // Build command catalog for the agent (only commands it can execute)
   const allCommands = registry.getAll();
+  const toolkitCommandIds = getCommandIdsForAgent(agent);
   const availableCommands = allCommands
-    .filter(cmd => cmd.rbac.includes(agent.role as any) && !cmd.hidden)
+    .filter(cmd =>
+      cmd.rbac.includes(agent.role as any) &&
+      !cmd.hidden &&
+      // If agent has toolkit bindings, restrict to toolkit-scoped commands
+      (!toolkitCommandIds || toolkitCommandIds.has(cmd.id)),
+    )
     .map(cmd => ({
       id: cmd.id,
       description: cmd.description,
@@ -80,6 +87,7 @@ export async function generatePlan(
         role: peerCap.role,
         title: a.title || undefined,
         skills: peerCap.skills,
+        enabledToolkits: peerCap.enabledToolkits || [],
         prompt_excerpt: a.prompt ? a.prompt.substring(0, 200) : undefined,
       };
     });
@@ -137,6 +145,9 @@ function buildPlannerSystemPrompt(
     `\n## Your capabilities`,
     `Role: ${cap.role}`,
     `Skills: ${cap.skills.length > 0 ? cap.skills.join(", ") : "general"}`,
+    cap.enabledToolkits && cap.enabledToolkits.length > 0
+      ? `Enabled toolkits: ${cap.enabledToolkits.join(", ")} (you can only use commands from these toolkits)`
+      : `Toolkits: unrestricted (all RBAC-permitted commands available)`,
     `\n## Available commands (${commands.length}):`,
     commands.map(c => `- **${c.id}**: ${c.description}\n  Args: ${c.args.map((a: any) => `${a.name}(${a.type}${a.required ? "*" : ""})`).join(", ")}`).join("\n"),
     jobCatalog.length > 0 ? [
@@ -146,7 +157,14 @@ function buildPlannerSystemPrompt(
     ].join("\n") : "",
     peers.length > 0 ? [
       `\n## Peer agents you can delegate to (${peers.length}):`,
-      peers.map(p => `- **${p.name}** (${p.role}${p.title ? `, ${p.title}` : ""}): ${p.skills.length > 0 ? p.skills.join(", ") : "general purpose"}${p.prompt_excerpt ? ` — "${p.prompt_excerpt}"` : ""}`).join("\n"),
+      peers.map(p => {
+        let desc = `- **${p.name}** (${p.role}${p.title ? `, ${p.title}` : ""}): ${p.skills.length > 0 ? p.skills.join(", ") : "general purpose"}`;
+        if (p.enabledToolkits && p.enabledToolkits.length > 0) {
+          desc += ` [toolkits: ${p.enabledToolkits.join(", ")}]`;
+        }
+        if (p.prompt_excerpt) desc += ` — "${p.prompt_excerpt}"`;
+        return desc;
+      }).join("\n"),
     ].join("\n") : "",
     storageKeys.length > 0 ? `\n## Shared storage keys available: ${storageKeys.join(", ")}` : "",
     `\n## Response format`,
@@ -189,6 +207,7 @@ function buildPlannerSystemPrompt(
     `7. Order actions by dependency — earlier steps should produce data that later steps consume.`,
     `8. Mark optional/best-effort actions with "optional": true.`,
     `9. Prefer using existing job pipelines over composing individual commands when a suitable pipeline exists.`,
+    `10. When delegating, prefer peers whose enabled toolkits include the commands needed for the task. If no peer has the right toolkits, note this as a gap.`,
   ].filter(Boolean).join("\n");
 }
 

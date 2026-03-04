@@ -14,7 +14,7 @@
 
 import type { Agent } from "@/types";
 import type { AgentTask } from "@/types/autonomy";
-import { ROLES } from "@/constants";
+import { ROLES, TOOLKITS } from "@/constants";
 import { getAgentModel } from "@/services/ai/models";
 import {
   buildProviderRequest,
@@ -141,6 +141,12 @@ function buildTaskChatSystemPrompt(
   const parts = [
     `You are "${agent.name}", a ${role?.label || agent.role} agent executing an autonomous task.`,
     agent.prompt ? `\nYour core directive:\n${agent.prompt}` : "",
+    agent.toolkits && agent.toolkits.length > 0
+      ? `\nYour enabled toolkits: ${agent.toolkits.map(b => {
+          const tk = TOOLKITS.find(t => t.id === b.toolkitId);
+          return tk ? tk.name : b.toolkitId;
+        }).join(", ")}. Your actions are scoped to commands within these toolkits.`
+      : "",
     `\n## Current Task`,
     `Goal: ${task.goal}`,
     task.constraints?.length

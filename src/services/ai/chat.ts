@@ -4,8 +4,8 @@
  */
 
 import type { Agent, Message, BridgeMessage } from "@/types";
-import { ROLES } from "@/constants";
-import { getAllTools, executeToolCall } from "@/services/commands/tools";
+import { ROLES, TOOLKITS } from "@/constants";
+import { getAllTools, getToolsForAgent, executeToolCall } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContext } from "./prompts";
 import { buildWorkspaceSystemPrompt } from "./prompts";
@@ -50,6 +50,12 @@ export async function callAgentAI(
     `Your DID: ${agent.did}`,
     `Communication channel type: ${channelType}`,
     agent.prompt ? `\nYour core directive:\n${agent.prompt}` : "",
+    agent.toolkits && agent.toolkits.length > 0
+      ? `\nYour enabled toolkits: ${agent.toolkits.map(b => {
+          const tk = TOOLKITS.find(t => t.id === b.toolkitId);
+          return tk ? `${tk.name} (${tk.commands.length} commands)` : b.toolkitId;
+        }).join(", ")}. You can only use commands from these toolkits.`
+      : "",
     crossNetworkCtx ? `\nCROSS-NETWORK BRIDGE: This message comes from "${senderAgent.name}" in the "${crossNetworkCtx}" network. You are in a different network. Acknowledge the cross-network context.` : "",
     `\nYou are receiving a message from "${senderAgent.name}" (${ROLES.find(r => r.id === senderAgent.role)?.label}, DID: ${senderAgent.did}).`,
     `Respond concisely and in-character. Keep responses under 150 words. If you have structured output, use markdown formatting.`,
@@ -97,6 +103,12 @@ export async function chatWithAgent(
     `You are "${agent.name}", a ${role?.label || agent.role} agent in a decentralized mesh workspace.`,
     `Your DID: ${agent.did}`,
     agent.prompt ? `\nYour core directive:\n${agent.prompt}` : "",
+    agent.toolkits && agent.toolkits.length > 0
+      ? `\nYour enabled toolkits: ${agent.toolkits.map(b => {
+          const tk = TOOLKITS.find(t => t.id === b.toolkitId);
+          return tk ? `${tk.name} (${tk.commands.length} commands)` : b.toolkitId;
+        }).join(", ")}. You can only use commands from these toolkits. If you need a capability from a disabled toolkit, ask the operator to enable it.`
+      : "",
     `\nYou are chatting directly with a human operator who manages this workspace.`,
     `Respond concisely and in-character. Keep responses under 200 words. Use markdown formatting when appropriate.`,
   ].filter(Boolean).join("\n");

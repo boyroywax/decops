@@ -104,6 +104,7 @@ import {
     studioRemoveTriggerCommand,
 } from "./definitions/studio";
 import { autonomyCommands } from "./definitions/autonomy";
+import { toolkitCommands } from "./definitions/toolkit";
 
 export function initializeRegistry() {
     // Workspace
@@ -218,4 +219,7 @@ export function initializeRegistry() {
 
     // Autonomy (autonomous agent task execution, delegation, consensus)
     autonomyCommands.forEach(cmd => registry.register(cmd));
+
+    // Toolkit management (enable/disable toolkits per agent)
+    toolkitCommands.forEach(cmd => registry.register(cmd));
 }

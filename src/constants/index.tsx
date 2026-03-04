@@ -122,8 +122,8 @@ export const TOOLKITS: Toolkit[] = [
     gradient: ["#00e5a0", "#34d399"],
     category: "agents",
     status: "available",
-    commands: ["create_agent", "ping_agent", "delete_agent", "update_agent_prompt", "list_agents"],
-    tags: ["agent", "workspace", "health", "modification"],
+    commands: ["create_agent", "ping_agent", "delete_agent", "update_agent_prompt", "list_agents", "enable_toolkit", "disable_toolkit", "list_agent_toolkits", "set_agent_toolkits"],
+    tags: ["agent", "workspace", "health", "modification", "toolkit"],
     tools: [],
   },
   {
