@@ -13,6 +13,7 @@
 import { getCommandErrors, type CommandError } from "./commandErrors";
 import type { CommandDefinition, CommandArg } from "./types";
 import type { JobStep } from "@/types";
+import { DELIVERABLE_STORAGE_PREFIX } from "@/utils/jobRuntime";
 
 /* ─── Result Types ───────────────────────────────────────────────────── */
 
@@ -543,6 +544,9 @@ export function dryRunJob(
         if (mapping.target === "storage") {
           simStorage[mapping.targetKey] = `<output:step-${i}.${mapping.outputKey}>`;
         } else if (mapping.target === "deliverable") {
+          // Deliverable mappings now stage to storage with prefix (matching runtime)
+          simStorage[`${DELIVERABLE_STORAGE_PREFIX}${mapping.targetKey}`] = `<output:step-${i}.${mapping.outputKey}>`;
+          // Also keep simDeliverables populated for $deliverable.key ref resolution
           simDeliverables[mapping.targetKey] = `<output:step-${i}.${mapping.outputKey}>`;
         }
       }

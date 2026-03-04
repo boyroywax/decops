@@ -69,6 +69,8 @@ export interface JobDeliverable {
   label: string;
   type: ArtifactType;
   description?: string;
+  /** Override the default storage key (`_deliverable_<key>`) to pull content from */
+  sourceStorageKey?: string;
 }
 
 /**

@@ -7,6 +7,8 @@ import {
     getStepContext,
     resolveHandlerRefs,
     executeStepHandler,
+    assembleDeliverables,
+    DELIVERABLE_STORAGE_PREFIX,
     type RefContext,
     type HandlerRefContext,
 } from '@/utils/jobRuntime';
@@ -101,37 +103,42 @@ describe('applyOutputMappings', () => {
     it('writes to storage', () => {
         const storage: Record<string, any> = {};
         const mappings = [{ outputKey: 'text', target: 'storage', targetKey: 'resultText' }];
-        applyOutputMappings(mappings, { text: 'hello' }, storage, vi.fn());
+        applyOutputMappings(mappings, { text: 'hello' }, storage);
         expect(storage.resultText).toBe('hello');
     });
 
-    it('produces deliverable via addDeliverable', () => {
-        const addDeliverable = vi.fn();
+    it('stages deliverable content into storage with prefix', () => {
+        const storage: Record<string, any> = {};
         const mappings = [{ outputKey: '*', target: 'deliverable', targetKey: 'report' }];
-        applyOutputMappings(mappings, 'markdown content', {}, addDeliverable);
-        expect(addDeliverable).toHaveBeenCalledWith(expect.objectContaining({
-            key: 'report', name: 'report', type: 'markdown', content: 'markdown content',
-        }));
+        applyOutputMappings(mappings, 'markdown content', storage);
+        expect(storage[`${DELIVERABLE_STORAGE_PREFIX}report`]).toBe('markdown content');
+    });
+
+    it('stages object deliverable content into storage', () => {
+        const storage: Record<string, any> = {};
+        const mappings = [{ outputKey: 'data', target: 'deliverable', targetKey: 'analysis' }];
+        applyOutputMappings(mappings, { data: { score: 100 } }, storage);
+        expect(storage[`${DELIVERABLE_STORAGE_PREFIX}analysis`]).toEqual({ score: 100 });
     });
 
     it('handles wildcard (*) output key', () => {
         const storage: Record<string, any> = {};
         const mappings = [{ outputKey: '*', target: 'storage', targetKey: 'all' }];
         const result = { a: 1, b: 2 };
-        applyOutputMappings(mappings, result, storage, vi.fn());
+        applyOutputMappings(mappings, result, storage);
         expect(storage.all).toEqual({ a: 1, b: 2 });
     });
 
     it('does nothing when mappings are undefined', () => {
         const storage: Record<string, any> = {};
-        applyOutputMappings(undefined, 'result', storage, vi.fn());
+        applyOutputMappings(undefined, 'result', storage);
         expect(Object.keys(storage)).toHaveLength(0);
     });
 
     it('does nothing when result is null', () => {
         const storage: Record<string, any> = {};
         const mappings = [{ outputKey: 'text', target: 'storage', targetKey: 'out' }];
-        applyOutputMappings(mappings, null, storage, vi.fn());
+        applyOutputMappings(mappings, null, storage);
         expect(Object.keys(storage)).toHaveLength(0);
     });
 });
@@ -347,5 +354,129 @@ describe('executeStepHandler', () => {
         const refs: HandlerRefContext = { ...baseRefs, error: 'timeout' };
         await executeStepHandler(handler, refs, storage, execute, addLog);
         expect(execute).toHaveBeenCalledWith('log_error', { error: 'timeout', context: 'step-3' });
+    });
+});
+
+/* ─── assembleDeliverables ───────────────────────────────────────── */
+
+describe('assembleDeliverables', () => {
+    let storage: Record<string, any>;
+    let executeCommand: ReturnType<typeof vi.fn<(commandId: string, args: Record<string, any>) => Promise<any>>>;
+    let addLog: ReturnType<typeof vi.fn<(msg: string) => void>>;
+
+    beforeEach(() => {
+        storage = {};
+        executeCommand = vi.fn<(commandId: string, args: Record<string, any>) => Promise<any>>()
+            .mockResolvedValue({ artifact: { id: 'art-123' } });
+        addLog = vi.fn<(msg: string) => void>();
+    });
+
+    it('assembles deliverables from staged storage content', async () => {
+        storage[`${DELIVERABLE_STORAGE_PREFIX}report`] = '# Report\nAll good';
+        const deliverables = [{ key: 'report', label: 'Final Report', type: 'markdown' }];
+
+        const result = await assembleDeliverables(deliverables, storage, executeCommand, addLog);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].key).toBe('report');
+        expect(result[0].artifactId).toBe('art-123');
+        expect(executeCommand).toHaveBeenCalledWith('create_artifact', expect.objectContaining({
+            name: 'Final Report',
+            type: 'markdown',
+            content: '# Report\nAll good',
+            deliverableKey: 'report',
+        }));
+    });
+
+    it('skips deliverables with no content in storage', async () => {
+        const deliverables = [{ key: 'missing', label: 'Missing', type: 'json' }];
+        const result = await assembleDeliverables(deliverables, storage, executeCommand, addLog);
+
+        expect(result).toHaveLength(0);
+        expect(executeCommand).not.toHaveBeenCalled();
+        expect(addLog).toHaveBeenCalledWith(expect.stringContaining('skipped'));
+    });
+
+    it('uses sourceStorageKey when specified', async () => {
+        storage['custom_key'] = { data: 'value' };
+        const deliverables = [{
+            key: 'analysis',
+            label: 'Analysis',
+            type: 'json',
+            sourceStorageKey: 'custom_key',
+        }];
+
+        const result = await assembleDeliverables(deliverables, storage, executeCommand, addLog);
+
+        expect(result).toHaveLength(1);
+        expect(executeCommand).toHaveBeenCalledWith('create_artifact', expect.objectContaining({
+            content: JSON.stringify({ data: 'value' }, null, 2),
+        }));
+    });
+
+    it('stringifies object content as JSON', async () => {
+        storage[`${DELIVERABLE_STORAGE_PREFIX}data`] = { x: 1, y: 2 };
+        const deliverables = [{ key: 'data', label: 'Data', type: 'json' }];
+
+        await assembleDeliverables(deliverables, storage, executeCommand, addLog);
+
+        expect(executeCommand).toHaveBeenCalledWith('create_artifact', expect.objectContaining({
+            content: JSON.stringify({ x: 1, y: 2 }, null, 2),
+        }));
+    });
+
+    it('handles create_artifact failure gracefully', async () => {
+        storage[`${DELIVERABLE_STORAGE_PREFIX}broken`] = 'content';
+        executeCommand.mockRejectedValue(new Error('create failed'));
+        const deliverables = [{ key: 'broken', label: 'Broken', type: 'txt' }];
+
+        const result = await assembleDeliverables(deliverables, storage, executeCommand, addLog);
+
+        expect(result).toHaveLength(0);
+        expect(addLog).toHaveBeenCalledWith(expect.stringContaining('assembly failed'));
+    });
+
+    it('assembles multiple deliverables in order', async () => {
+        storage[`${DELIVERABLE_STORAGE_PREFIX}a`] = 'content-a';
+        storage[`${DELIVERABLE_STORAGE_PREFIX}b`] = 'content-b';
+        let callCount = 0;
+        executeCommand.mockImplementation(async () => {
+            callCount++;
+            return { artifact: { id: `art-${callCount}` } };
+        });
+        const deliverables = [
+            { key: 'a', label: 'A', type: 'markdown' },
+            { key: 'b', label: 'B', type: 'markdown' },
+        ];
+
+        const result = await assembleDeliverables(deliverables, storage, executeCommand, addLog);
+
+        expect(result).toHaveLength(2);
+        expect(result[0]).toEqual({ key: 'a', artifactId: 'art-1' });
+        expect(result[1]).toEqual({ key: 'b', artifactId: 'art-2' });
+    });
+
+    it('falls back to lastArtifactId from storage when artifact.id not in result', async () => {
+        storage[`${DELIVERABLE_STORAGE_PREFIX}x`] = 'hello';
+        executeCommand.mockResolvedValue({ success: true }); // no artifact.id
+        storage.lastArtifactId = 'fallback-id';
+        const deliverables = [{ key: 'x', label: 'X', type: 'txt' }];
+
+        const result = await assembleDeliverables(deliverables, storage, executeCommand, addLog);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].artifactId).toBe('fallback-id');
+    });
+
+    it('includes tags with deliverable key and source:job', async () => {
+        storage[`${DELIVERABLE_STORAGE_PREFIX}report`] = 'content';
+        const deliverables = [{ key: 'report', label: 'Report', type: 'markdown', description: 'Final' }];
+
+        await assembleDeliverables(deliverables, storage, executeCommand, addLog);
+
+        expect(executeCommand).toHaveBeenCalledWith('create_artifact', expect.objectContaining({
+            tags: 'deliverable:report,source:job',
+            description: 'Final',
+        }));
     });
 });

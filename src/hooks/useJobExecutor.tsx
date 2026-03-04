@@ -12,6 +12,7 @@ import { useStudioContext } from "@/context/StudioContext";
 import {
     resolveRefs, applyInputBindings, applyOutputMappings,
     evaluateCondition, getStepContext, executeStepHandler,
+    assembleDeliverables, DELIVERABLE_STORAGE_PREFIX,
     type RefContext, type HandlerRefContext,
 } from "@/utils/jobRuntime";
 
@@ -201,25 +202,11 @@ export function useJobExecutor({
                         studio: studioApi ?? null,
                         storage: jobStorage,
                         addDeliverable: (deliverable) => {
-                            const artifact = {
-                                id: crypto.randomUUID(),
-                                name: deliverable.name,
-                                type: deliverable.type,
-                                content: deliverable.content,
-                                createdAt: Date.now(),
-                                tags: [
-                                    `type:${deliverable.type}`,
-                                    `source:job`,
-                                    `deliverable:${deliverable.key}`,
-                                    `job:${queuedJob.type}`,
-                                    ...(deliverable.tags || []),
-                                ],
-                                source: "job" as const,
-                            };
-                            importArtifact(artifact);
-                            producedDeliverables.push({ key: deliverable.key, artifactId: artifact.id });
+                            // Stage deliverable content into storage for later assembly
+                            const storageKey = `${DELIVERABLE_STORAGE_PREFIX}${deliverable.key}`;
+                            jobStorage[storageKey] = deliverable.content;
                             deliverableContents[deliverable.key] = deliverable.content;
-                            addLog(`Deliverable produced: ${deliverable.name}`);
+                            addLog(`Deliverable staged: ${deliverable.name} → storage[${storageKey}]`);
                         },
                     };
 
@@ -380,7 +367,7 @@ export function useJobExecutor({
                             // Apply output mappings from parallel results
                             for (const r of results) {
                                 if (r.status === 'completed' && r.outputMappings && r.result != null) {
-                                    applyOutputMappings(r.outputMappings, r.result, jobStorage, context.addDeliverable);
+                                    applyOutputMappings(r.outputMappings, r.result, jobStorage);
                                 }
                             }
 
@@ -441,7 +428,7 @@ export function useJobExecutor({
                                     steps[idx] = { ...steps[idx], status: 'completed', result: resultStr };
 
                                     // Output mappings
-                                    applyOutputMappings(step.outputMappings, res, jobStorage, context.addDeliverable);
+                                    applyOutputMappings(step.outputMappings, res, jobStorage);
 
                                     // ── onSuccess handler (mixed) ──
                                     if (step.onSuccess) {
@@ -527,7 +514,7 @@ export function useJobExecutor({
                                     steps[i] = { ...steps[i], status: 'completed', result: typeof res === 'string' ? res : JSON.stringify(res) };
 
                                     // Apply output mappings
-                                    applyOutputMappings(steps[i].outputMappings, res, jobStorage, context.addDeliverable);
+                                    applyOutputMappings(steps[i].outputMappings, res, jobStorage);
 
                                     // ── onSuccess handler ──
                                     if (steps[i].onSuccess) {
@@ -577,6 +564,30 @@ export function useJobExecutor({
                     } else {
                         // Legacy / Single Command Job
                         finalResult = await registry.execute(queuedJob.type, queuedJob.request, context);
+                    }
+
+                    // ═══ DELIVERABLE ASSEMBLY ═══
+                    // After all steps complete, assemble declared deliverables from storage
+                    const declaredDeliverables = queuedJob.deliverables
+                        || queuedJob.request?.deliverables
+                        || [];
+                    if (declaredDeliverables.length > 0) {
+                        addLog(`Assembling ${declaredDeliverables.length} deliverable(s) from storage…`);
+                        const assembled = await assembleDeliverables(
+                            declaredDeliverables,
+                            jobStorage,
+                            (cmdId, args) => registry.execute(cmdId, args, context),
+                            addLog,
+                        );
+                        for (const item of assembled) {
+                            producedDeliverables.push(item);
+                            // Populate deliverableContents for any downstream refs
+                            const storageKey = `${DELIVERABLE_STORAGE_PREFIX}${item.key}`;
+                            if (storageKey in jobStorage) {
+                                deliverableContents[item.key] = jobStorage[storageKey];
+                            }
+                        }
+                        addLog(`Assembly complete: ${assembled.length}/${declaredDeliverables.length} deliverables produced.`);
                     }
 
                     updateJobStatus(queuedJob.id, "completed", typeof finalResult === 'string' ? finalResult : JSON.stringify(finalResult));

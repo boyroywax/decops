@@ -3,6 +3,7 @@ import { CommandContext } from "@/services/commands/types";
 import { AutomationDefinition, AutomationRun } from "./types";
 import { getAutomation } from "./registry";
 import { chatWithWorkspace, ChatMessage } from "@/services/ai";
+import { DELIVERABLE_STORAGE_PREFIX } from "@/utils/jobRuntime";
 
 export class AutomationRunner {
     private context: CommandContext;
@@ -60,23 +61,10 @@ export class AutomationRunner {
                 // Wire storage and deliverables into the context for this run
                 this.context.storage = storage;
                 this.context.addDeliverable = (deliverable) => {
-                    const artifact = {
-                        id: crypto.randomUUID(),
-                        name: deliverable.name,
-                        type: deliverable.type,
-                        content: deliverable.content,
-                        createdAt: Date.now(),
-                        tags: [
-                            `type:${deliverable.type}`,
-                            `source:automation`,
-                            `deliverable:${deliverable.key}`,
-                            `automation:${automationId}`,
-                            ...(deliverable.tags || []),
-                        ],
-                        source: "automation" as const,
-                    };
-                    this.context.jobs.importArtifact(artifact);
-                    this.log(run, "info", `Deliverable produced: ${deliverable.name}`);
+                    // Stage deliverable content into storage for later assembly
+                    const storageKey = `${DELIVERABLE_STORAGE_PREFIX}${deliverable.key}`;
+                    storage[storageKey] = deliverable.content;
+                    this.log(run, "info", `Deliverable staged: ${deliverable.name} → storage[${storageKey}]`);
                 };
 
                 /** Recursively resolve $storage.key references in step args */

@@ -96,14 +96,20 @@ export function applyInputBindings(
 
 // ── Output Mappings ────────────────────────────────
 
+/** Storage key prefix for staged deliverable content */
+export const DELIVERABLE_STORAGE_PREFIX = '_deliverable_';
+
 /**
- * Apply output mappings from a step result, writing to storage or producing deliverables.
+ * Apply output mappings from a step result.
+ *
+ * **All outputs route to storage** — including deliverable-targeted mappings,
+ * which are staged under `_deliverable_<key>` in shared storage.
+ * A separate assembly phase later materialises artifacts from staged content.
  */
 export function applyOutputMappings(
   mappings: Array<{ outputKey: string; target: string; targetKey: string }> | undefined,
   result: any,
   storage: Record<string, any>,
-  addDeliverable: CommandContext['addDeliverable'],
 ): void {
   if (!mappings || result == null) return;
   for (const mapping of mappings) {
@@ -113,14 +119,69 @@ export function applyOutputMappings(
     if (mapping.target === 'storage' && mapping.targetKey) {
       storage[mapping.targetKey] = outputValue;
     } else if (mapping.target === 'deliverable' && mapping.targetKey) {
-      addDeliverable({
-        key: mapping.targetKey,
-        name: mapping.targetKey,
-        type: typeof outputValue === 'string' ? 'markdown' : 'json',
-        content: typeof outputValue === 'string' ? outputValue : JSON.stringify(outputValue, null, 2),
-      });
+      // Stage deliverable content into storage — assembly creates the artifact later
+      storage[`${DELIVERABLE_STORAGE_PREFIX}${mapping.targetKey}`] = outputValue;
     }
   }
+}
+
+// ── Deliverable Assembly ───────────────────────────
+
+/**
+ * Assemble deliverables after all steps complete.
+ *
+ * Reads the job's declared deliverables, pulls staged content from storage
+ * (`_deliverable_<key>` or an explicit `sourceStorageKey`), and creates
+ * artifacts via `create_artifact` through the command registry.
+ *
+ * Only called when all steps succeeded (or failures were accepted via
+ * `onFailure.continueOnFailure`).
+ *
+ * @returns Array of { key, artifactId } for each produced deliverable
+ */
+export async function assembleDeliverables(
+  declaredDeliverables: Array<{ key: string; label: string; type: string; description?: string; sourceStorageKey?: string }>,
+  storage: Record<string, any>,
+  executeCommand: (commandId: string, args: Record<string, any>) => Promise<any>,
+  addLog: (msg: string) => void,
+): Promise<Array<{ key: string; artifactId: string }>> {
+  const produced: Array<{ key: string; artifactId: string }> = [];
+
+  for (const deliverable of declaredDeliverables) {
+    // Resolve content from storage: explicit sourceStorageKey or default _deliverable_<key>
+    const storageKey = deliverable.sourceStorageKey || `${DELIVERABLE_STORAGE_PREFIX}${deliverable.key}`;
+    const content = storage[storageKey];
+
+    if (content === undefined || content === null) {
+      addLog(`⚠ Deliverable "${deliverable.label || deliverable.key}" skipped — no content in storage[${storageKey}]`);
+      continue;
+    }
+
+    const contentStr = typeof content === 'string'
+      ? content
+      : JSON.stringify(content, null, 2);
+
+    try {
+      const result = await executeCommand('create_artifact', {
+        name: deliverable.label || deliverable.key,
+        type: deliverable.type || (typeof content === 'string' ? 'markdown' : 'json'),
+        content: contentStr,
+        tags: `deliverable:${deliverable.key},source:job`,
+        description: deliverable.description || '',
+        deliverableKey: deliverable.key,
+      });
+
+      const artifactId = result?.artifact?.id || storage.lastArtifactId;
+      if (artifactId) {
+        produced.push({ key: deliverable.key, artifactId });
+      }
+      addLog(`📦 Deliverable assembled: ${deliverable.label || deliverable.key}`);
+    } catch (e: any) {
+      addLog(`❌ Deliverable assembly failed for "${deliverable.key}": ${e.message}`);
+    }
+  }
+
+  return produced;
 }
 
 // ── Condition Evaluation ───────────────────────────

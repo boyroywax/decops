@@ -37,6 +37,12 @@ export const createArtifactCommand: CommandDefinition = {
             type: "string",
             description: "Short description of the artifact",
             required: false
+        },
+        deliverableKey: {
+            name: "deliverableKey",
+            type: "string",
+            description: "If this artifact fulfills a declared job deliverable, the deliverable key",
+            required: false
         }
     },
     output: "Details of the created artifact.",
@@ -46,6 +52,9 @@ export const createArtifactCommand: CommandDefinition = {
             ? args.tags.split(",").map((t: string) => t.trim()).filter(Boolean)
             : [];
         tags.push(`type:${args.type}`);
+        if (args.deliverableKey) {
+            tags.push(`deliverable:${args.deliverableKey}`);
+        }
 
         const artifact = {
             id: crypto.randomUUID(),
