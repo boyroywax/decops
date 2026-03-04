@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3, Eye } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3, Eye, Send, Square } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "@/services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "@/services/ai";
@@ -56,6 +56,13 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const [pendingCommand, setPendingCommand] = useState<{ command: CommandDefinition; initialArgs: Record<string, any>; convoId: string; msgs: ChatMessage[] } | null>(null);
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionIndex, setMentionIndex] = useState(0);
+    const abortRef = useRef<AbortController | null>(null);
+
+    /** Cancel an in-progress streaming chat */
+    const stopStreaming = useCallback(() => {
+        abortRef.current?.abort();
+        abortRef.current = null;
+    }, []);
 
     // Smooth scroll for new messages / streaming updates
     useEffect(() => {
@@ -288,10 +295,14 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                 setStreamingText("");
                 setStreamingToolCalls([]);
 
+                const controller = new AbortController();
+                abortRef.current = controller;
+
                 const streamCallbacks: StreamCallbacks = {
                     onToken: (token) => {
                         setStreamingText(prev => (prev ?? "") + token);
                     },
+                    signal: controller.signal,
                     onToolCallStart: (name) => {
                         setStreamingToolCalls(prev => [
                             ...prev,
@@ -331,6 +342,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                     messageToSend, currentMessages, context, streamCallbacks, commandContext,
                 );
 
+                abortRef.current = null;
                 setStreamingText(null);
                 setStreamingToolCalls([]);
 
@@ -606,14 +618,22 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
                         }}
                         placeholder={studioActive ? "Ask the AI to build on the Studio canvas..." : editorActive ? "Ask the AI to help edit your file..." : "Ask about your workspace — type @ to mention agents..."}
-                        disabled={loading}
+                        disabled={loading && !streamingText}
                         className={`chat-panel__input${studioActive ? " chat-panel__input--studio" : editorActive ? " chat-panel__input--editor" : ""}`}
                     />
-                    <button
-                        onClick={send}
-                        disabled={loading || !input.trim()}
-                        className={`chat-panel__send-btn${isReady ? " chat-panel__send-btn--ready" : ""}`}
-                    >Send</button>
+                    {loading ? (
+                        <button
+                            onClick={stopStreaming}
+                            className="chat-panel__send-btn chat-panel__send-btn--stop"
+                            title="Stop generating"
+                        ><Square size={14} /></button>
+                    ) : (
+                        <button
+                            onClick={send}
+                            disabled={!input.trim()}
+                            className={`chat-panel__send-btn${isReady ? " chat-panel__send-btn--ready" : ""}`}
+                        ><Send size={14} /></button>
+                    )}
                 </div>
             )}
 

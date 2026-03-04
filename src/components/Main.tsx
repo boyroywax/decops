@@ -8,6 +8,7 @@ import { StudioProvider } from "@/context/StudioContext";
 import { EditorProvider } from "@/context/EditorContext";
 import { LLMProvider } from "@/context/LLMContext";
 import { useNotebook } from "@/hooks/useNotebook";
+import { JobInputPromptModal } from "@/components/jobs/JobInputPromptModal";
 
 function InternalApp() {
     const { addJob } = useJobsContext();
@@ -20,6 +21,7 @@ function InternalApp() {
                     <StudioProvider>
                         <EditorProvider>
                             <AuthenticatedApp notebook={notebook} />
+                            <JobInputPromptModal />
                         </EditorProvider>
                     </StudioProvider>
                 </AutomationsProvider>

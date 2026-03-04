@@ -547,6 +547,24 @@
   cursor: pointer;
 }
 
+.chat-panel__send-btn--stop {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+  cursor: pointer;
+  animation: chat-stop-pulse 1.5s ease-in-out infinite;
+}
+
+.chat-panel__send-btn--stop:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+@keyframes chat-stop-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * MENTION PICKER
  * ═══════════════════════════════════════════════════════════════════════════ */

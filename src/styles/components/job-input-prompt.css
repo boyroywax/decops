@@ -1,0 +1,288 @@
+/**
+ * Job Input Prompt Modal Styles
+ * Modal overlay that appears when a job requires user input at runtime.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * OVERLAY
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.jip-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  animation: jip-fade-in 0.2s ease-out;
+}
+
+@keyframes jip-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * MODAL
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.jip-modal {
+  background: var(--bg-surface, #161620);
+  border: 1px solid var(--border-default, #2a2a3a);
+  border-radius: var(--radius-xl, 16px);
+  width: 420px;
+  max-width: 92vw;
+  padding: 0;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  animation: jip-slide-up 0.25s ease-out;
+}
+
+@keyframes jip-slide-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HEADER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.jip-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border-subtle, #1e1e2e);
+}
+
+.jip-header__icon {
+  flex-shrink: 0;
+}
+
+.jip-header__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.jip-header__title {
+  font-family: var(--font-display, inherit);
+  font-size: var(--text-lg, 15px);
+  font-weight: var(--font-semibold, 600);
+  color: var(--text-primary, #e0e0e8);
+}
+
+.jip-header__job {
+  font-size: var(--text-xs, 11px);
+  color: var(--text-muted, #8888a0);
+  margin-top: 2px;
+}
+
+.jip-header__job-id {
+  color: var(--text-invisible, #555566);
+}
+
+.jip-close {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md, 8px);
+  padding: 4px 6px;
+  color: var(--text-muted, #8888a0);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.jip-close:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PROMPT TEXT
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.jip-prompt {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px 18px;
+  font-size: var(--text-sm, 13px);
+  color: var(--text-primary, #e0e0e8);
+  line-height: 1.5;
+}
+
+.jip-prompt__icon {
+  flex-shrink: 0;
+  color: #fbbf24;
+  margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * INPUT AREA
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.jip-input-area {
+  padding: 0 18px 14px;
+}
+
+.jip-text-input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: var(--text-sm, 13px);
+  font-family: inherit;
+  background: var(--bg-inset, #0c0c12);
+  border: 1px solid var(--border-default, #2a2a3a);
+  border-radius: var(--radius-lg, 12px);
+  color: var(--text-primary, #e0e0e8);
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.jip-text-input:focus {
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.jip-text-input::placeholder {
+  color: var(--text-invisible, #555566);
+}
+
+/* Range slider */
+.jip-range {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jip-range__slider {
+  flex: 1;
+  accent-color: #fbbf24;
+}
+
+.jip-range__value {
+  font-size: var(--text-lg, 15px);
+  font-weight: var(--font-semibold, 600);
+  color: #fbbf24;
+  min-width: 36px;
+  text-align: right;
+}
+
+/* Option buttons */
+.jip-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.jip-option {
+  padding: 6px 12px;
+  font-size: var(--text-xs, 11px);
+  font-family: inherit;
+  border: 1px solid var(--border-default, #2a2a3a);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-inset, #0c0c12);
+  color: var(--text-muted, #8888a0);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.jip-option:hover {
+  border-color: rgba(251, 191, 36, 0.3);
+  color: var(--text-primary, #e0e0e8);
+}
+
+.jip-option--selected {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.35);
+  color: #fbbf24;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ACTIONS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.jip-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border-subtle, #1e1e2e);
+}
+
+.jip-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  font-size: var(--text-sm, 13px);
+  font-family: inherit;
+  border-radius: var(--radius-lg, 12px);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.jip-btn--cancel {
+  background: none;
+  border: 1px solid var(--border-default, #2a2a3a);
+  color: var(--text-muted, #8888a0);
+}
+
+.jip-btn--cancel:hover {
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.jip-btn--submit {
+  background: rgba(0, 229, 160, 0.12);
+  border: 1px solid rgba(0, 229, 160, 0.3);
+  color: #00e5a0;
+}
+
+.jip-btn--submit:hover {
+  background: rgba(0, 229, 160, 0.2);
+}
+
+.jip-btn--submit:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * LIGHT THEME
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .jip-overlay {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="light"] .jip-modal {
+  background: var(--bg-surface);
+  border-color: var(--border-default);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .jip-text-input {
+  background: var(--bg-inset);
+}
+
+[data-theme="light"] .jip-option {
+  background: var(--bg-inset);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SOLAR THEME
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .jip-modal {
+  background: var(--bg-surface);
+  border-color: var(--border-default);
+}
+
+[data-theme="solar"] .jip-text-input {
+  background: var(--bg-inset);
+}
+
+[data-theme="solar"] .jip-option {
+  background: var(--bg-inset);
+}

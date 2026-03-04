@@ -34,8 +34,14 @@ async function parseAnthropicSSE(
     onMessageStop: () => void;
     onError: (err: Error) => void;
   },
+  signal?: AbortSignal,
 ): Promise<{ contentBlocks: any[]; stopReason: string }> {
   const reader = response.body!.getReader();
+
+  // If abort fires, cancel the reader
+  if (signal) {
+    signal.addEventListener("abort", () => { reader.cancel(); }, { once: true });
+  }
   const decoder = new TextDecoder();
   let buffer = "";
   let stopReason = "end_turn";
@@ -145,6 +151,8 @@ export interface StreamCallbacks {
   onToolCallStart?: (name: string, input: Record<string, any>) => void;
   /** Called when a tool call completes */
   onToolCallComplete?: (display: ToolCallDisplay) => void;
+  /** AbortSignal — when fired, streaming stops immediately */
+  signal?: AbortSignal;
 }
 
 /**
@@ -203,6 +211,7 @@ export async function streamChatWithWorkspace(
         method: "POST",
         headers: buildHeaders(apiKey),
         body: JSON.stringify(body),
+        signal: callbacks.signal,
       });
 
       if (!response.ok) {
@@ -224,7 +233,7 @@ export async function streamChatWithWorkspace(
         onContentBlockStop: () => { },
         onMessageStop: () => { },
         onError: (err) => { throw err; },
-      });
+      }, callbacks.signal);
 
       // Check for tool use blocks
       const toolUseBlocks = contentBlocks.filter((b: any) => b.type === "tool_use");
@@ -282,6 +291,10 @@ export async function streamChatWithWorkspace(
 
     return { text: fullText || "[Tool call loop limit reached]", toolCalls: allToolCalls };
   } catch (err) {
+    // Abort is a normal cancellation — return whatever we have so far
+    if (err instanceof DOMException && err.name === "AbortError") {
+      return { text: fullText || "[Cancelled]", toolCalls: allToolCalls };
+    }
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes("No Anthropic API key") || msg.includes("No OpenAI API key") || msg.includes("No Google API key")) {
       return { text: "⚠️ No API key configured. Go to **LLM Manager → Providers** to add your API key.", toolCalls: [] };

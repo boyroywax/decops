@@ -23,6 +23,7 @@ interface SidebarProps {
   setCollapsed: (v: boolean) => void;
   isMobile?: boolean;
   ecosystemName?: string;
+  totalUnread?: number;
 }
 
 const EDITOR_ITEM = { id: "editor" as ViewId, label: "Editor", icon: FileText, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] as [string, string] };
@@ -39,7 +40,7 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; 
 
 const ECOSYSTEM_VIEWS: Set<ViewId> = new Set(["networks", "agents", "channels", "groups", "messages"]);
 
-export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, agents, channels, groups, collapsed, setCollapsed, isMobile, ecosystemName }: SidebarProps) {
+export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, agents, channels, groups, collapsed, setCollapsed, isMobile, ecosystemName, totalUnread }: SidebarProps) {
   const navRef = useRef<HTMLElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -161,9 +162,11 @@ export function Sidebar({ view, setView, ecosystems, messages, bridgeMessages, a
                     : <tab.icon size={13} />
                   }
                   {tab.label}
-                  {badgeCount > 0 && (
+                  {tab.id === "messages" && (totalUnread || 0) > 0 ? (
+                    <span className="sidebar-count sidebar-count--unread warning">{totalUnread}</span>
+                  ) : badgeCount > 0 ? (
                     <span className={`sidebar-count ${getAccentType(tab.id)}`}>{badgeCount}</span>
-                  )}
+                  ) : null}
                 </button>
               );
             })}

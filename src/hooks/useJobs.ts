@@ -97,8 +97,29 @@ export function useJobs() {
 
     const stopJob = useCallback((id: string) => {
         setJobs(prev => prev.map(job => {
-            if (job.id === id && job.status === "running") {
-                return { ...job, status: "failed", result: "Stopped by user", updatedAt: Date.now() };
+            if (job.id === id && (job.status === "running" || job.status === "awaiting-input")) {
+                return { ...job, status: "failed", result: "Stopped by user", pendingPrompt: undefined, updatedAt: Date.now() };
+            }
+            return job;
+        }));
+    }, []);
+
+    /** Resolve a pending prompt input — fills the input value and re-queues the job */
+    const resolvePromptInput = useCallback((jobId: string, inputName: string, value: string) => {
+        setJobs(prev => prev.map(job => {
+            if (job.id === jobId && job.status === "awaiting-input" && job.pendingPrompt?.inputName === inputName) {
+                // Update the input's entityId with the user-provided value
+                const updatedInputs = (job.inputs || job.request?.inputDefaults || []).map((inp: any) =>
+                    inp.name === inputName ? { ...inp, entityId: value } : inp
+                );
+                return {
+                    ...job,
+                    status: "queued" as JobStatus,
+                    inputs: updatedInputs,
+                    inputDefaults: updatedInputs,
+                    pendingPrompt: undefined,
+                    updatedAt: Date.now(),
+                };
             }
             return job;
         }));
@@ -155,6 +176,7 @@ export function useJobs() {
         isPaused,
         toggleQueuePause,
         stopJob,
+        resolvePromptInput,
         updateJob,
         reorderQueue,
         setJobs,

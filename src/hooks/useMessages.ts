@@ -64,7 +64,49 @@ export function useMessages(
         addJob({ type: "bulk_delete", request: { type: "messages", ids: Array.from(ids) } });
     };
 
+    /** Mark one or more messages as read */
+    const markAsRead = (ids: string[]) => {
+        const now = Date.now();
+        setMessages(prev => prev.map(m =>
+            ids.includes(m.id) && !m.readAt ? { ...m, readAt: now } : m
+        ));
+    };
+
+    /** Mark all messages in a channel as read */
+    const markChannelRead = (channelId: string) => {
+        const now = Date.now();
+        setMessages(prev => prev.map(m =>
+            m.channelId === channelId && !m.readAt && m.status !== "sending"
+                ? { ...m, readAt: now } : m
+        ));
+    };
+
     const channelMessages = activeChannel ? messages.filter((m) => m.channelId === activeChannel) : [];
+
+    /** Count of unread messages per channel */
+    const unreadCounts: Record<string, number> = {};
+    for (const m of messages) {
+        if (!m.readAt && m.response !== null && m.status !== "sending") {
+            unreadCounts[m.channelId] = (unreadCounts[m.channelId] || 0) + 1;
+        }
+    }
+
+    /** Total unread count */
+    const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
+
+    // Auto-mark channel messages as read when the channel is active
+    useEffect(() => {
+        if (activeChannel && channelMessages.length > 0) {
+            const unreadIds = channelMessages
+                .filter(m => !m.readAt && m.response !== null && m.status !== "sending")
+                .map(m => m.id);
+            if (unreadIds.length > 0) {
+                // Small delay so the user sees the "new" state briefly
+                const timer = setTimeout(() => markAsRead(unreadIds), 1500);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [activeChannel, channelMessages.length]);
 
     return {
         messages, setMessages,
@@ -74,6 +116,8 @@ export function useMessages(
         broadcasting,
         msgEndRef,
         channelMessages,
-        sendMessage, sendBroadcast, removeMessages
+        sendMessage, sendBroadcast, removeMessages,
+        markAsRead, markChannelRead,
+        unreadCounts, totalUnread,
     };
 }

@@ -267,6 +267,8 @@ export function ViewSwitcher({
                 sendMessage={workspace.sendMessage}
                 sendBroadcast={workspace.sendBroadcast}
                 removeMessages={workspace.removeMessages}
+                unreadCounts={workspace.unreadCounts}
+                markChannelRead={workspace.markChannelRead}
                 ecosystems={ecosystem.ecosystems}
                 bridges={ecosystem.bridges}
                 bridgeMessages={ecosystem.bridgeMessages}

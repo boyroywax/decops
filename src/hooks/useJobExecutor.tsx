@@ -129,9 +129,32 @@ export function useJobExecutor({
 
                     // Initialize entity input map from job's inputDefaults
                     const inputMap: Record<string, string> = {};
-                    const inputDefaults = queuedJob.request?.inputDefaults || queuedJob.inputDefaults || [];
+                    const inputDefaults = queuedJob.request?.inputDefaults || queuedJob.inputDefaults || queuedJob.inputs || [];
                     for (const inp of inputDefaults) {
                         if (inp.name && inp.entityId) inputMap[inp.name] = inp.entityId;
+                    }
+
+                    // Check for unresolved prompt inputs — pause job and ask user
+                    const unresolvedPrompt = inputDefaults.find(
+                        (inp: any) => inp.source?.kind === "prompt" && !inp.entityId
+                    );
+                    if (unresolvedPrompt) {
+                        if (updateJob) updateJob(queuedJob.id, {
+                            status: "awaiting-input" as any,
+                            pendingPrompt: {
+                                inputName: unresolvedPrompt.name,
+                                promptText: unresolvedPrompt.source?.promptText || `Enter value for "${unresolvedPrompt.name}"`,
+                                inputType: unresolvedPrompt.type || "text",
+                                options: unresolvedPrompt.options,
+                                min: unresolvedPrompt.min,
+                                max: unresolvedPrompt.max,
+                                step: unresolvedPrompt.step,
+                                placeholder: unresolvedPrompt.placeholder,
+                            },
+                        });
+                        addLog(`Job "${queuedJob.type}" is waiting for user input: ${unresolvedPrompt.name}`);
+                        processingRef.current.delete(queuedJob.id);
+                        return; // Exit — job will resume when user provides input
                     }
 
                     // Track deliverables produced during execution

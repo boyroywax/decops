@@ -68,6 +68,10 @@ export interface WorkspaceContextType {
     sendMessage: () => void;
     sendBroadcast: () => void;
     removeMessages: (ids: Set<string>) => void;
+    markAsRead: (ids: string[]) => void;
+    markChannelRead: (channelId: string) => void;
+    unreadCounts: Record<string, number>;
+    totalUnread: number;
 
     // Globals
     clearWorkspace: () => void;

@@ -9,7 +9,7 @@
 import { useMemo } from "react";
 import {
     CheckCircle, XCircle, Loader, Clock, SkipForward,
-    Database, Package, Layers, ChevronRight, AlertTriangle,
+    Database, Package, Layers, ChevronRight, AlertTriangle, Keyboard,
 } from "lucide-react";
 import { useJobsContext } from "@/context/JobsContext";
 import type { Job, JobStep } from "@/types";
@@ -178,6 +178,7 @@ export function JobProgressCard({ jobId }: JobProgressCardProps) {
     const isDone = job.status === "completed";
     const isFailed = job.status === "failed";
     const isQueued = job.status === "queued";
+    const isAwaitingInput = job.status === "awaiting-input";
     const storage = job.storage || {};
     const deliverables = job.deliverables || [];
 
@@ -194,6 +195,7 @@ export function JobProgressCard({ jobId }: JobProgressCardProps) {
                         {isRunning && "running"}
                         {isDone && "completed"}
                         {isFailed && "failed"}
+                        {isAwaitingInput && "awaiting input"}
                     </span>
                 </div>
                 {total > 0 && (
@@ -215,6 +217,14 @@ export function JobProgressCard({ jobId }: JobProgressCardProps) {
 
             {/* Deliverables (only while running or done) */}
             {(isRunning || isDone) && <DeliverablesStatus deliverables={deliverables} storage={storage} />}
+
+            {/* Awaiting input indicator */}
+            {isAwaitingInput && job.pendingPrompt && (
+                <div className="jpc__awaiting-input">
+                    <Keyboard size={11} />
+                    <span>Waiting for input: {job.pendingPrompt.promptText}</span>
+                </div>
+            )}
 
             {/* Final result */}
             {isDone && job.result && (

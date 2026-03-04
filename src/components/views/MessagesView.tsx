@@ -1,7 +1,8 @@
+import React from "react";
 import type { RefObject } from "react";
 import { useState, useMemo, useCallback } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, BridgeMessage, JobArtifact, ViewId } from "@/types";
-import { MessageSquare, ArrowLeftRight, Hexagon, X, Link2, Globe, FileText, FileJson, FileCode, Image, FileSpreadsheet, File } from "lucide-react";
+import { MessageSquare, ArrowLeftRight, Hexagon, X, Link2, Globe, FileText, FileJson, FileCode, Image, FileSpreadsheet, File, Eye, EyeOff } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { MarkdownContent } from "@/components/shared/MarkdownContent";
 import { ROLES, CHANNEL_TYPES } from "@/constants";
@@ -32,6 +33,9 @@ interface MessagesViewProps {
   sendMessage: () => void;
   sendBroadcast: () => void;
   removeMessages: (ids: Set<string>) => void;
+  // Read/unread tracking
+  unreadCounts?: Record<string, number>;
+  markChannelRead?: (channelId: string) => void;
   // Bridge messaging props
   ecosystems: Network[];
   bridges: Bridge[];
@@ -57,6 +61,7 @@ export function MessagesView({
   broadcastGroup, setBroadcastGroup, broadcastInput, setBroadcastInput, broadcasting,
   msgEndRef, channelMessages, acFrom, acTo,
   sendMessage, sendBroadcast, removeMessages,
+  unreadCounts, markChannelRead,
   ecosystems, bridges, bridgeMessages,
   selectedBridge, setSelectedBridge, bridgeMsgInput, setBridgeMsgInput,
   bridgeSending, selBridgeFrom, selBridgeTo, selBridgeFromNet, selBridgeToNet,
@@ -212,11 +217,15 @@ export function MessagesView({
           const from = agents.find((a) => a.id === ch.from);
           const to = agents.find((a) => a.id === ch.to);
           const msgCount = messages.filter((m) => m.channelId === ch.id).length;
+          const unread = unreadCounts?.[ch.id] || 0;
           if (!from || !to) return null;
           const isAc = activeChannel === ch.id && !broadcastGroup && !selectedBridge;
           return (
-            <button key={ch.id} onClick={() => { setActiveChannel(ch.id); setBroadcastGroup(null); setSelectedBridge(null); setEcosystemOverview(false); bulk.clearSelection(); }} className={`channel-btn${isAc ? " channel-btn--active-p2p" : ""}`}>
-              <div className="channel-btn__label">{from.name} <ArrowLeftRight size={10} /> {to.name}</div>
+            <button key={ch.id} onClick={() => { setActiveChannel(ch.id); setBroadcastGroup(null); setSelectedBridge(null); setEcosystemOverview(false); bulk.clearSelection(); if (markChannelRead) markChannelRead(ch.id); }} className={`channel-btn${isAc ? " channel-btn--active-p2p" : ""}${unread > 0 ? " channel-btn--unread" : ""}`}>
+              <div className="channel-btn__label">
+                {from.name} <ArrowLeftRight size={10} /> {to.name}
+                {unread > 0 && <span className="channel-btn__unread-badge">{unread}</span>}
+              </div>
               <div className="channel-btn__meta">
                 {CHANNEL_TYPES.find((t) => t.id === ch.type)?.icon} {CHANNEL_TYPES.find((t) => t.id === ch.type)?.label}
                 {msgCount > 0 && <span className="channel-btn__msg-count">{msgCount} msgs</span>}
@@ -386,19 +395,34 @@ export function MessagesView({
                   <div className="msg-thread__empty-text">No messages yet.</div>
                 </div>
               )}
-              {activeChannel && !broadcastGroup && !selectedBridge && channelMessages.map((m) => {
+              {activeChannel && !broadcastGroup && !selectedBridge && (() => {
+                const firstUnreadIdx = channelMessages.findIndex(m => !m.readAt && m.response !== null && m.status !== "sending");
+                return channelMessages.map((m, idx) => {
                 const sender = agents.find((a) => a.id === m.fromId);
                 const receiver = agents.find((a) => a.id === m.toId);
                 const sRole = sender ? ROLES.find(r => r.id === sender.role) : null;
                 const rRole = receiver ? ROLES.find(r => r.id === receiver.role) : null;
                 const isChecked = bulk.has(m.id);
+                const isUnread = !m.readAt && m.response !== null && m.status !== "sending";
                 return (
-                  <div key={m.id} className={`msg-item${isChecked ? " msg-item--checked" : ""}`}>
+                  <React.Fragment key={m.id}>
+                    {idx === firstUnreadIdx && firstUnreadIdx > 0 && (
+                      <div className="msg-new-divider">
+                        <span className="msg-new-divider__line" />
+                        <span className="msg-new-divider__label">New</span>
+                        <span className="msg-new-divider__line" />
+                      </div>
+                    )}
+                    <div className={`msg-item${isChecked ? " msg-item--checked" : ""}${isUnread ? " msg-item--unread" : ""}`}>
+                    {isUnread && <div className="msg-unread-dot" title="New" />}
                     <div className="msg-row">
                       <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(m.id)} color="#fbbf24" />
                       <div className="msg-avatar" style={{ background: (sRole?.color || "#555") + "20", border: `1px solid ${sRole?.color || "#555"}30` }}>{sRole?.icon}</div>
                       <div className="msg-content">
-                        <div className="msg-sender" style={{ color: sRole?.color }}>{sender?.name} <span className="msg-sender__timestamp">{new Date(m.ts).toLocaleTimeString()}</span></div>
+                        <div className="msg-sender" style={{ color: sRole?.color }}>
+                          {sender?.name} <span className="msg-sender__timestamp">{new Date(m.ts).toLocaleTimeString()}</span>
+                          {m.readAt ? <span title={`Read ${new Date(m.readAt).toLocaleString()}`}><Eye size={9} className="msg-sender__read-icon" /></span> : m.response !== null && m.status !== "sending" ? <span title="Unread"><EyeOff size={9} className="msg-sender__unread-icon" /></span> : null}
+                        </div>
                         <MarkdownContent content={m.content} className="msg-bubble--sent" />
                         {renderArtifactChips(m.content)}
                       </div>
@@ -415,8 +439,10 @@ export function MessagesView({
                       </div>
                     )}
                   </div>
+                  </React.Fragment>
                 );
-              })}
+              });
+              })()}
               {/* Group Broadcast Messages */}
               {broadcastGroup && !selectedBridge && (() => {
                 const group = groups.find((g) => g.id === broadcastGroup);

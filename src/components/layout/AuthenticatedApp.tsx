@@ -416,6 +416,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
               setCollapsed={setSidebarCollapsed}
               isMobile={isMobile}
               ecosystemName={ecosystem.ecosystem?.name}
+              totalUnread={workspace.totalUnread}
             />
           </div>
 

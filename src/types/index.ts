@@ -101,7 +101,7 @@ export interface AuthContextType extends AuthState {
 
 export type ArchPhase = "input" | "preview" | "deploying" | "done";
 
-export type MessageStatus = "sending" | "delivered" | "no-prompt";
+export type MessageStatus = "sending" | "delivered" | "no-prompt" | "read";
 
 export interface Role {
   id: RoleId;
@@ -200,6 +200,7 @@ export interface Message {
   response: string | null;
   status: MessageStatus;
   ts: number;
+  readAt?: number;
 }
 
 export interface BridgeMessage {
@@ -211,6 +212,7 @@ export interface BridgeMessage {
   response: string | null;
   status: MessageStatus;
   ts: number;
+  readAt?: number;
 }
 
 export interface Network {

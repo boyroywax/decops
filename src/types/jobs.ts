@@ -3,7 +3,7 @@
  * Extracted from types/index.ts for modularity.
  */
 
-export type JobStatus = "queued" | "running" | "completed" | "failed";
+export type JobStatus = "queued" | "running" | "completed" | "failed" | "awaiting-input";
 
 export type ArtifactType = "markdown" | "json" | "yaml" | "csv" | "image" | "code" | "txt";
 
@@ -159,4 +159,15 @@ export interface Job {
   inputs?: EntityInput[];
   parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>;
   dryRun?: boolean;
+  /** When set, job is paused waiting for user input */
+  pendingPrompt?: {
+    inputName: string;
+    promptText: string;
+    inputType: EntityInput['type'];
+    options?: string[];
+    min?: number;
+    max?: number;
+    step?: number;
+    placeholder?: string;
+  };
 }
