@@ -1,11 +1,11 @@
 
 import { useMemo } from "react";
-import { CommandContext } from "../services/commands/types";
-import { type WorkspaceContextType } from "../context/WorkspaceContext";
-import { type User } from "../types";
-import { useAutomations } from "../context/AutomationsContext";
-import { useStudioContext } from "../context/StudioContext";
-import { getAgentModel, getCommandModel } from "../services/ai";
+import { CommandContext } from "@/services/commands/types";
+import { type WorkspaceContextType } from "@/context/WorkspaceContext";
+import { type User } from "@/types";
+import { useAutomations } from "@/context/AutomationsContext";
+import { useStudioContext } from "@/context/StudioContext";
+import { getAgentModel, getCommandModel } from "@/services/ai";
 
 // Interfaces for props that are usually passed from other hooks
 // We are mimicking the dependencies required to build the context.

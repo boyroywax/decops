@@ -1,5 +1,5 @@
-import { encryptData, decryptData } from '../../utils/secureStorage';
-import type { DIDDocument } from '../../types';
+import { encryptData, decryptData } from '@/utils/secureStorage';
+import type { DIDDocument } from '@/types';
 import { DIDCreationResponse } from './types';
 
 // Helper function to get existing or create a new local did:key (demo fallback only)

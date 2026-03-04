@@ -1,8 +1,8 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Sparkles } from "lucide-react";
-import { GradientIcon } from "../../shared/GradientIcon";
-import { SectionTitle, inputStyle } from "../../shared/ui";
-import { SCENARIO_PRESETS } from "../../../constants";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { SectionTitle, inputStyle } from "@/components/shared/ui";
+import { SCENARIO_PRESETS } from "@/constants";
 
 interface ArchitectInputProps {
     archPrompt: string;

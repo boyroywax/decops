@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
-import { CommandDefinition } from "../../services/commands/types";
+import { CommandDefinition } from "@/services/commands/types";
 import { Plus, Sparkles, Info } from "lucide-react";
-import { useLLM } from "../../context/LLMContext";
+import { useLLM } from "@/context/LLMContext";
 import "../../styles/components/command-card.css";
 
 const getCommandColor = (tags: string[]) => {

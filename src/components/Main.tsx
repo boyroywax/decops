@@ -1,13 +1,13 @@
-import { useAuth } from "../context/AuthContext";
-import { JobsProvider, useJobsContext } from "../context/JobsContext";
-import { WorkspaceProvider } from "../context/WorkspaceContext";
+import { useAuth } from "@/context/AuthContext";
+import { JobsProvider, useJobsContext } from "@/context/JobsContext";
+import { WorkspaceProvider } from "@/context/WorkspaceContext";
 import { AuthenticatedApp } from "./layout/AuthenticatedApp";
 import { LoginView } from "./views/LoginView";
-import { AutomationsProvider } from "../context/AutomationsContext";
-import { StudioProvider } from "../context/StudioContext";
-import { EditorProvider } from "../context/EditorContext";
-import { LLMProvider } from "../context/LLMContext";
-import { useNotebook } from "../hooks/useNotebook";
+import { AutomationsProvider } from "@/context/AutomationsContext";
+import { StudioProvider } from "@/context/StudioContext";
+import { EditorProvider } from "@/context/EditorContext";
+import { LLMProvider } from "@/context/LLMContext";
+import { useNotebook } from "@/hooks/useNotebook";
 
 function InternalApp() {
     const { addJob } = useJobsContext();

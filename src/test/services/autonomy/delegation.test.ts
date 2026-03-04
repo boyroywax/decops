@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { findDelegationTarget, buildDelegationRequest, delegationEvent, escalationEvent } from "../../../services/autonomy/delegation";
-import type { Agent, Network } from "../../../types";
-import type { AgentTask, DelegationTarget } from "../../../types/autonomy";
+import { findDelegationTarget, buildDelegationRequest, delegationEvent, escalationEvent } from "@/services/autonomy/delegation";
+import type { Agent, Network } from "@/types";
+import type { AgentTask, DelegationTarget } from "@/types/autonomy";
 
 // Mock capability module
 vi.mock("../../../services/autonomy/capability", () => ({
@@ -52,7 +52,7 @@ function makeGroup(id: string, members: string[]): any {
 }
 
 function makeNetwork(id: string, name: string): Network {
-  return { id, name, description: "", agents: [], channels: [], groups: [], bridges: [], createdAt: "" };
+  return { id, name, did: `did:network:${id}`, color: "#333", agents: [], channels: [], groups: [], messages: [], createdAt: "" };
 }
 
 describe("delegation", () => {
@@ -129,7 +129,7 @@ describe("delegation", () => {
         assigneeId: "agent-self",
         escalationLevel: "group",
         history: [],
-        status: "in-progress",
+        status: "executing",
         childTaskIds: [],
         config: {
           maxRounds: 12, maxEscalations: 3, allowSubTasks: true,

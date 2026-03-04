@@ -1,8 +1,8 @@
 import { Hexagon, ArrowLeftRight, Sparkles, Globe, GitBranch } from "lucide-react";
-import { GradientIcon } from "../../shared/GradientIcon";
-import { SectionTitle } from "../../shared/ui";
-import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, NETWORK_COLORS } from "../../../constants";
-import type { MeshConfig } from "../../../types";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { SectionTitle } from "@/components/shared/ui";
+import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, NETWORK_COLORS } from "@/constants";
+import type { MeshConfig } from "@/types";
 
 interface ArchitectPreviewProps {
     archPreview: MeshConfig;

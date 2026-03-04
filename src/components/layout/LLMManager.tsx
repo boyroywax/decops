@@ -17,7 +17,7 @@ import {
   ChevronsUp, ChevronsDown, Plus, Server, Globe,
   Bot, MessageCircle, ImageIcon,
 } from "lucide-react";
-import { useLLM, type ProviderId, type LivenessStatus, type LLMModel, type OllamaInstance } from "../../context/LLMContext";
+import { useLLM, type ProviderId, type LivenessStatus, type LLMModel, type OllamaInstance } from "@/context/LLMContext";
 import "../../styles/components/llm-manager.css";
 
 // ── Props (same shape as other footer drawers) ──

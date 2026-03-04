@@ -13,9 +13,9 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react";
 
 // Re-export all types so existing consumers keep working
-export type { ProviderId, LLMModel, LivenessStatus, ProviderState, OllamaInstance, AgentModelMap, CommandModelMap, GroupModelMap, LLMContextType } from "../types/llm";
+export type { ProviderId, LLMModel, LivenessStatus, ProviderState, OllamaInstance, AgentModelMap, CommandModelMap, GroupModelMap, LLMContextType } from "@/types/llm";
 
-import type { ProviderId, LLMModel, LivenessStatus, ProviderState, OllamaInstance, OllamaInstanceStored, AgentModelMap, CommandModelMap, GroupModelMap, LLMContextType } from "../types/llm";
+import type { ProviderId, LLMModel, LivenessStatus, ProviderState, OllamaInstance, OllamaInstanceStored, AgentModelMap, CommandModelMap, GroupModelMap, LLMContextType } from "@/types/llm";
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS, LS_KEYS, DEFAULT_MODEL, DEFAULT_IMAGE_MODEL } from "./llmModels";
 import { probeAnthropic, probeGoogle, probeOpenAI, probeOllama, fetchOllamaModelTags } from "./llmProbes";
 

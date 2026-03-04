@@ -2,11 +2,11 @@ import { useState } from "react";
 import type {
   Agent, Channel, Group, Network, Bridge,
   BridgeMessage, BridgeForm, ViewId, NavContext,
-} from "../../types";
+} from "@/types";
 import {
   Globe, Plus, Sparkles, Link2, Layers,
 } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
+import { GradientIcon } from "@/components/shared/GradientIcon";
 import { NetworkCard } from "./networks/NetworkCard";
 import { BridgeBuilder } from "./networks/BridgeBuilder";
 import { BridgeCard } from "./networks/BridgeCard";

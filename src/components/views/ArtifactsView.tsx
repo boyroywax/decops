@@ -1,9 +1,9 @@
 import { useState, useRef, useMemo, useEffect } from "react";
-import type { JobArtifact, ArtifactType } from "../../types";
-import { SectionTitle } from "../shared/ui";
+import type { JobArtifact, ArtifactType } from "@/types";
+import { SectionTitle } from "@/components/shared/ui";
 import { FileText, Image, Code, File, X, Plus, Tag, Layers, Clock, Hash, ChevronRight, Search, Upload, PenLine } from "lucide-react";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 import "../../styles/components/artifacts.css";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */

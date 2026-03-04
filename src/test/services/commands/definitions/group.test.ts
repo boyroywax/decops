@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createGroupCommand } from '../../../../services/commands/definitions/group';
+import { createGroupCommand } from '@/services/commands/definitions/group';
 
 describe('createGroupCommand', () => {
     const mockAgents = [

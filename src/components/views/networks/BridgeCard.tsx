@@ -1,8 +1,8 @@
-import type { Agent, Network, Bridge, BridgeMessage } from "../../../types";
-import { CHANNEL_TYPES } from "../../../constants";
+import type { Agent, Network, Bridge, BridgeMessage } from "@/types";
+import { CHANNEL_TYPES } from "@/constants";
 import { ArrowLeftRight, X } from "lucide-react";
-import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../../shared/DeleteConfirmInline";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 
 interface BridgeCardProps {
   bridge: Bridge;

@@ -1,12 +1,12 @@
 
 import { useState, useMemo } from "react";
-import { useAutomations } from "../../context/AutomationsContext";
-import { AutomationCard } from "../automations/AutomationCard";
-import { AutomationLogViewer } from "../automations/AutomationLogViewer";
-import type { AutomationRun } from "../../services/automations/types";
+import { useAutomations } from "@/context/AutomationsContext";
+import { AutomationCard } from "@/components/automations/AutomationCard";
+import { AutomationLogViewer } from "@/components/automations/AutomationLogViewer";
+import type { AutomationRun } from "@/services/automations/types";
 import "../../styles/components/automations.css";
 
-import { AutomationBuilder } from "../automations/AutomationBuilder";
+import { AutomationBuilder } from "@/components/automations/AutomationBuilder";
 
 export function AutomationsView() {
     const { automations, runs, runAutomation } = useAutomations();

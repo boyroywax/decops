@@ -1,6 +1,6 @@
 import { Trash2, GripVertical, GitBranch, ArrowRightLeft, Link, Cpu } from "lucide-react";
-import { registry } from "../../services/commands/registry";
-import type { StudioStep } from "../views/StudioView";
+import { registry } from "@/services/commands/registry";
+import type { StudioStep } from "@/components/views/StudioView";
 
 interface JobNodeProps {
     step: StudioStep;

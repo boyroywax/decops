@@ -1,6 +1,6 @@
 
-import type { CommandDefinition, CommandContext } from "../types";
-import { generateMeshConfig } from "../../ai";
+import type { CommandDefinition, CommandContext } from "@/services/commands/types";
+import { generateMeshConfig } from "@/services/ai";
 
 export const promptArchitectCommand: CommandDefinition = {
     id: "prompt_architect",

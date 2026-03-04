@@ -3,7 +3,7 @@
  * These appear in the Job Catalog alongside user-created definitions.
  * They cannot be deleted (the UI will re-seed them on next load).
  */
-import type { JobDefinition } from "../../types";
+import type { JobDefinition } from "@/types";
 
 export const SEED_JOB_PREFIX = "seed-";
 

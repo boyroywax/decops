@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import type { Message, Agent, Channel, JobRequest } from "../types";
+import type { Message, Agent, Channel, JobRequest } from "@/types";
 
 export function useMessages(
     addJob: (job: JobRequest) => void,

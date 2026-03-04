@@ -1,12 +1,12 @@
-import type { Network, Bridge, Agent, Channel, Group, ViewId, NavContext } from "../../../types";
-import { ROLES, CHANNEL_TYPES } from "../../../constants";
+import type { Network, Bridge, Agent, Channel, Group, ViewId, NavContext } from "@/types";
+import { ROLES, CHANNEL_TYPES } from "@/constants";
 import {
   Globe, Trash2, Link2,
   ChevronDown, ChevronUp, ArrowRight,
 } from "lucide-react";
-import { CopyableId } from "../../shared/CopyableId";
-import { useDeleteConfirm } from "../../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../../shared/DeleteConfirmInline";
+import { CopyableId } from "@/components/shared/CopyableId";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 
 interface NetworkCardProps {
   net: Network;

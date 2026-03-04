@@ -1,7 +1,7 @@
 
 import { CommandDefinition, CommandArgType } from "./types";
 import { dryRunCommand, dryRunJob, type DryRunResult, type DryRunJobResult } from "./dryRun";
-import type { JobStep } from "../../types";
+import type { JobStep } from "@/types";
 
 /**
  * Resolve entity name → ID for semantic arg types ("agent", "group", "channel", "network").

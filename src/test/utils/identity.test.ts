@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateDID, generateKeyPair, generateGroupDID, generateNetworkDID } from '../../utils/identity';
+import { generateDID, generateKeyPair, generateGroupDID, generateNetworkDID } from '@/utils/identity';
 
 describe('identity utils', () => {
     describe('generateDID', () => {

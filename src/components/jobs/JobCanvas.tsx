@@ -1,9 +1,9 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import { Workflow, Package, Database, Tag, X, GitFork } from "lucide-react";
 import { JobNode } from "./JobNode";
-import type { StudioStep, SelectedElement, AnchorSide } from "../views/StudioView";
-import { isParallelGroup, PARALLEL_GROUP_CMD } from "../views/StudioView";
-import type { JobDeliverable, EntityInput } from "../../types";
+import type { StudioStep, SelectedElement, AnchorSide } from "@/components/views/StudioView";
+import { isParallelGroup, PARALLEL_GROUP_CMD } from "@/components/views/StudioView";
+import type { JobDeliverable, EntityInput } from "@/types";
 import {
     NODE_WIDTH, NODE_HEIGHT, DELIV_WIDTH, DELIV_HEIGHT,
     STORAGE_WIDTH, STORAGE_HEIGHT, INPUT_WIDTH, INPUT_HEIGHT,

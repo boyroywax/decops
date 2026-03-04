@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { sendMessageCommand } from '../../../../services/commands/definitions/messaging';
-import * as aiService from '../../../../services/ai';
+import { sendMessageCommand } from '@/services/commands/definitions/messaging';
+import * as aiService from '@/services/ai';
 
 // Mock the AI service
 vi.mock('../../../../services/ai', () => ({

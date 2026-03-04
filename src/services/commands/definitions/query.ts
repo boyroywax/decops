@@ -1,5 +1,5 @@
 
-import type { CommandDefinition, CommandContext } from "../types";
+import type { CommandDefinition, CommandContext } from "@/services/commands/types";
 
 export const listAgentsCommand: CommandDefinition = {
     id: "list_agents",

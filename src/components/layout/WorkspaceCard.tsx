@@ -3,7 +3,7 @@ import {
     Cpu, MessageSquare, Users, Network,
     Calendar, Trash2, Power, RotateCcw, Info
 } from "lucide-react";
-import { WorkspaceMetadata } from "../../types";
+import { WorkspaceMetadata } from "@/types";
 import "../../styles/components/workspace-card.css";
 
 interface WorkspaceCardProps {

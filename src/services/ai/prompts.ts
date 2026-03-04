@@ -4,7 +4,7 @@
  * Extracted from services/ai.ts for modularity.
  */
 
-import type { Agent, Channel, Group, Message, Network, Bridge, Job } from "../../types";
+import type { Agent, Channel, Group, Message, Network, Bridge, Job } from "@/types";
 
 export interface WorkspaceContext {
   agents: Agent[];

@@ -1,8 +1,8 @@
 import { Play, Edit, Trash2, Briefcase, Lock, FlaskConical } from "lucide-react";
-import type { JobDefinition } from "../../types";
-import { isSeedJob } from "../../services/jobs/seedCatalog";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
+import type { JobDefinition } from "@/types";
+import { isSeedJob } from "@/services/jobs/seedCatalog";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 import "../../styles/components/job-catalog.css";
 
 interface JobCatalogProps {

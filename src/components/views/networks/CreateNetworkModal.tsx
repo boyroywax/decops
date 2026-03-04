@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Globe, Plus, X, Sparkles } from "lucide-react";
-import { GradientIcon } from "../../shared/GradientIcon";
+import { GradientIcon } from "@/components/shared/GradientIcon";
 import "../../../styles/components/create-network-modal.css";
 
 interface CreateNetworkModalProps {

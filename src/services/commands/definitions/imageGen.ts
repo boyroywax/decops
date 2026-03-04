@@ -1,13 +1,13 @@
 
-import { CommandDefinition } from "../types";
-import { generatePortrait, hasGeminiApiKey, type ImageStyle } from "../../imageGen";
+import { CommandDefinition } from "@/services/commands/types";
+import { generatePortrait, hasGeminiApiKey, type ImageStyle } from "@/services/imageGen";
 import {
     setCachedPortrait,
     getCachedPortrait,
     promptHash,
     clearPortraitCache,
     type CachedPortrait,
-} from "../../portraitCache";
+} from "@/services/portraitCache";
 
 // ── generate_image ──
 

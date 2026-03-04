@@ -12,7 +12,7 @@
  * target gets a sub-task that goes through the same lifecycle.
  */
 
-import type { Agent, Network } from "../../types";
+import type { Agent, Network } from "@/types";
 import type {
   AgentTask,
   TaskEvent,
@@ -23,10 +23,10 @@ import type {
   EscalationLevel,
   ConsensusProposal,
   AgentSpec,
-} from "../../types/autonomy";
-import { nextEscalation } from "../../types/autonomy";
-import type { CommandContext } from "../commands/types";
-import { registry } from "../commands/registry";
+} from "@/types/autonomy";
+import { nextEscalation } from "@/types/autonomy";
+import type { CommandContext } from "@/services/commands/types";
+import { registry } from "@/services/commands/registry";
 import { generatePlan } from "./planner";
 import { findDelegationTarget, buildDelegationRequest, delegationEvent, escalationEvent } from "./delegation";
 import { identifyGaps } from "./capability";

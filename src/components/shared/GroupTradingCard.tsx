@@ -8,8 +8,8 @@
 
 import { useRef } from "react";
 import { X, Shield, Users, Hexagon, Globe, Vote, Lock, User, Sparkles, Star, Zap } from "lucide-react";
-import type { Agent, Group, GovernanceModelId, RoleId } from "../../types";
-import { ROLES, GOVERNANCE_MODELS } from "../../constants";
+import type { Agent, Group, GovernanceModelId, RoleId } from "@/types";
+import { ROLES, GOVERNANCE_MODELS } from "@/constants";
 import { GroupBadge } from "./GroupBadge";
 import { CopyableId } from "./CopyableId";
 import { AgentPortrait } from "./AgentPortrait";

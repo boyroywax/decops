@@ -7,8 +7,8 @@ import {
     studioAddParallelGroupCommand,
     studioAddTriggerCommand,
     studioRemoveTriggerCommand,
-} from '../../../../services/commands/definitions/studio';
-import { CommandContext } from '../../../../services/commands/types';
+} from '@/services/commands/definitions/studio';
+import { CommandContext } from '@/services/commands/types';
 
 describe('Studio Commands', () => {
     let context: CommandContext;

@@ -1,10 +1,10 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { X, Play, AlertCircle, ChevronDown, FlaskConical } from "lucide-react";
-import type { CommandDefinition, CommandArg } from "../../services/commands/types";
-import type { User } from "../../types";
-import { registry } from "../../services/commands/registry";
+import type { CommandDefinition, CommandArg } from "@/services/commands/types";
+import type { User } from "@/types";
+import { registry } from "@/services/commands/registry";
 import { DryRunReport } from "./DryRunReport";
-import type { DryRunJobResult } from "../../services/commands/dryRun";
+import type { DryRunJobResult } from "@/services/commands/dryRun";
 import "../../styles/components/command-prompt.css";
 
 /* ─── Types ──────────────────────────────────────────────────────────── */

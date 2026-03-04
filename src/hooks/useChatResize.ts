@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import type { ChatPosition } from "../context/ThemeContext";
+import type { ChatPosition } from "@/context/ThemeContext";
 
 /**
  * Hook for drag-to-resize behavior on the chat panel.

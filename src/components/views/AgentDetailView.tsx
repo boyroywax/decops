@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
-import type { Agent, Channel, Group, Message, Network, ViewId, NavContext, AieosEntity } from "../../types";
-import { ROLES, CHANNEL_TYPES } from "../../constants";
+import type { Agent, Channel, Group, Message, Network, ViewId, NavContext, AieosEntity } from "@/types";
+import { ROLES, CHANNEL_TYPES } from "@/constants";
 import {
   Users, Calendar, Trash2, Radio,
   MessageSquare, Key, FileText, Edit3, Check, X,
@@ -8,15 +8,15 @@ import {
   Brain, Sparkles, Compass, BookOpen, Heart, Mic,
   Shield, Target, Cpu,
 } from "lucide-react";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
-import { AgentChat } from "../chat/AgentChat";
-import { CopyableId } from "../shared/CopyableId";
-import { AgentPortrait } from "../shared/AgentPortrait";
-import { AgentTradingCard } from "../shared/AgentTradingCard";
-import { downloadAgentAieos, aieosToAgent, validateAieos } from "../../utils/aieos";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
+import { AgentChat } from "@/components/chat/AgentChat";
+import { CopyableId } from "@/components/shared/CopyableId";
+import { AgentPortrait } from "@/components/shared/AgentPortrait";
+import { AgentTradingCard } from "@/components/shared/AgentTradingCard";
+import { downloadAgentAieos, aieosToAgent, validateAieos } from "@/utils/aieos";
 import { AieosEditor } from "./AieosEditor";
-import { useLLM } from "../../context/LLMContext";
+import { useLLM } from "@/context/LLMContext";
 import "../../styles/components/agent-detail.css";
 
 interface AgentDetailViewProps {

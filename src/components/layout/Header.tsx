@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Hexagon, Zap, LogOut, Grid } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import type { ViewId } from "../../types";
-import { GemAvatar } from "../shared/GemAvatar";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import type { ViewId } from "@/types";
+import { GemAvatar } from "@/components/shared/GemAvatar";
 import { WorkspaceManagerModal } from "./WorkspaceManagerModal";
 import "../../styles/components/header.css";
 

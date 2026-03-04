@@ -1,6 +1,6 @@
-import type { Network, Bridge } from "../../../types";
+import type { Network, Bridge } from "@/types";
 import { Layers } from "lucide-react";
-import { EcosystemCanvas } from "../../canvas/EcosystemCanvas";
+import { EcosystemCanvas } from "@/components/canvas/EcosystemCanvas";
 
 interface TopologyPanelProps {
   ecosystems: Network[];

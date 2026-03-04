@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import type { Job, JobStatus, JobArtifact, JobRequest } from "../types";
+import type { Job, JobStatus, JobArtifact, JobRequest } from "@/types";
 
 export function useJobs() {
     const [jobs, setJobs] = useLocalStorage<Job[]>("decops_jobs", []);

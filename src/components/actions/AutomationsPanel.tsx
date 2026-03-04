@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { LayoutGrid, List, PlayCircle, Trash2, Edit, Clock, Activity, Zap } from "lucide-react";
-import { useAutomations } from "../../context/AutomationsContext";
-import { useStudioContext } from "../../context/StudioContext";
-import { AutomationCard } from "../automations/AutomationCard";
-import type { AutomationDefinition, DeclarativeAutomationDefinition } from "../../services/automations/types";
-import type { ViewId } from "../../types";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
+import { useAutomations } from "@/context/AutomationsContext";
+import { useStudioContext } from "@/context/StudioContext";
+import { AutomationCard } from "@/components/automations/AutomationCard";
+import type { AutomationDefinition, DeclarativeAutomationDefinition } from "@/services/automations/types";
+import type { ViewId } from "@/types";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 import "../../styles/components/automations-panel.css";
 
 interface AutomationsPanelProps {

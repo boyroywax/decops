@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
-import type { ViewId, NavContext } from "../types";
+import type { ViewId, NavContext } from "@/types";
 
 /** Map ViewId to URL path segment */
 const VIEW_TO_PATH: Record<string, string> = {

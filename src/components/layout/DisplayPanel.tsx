@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Monitor, Sun, Moon, Sunrise, ChevronsUp, ChevronsDown, PanelBottom, PanelLeft, PanelRight, Paintbrush, Plus, Trash2, Palette, Wrench, Image } from "lucide-react";
-import { useTheme, type Theme, type ChatPosition, type GraphicsPreset, GRAPHICS_PRESETS } from "../../context/ThemeContext";
-import { clearPortraitCache } from "../../services/portraitCache";
-import { getPortraitOptions, setPortraitOptions } from "../../services/imageGen";
+import { useTheme, type Theme, type ChatPosition, type GraphicsPreset, GRAPHICS_PRESETS } from "@/context/ThemeContext";
+import { clearPortraitCache } from "@/services/portraitCache";
+import { getPortraitOptions, setPortraitOptions } from "@/services/imageGen";
 import "../../styles/components/display-panel.css";
 
 interface DisplayPanelProps {

@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { Download, Upload, AlertTriangle, Database } from "lucide-react";
-import type { Agent, Channel, Group, Message, Network, Bridge } from "../../types";
+import type { Agent, Channel, Group, Message, Network, Bridge } from "@/types";
 import "../../styles/components/settings.css";
 
 interface SettingsViewProps {

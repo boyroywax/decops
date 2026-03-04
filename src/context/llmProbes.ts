@@ -2,7 +2,7 @@
  * LLM provider liveness probes — pure async functions
  */
 
-import type { ProviderId, LLMModel } from "../types/llm";
+import type { ProviderId, LLMModel } from "@/types/llm";
 
 export async function probeAnthropic(apiKey: string): Promise<boolean> {
   try {

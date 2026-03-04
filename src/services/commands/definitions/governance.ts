@@ -1,6 +1,6 @@
 
-import type { CommandDefinition, CommandContext } from "../types";
-import { getGroupModel } from "../../ai";
+import type { CommandDefinition, CommandContext } from "@/services/commands/types";
+import { getGroupModel } from "@/services/ai";
 
 /**
  * group_decide — Uses AI to facilitate group decision-making.

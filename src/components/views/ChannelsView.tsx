@@ -1,11 +1,11 @@
-import type { Agent, Channel, ChannelForm, ViewId, NavContext, Message, Network } from "../../types";
-import { CHANNEL_TYPES, ROLES } from "../../constants";
-import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar, PillButton } from "../shared/ui";
+import type { Agent, Channel, ChannelForm, ViewId, NavContext, Message, Network } from "@/types";
+import { CHANNEL_TYPES, ROLES } from "@/constants";
+import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar, PillButton } from "@/components/shared/ui";
 import { ArrowLeftRight, X, Globe } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { useBulkSelect } from "../../hooks/useBulkSelect";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { useBulkSelect } from "@/hooks/useBulkSelect";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 import "../../styles/components/channels.css";
 
 interface ChannelsViewProps {

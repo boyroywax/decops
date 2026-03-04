@@ -1,7 +1,7 @@
 
-import { AutomationDefinition } from "../types";
-import { CommandContext } from "../../commands/types";
-import { pingAgentCommand } from "../../commands/definitions/agent";
+import { AutomationDefinition } from "@/services/automations/types";
+import { CommandContext } from "@/services/commands/types";
+import { pingAgentCommand } from "@/services/commands/definitions/agent";
 
 export const healthCheckAutomation: AutomationDefinition = {
     type: "code",

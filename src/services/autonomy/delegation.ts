@@ -9,7 +9,7 @@
  * 5. Results flow back up the chain
  */
 
-import type { Agent, Network } from "../../types";
+import type { Agent, Network } from "@/types";
 import type {
   AgentTask,
   DelegationRequest,
@@ -17,7 +17,7 @@ import type {
   DelegationTarget,
   TaskEvent,
   EscalationLevel,
-} from "../../types/autonomy";
+} from "@/types/autonomy";
 import { rankAgentsForGoal, findBestGroupMember } from "./capability";
 
 /**

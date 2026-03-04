@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "../../types";
+import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "@/types";
 import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor } from "lucide-react";
-import type { ChatPosition } from "../../context/ThemeContext";
-import { ActionManager } from "../actions/ActionManager";
+import type { ChatPosition } from "@/context/ThemeContext";
+import { ActionManager } from "@/components/actions/ActionManager";
 import { ArtifactsPanel } from "./ArtifactsPanel";
 import { LLMManager } from "./LLMManager";
 import { DisplayPanel } from "./DisplayPanel";
-import { useLLM, type LivenessStatus } from "../../context/LLMContext";
-import { useEditorContext } from "../../context/EditorContext";
+import { useLLM, type LivenessStatus } from "@/context/LLMContext";
+import { useEditorContext } from "@/context/EditorContext";
 import "../../styles/components/footer.css";
 import "../../styles/components/llm-manager.css";
 

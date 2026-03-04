@@ -3,8 +3,8 @@
  * input bindings, and output mappings.
  */
 
-import { CommandDefinition } from "../types";
-import { registry } from "../registry";
+import { CommandDefinition } from "@/services/commands/types";
+import { registry } from "@/services/commands/registry";
 
 // ────────────────────────────────────────────────────
 // Step Operations

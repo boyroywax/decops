@@ -1,7 +1,7 @@
 import { Globe, ArrowLeftRight, Hexagon, GitBranch, Sparkles } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, NETWORK_COLORS } from "../../constants";
-import type { MeshConfig } from "../../types";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, NETWORK_COLORS } from "@/constants";
+import type { MeshConfig } from "@/types";
 
 interface PreviewContentProps {
   preview: MeshConfig;

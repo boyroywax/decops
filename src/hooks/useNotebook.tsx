@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Settings } from "lucide-react";
-import type { NotebookEntry, NotebookCategory } from "../types";
+import type { NotebookEntry, NotebookCategory } from "@/types";
 
 const STORAGE_KEY = "decops_notebook";
 const MAX_ENTRIES = 500;

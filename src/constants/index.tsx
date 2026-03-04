@@ -6,8 +6,8 @@ import {
   Dna, Palette, Siren, Rocket,
   GitBranch, Network,
 } from "lucide-react";
-import { GradientIcon } from "../components/shared/GradientIcon";
-import type { Role, ChannelType, GovernanceModel, PromptTemplate, ScenarioPreset } from "../types";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import type { Role, ChannelType, GovernanceModel, PromptTemplate, ScenarioPreset } from "@/types";
 
 export const ROLES: Role[] = [
   { id: "researcher", label: "Researcher", char: "R", icon: <GradientIcon icon={Microscope} size={16} gradient={["#00e5a0", "#34d399"]} />, color: "#00e5a0" },

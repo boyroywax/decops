@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import type { JobDefinition } from "../types";
-import { seedCatalogJobs, isSeedJob } from "../services/jobs/seedCatalog";
+import type { JobDefinition } from "@/types";
+import { seedCatalogJobs, isSeedJob } from "@/services/jobs/seedCatalog";
 
 export function useJobCatalog() {
     const [userJobs, setUserJobs] = useLocalStorage<JobDefinition[]>("decops_job_catalog", []);

@@ -2,7 +2,7 @@
  * Studio Resource Commands — Deliverables, Storage defaults, and Entity Inputs.
  */
 
-import { CommandDefinition } from "../types";
+import { CommandDefinition } from "@/services/commands/types";
 
 // ────────────────────────────────────────────────────
 // Deliverables

@@ -16,8 +16,8 @@ import {
   FlaskConical,
   Info,
 } from "lucide-react";
-import type { DryRunJobResult, DryRunStepResult, DryRunCheck, CheckStatus } from "../../services/commands/dryRun";
-import type { CommandError } from "../../services/commands/commandErrors";
+import type { DryRunJobResult, DryRunStepResult, DryRunCheck, CheckStatus } from "@/services/commands/dryRun";
+import type { CommandError } from "@/services/commands/commandErrors";
 import "../../styles/components/dry-run-report.css";
 
 /* ─── Status helpers ─────────────────────────────────────────────────── */

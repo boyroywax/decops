@@ -1,4 +1,4 @@
-import { CommandDefinition } from "../types";
+import { CommandDefinition } from "@/services/commands/types";
 
 export const resetWorkspaceCommand: CommandDefinition = {
     id: "reset_workspace",

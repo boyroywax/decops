@@ -1,4 +1,4 @@
-import type { NotebookCategory } from "../../types";
+import type { NotebookCategory } from "@/types";
 import { CATEGORY_META } from "./utils";
 import "../../styles/components/activity-filter.css";
 

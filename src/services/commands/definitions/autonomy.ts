@@ -14,7 +14,7 @@
  *  - execute_proposal     — execute an approved consensus proposal
  */
 
-import type { CommandDefinition, CommandContext } from "../types";
+import type { CommandDefinition, CommandContext } from "@/services/commands/types";
 import {
   createTask,
   executeTask,
@@ -23,9 +23,9 @@ import {
   runIdeationSession,
   buildAgentProposal,
   deliberate,
-} from "../../autonomy";
-import type { Agent } from "../../../types";
-import type { ConsensusProposal, AgentSpec, WorkflowSpec, EcosystemChangeSpec } from "../../../types/autonomy";
+} from "@/services/autonomy";
+import type { Agent } from "@/types";
+import type { ConsensusProposal, AgentSpec, WorkflowSpec, EcosystemChangeSpec } from "@/types/autonomy";
 
 // ── assign_task ────────────────────────────────────
 

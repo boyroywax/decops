@@ -1,8 +1,8 @@
 import React from "react";
-import { CommandArg, CommandArgType } from "../../services/commands/types";
-import { useWorkspaceContext } from "../../context/WorkspaceContext";
-import { useEcosystemContext } from "../../context/EcosystemContext";
-import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
+import { CommandArg, CommandArgType } from "@/services/commands/types";
+import { useWorkspaceContext } from "@/context/WorkspaceContext";
+import { useEcosystemContext } from "@/context/EcosystemContext";
+import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
 import "../../styles/components/command-arg-input.css";
 
 interface CommandArgInputProps {

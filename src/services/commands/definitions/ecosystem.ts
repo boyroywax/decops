@@ -1,11 +1,11 @@
 
-import type { CommandDefinition, CommandContext } from "../types";
-import type { RoleId } from "../../../types";
-import { generateNetworkDID } from "../../../utils/identity";
-import { generateMeshConfig } from "../../ai";
-import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, GROUP_COLORS, NETWORK_COLORS } from "../../../constants";
-import { generateDID, generateKeyPair, generateGroupDID } from "../../../utils/identity";
-import { createAieosEntity } from "../../../utils/aieos";
+import type { CommandDefinition, CommandContext } from "@/services/commands/types";
+import type { RoleId } from "@/types";
+import { generateNetworkDID } from "@/utils/identity";
+import { generateMeshConfig } from "@/services/ai";
+import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, GROUP_COLORS, NETWORK_COLORS } from "@/constants";
+import { generateDID, generateKeyPair, generateGroupDID } from "@/utils/identity";
+import { createAieosEntity } from "@/utils/aieos";
 
 export const createNetworkCommand: CommandDefinition = {
     id: "create_network",

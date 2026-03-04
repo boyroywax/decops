@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
-import { registry } from "../../services/commands/registry";
-import type { CommandDefinition } from "../../services/commands/types";
+import { registry } from "@/services/commands/registry";
+import type { CommandDefinition } from "@/services/commands/types";
 
 interface CommandRibbonProps {
     onAddStep: (commandId: string) => void;

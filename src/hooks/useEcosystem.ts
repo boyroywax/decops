@@ -3,10 +3,10 @@ import { useLocalStorage } from "./useLocalStorage";
 import type {
   Agent, Channel, Group, Message, Network, Bridge,
   BridgeMessage, BridgeForm, ViewId, Ecosystem,
-} from "../types";
-import { ROLES, CHANNEL_TYPES, NETWORK_COLORS } from "../constants";
-import { generateNetworkDID, generateEcosystemDID } from "../utils/identity";
-import { callAgentAI } from "../services/ai";
+} from "@/types";
+import { ROLES, CHANNEL_TYPES, NETWORK_COLORS } from "@/constants";
+import { generateNetworkDID, generateEcosystemDID } from "@/utils/identity";
+import { callAgentAI } from "@/services/ai";
 
 interface UseEcosystemDeps {
   addLog: (msg: string) => void;

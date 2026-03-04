@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import type { ViewId, Network, Message, BridgeMessage } from "../../types";
+import type { ViewId, Network, Message, BridgeMessage } from "@/types";
 import type { LucideIcon } from "lucide-react";
 import {
   Sparkles, Globe, Bot, ArrowLeftRight,
@@ -7,7 +7,7 @@ import {
   ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
   Activity, Zap, FileText, ChevronDown, Layers,
 } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
+import { GradientIcon } from "@/components/shared/GradientIcon";
 import "../../styles/components/sidebar.css";
 
 interface SidebarProps {

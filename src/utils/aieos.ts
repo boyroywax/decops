@@ -10,8 +10,8 @@ import type {
   Agent, RoleId, AieosEntity, AieosSkill,
   AieosIdentity, AieosPhysicality, AieosPsychology, AieosLinguistics,
   AieosMotivations, AieosInterests, AieosHistory,
-} from "../types";
-import { ROLES } from "../constants";
+} from "@/types";
+import { ROLES } from "@/constants";
 
 const AIEOS_SCHEMA_URL = "https://aieos.org/schema/v1.1/aieos.schema.json";
 

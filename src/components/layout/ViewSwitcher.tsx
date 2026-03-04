@@ -1,21 +1,21 @@
-import type { ViewId, NavContext } from "../../types";
-import { NetworksView } from "../views/NetworksView";
-import { NetworkDetailView } from "../views/NetworkDetailView";
-import { GroupDetailView } from "../views/GroupDetailView";
-import { AgentDetailView } from "../views/AgentDetailView";
-import { AgentsView } from "../views/AgentsView";
-import { ChannelsView } from "../views/ChannelsView";
-import { ChannelDetailView } from "../views/ChannelDetailView";
-import { GroupsView } from "../views/GroupsView";
-import { MessagesView } from "../views/MessagesView";
-import { NetworkView } from "../views/NetworkView";
-import { ArtifactsView } from "../views/ArtifactsView";
-import { ActivityView } from "../views/ActivityView";
-import { StudioView } from "../views/StudioView";
-import { EditorView } from "../views/EditorView";
-import { ErrorBoundary } from "../shared/ErrorBoundary";
+import type { ViewId, NavContext } from "@/types";
+import { NetworksView } from "@/components/views/NetworksView";
+import { NetworkDetailView } from "@/components/views/NetworkDetailView";
+import { GroupDetailView } from "@/components/views/GroupDetailView";
+import { AgentDetailView } from "@/components/views/AgentDetailView";
+import { AgentsView } from "@/components/views/AgentsView";
+import { ChannelsView } from "@/components/views/ChannelsView";
+import { ChannelDetailView } from "@/components/views/ChannelDetailView";
+import { GroupsView } from "@/components/views/GroupsView";
+import { MessagesView } from "@/components/views/MessagesView";
+import { NetworkView } from "@/components/views/NetworkView";
+import { ArtifactsView } from "@/components/views/ArtifactsView";
+import { ActivityView } from "@/components/views/ActivityView";
+import { StudioView } from "@/components/views/StudioView";
+import { EditorView } from "@/components/views/EditorView";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { Breadcrumb } from "./Breadcrumb";
-import type { WorkspaceContextType } from "../../context/WorkspaceContext";
+import type { WorkspaceContextType } from "@/context/WorkspaceContext";
 
 interface ViewSwitcherProps {
     view: ViewId;

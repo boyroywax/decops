@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import type { Agent, NewAgentForm, JobRequest } from "../types";
+import type { Agent, NewAgentForm, JobRequest } from "@/types";
 
 export function useAgents(addJob: (job: JobRequest) => void) {
     const [agents, setAgents] = useLocalStorage<Agent[]>("decops_agents", []);

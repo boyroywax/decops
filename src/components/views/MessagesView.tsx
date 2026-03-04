@@ -1,13 +1,13 @@
 import type { RefObject } from "react";
 import { useState, useMemo, useCallback } from "react";
-import type { Agent, Channel, Group, Message, Network, Bridge, BridgeMessage, JobArtifact, ViewId } from "../../types";
+import type { Agent, Channel, Group, Message, Network, Bridge, BridgeMessage, JobArtifact, ViewId } from "@/types";
 import { MessageSquare, ArrowLeftRight, Hexagon, X, Link2, Globe, FileText, FileJson, FileCode, Image, FileSpreadsheet, File } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { MarkdownContent } from "../shared/MarkdownContent";
-import { ROLES, CHANNEL_TYPES } from "../../constants";
-import { SectionTitle, BulkCheckbox, BulkActionBar } from "../shared/ui";
-import { useBulkSelect } from "../../hooks/useBulkSelect";
-import { extractArtifactRefs, buildArtifactMap } from "../../utils/artifactRefs";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { MarkdownContent } from "@/components/shared/MarkdownContent";
+import { ROLES, CHANNEL_TYPES } from "@/constants";
+import { SectionTitle, BulkCheckbox, BulkActionBar } from "@/components/shared/ui";
+import { useBulkSelect } from "@/hooks/useBulkSelect";
+import { extractArtifactRefs, buildArtifactMap } from "@/utils/artifactRefs";
 import "../../styles/components/messages.css";
 
 interface MessagesViewProps {

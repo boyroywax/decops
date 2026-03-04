@@ -1,6 +1,6 @@
 
-import type { RoleId, JobRequest, JobDeliverable } from "../../types";
-import type { StudioAPI } from "../../context/StudioContext";
+import type { RoleId, JobRequest, JobDeliverable } from "@/types";
+import type { StudioAPI } from "@/context/StudioContext";
 
 export type CommandArgType = "string" | "number" | "boolean" | "object" | "array" | "group" | "agent" | "channel" | "network" | "workspace";
 

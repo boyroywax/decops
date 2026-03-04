@@ -1,11 +1,11 @@
-import type { Agent, Channel, Message, Network, ViewId, NavContext } from "../../types";
-import { CHANNEL_TYPES, ROLES } from "../../constants";
+import type { Agent, Channel, Message, Network, ViewId, NavContext } from "@/types";
+import { CHANNEL_TYPES, ROLES } from "@/constants";
 import { Radio, Calendar, ArrowLeftRight, MessageSquare, Globe, Zap, Users, Clock, Trash2 } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { CopyableId } from "../shared/CopyableId";
-import { MarkdownContent } from "../shared/MarkdownContent";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { CopyableId } from "@/components/shared/CopyableId";
+import { MarkdownContent } from "@/components/shared/MarkdownContent";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 import "../../styles/components/channel-detail.css";
 
 interface ChannelDetailViewProps {

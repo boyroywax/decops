@@ -4,11 +4,11 @@
  * This was a ~250-line block inside the StudioView component's `useEffect`.
  * Extracted to keep StudioView focused on state + UI.
  */
-import { registry } from "../services/commands/registry";
-import type { StudioAPI, StudioState } from "../context/StudioContext";
-import type { JobDefinition, JobDeliverable, EntityInput, JobTrigger } from "../types";
-import type { StudioStep, OutputMapping, InputBinding } from "../types/studio";
-import { isParallelGroup } from "../types/studio";
+import { registry } from "@/services/commands/registry";
+import type { StudioAPI, StudioState } from "@/context/StudioContext";
+import type { JobDefinition, JobDeliverable, EntityInput, JobTrigger } from "@/types";
+import type { StudioStep, OutputMapping, InputBinding } from "@/types/studio";
+import { isParallelGroup } from "@/types/studio";
 import { buildJobDefFromRefs } from "./studioJobBuilder";
 
 export interface StudioRefs {

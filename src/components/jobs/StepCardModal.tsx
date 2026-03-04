@@ -37,13 +37,13 @@ import {
   Tag,
   Plus,
 } from "lucide-react";
-import { registry } from "../../services/commands/registry";
-import { useLLM } from "../../context/LLMContext";
-import { CommandArgInput } from "../automations/CommandArgInput";
-import type { StudioStep, OutputMapping, InputBinding } from "../views/StudioView";
-import type { LLMModel } from "../../context/LLMContext";
-import type { CommandArgType } from "../../services/commands/types";
-import type { JobDeliverable, EntityInput } from "../../types";
+import { registry } from "@/services/commands/registry";
+import { useLLM } from "@/context/LLMContext";
+import { CommandArgInput } from "@/components/automations/CommandArgInput";
+import type { StudioStep, OutputMapping, InputBinding } from "@/components/views/StudioView";
+import type { LLMModel } from "@/context/LLMContext";
+import type { CommandArgType } from "@/services/commands/types";
+import type { JobDeliverable, EntityInput } from "@/types";
 import "../../styles/components/step-card-modal.css";
 
 /* ═══════════════════════════════════════════════════════════════════════════

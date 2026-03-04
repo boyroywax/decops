@@ -1,5 +1,5 @@
-import { createArtifactCommand, editArtifactCommand, deleteArtifactCommand, listArtifactsCommand, searchArtifactsCommand, tagArtifactCommand } from '../../../../services/commands/definitions/artifact';
-import { CommandContext } from '../../../../services/commands/types';
+import { createArtifactCommand, editArtifactCommand, deleteArtifactCommand, listArtifactsCommand, searchArtifactsCommand, tagArtifactCommand } from '@/services/commands/definitions/artifact';
+import { CommandContext } from '@/services/commands/types';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 describe('Artifact Commands', () => {

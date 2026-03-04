@@ -1,6 +1,6 @@
 import { Bot, Sparkles } from "lucide-react";
-import { useWorkspaceContext } from "../../context/WorkspaceContext";
-import type { ViewId } from "../../types";
+import { useWorkspaceContext } from "@/context/WorkspaceContext";
+import type { ViewId } from "@/types";
 
 interface DoneContentProps {
   onNavigate: (v: ViewId) => void;

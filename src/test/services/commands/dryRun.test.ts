@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { dryRunCommand, dryRunJob } from '../../../services/commands/dryRun';
-import type { CommandDefinition } from '../../../services/commands/types';
-import { CommandRegistry } from '../../../services/commands/registry';
+import { dryRunCommand, dryRunJob } from '@/services/commands/dryRun';
+import type { CommandDefinition } from '@/services/commands/types';
+import { CommandRegistry } from '@/services/commands/registry';
 
 /* ─── Fixtures ───────────────────────────────────────────────────────── */
 

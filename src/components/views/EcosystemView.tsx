@@ -2,16 +2,16 @@ import type { RefObject } from "react";
 import type {
   Agent, Channel, Group, Network, Bridge,
   BridgeMessage, BridgeForm, ViewId,
-} from "../../types";
-import { ROLES, CHANNEL_TYPES } from "../../constants";
-import { SectionTitle, PillButton } from "../shared/ui";
+} from "@/types";
+import { ROLES, CHANNEL_TYPES } from "@/constants";
+import { SectionTitle, PillButton } from "@/components/shared/ui";
 import { Globe, ArrowLeftRight, X, Sparkles } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { MarkdownContent } from "../shared/MarkdownContent";
-import { EcosystemCanvas } from "../canvas/EcosystemCanvas";
-import { CopyableId } from "../shared/CopyableId";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { MarkdownContent } from "@/components/shared/MarkdownContent";
+import { EcosystemCanvas } from "@/components/canvas/EcosystemCanvas";
+import { CopyableId } from "@/components/shared/CopyableId";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 import "../../styles/components/ecosystem.css";
 
 interface EcosystemViewProps {

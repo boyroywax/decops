@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { assessAgent, rankAgentsForGoal, findBestGroupMember, identifyGaps } from "../../../services/autonomy/capability";
-import type { Agent } from "../../../types";
+import { assessAgent, rankAgentsForGoal, findBestGroupMember, identifyGaps } from "@/services/autonomy/capability";
+import type { Agent } from "@/types";
 
 // Mock the registry so tests don't depend on init state
 vi.mock("../../../services/commands/registry", () => {

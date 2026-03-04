@@ -1,5 +1,5 @@
 
-import { CommandContext } from "../commands/types";
+import { CommandContext } from "@/services/commands/types";
 
 export interface AutomationLog {
     id?: string;

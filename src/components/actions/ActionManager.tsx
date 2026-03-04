@@ -4,13 +4,13 @@ import { ActionsMonitor } from "./ActionsMonitor";
 import { AutomationsPanel } from "./AutomationsPanel";
 import { HistoryPanel } from "./HistoryPanel";
 import { CommandsPanel } from "./CommandsPanel";
-import { JobCatalog } from "../jobs/JobCatalog";
-import { useJobsContext } from "../../context/JobsContext";
-import { useAutomations } from "../../context/AutomationsContext";
-import { useEcosystemContext } from "../../context/EcosystemContext";
-import { useWorkspaceContext } from "../../context/WorkspaceContext";
-import { useStudioContext } from "../../context/StudioContext";
-import { JobDefinition, ViewId } from "../../types";
+import { JobCatalog } from "@/components/jobs/JobCatalog";
+import { useJobsContext } from "@/context/JobsContext";
+import { useAutomations } from "@/context/AutomationsContext";
+import { useEcosystemContext } from "@/context/EcosystemContext";
+import { useWorkspaceContext } from "@/context/WorkspaceContext";
+import { useStudioContext } from "@/context/StudioContext";
+import { JobDefinition, ViewId } from "@/types";
 import "../../styles/components/action-manager.css";
 
 interface ActionManagerProps {

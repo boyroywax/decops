@@ -28,10 +28,10 @@ import {
   Network,
   Globe,
 } from "lucide-react";
-import type { CommandDefinition, CommandArg, CommandArgType } from "../../services/commands/types";
-import { getCommandErrors } from "../../services/commands/commandErrors";
-import { useLLM } from "../../context/LLMContext";
-import { useWorkspaceContext } from "../../context/WorkspaceContext";
+import type { CommandDefinition, CommandArg, CommandArgType } from "@/services/commands/types";
+import { getCommandErrors } from "@/services/commands/commandErrors";
+import { useLLM } from "@/context/LLMContext";
+import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import "../../styles/components/command-card-modal.css";
 
 /* ═══════════════════════════════════════════════════════════════════════════

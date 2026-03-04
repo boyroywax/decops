@@ -12,7 +12,7 @@
 
 import { getCommandErrors, type CommandError } from "./commandErrors";
 import type { CommandDefinition, CommandArg } from "./types";
-import type { JobStep } from "../../types";
+import type { JobStep } from "@/types";
 
 /* ─── Result Types ───────────────────────────────────────────────────── */
 

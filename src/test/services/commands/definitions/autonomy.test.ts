@@ -9,7 +9,7 @@ import {
   proposeAgentCommand,
   executeProposalCommand,
   autonomyCommands,
-} from "../../../../services/commands/definitions/autonomy";
+} from "@/services/commands/definitions/autonomy";
 
 describe("autonomy command definitions", () => {
   it("exports all 8 commands", () => {

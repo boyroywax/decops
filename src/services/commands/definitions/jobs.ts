@@ -1,4 +1,4 @@
-import { CommandDefinition } from "../types";
+import { CommandDefinition } from "@/services/commands/types";
 
 // --- Queue Management ---
 

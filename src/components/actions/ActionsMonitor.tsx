@@ -1,13 +1,13 @@
 import React, { useState } from "react";
-import { useJobsContext } from "../../context/JobsContext";
+import { useJobsContext } from "@/context/JobsContext";
 import {
     CheckCircle, Clock, AlertCircle, Timer,
     ChevronDown, ChevronUp, Terminal, FileText,
     Database, Package, Layers, Loader,
     StopCircle, GitFork,
 } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { CopyableId } from "../shared/CopyableId";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { CopyableId } from "@/components/shared/CopyableId";
 import { formatDuration, renderRequestParams, RECENT_OPTIONS } from "./monitorUtils";
 import { StepRow, buildStepTree } from "./MonitorStepTree";
 import "../../styles/components/actions-monitor.css";

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useEcosystem } from '../../hooks/useEcosystem';
+import { useEcosystem } from '@/hooks/useEcosystem';
 
 describe('useEcosystem', () => {
     const mockDeps = {

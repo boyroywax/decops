@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Key, CheckCircle, Rocket, Globe, Lightbulb } from 'lucide-react';
-import { GradientIcon } from "../shared/GradientIcon";
-import { useAuth } from '../../context/AuthContext';
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { useAuth } from '@/context/AuthContext';
 import '../../styles/components/login.css';
 
 export function LoginView() {

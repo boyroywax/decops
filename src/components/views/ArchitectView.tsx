@@ -1,7 +1,7 @@
 
-import type { MeshConfig, ArchPhase, DeployProgress, ViewId } from "../../types";
+import type { MeshConfig, ArchPhase, DeployProgress, ViewId } from "@/types";
 import { Sparkles } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
+import { GradientIcon } from "@/components/shared/GradientIcon";
 import { ArchitectInput } from "./architect/ArchitectInput";
 import { ArchitectPreview } from "./architect/ArchitectPreview";
 import { ArchitectDeploying } from "./architect/ArchitectDeploying";

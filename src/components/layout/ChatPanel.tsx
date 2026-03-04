@@ -1,27 +1,27 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3, Eye } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "../../services/ai";
-import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "../../services/ai";
-import { useLLM } from "../../context/LLMContext";
-import MessageBubble from "../chat/MessageBubble";
-import { makeId } from "../chat/utils";
-import type { Conversation } from "../chat/types";
-import { useCommandContext } from "../../hooks/useCommandContext";
-import { useJobsContext } from "../../context/JobsContext";
-import { useArchitect } from "../../hooks/useArchitect";
-import { useEcosystem } from "../../hooks/useEcosystem"; // This might not be needed if ecosystem is passed as prop
-import { useAuth } from "../../context/AuthContext";
-import { registry as commandRegistry } from "../../services/commands/registry";
-import type { CommandDefinition } from "../../services/commands/types";
-import { CommandPrompt } from "../actions/CommandPrompt";
-import { useWorkspaceContext } from "../../context/WorkspaceContext";
-import { useStudioContext } from "../../context/StudioContext";
-import { useEditorContext } from "../../context/EditorContext";
-import type { ChatPosition } from "../../context/ThemeContext";
-import type { ViewId, JobStep } from "../../types";
-import { useConversations } from "../../hooks/useConversations";
-import { useChatResize } from "../../hooks/useChatResize";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "@/services/ai";
+import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "@/services/ai";
+import { useLLM } from "@/context/LLMContext";
+import MessageBubble from "@/components/chat/MessageBubble";
+import { makeId } from "@/components/chat/utils";
+import type { Conversation } from "@/components/chat/types";
+import { useCommandContext } from "@/hooks/useCommandContext";
+import { useJobsContext } from "@/context/JobsContext";
+import { useArchitect } from "@/hooks/useArchitect";
+import { useEcosystem } from "@/hooks/useEcosystem"; // This might not be needed if ecosystem is passed as prop
+import { useAuth } from "@/context/AuthContext";
+import { registry as commandRegistry } from "@/services/commands/registry";
+import type { CommandDefinition } from "@/services/commands/types";
+import { CommandPrompt } from "@/components/actions/CommandPrompt";
+import { useWorkspaceContext } from "@/context/WorkspaceContext";
+import { useStudioContext } from "@/context/StudioContext";
+import { useEditorContext } from "@/context/EditorContext";
+import type { ChatPosition } from "@/context/ThemeContext";
+import type { ViewId, JobStep } from "@/types";
+import { useConversations } from "@/hooks/useConversations";
+import { useChatResize } from "@/hooks/useChatResize";
 import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {

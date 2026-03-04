@@ -1,7 +1,7 @@
-import { CommandDefinition } from "../types";
-import { Group, Channel } from "../../../types";
-import { generateGroupDID } from "../../../utils/identity";
-import { GROUP_COLORS } from "../../../constants";
+import { CommandDefinition } from "@/services/commands/types";
+import { Group, Channel } from "@/types";
+import { generateGroupDID } from "@/utils/identity";
+import { GROUP_COLORS } from "@/constants";
 
 export const createGroupCommand: CommandDefinition = {
     id: "create_group",

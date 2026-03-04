@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import type { NotebookEntry } from "../../types";
+import type { NotebookEntry } from "@/types";
 import { dayKey } from "./utils";
 import { ActivityItem } from "./ActivityItem";
-import { GradientIcon } from "../shared/GradientIcon";
+import { GradientIcon } from "@/components/shared/GradientIcon";
 import { Zap, Edit } from "lucide-react";
 import "../../styles/components/activity-list.css";
 

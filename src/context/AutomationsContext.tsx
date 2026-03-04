@@ -1,10 +1,10 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { AutomationDefinition, AutomationRun } from "../services/automations/types";
+import { AutomationDefinition, AutomationRun } from "@/services/automations/types";
 // Update imports to include unregisterAutomation
-import { registerAutomation, getAllAutomations, unregisterAutomation } from "../services/automations/registry";
-import { AutomationRunner } from "../services/automations/runner";
-import { healthCheckAutomation } from "../services/automations/definitions/healthCheck";
+import { registerAutomation, getAllAutomations, unregisterAutomation } from "@/services/automations/registry";
+import { AutomationRunner } from "@/services/automations/runner";
+import { healthCheckAutomation } from "@/services/automations/definitions/healthCheck";
 
 
 // 1. Initial Registration
@@ -41,7 +41,7 @@ export const AutomationsProvider = ({ children, addLog }: { children: ReactNode,
 // Split into Inner to use hooks
 import { useWorkspaceContext } from "./WorkspaceContext";
 import { useJobsContext } from "./JobsContext";
-import { CommandContext } from "../services/commands/types";
+import { CommandContext } from "@/services/commands/types";
 
 // Mock or import other contexts if needed
 // For now I'll implement a basic version

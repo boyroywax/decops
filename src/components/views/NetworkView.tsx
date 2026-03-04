@@ -1,7 +1,7 @@
-import type { Agent, Channel, Group } from "../../types";
-import { NetworkCanvas } from "../canvas/NetworkCanvas";
+import type { Agent, Channel, Group } from "@/types";
+import { NetworkCanvas } from "@/components/canvas/NetworkCanvas";
 import { Share2 } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
+import { GradientIcon } from "@/components/shared/GradientIcon";
 
 interface NetworkViewProps {
   agents: Agent[];

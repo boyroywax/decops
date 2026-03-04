@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
-import type { User, AuthState, EmailValidation } from '../types';
-import { authService, emailRegistrationService, emailValidationService } from '../services/credebl';
+import type { User, AuthState, EmailValidation } from '@/types';
+import { authService, emailRegistrationService, emailValidationService } from '@/services/credebl';
 
 // Action types
 type AuthAction =

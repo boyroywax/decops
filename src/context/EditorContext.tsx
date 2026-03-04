@@ -9,7 +9,7 @@
  */
 
 import { createContext, useContext, useState, useCallback, useRef, ReactNode } from "react";
-import type { JobArtifact } from "../types";
+import type { JobArtifact } from "@/types";
 
 /** Snapshot of the editor's current state */
 export interface EditorState {

@@ -4,7 +4,7 @@
  * Extracted to eliminate duplication across serial / parallel / mixed modes.
  */
 
-import type { CommandContext } from "../services/commands/types";
+import type { CommandContext } from "@/services/commands/types";
 
 // ── Reference Resolution ──────────────────────────
 

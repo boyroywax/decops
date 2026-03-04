@@ -1,15 +1,15 @@
 import { useState } from "react";
-import type { Agent, Group, Network, ViewId, NavContext } from "../../types";
-import { ROLES, GOVERNANCE_MODELS } from "../../constants";
+import type { Agent, Group, Network, ViewId, NavContext } from "@/types";
+import { ROLES, GOVERNANCE_MODELS } from "@/constants";
 import {
   Users, Calendar, Trash2, Radio, Cpu, ChevronDown, X,
 } from "lucide-react";
-import { CopyableId } from "../shared/CopyableId";
-import { GroupBadge } from "../shared/GroupBadge";
-import { GroupTradingCard } from "../shared/GroupTradingCard";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
-import { useLLM } from "../../context/LLMContext";
+import { CopyableId } from "@/components/shared/CopyableId";
+import { GroupBadge } from "@/components/shared/GroupBadge";
+import { GroupTradingCard } from "@/components/shared/GroupTradingCard";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
+import { useLLM } from "@/context/LLMContext";
 import "../../styles/components/group-detail.css";
 
 interface GroupDetailViewProps {

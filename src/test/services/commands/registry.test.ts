@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { CommandRegistry } from '../../../services/commands/registry';
-import { CommandDefinition } from '../../../services/commands/types';
+import { CommandRegistry } from '@/services/commands/registry';
+import { CommandDefinition } from '@/services/commands/types';
 
 describe('CommandRegistry', () => {
     let registry: CommandRegistry;

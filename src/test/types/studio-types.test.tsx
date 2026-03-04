@@ -15,12 +15,12 @@ import type {
     JobTrigger,
     EntityInput,
     JobDefinition,
-} from '../../types';
+} from '@/types';
 import {
     PARALLEL_GROUP_CMD,
     isParallelGroup,
-} from '../../components/views/StudioView';
-import type { StudioStep } from '../../components/views/StudioView';
+} from '@/components/views/StudioView';
+import type { StudioStep } from '@/components/views/StudioView';
 
 // ────────────────────────────────────────────────────
 // InputSourceKind

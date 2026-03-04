@@ -1,6 +1,6 @@
-import { CommandDefinition } from "../types";
-import { Message } from "../../../types";
-import { callAgentAI } from "../../ai";
+import { CommandDefinition } from "@/services/commands/types";
+import { Message } from "@/types";
+import { callAgentAI } from "@/services/ai";
 
 export const broadcastMessageCommand: CommandDefinition = {
     id: "broadcast_message",

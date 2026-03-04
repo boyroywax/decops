@@ -1,9 +1,9 @@
 import { Settings, Package, Database, Tag, ArrowRightLeft, Plus, X, Link, Unlink, Cpu } from "lucide-react";
-import { registry } from "../../services/commands/registry";
-import { CommandArgInput } from "../automations/CommandArgInput";
-import type { StudioStep, SelectedElement, OutputMapping, InputBinding } from "../views/StudioView";
-import type { JobDeliverable, ArtifactType, EntityInput } from "../../types";
-import type { LLMModel } from "../../context/LLMContext";
+import { registry } from "@/services/commands/registry";
+import { CommandArgInput } from "@/components/automations/CommandArgInput";
+import type { StudioStep, SelectedElement, OutputMapping, InputBinding } from "@/components/views/StudioView";
+import type { JobDeliverable, ArtifactType, EntityInput } from "@/types";
+import type { LLMModel } from "@/context/LLMContext";
 
 const ARTIFACT_TYPES: ArtifactType[] = ["markdown", "json", "yaml", "csv", "image", "code", "txt"];
 const ENTITY_INPUT_TYPES: EntityInput["type"][] = ["agent", "channel", "group", "network", "text", "number_range", "list"];

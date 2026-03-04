@@ -8,8 +8,8 @@
 
 import { useRef } from "react";
 import { X, Shield, Brain, Heart, Sparkles, Star, Zap, Globe, Microscope, Package } from "lucide-react";
-import type { Agent, RoleId } from "../../types";
-import { ROLES } from "../../constants";
+import type { Agent, RoleId } from "@/types";
+import { ROLES } from "@/constants";
 import { AgentPortrait } from "./AgentPortrait";
 import { CopyableId } from "./CopyableId";
 

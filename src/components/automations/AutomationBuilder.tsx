@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { DeclarativeAutomationDefinition, AutomationStep } from "../../services/automations/types";
-import { registry } from "../../services/commands/registry";
+import { DeclarativeAutomationDefinition, AutomationStep } from "@/services/automations/types";
+import { registry } from "@/services/commands/registry";
 import { CommandArgInput } from "./CommandArgInput";
-import { useAutomations } from "../../context/AutomationsContext";
+import { useAutomations } from "@/context/AutomationsContext";
 import "../../styles/components/automation-builder.css";
 
 interface AutomationBuilderProps {

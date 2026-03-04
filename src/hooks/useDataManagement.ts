@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { Agent, Channel, Group, Message, Network, Bridge } from "../types";
+import type { Agent, Channel, Group, Message, Network, Bridge } from "@/types";
 
 interface DataManagementDeps {
   agents: Agent[];

@@ -1,8 +1,8 @@
 
-import { CommandContext } from "../commands/types";
+import { CommandContext } from "@/services/commands/types";
 import { AutomationDefinition, AutomationRun } from "./types";
 import { getAutomation } from "./registry";
-import { chatWithWorkspace, ChatMessage } from "../ai";
+import { chatWithWorkspace, ChatMessage } from "@/services/ai";
 
 export class AutomationRunner {
     private context: CommandContext;

@@ -3,10 +3,10 @@
  * task, based on role, AIEOS skills, allowed commands, and semantic relevance.
  */
 
-import type { Agent } from "../../types";
-import type { AgentCapability } from "../../types/autonomy";
-import { registry } from "../commands/registry";
-import { ROLES } from "../../constants";
+import type { Agent } from "@/types";
+import type { AgentCapability } from "@/types/autonomy";
+import { registry } from "@/services/commands/registry";
+import { ROLES } from "@/constants";
 
 /** Extract capabilities for a single agent */
 export function assessAgent(agent: Agent): AgentCapability {

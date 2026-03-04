@@ -1,27 +1,27 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Play, Save, FolderOpen, Plus, X, Package, Database, Tag, GitFork, Zap } from "lucide-react";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
-import { registry } from "../../services/commands/registry";
-import { JobCanvas } from "../jobs/JobCanvas";
-import { StepCardModal } from "../jobs/StepCardModal";
-import { NodeEditModal } from "../jobs/NodeEditModal";
-import { isSeedJob } from "../../services/jobs/seedCatalog";
-import { useStudioContext } from "../../context/StudioContext";
-import { useLLM } from "../../context/LLMContext";
-import { readDraft, clearDraft, saveDraft, DRAFT_SAVE_DELAY } from "../../utils/studioDraft";
-import { buildJobDef as buildJobDefFn, loadJobToStudioState } from "../../utils/studioJobBuilder";
-import { createStudioAPI } from "../../utils/studioApi";
-import type { JobDefinition, JobDeliverable, EntityInput, JobTrigger, TriggerEvent } from "../../types";
-import type { StudioDraft } from "../../utils/studioDraft";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
+import { registry } from "@/services/commands/registry";
+import { JobCanvas } from "@/components/jobs/JobCanvas";
+import { StepCardModal } from "@/components/jobs/StepCardModal";
+import { NodeEditModal } from "@/components/jobs/NodeEditModal";
+import { isSeedJob } from "@/services/jobs/seedCatalog";
+import { useStudioContext } from "@/context/StudioContext";
+import { useLLM } from "@/context/LLMContext";
+import { readDraft, clearDraft, saveDraft, DRAFT_SAVE_DELAY } from "@/utils/studioDraft";
+import { buildJobDef as buildJobDefFn, loadJobToStudioState } from "@/utils/studioJobBuilder";
+import { createStudioAPI } from "@/utils/studioApi";
+import type { JobDefinition, JobDeliverable, EntityInput, JobTrigger, TriggerEvent } from "@/types";
+import type { StudioDraft } from "@/utils/studioDraft";
 import "../../styles/components/job-manager.css";
 
 // Re-export types & constants from the canonical location for backward compat
-export type { OutputMapping, InputBinding, StudioStep, SelectedElement, AnchorSide } from "../../types/studio";
-export { PARALLEL_GROUP_CMD, isParallelGroup } from "../../types/studio";
+export type { OutputMapping, InputBinding, StudioStep, SelectedElement, AnchorSide } from "@/types/studio";
+export { PARALLEL_GROUP_CMD, isParallelGroup } from "@/types/studio";
 
-import type { StudioStep, SelectedElement, OutputMapping, InputBinding, AnchorSide } from "../../types/studio";
-import { PARALLEL_GROUP_CMD, isParallelGroup, NODE_SPACING_X, NODE_SPACING_Y, INITIAL_X, INITIAL_Y } from "../../types/studio";
+import type { StudioStep, SelectedElement, OutputMapping, InputBinding, AnchorSide } from "@/types/studio";
+import { PARALLEL_GROUP_CMD, isParallelGroup, NODE_SPACING_X, NODE_SPACING_Y, INITIAL_X, INITIAL_Y } from "@/types/studio";
 
 interface StudioViewProps {
     savedJobs: JobDefinition[];

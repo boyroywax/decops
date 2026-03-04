@@ -1,18 +1,18 @@
 import { useEffect, useRef } from "react";
 import { Rocket, CheckCircle, XCircle, FlaskConical } from "lucide-react";
-import { GradientIcon } from "../components/shared/GradientIcon";
+import { GradientIcon } from "@/components/shared/GradientIcon";
 import { useNotebook } from "./useNotebook";
-import { registry } from "../services/commands/registry";
-import { resolveToolJob, rejectToolJob } from "../services/commands/tools";
-import { getAgentModel, getCommandModel } from "../services/ai";
-import type { CommandContext } from "../services/commands/types";
-import type { WorkspaceContextType } from "../context/WorkspaceContext";
-import type { User } from "../types";
-import { useStudioContext } from "../context/StudioContext";
+import { registry } from "@/services/commands/registry";
+import { resolveToolJob, rejectToolJob } from "@/services/commands/tools";
+import { getAgentModel, getCommandModel } from "@/services/ai";
+import type { CommandContext } from "@/services/commands/types";
+import type { WorkspaceContextType } from "@/context/WorkspaceContext";
+import type { User } from "@/types";
+import { useStudioContext } from "@/context/StudioContext";
 import {
     resolveRefs, applyInputBindings, applyOutputMappings,
     evaluateCondition, getStepContext, type RefContext,
-} from "../utils/jobRuntime";
+} from "@/utils/jobRuntime";
 
 // Define strict types for the complex objects we're passing in
 // Ideally these should be exported from their respective hooks, but for now we'll define the shape or use 'any' for the complex rendering hooks if strict types aren't available easily.

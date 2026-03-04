@@ -3,13 +3,13 @@ import type {
   AieosEntity, AieosSkill, AieosIdentity, AieosPhysicality,
   AieosPsychology, AieosLinguistics, AieosHistory, AieosInterests,
   AieosMotivations,
-} from "../../types";
+} from "@/types";
 import {
   Save, X, Brain, Users, Sparkles, Compass, Shield, Mic,
   BookOpen, Heart, Target, Plus, Trash2, Wand2, Loader2,
   ChevronDown, ChevronUp, Eye, Palette,
 } from "lucide-react";
-import { generateAieosFromPrompt } from "../../services/ai";
+import { generateAieosFromPrompt } from "@/services/ai";
 
 // ── Helpers ──
 

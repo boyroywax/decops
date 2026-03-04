@@ -8,10 +8,10 @@
 import { useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { X, Database, Tag, Package, ChevronLeft, ChevronRight } from "lucide-react";
-import type { JobDeliverable, EntityInput, InputSourceKind, InputSource, ArtifactType } from "../../types";
-import { useWorkspaceContext } from "../../context/WorkspaceContext";
-import { useEcosystemContext } from "../../context/EcosystemContext";
-import { useJobsContext } from "../../context/JobsContext";
+import type { JobDeliverable, EntityInput, InputSourceKind, InputSource, ArtifactType } from "@/types";
+import { useWorkspaceContext } from "@/context/WorkspaceContext";
+import { useEcosystemContext } from "@/context/EcosystemContext";
+import { useJobsContext } from "@/context/JobsContext";
 import "../../styles/components/node-edit-modal.css";
 
 /* ═══════════════════════════════════════════════════════════════════════════

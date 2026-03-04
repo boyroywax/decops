@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
-import type { Agent, Channel, Group } from "../../types";
-import { ROLES } from "../../constants";
+import type { Agent, Channel, Group } from "@/types";
+import { ROLES } from "@/constants";
 
 interface NetworkCanvasProps {
   agents: Agent[];

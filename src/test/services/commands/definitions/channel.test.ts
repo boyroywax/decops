@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createChannelCommand } from '../../../../services/commands/definitions/channel';
+import { createChannelCommand } from '@/services/commands/definitions/channel';
 
 describe('createChannelCommand', () => {
     const mockAgents = [

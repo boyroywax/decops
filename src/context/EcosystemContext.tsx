@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import { useEcosystem } from '../hooks/useEcosystem';
+import { useEcosystem } from '@/hooks/useEcosystem';
 
 // Infer the return type of useEcosystem
 export type UseEcosystemReturn = ReturnType<typeof useEcosystem>;

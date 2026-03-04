@@ -1,11 +1,11 @@
-import type { Agent, Channel, Group, Network, Bridge, ViewId, NavContext } from "../../types";
-import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS } from "../../constants";
+import type { Agent, Channel, Group, Network, Bridge, ViewId, NavContext } from "@/types";
+import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS } from "@/constants";
 import {
   Globe, Users, Radio, Link2, Calendar,
 } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { CopyableId } from "../shared/CopyableId";
-import { NetworkCanvas } from "../canvas/NetworkCanvas";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { CopyableId } from "@/components/shared/CopyableId";
+import { NetworkCanvas } from "@/components/canvas/NetworkCanvas";
 import "../../styles/components/network-detail.css";
 
 interface NetworkDetailViewProps {

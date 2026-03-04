@@ -3,10 +3,10 @@
  * Extracted from services/ai.ts for modularity.
  */
 
-import type { Agent, Message, BridgeMessage } from "../../types";
-import { ROLES } from "../../constants";
-import { getAllTools, executeToolCall } from "../commands/tools";
-import type { CommandContext } from "../commands/types";
+import type { Agent, Message, BridgeMessage } from "@/types";
+import { ROLES } from "@/constants";
+import { getAllTools, executeToolCall } from "@/services/commands/tools";
+import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContext } from "./prompts";
 import { buildWorkspaceSystemPrompt } from "./prompts";
 import { getSelectedModel, getAgentModel } from "./models";

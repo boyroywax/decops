@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
-import { useJobsContext } from "../../context/JobsContext";
+import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
+import { useJobsContext } from "@/context/JobsContext";
 import { X, Plus, Terminal, ArrowRight, Check } from "lucide-react";
 import { WorkspaceCard } from "./WorkspaceCard";
-import type { WorkspaceMetadata } from "../../types";
+import type { WorkspaceMetadata } from "@/types";
 import "../../styles/components/workspace-modal.css";
 
 interface WorkspaceManagerModalProps {

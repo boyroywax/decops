@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { ChatMessage } from "../services/ai";
+import type { ChatMessage } from "@/services/ai";
 import {
     loadConversations, saveConversations,
     loadActiveId, saveActiveId,
     makeId, deriveTitle,
-} from "../components/chat/utils";
-import type { Conversation } from "../components/chat/types";
+} from "@/components/chat/utils";
+import type { Conversation } from "@/components/chat/types";
 
 /**
  * Hook that encapsulates conversation CRUD, persistence, and scroll management.

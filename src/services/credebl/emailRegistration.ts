@@ -1,5 +1,5 @@
-import api from '../../api/client';
-import type { ApiResponse, EmailRegistrationCredential, AgentType } from '../../types';
+import api from '@/api/client';
+import type { ApiResponse, EmailRegistrationCredential, AgentType } from '@/types';
 import { CredeblResponse, OOBCredentialOfferResponse as OOBResponse } from './types';
 
 const ORG_ID = import.meta.env.VITE_CREDEBL_ORG_ID || '';

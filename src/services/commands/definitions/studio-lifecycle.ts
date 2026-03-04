@@ -3,7 +3,7 @@
  * compound job creation, and trigger management.
  */
 
-import { CommandDefinition } from "../types";
+import { CommandDefinition } from "@/services/commands/types";
 
 // ────────────────────────────────────────────────────
 // Studio State Queries

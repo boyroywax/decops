@@ -3,8 +3,8 @@
  * in the command registry via initializeRegistry.
  */
 import { describe, it, expect, beforeAll } from 'vitest';
-import { registry } from '../../../services/commands/registry';
-import { initializeRegistry } from '../../../services/commands/init';
+import { registry } from '@/services/commands/registry';
+import { initializeRegistry } from '@/services/commands/init';
 
 describe('Studio Command Registration', () => {
     beforeAll(() => {

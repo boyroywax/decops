@@ -3,8 +3,8 @@
  * Extracted from services/ai.ts for modularity.
  */
 
-import type { MeshConfig, AieosEntity } from "../../types";
-import { repairJSON, sanitizeJSONString } from "../../utils/json";
+import type { MeshConfig, AieosEntity } from "@/types";
+import { repairJSON, sanitizeJSONString } from "@/utils/json";
 import { getSelectedModel } from "./models";
 import { buildProviderRequest, parseProviderResponse } from "./providers";
 

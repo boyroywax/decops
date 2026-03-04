@@ -1,5 +1,5 @@
-import { CommandDefinition } from "../types";
-import { Channel } from "../../../types";
+import { CommandDefinition } from "@/services/commands/types";
+import { Channel } from "@/types";
 
 export const createChannelCommand: CommandDefinition = {
     id: "create_channel",

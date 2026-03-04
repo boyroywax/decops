@@ -10,17 +10,17 @@
  *  - Cross-network collaboration strategies
  */
 
-import type { Agent, Network } from "../../types";
+import type { Agent, Network } from "@/types";
 import type {
   ConsensusProposal,
   AgentSpec,
   WorkflowSpec,
   EcosystemChangeSpec,
   ProposalKind,
-} from "../../types/autonomy";
+} from "@/types/autonomy";
 
-import { getGroupModel } from "../ai/models";
-import { buildProviderRequest, parseProviderResponse } from "../ai/providers";
+import { getGroupModel } from "@/services/ai/models";
+import { buildProviderRequest, parseProviderResponse } from "@/services/ai/providers";
 import { assessAgent } from "./capability";
 import { deliberate } from "./consensus";
 

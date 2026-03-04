@@ -2,13 +2,13 @@ import { describe, it, expect } from "vitest";
 import {
   nextEscalation,
   DEFAULT_AUTONOMY_CONFIG,
-} from "../../types/autonomy";
+} from "@/types/autonomy";
 import type {
   EscalationLevel,
   TaskStatus,
   AgentTask,
   AutonomyConfig,
-} from "../../types/autonomy";
+} from "@/types/autonomy";
 
 describe("autonomy types", () => {
   describe("nextEscalation", () => {

@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { AlertTriangle, Key, Bot, Download, Upload, Check, Image as ImageIcon } from "lucide-react";
-import { CopyableId } from "../shared/CopyableId";
-import { GradientIcon } from "../shared/GradientIcon";
-import { useAuth } from "../../context/AuthContext";
-import { ANTHROPIC_MODELS } from "../../constants";
-import { getSelectedModel, setSelectedModel } from "../../services/ai";
-import { getGeminiApiKey, setGeminiApiKey as saveGeminiKey } from "../../services/imageGen";
-import { GemAvatar } from "../shared/GemAvatar";
-import { useDataManagement } from "../../hooks/useDataManagement";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
-import type { Agent, Channel, Group, Message, Network, Bridge } from "../../types";
+import { CopyableId } from "@/components/shared/CopyableId";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { useAuth } from "@/context/AuthContext";
+import { ANTHROPIC_MODELS } from "@/constants";
+import { getSelectedModel, setSelectedModel } from "@/services/ai";
+import { getGeminiApiKey, setGeminiApiKey as saveGeminiKey } from "@/services/imageGen";
+import { GemAvatar } from "@/components/shared/GemAvatar";
+import { useDataManagement } from "@/hooks/useDataManagement";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
+import type { Agent, Channel, Group, Message, Network, Bridge } from "@/types";
 
 interface ProfileViewProps {
     agents: Agent[];

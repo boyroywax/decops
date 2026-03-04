@@ -1,4 +1,4 @@
-import type { ViewId, NavContext, Network, Agent, Group, Channel } from "../../types";
+import type { ViewId, NavContext, Network, Agent, Group, Channel } from "@/types";
 import { ChevronRight, Globe } from "lucide-react";
 import "../../styles/components/breadcrumb.css";
 

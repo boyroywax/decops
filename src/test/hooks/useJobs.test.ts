@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useJobs } from '../../hooks/useJobs';
+import { useJobs } from '@/hooks/useJobs';
 
 describe('useJobs', () => {
     beforeEach(() => {

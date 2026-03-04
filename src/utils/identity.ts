@@ -1,4 +1,4 @@
-import type { KeyPair } from "../types";
+import type { KeyPair } from "@/types";
 
 export function generateDID(): string {
   const chars = "abcdef0123456789";

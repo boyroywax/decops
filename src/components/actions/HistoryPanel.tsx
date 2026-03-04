@@ -3,10 +3,10 @@ import {
     LayoutGrid, List, CheckCircle, AlertCircle, ChevronDown, ChevronUp,
     Terminal, FileText, Timer, Clock, Search,
 } from "lucide-react";
-import { useJobsContext } from "../../context/JobsContext";
-import { GradientIcon } from "../shared/GradientIcon";
-import { CopyableId } from "../shared/CopyableId";
-import { Job } from "../../types";
+import { useJobsContext } from "@/context/JobsContext";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { CopyableId } from "@/components/shared/CopyableId";
+import { Job } from "@/types";
 import "../../styles/components/history-panel.css";
 
 /** Format ms duration into a readable string */

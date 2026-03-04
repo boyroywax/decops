@@ -2,7 +2,7 @@
  * LLM model catalogs and localStorage key constants
  */
 
-import type { LLMModel } from "../types/llm";
+import type { LLMModel } from "@/types/llm";
 
 export const ANTHROPIC_MODELS: LLMModel[] = [
   { id: "claude-sonnet-4-20250514", label: "Claude Sonnet 4", desc: "Best balance of speed and intelligence", tier: "recommended", provider: "anthropic" },

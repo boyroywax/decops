@@ -10,7 +10,7 @@
  * 4. If passed, the proposal can be auto-executed or queued for human approval
  */
 
-import type { Agent } from "../../types";
+import type { Agent } from "@/types";
 import type {
   ConsensusProposal,
   MemberPosition,
@@ -19,9 +19,9 @@ import type {
   AgentSpec,
   WorkflowSpec,
   EcosystemChangeSpec,
-} from "../../types/autonomy";
-import { getGroupModel, getAgentModel } from "../ai/models";
-import { buildProviderRequest, parseProviderResponse } from "../ai/providers";
+} from "@/types/autonomy";
+import { getGroupModel, getAgentModel } from "@/services/ai/models";
+import { buildProviderRequest, parseProviderResponse } from "@/services/ai/providers";
 
 /**
  * Run a full deliberation round for a proposal.

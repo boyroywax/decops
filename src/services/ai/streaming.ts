@@ -3,8 +3,8 @@
  * Extracted from services/ai.ts for modularity.
  */
 
-import type { CommandContext } from "../commands/types";
-import { getAllTools, executeToolCall } from "../commands/tools";
+import type { CommandContext } from "@/services/commands/types";
+import { getAllTools, executeToolCall } from "@/services/commands/tools";
 import type { ToolCallDisplay, ChatMessage } from "./chat";
 import type { WorkspaceContext } from "./prompts";
 import { buildWorkspaceSystemPrompt } from "./prompts";

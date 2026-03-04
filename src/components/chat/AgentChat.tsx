@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import type { Agent } from "../../types";
-import { chatWithAgent } from "../../services/ai";
-import type { ChatMessage } from "../../services/ai";
-import { ROLES } from "../../constants";
+import type { Agent } from "@/types";
+import { chatWithAgent } from "@/services/ai";
+import type { ChatMessage } from "@/services/ai";
+import { ROLES } from "@/constants";
 import { MessageSquare, Send, ChevronDown, ChevronUp } from "lucide-react";
-import { MarkdownContent } from "../shared/MarkdownContent";
+import { MarkdownContent } from "@/components/shared/MarkdownContent";
 import "../../styles/components/agent-chat.css";
 
 interface AgentChatProps {

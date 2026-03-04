@@ -1,4 +1,4 @@
-import type { AnchorSide } from "../../types/studio";
+import type { AnchorSide } from "@/types/studio";
 
 // ── Node dimension constants ──
 export const NODE_WIDTH = 240;

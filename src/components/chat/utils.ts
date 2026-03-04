@@ -1,4 +1,4 @@
-import type { ChatMessage } from "../../services/ai";
+import type { ChatMessage } from "@/services/ai";
 import type { Conversation, ParsedAction } from "./types";
 
 const STORAGE_KEY = "decops_chat_conversations";

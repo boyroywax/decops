@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { X, AlertTriangle, Clipboard, Download, Upload, Check, Zap } from "lucide-react";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
-import { useAuth } from "../../context/AuthContext";
-import { useWorkspaceContext } from "../../context/WorkspaceContext";
-import { useEcosystemContext } from "../../context/EcosystemContext";
-import { useLLM } from "../../context/LLMContext";
-import { GemAvatar } from "../shared/GemAvatar";
-import { CopyableId } from "../shared/CopyableId";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
+import { useAuth } from "@/context/AuthContext";
+import { useWorkspaceContext } from "@/context/WorkspaceContext";
+import { useEcosystemContext } from "@/context/EcosystemContext";
+import { useLLM } from "@/context/LLMContext";
+import { GemAvatar } from "@/components/shared/GemAvatar";
+import { CopyableId } from "@/components/shared/CopyableId";
 import "../../styles/components/profile-modal.css";
 
 interface ProfileModalProps {

@@ -1,9 +1,9 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useAgents } from '../hooks/useAgents';
-import { useChannels } from '../hooks/useChannels';
-import { useGroups } from '../hooks/useGroups';
-import { useMessages } from '../hooks/useMessages';
-import type { Agent, Channel, Group, Message, NewAgentForm, ChannelForm, GroupForm } from '../types';
+import { useAgents } from '@/hooks/useAgents';
+import { useChannels } from '@/hooks/useChannels';
+import { useGroups } from '@/hooks/useGroups';
+import { useMessages } from '@/hooks/useMessages';
+import type { Agent, Channel, Group, Message, NewAgentForm, ChannelForm, GroupForm } from '@/types';
 
 export interface WorkspaceContextType {
     // Agents

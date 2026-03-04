@@ -1,8 +1,8 @@
-import type { Agent, Group, Network, Bridge, BridgeForm } from "../../../types";
-import { ROLES, CHANNEL_TYPES } from "../../../constants";
-import { inputStyle, PillButton } from "../../shared/ui";
+import type { Agent, Group, Network, Bridge, BridgeForm } from "@/types";
+import { ROLES, CHANNEL_TYPES } from "@/constants";
+import { inputStyle, PillButton } from "@/components/shared/ui";
 import { ArrowLeftRight, Link2, Users } from "lucide-react";
-import { GradientIcon } from "../../shared/GradientIcon";
+import { GradientIcon } from "@/components/shared/GradientIcon";
 import "../../../styles/components/bridge-builder.css";
 
 interface BridgeBuilderProps {

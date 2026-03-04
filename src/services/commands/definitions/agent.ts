@@ -1,8 +1,8 @@
 
-import { CommandDefinition } from "../types";
-import { generateDID, generateKeyPair } from "../../../utils/identity";
-import { createAieosEntity } from "../../../utils/aieos";
-import { ROLES } from "../../../constants";
+import { CommandDefinition } from "@/services/commands/types";
+import { generateDID, generateKeyPair } from "@/utils/identity";
+import { createAieosEntity } from "@/utils/aieos";
+import { ROLES } from "@/constants";
 
 export const createAgentCommand: CommandDefinition = {
     id: "create_agent",

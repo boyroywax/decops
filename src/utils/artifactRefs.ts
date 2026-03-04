@@ -8,7 +8,7 @@
  * Returns structured refs that can be rendered as clickable chips.
  */
 
-import type { JobArtifact } from "../types";
+import type { JobArtifact } from "@/types";
 
 export interface ArtifactRef {
   /** The artifact's UUID */

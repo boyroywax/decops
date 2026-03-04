@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createAgentCommand } from '../../../../services/commands/definitions/agent';
+import { createAgentCommand } from '@/services/commands/definitions/agent';
 
 describe('createAgentCommand', () => {
     const mockContext = {

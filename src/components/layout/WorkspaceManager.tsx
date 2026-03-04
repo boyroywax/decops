@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { useWorkspaceManager } from "../../hooks/useWorkspaceManager";
-import { useWorkspaceContext } from "../../context/WorkspaceContext";
+import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
+import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import { Grid, Plus, Download, Upload, Check, Trash2, FolderOpen, Save } from "lucide-react";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
-import { WorkspaceMetadata } from "../../types";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
+import { WorkspaceMetadata } from "@/types";
 import "../../styles/components/workspace-manager.css";
 
 interface WorkspaceManagerProps {

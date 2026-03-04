@@ -1,5 +1,5 @@
 
-import type { CommandDefinition, CommandContext } from "../types";
+import type { CommandDefinition, CommandContext } from "@/services/commands/types";
 
 export const exportFullBackupCommand: CommandDefinition = {
     id: "export_full_backup",

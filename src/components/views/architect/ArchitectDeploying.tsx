@@ -1,6 +1,6 @@
 import { Hexagon } from "lucide-react";
-import { GradientIcon } from "../../shared/GradientIcon";
-import type { DeployProgress } from "../../../types";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import type { DeployProgress } from "@/types";
 
 interface ArchitectDeployingProps {
     deployProgress: DeployProgress;

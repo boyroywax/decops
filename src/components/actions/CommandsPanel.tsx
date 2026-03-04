@@ -1,9 +1,9 @@
 import { useState, useCallback } from "react";
 import { LayoutGrid, List, Plus, X, ZoomIn, ZoomOut, Sparkles } from "lucide-react";
-import { registry } from "../../services/commands/registry";
+import { registry } from "@/services/commands/registry";
 import { CommandCard } from "./CommandCard";
 import { CommandCardModal } from "./CommandCardModal";
-import { useLLM } from "../../context/LLMContext";
+import { useLLM } from "@/context/LLMContext";
 import "../../styles/components/commands-panel.css";
 
 interface CommandsPanelProps {

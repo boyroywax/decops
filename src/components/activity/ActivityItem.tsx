@@ -1,5 +1,5 @@
 import { isValidElement } from "react";
-import type { NotebookEntry } from "../../types";
+import type { NotebookEntry } from "@/types";
 import { CATEGORY_META, FALLBACK_META, isMarkdownCategory, relativeTime, renderMarkdown } from "./utils";
 import "../../styles/components/activity-item.css";
 

@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
-import type { NotebookEntry, NotebookCategory } from "../../types";
+import type { NotebookEntry, NotebookCategory } from "@/types";
 import { Zap, Download, Edit, Trash2 } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { ComposePanel } from "../activity/ComposePanel";
-import { ActivityFilter } from "../activity/ActivityFilter";
-import { ActivityList } from "../activity/ActivityList";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { ComposePanel } from "@/components/activity/ComposePanel";
+import { ActivityFilter } from "@/components/activity/ActivityFilter";
+import { ActivityList } from "@/components/activity/ActivityList";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 import "../../styles/components/activity.css";
 
 interface ActivityViewProps {

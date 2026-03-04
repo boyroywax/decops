@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { tallyVotes, buildAgentProposal, buildWorkflowProposal, buildEcosystemProposal } from "../../../services/autonomy/consensus";
-import type { MemberPosition, ConsensusOutcome } from "../../../types/autonomy";
+import { tallyVotes, buildAgentProposal, buildWorkflowProposal, buildEcosystemProposal } from "@/services/autonomy/consensus";
+import type { MemberPosition, ConsensusOutcome } from "@/types/autonomy";
 
 describe("consensus", () => {
   describe("tallyVotes", () => {
@@ -9,7 +9,6 @@ describe("consensus", () => {
       agentName: "Test",
       vote,
       reasoning: "test reasoning",
-      timestamp: new Date().toISOString(),
     });
 
     it("approves with majority governance (>50%)", () => {
@@ -114,7 +113,7 @@ describe("consensus", () => {
           role: "researcher",
           prompt: "You analyze data patterns",
           title: "Senior Data Analyst",
-          skills: ["data-analysis", "statistics"],
+          capabilities: ["data-analysis", "statistics"],
           justification: "We need someone to handle data work",
         },
       );
@@ -122,7 +121,7 @@ describe("consensus", () => {
       expect(proposal.kind).toBe("create_agent");
       expect(proposal.groupId).toBe("g-1");
       expect(proposal.proposedBy).toBe("agent-proposer");
-      expect(proposal.spec.name).toBe("Data Analyst");
+      expect((proposal.spec as any).name).toBe("Data Analyst");
       expect(proposal.description).toBe("We need someone to handle data work");
       expect(proposal.positions).toEqual([]);
       expect(proposal.executed).toBe(false);
@@ -144,7 +143,7 @@ describe("consensus", () => {
       );
 
       expect(proposal.kind).toBe("create_workflow");
-      expect(proposal.spec.name).toBe("Data Pipeline");
+      expect((proposal.spec as any).name).toBe("Data Pipeline");
       expect(proposal.executed).toBe(false);
     });
   });
@@ -158,11 +157,12 @@ describe("consensus", () => {
           changeType: "add_network",
           description: "Add analytics network",
           entities: { name: "Analytics Net" },
+          justification: "Scale analytics capabilities",
         },
       );
 
       expect(proposal.kind).toBe("ecosystem_change");
-      expect(proposal.spec.changeType).toBe("add_network");
+      expect((proposal.spec as any).changeType).toBe("add_network");
       expect(proposal.executed).toBe(false);
     });
   });

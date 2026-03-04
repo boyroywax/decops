@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import type { ChatMessage, ToolCallDisplay, WorkspaceContext } from "../../services/ai";
+import type { ChatMessage, ToolCallDisplay, WorkspaceContext } from "@/services/ai";
 import { parseActions } from "./utils";
 import ActionCard from "./ActionCard";
-import { MarkdownContent } from "../shared/MarkdownContent";
+import { MarkdownContent } from "@/components/shared/MarkdownContent";
 import { CheckCircle, AlertTriangle, Wrench, Loader } from "lucide-react";
 import "../../styles/components/message-bubble.css";
 

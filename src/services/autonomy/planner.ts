@@ -3,16 +3,16 @@
  * and produce an ordered action plan or delegation recommendation.
  */
 
-import type { Agent } from "../../types";
+import type { Agent } from "@/types";
 import type {
   TaskPlan,
   PlannedAction,
   DelegationTarget,
   AgentCapability,
-} from "../../types/autonomy";
-import { registry } from "../commands/registry";
-import { getAgentModel } from "../ai/models";
-import { getModelProvider, buildProviderRequest, parseProviderResponse } from "../ai/providers";
+} from "@/types/autonomy";
+import { registry } from "@/services/commands/registry";
+import { getAgentModel } from "@/services/ai/models";
+import { getModelProvider, buildProviderRequest, parseProviderResponse } from "@/services/ai/providers";
 import { assessAgent, rankAgentsForGoal } from "./capability";
 
 /**

@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
 
 // NOTE: These inline style constants are DEPRECATED
 // Use CSS classes from the design system instead:

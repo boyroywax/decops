@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocalStorage } from './useLocalStorage';
-import type { Workspace, WorkspaceMetadata, Ecosystem } from '../types';
-import { generateEcosystemDID } from '../utils/identity';
+import type { Workspace, WorkspaceMetadata, Ecosystem } from '@/types';
+import { generateEcosystemDID } from '@/utils/identity';
 
 const STORAGE_PREFIX = 'decops_workspace_';
 const METADATA_KEY = 'decops_workspaces_metadata';

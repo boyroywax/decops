@@ -1,15 +1,15 @@
 import { useState } from "react";
-import type { Agent, Group, GroupForm, GovernanceModelId, Channel, Message, ViewId, Network } from "../../types";
+import type { Agent, Group, GroupForm, GovernanceModelId, Channel, Message, ViewId, Network } from "@/types";
 import { Hexagon, X, MessageSquare, Check, Plus, Globe } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { ROLES, GOVERNANCE_MODELS } from "../../constants";
-import { SectionTitle, BulkCheckbox, BulkActionBar } from "../shared/ui";
-import { CopyableId } from "../shared/CopyableId";
-import { GroupBadge } from "../shared/GroupBadge";
-import { GroupTradingCard } from "../shared/GroupTradingCard";
-import { useBulkSelect } from "../../hooks/useBulkSelect";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { ROLES, GOVERNANCE_MODELS } from "@/constants";
+import { SectionTitle, BulkCheckbox, BulkActionBar } from "@/components/shared/ui";
+import { CopyableId } from "@/components/shared/CopyableId";
+import { GroupBadge } from "@/components/shared/GroupBadge";
+import { GroupTradingCard } from "@/components/shared/GroupTradingCard";
+import { useBulkSelect } from "@/hooks/useBulkSelect";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 import "../../styles/components/groups.css";
 
 interface GroupsViewProps {

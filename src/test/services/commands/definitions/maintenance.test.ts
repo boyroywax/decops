@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { bulkDeleteCommand } from '../../../../services/commands/definitions/maintenance';
+import { bulkDeleteCommand } from '@/services/commands/definitions/maintenance';
 
 describe('bulkDeleteCommand', () => {
     let mockContext: any;

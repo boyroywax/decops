@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { FileText } from "lucide-react";
-import type { NotebookCategory, NotebookEntry } from "../../types";
+import type { NotebookCategory, NotebookEntry } from "@/types";
 import { CATEGORY_META } from "./utils";
 import "../../styles/components/compose-panel.css";
 

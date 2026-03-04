@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { encryptData, decryptData } from '../../utils/secureStorage';
+import { encryptData, decryptData } from '@/utils/secureStorage';
 
 describe('secureStorage', () => {
     it('should encrypt and decrypt data with the same password', async () => {

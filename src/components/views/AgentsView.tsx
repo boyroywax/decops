@@ -1,17 +1,17 @@
-import type { Agent, Channel, Group, Message, NewAgentForm, Network, ViewId, NavContext } from "../../types";
-import { ROLES, PROMPT_TEMPLATES } from "../../constants";
-import { inputStyle, SectionTitle, PillButton, BulkCheckbox, BulkActionBar } from "../shared/ui";
+import type { Agent, Channel, Group, Message, NewAgentForm, Network, ViewId, NavContext } from "@/types";
+import { ROLES, PROMPT_TEMPLATES } from "@/constants";
+import { inputStyle, SectionTitle, PillButton, BulkCheckbox, BulkActionBar } from "@/components/shared/ui";
 import { useState, useCallback } from "react";
 import { Bot, Hexagon, X, Globe, Download, Sparkles, ExternalLink, MessageSquare, GitBranch, Users, Zap, LayoutGrid, List, Cpu } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { CopyableId } from "../shared/CopyableId";
-import { AgentPortrait } from "../shared/AgentPortrait";
-import { AgentTradingCard } from "../shared/AgentTradingCard";
-import { useBulkSelect } from "../../hooks/useBulkSelect";
-import { useDeleteConfirm } from "../../hooks/useDeleteConfirm";
-import { DeleteConfirmInline } from "../shared/DeleteConfirmInline";
-import { validateAieos, downloadAgentAieos } from "../../utils/aieos";
-import { useLLM } from "../../context/LLMContext";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { CopyableId } from "@/components/shared/CopyableId";
+import { AgentPortrait } from "@/components/shared/AgentPortrait";
+import { AgentTradingCard } from "@/components/shared/AgentTradingCard";
+import { useBulkSelect } from "@/hooks/useBulkSelect";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
+import { validateAieos, downloadAgentAieos } from "@/utils/aieos";
+import { useLLM } from "@/context/LLMContext";
 import "../../styles/components/agents.css";
 
 interface AgentsViewProps {

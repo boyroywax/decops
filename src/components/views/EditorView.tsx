@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
-import type { JobArtifact, ArtifactType } from "../../types";
+import type { JobArtifact, ArtifactType } from "@/types";
 import {
   FileText, Eye, Edit3, Copy,
   Bold, Italic, Code, List, ListOrdered, Link, Image,
@@ -13,8 +13,8 @@ import {
   Braces, FileJson, FileSpreadsheet,
   Sparkles, Columns,
 } from "lucide-react";
-import { useEditorContext } from "../../context/EditorContext";
-import type { EditorAPI, PersistedEditorState } from "../../context/EditorContext";
+import { useEditorContext } from "@/context/EditorContext";
+import type { EditorAPI, PersistedEditorState } from "@/context/EditorContext";
 import "../../styles/components/editor.css";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */

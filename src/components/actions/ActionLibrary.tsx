@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { registry } from "../../services/commands/registry";
+import { registry } from "@/services/commands/registry";
 import { CommandCard } from "./CommandCard";
 import "../../styles/components/action-library.css";
 

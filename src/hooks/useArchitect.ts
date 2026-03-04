@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { ArchPhase, DeployProgress, MeshConfig, JobRequest, Job } from "../types";
+import type { ArchPhase, DeployProgress, MeshConfig, JobRequest, Job } from "@/types";
 
 export function useArchitect(addLog: (msg: string) => void, addJob: (job: JobRequest) => Job | void, jobs?: Job[]) {
   const [archPrompt, setArchPrompt] = useState("");

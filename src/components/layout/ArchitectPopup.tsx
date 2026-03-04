@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Sparkles, ChevronLeft, ChevronRight, Hexagon } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { SCENARIO_PRESETS } from "../../constants";
-import type { ArchPhase, DeployProgress, ViewId, MeshConfig } from "../../types";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { SCENARIO_PRESETS } from "@/constants";
+import type { ArchPhase, DeployProgress, ViewId, MeshConfig } from "@/types";
 import { PreviewContent } from "./ArchitectPreview";
 import { DoneContent } from "./ArchitectDone";
 import "../../styles/components/architect-popup.css";

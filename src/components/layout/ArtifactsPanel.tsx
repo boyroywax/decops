@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { X, Gem, Plus, FileText, Image, Code, File, Tag, Layers, Clock, Hash, ChevronRight, Search, Upload, PenLine, ChevronsUp, ChevronsDown, Edit3 } from "lucide-react";
-import type { JobArtifact, ArtifactType } from "../../types";
+import type { JobArtifact, ArtifactType } from "@/types";
 import "../../styles/components/artifacts-panel.css";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */

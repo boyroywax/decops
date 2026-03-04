@@ -1,7 +1,7 @@
 
 import { Play, Activity, Clock, AlertCircle, CheckCircle2, Edit } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import type { AutomationDefinition, AutomationRun } from "../../services/automations/types";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import type { AutomationDefinition, AutomationRun } from "@/services/automations/types";
 import "../../styles/components/automation-card.css";
 
 interface AutomationCardProps {

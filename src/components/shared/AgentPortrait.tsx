@@ -10,16 +10,16 @@
  */
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import type { Agent } from "../../types";
-import { ROLES } from "../../constants";
-import { generatePortrait, hasGeminiApiKey } from "../../services/imageGen";
+import type { Agent } from "@/types";
+import { ROLES } from "@/constants";
+import { generatePortrait, hasGeminiApiKey } from "@/services/imageGen";
 import {
   getCachedPortrait,
   setCachedPortrait,
   promptHash,
   type CachedPortrait,
-} from "../../services/portraitCache";
-import { getPortraitOptions } from "../../services/imageGen";
+} from "@/services/portraitCache";
+import { getPortraitOptions } from "@/services/imageGen";
 
 // ── Helpers ──
 
