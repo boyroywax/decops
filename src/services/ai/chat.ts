@@ -21,6 +21,8 @@ export interface ChatMessage {
   content: string;
   /** Tool calls the AI made (stored for display) */
   toolCalls?: ToolCallDisplay[];
+  /** Job ID(s) associated with this message — renders inline progress */
+  jobIds?: string[];
 }
 
 /** Lightweight representation of a tool call for display in chat */

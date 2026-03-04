@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext } from "@/services/ai";
 import { parseActions } from "./utils";
 import ActionCard from "./ActionCard";
+import { JobProgressCard } from "./JobProgressCard";
 import { MarkdownContent } from "@/components/shared/MarkdownContent";
 import { CheckCircle, AlertTriangle, Wrench, Loader } from "lucide-react";
 import "../../styles/components/message-bubble.css";
@@ -69,6 +70,11 @@ export default function MessageBubble({ msg, context, isStreaming }: MessageBubb
                             <Wrench size={11} /> Tools used ({msg.toolCalls.length})
                         </div>
                         {msg.toolCalls.map((tc, i) => <ToolCallCard key={i} tc={tc} />)}
+                    </div>
+                )}
+                {msg.jobIds && msg.jobIds.length > 0 && (
+                    <div className="job-progress-section">
+                        {msg.jobIds.map(jid => <JobProgressCard key={jid} jobId={jid} />)}
                     </div>
                 )}
                 {actions.map((a, i) => <ActionCard key={i} action={a} context={context} />)}

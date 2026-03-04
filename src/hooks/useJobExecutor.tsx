@@ -216,6 +216,15 @@ export function useJobExecutor({
                     /** Build a step-scoped context that overrides model resolution if step has modelId */
                     const stepCtxFor = (step: any): CommandContext => getStepContext(step, context);
 
+                    /** Wrapper: sync storage + deliverables into job state alongside step updates */
+                    const syncJobState = (updates: Partial<any>) => {
+                        if (!updateJob) return;
+                        updateJob(queuedJob.id, {
+                            ...updates,
+                            storage: { ...jobStorage },
+                        });
+                    };
+
                     let finalResult;
 
                     // ═══ DRY-RUN BRANCH ═══
@@ -308,7 +317,7 @@ export function useJobExecutor({
                             // Update job to mark all running
                             if (updateJob) {
                                 const runningSteps = steps.map((s: any) => ({ ...s, status: 'running' }));
-                                updateJob(queuedJob.id, { steps: runningSteps });
+                                syncJobState({ steps: runningSteps });
                             }
 
                             const promises = queuedJob.steps.map(async (step: any, idx: number) => {
@@ -361,7 +370,7 @@ export function useJobExecutor({
                                     const res = results.find(r => r.stepId === s.id);
                                     return res ? { ...s, result: res.result || res.error, status: res.status } : s;
                                 });
-                                updateJob(queuedJob.id, { steps: finalSteps });
+                                syncJobState({ steps: finalSteps });
                             }
 
                             // Apply output mappings from parallel results
@@ -410,14 +419,14 @@ export function useJobExecutor({
                                 if (step.condition) {
                                     if (!evaluateCondition(step.condition, context, steps)) {
                                         steps[idx] = { ...steps[idx], status: 'skipped', result: 'Condition not met' };
-                                        if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                        syncJobState({ steps: [...steps] });
                                         return { status: 'skipped' };
                                     }
                                 }
 
                                 // Mark running
                                 steps[idx] = { ...steps[idx], status: 'running' };
-                                if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                syncJobState({ steps: [...steps] });
 
                                 try {
                                     const boundArgs = applyInputBindings(step.args, step.inputBindings, jobStorage, deliverableContents);
@@ -441,7 +450,7 @@ export function useJobExecutor({
                                         // haltAfterSuccess not supported in mixed group children
                                     }
 
-                                    if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                    syncJobState({ steps: [...steps] });
                                     return { status: 'completed', result: resultStr };
                                 } catch (e: any) {
                                     steps[idx] = { ...steps[idx], status: 'failed', result: e.message };
@@ -456,12 +465,12 @@ export function useJobExecutor({
                                         );
                                         if (handlerResult.continueOnFailure) {
                                             steps[idx] = { ...steps[idx], status: 'completed', result: `[continued] ${e.message}` };
-                                            if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                            syncJobState({ steps: [...steps] });
                                             return { status: 'completed', result: e.message };
                                         }
                                     }
 
-                                    if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                    syncJobState({ steps: [...steps] });
                                     return { status: 'failed', error: e.message };
                                 }
                             };
@@ -497,14 +506,14 @@ export function useJobExecutor({
                                 if (steps[i].condition) {
                                     if (!evaluateCondition(steps[i].condition, context, steps)) {
                                         steps[i] = { ...steps[i], status: 'skipped', result: 'Condition not met' };
-                                        if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                        syncJobState({ steps: [...steps] });
                                         continue;
                                     }
                                 }
 
                                 // Mark current running
                                 steps[i] = { ...steps[i], status: 'running' };
-                                if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                syncJobState({ steps: [...steps] });
 
                                 try {
                                     const boundArgs = applyInputBindings(steps[i].args, steps[i].inputBindings, jobStorage, deliverableContents);
@@ -527,7 +536,7 @@ export function useJobExecutor({
                                             addLog,
                                         );
                                         if (handlerResult.haltAfterSuccess) {
-                                            if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                            syncJobState({ steps: [...steps] });
                                             addLog(`Step "${steps[i].name || steps[i].id}" halted job after success.`);
                                             break;
                                         }
@@ -547,17 +556,17 @@ export function useJobExecutor({
                                         );
                                         if (handlerResult.continueOnFailure) {
                                             addLog(`Step "${steps[i].name || steps[i].id}" failed but continuing: ${e.message}`);
-                                            if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                            syncJobState({ steps: [...steps] });
                                             continue; // Skip throw, proceed to next step
                                         }
                                     }
 
-                                    if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                    syncJobState({ steps: [...steps] });
                                     throw e; // Stop execution
                                 }
 
                                 // Update progress
-                                if (updateJob) updateJob(queuedJob.id, { steps: [...steps] });
+                                syncJobState({ steps: [...steps] });
                             }
                             finalResult = "Sequence completed";
                         }
@@ -589,6 +598,9 @@ export function useJobExecutor({
                         }
                         addLog(`Assembly complete: ${assembled.length}/${declaredDeliverables.length} deliverables produced.`);
                     }
+
+                    // Final sync: push storage + deliverables into job state before marking complete
+                    syncJobState({ deliverables: producedDeliverables.length > 0 ? producedDeliverables : undefined });
 
                     updateJobStatus(queuedJob.id, "completed", typeof finalResult === 'string' ? finalResult : JSON.stringify(finalResult));
 

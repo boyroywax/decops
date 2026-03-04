@@ -143,7 +143,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
             status: "pending",
         };
 
-        jobs.addJob({
+        const newJob = jobs.addJob({
             type: commandId,
             request: { description: cmdDef.description },
             steps: [step],
@@ -153,7 +153,8 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         addLog?.(`CLI: Queued /${commandId} as job`);
         const successMsg = [...msgs, {
             role: "assistant" as const,
-            content: `📋 Command \`/${commandId}\` queued as a job.${Object.keys(args).length > 0 ? `\n\nArgs: \`${JSON.stringify(args, null, 2)}\`` : ""}\n\nView progress in the **Jobs** tab.`,
+            content: `📋 Command \`/${commandId}\` queued as a job.${Object.keys(args).length > 0 ? `\n\nArgs: \`${JSON.stringify(args, null, 2)}\`` : ""}`,
+            jobIds: [newJob.id],
         }];
         updateConversation(convoId, successMsg);
     }, [jobs, addLog, updateConversation]);
@@ -333,10 +334,16 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                 setStreamingText(null);
                 setStreamingToolCalls([]);
 
+                // Collect jobIds from tool calls for inline progress tracking
+                const collectedJobIds = toolCalls
+                    .filter(tc => tc.jobId)
+                    .map(tc => tc.jobId!);
+
                 const finalMsgs = [...updatedMsgs, {
                     role: "assistant" as const,
                     content: response,
                     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+                    jobIds: collectedJobIds.length > 0 ? collectedJobIds : undefined,
                 }];
                 updateConversation(currentId, finalMsgs);
                 addLog?.(`Chat: "${text.slice(0, 40)}${text.length > 40 ? "…" : ""}"`);
@@ -518,6 +525,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                                 role: "assistant",
                                 content: streamingText || "",
                                 toolCalls: streamingToolCalls.length > 0 ? streamingToolCalls : undefined,
+                                jobIds: streamingToolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!),
                             }}
                             context={context}
                             isStreaming
