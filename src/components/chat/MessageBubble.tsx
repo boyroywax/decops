@@ -4,7 +4,8 @@ import { parseActions } from "./utils";
 import ActionCard from "./ActionCard";
 import { JobProgressCard } from "./JobProgressCard";
 import { MarkdownContent } from "@/components/shared/MarkdownContent";
-import { CheckCircle, AlertTriangle, Wrench, Loader } from "lucide-react";
+import { useJobsContext } from "@/context/JobsContext";
+import { CheckCircle, AlertTriangle, Wrench, Loader, FileText } from "lucide-react";
 import "../../styles/components/message-bubble.css";
 
 interface MessageBubbleProps {
@@ -13,12 +14,33 @@ interface MessageBubbleProps {
     isStreaming?: boolean;
 }
 
+/** Extract artifact IDs from a tool call result (handles nested result objects) */
+function extractArtifactIds(result: any): string[] {
+    if (!result || typeof result !== "object") return [];
+    // Direct artifactIds array (e.g. from assign_task result)
+    if (Array.isArray(result.artifactIds)) return result.artifactIds;
+    // Nested: result.result.artifactIds (e.g. assign_task returns { result: { artifactIds } })
+    if (result.result && Array.isArray(result.result.artifactIds)) return result.result.artifactIds;
+    // jobResult.artifactIds (from studio_run_job child result)
+    if (result.jobResult && Array.isArray(result.jobResult.artifactIds)) return result.jobResult.artifactIds;
+    return [];
+}
+
 function ToolCallCard({ tc }: { tc: ToolCallDisplay }) {
+    const { allArtifacts } = useJobsContext();
     const isError = !!tc.error;
     const isPending = tc.duration_ms === 0 && !tc.error && !tc.result;
     const inputSummary = Object.entries(tc.input)
         .map(([k, v]) => `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`)
         .join(", ");
+
+    // Collect artifacts referenced by this tool call's result
+    const artifactIds = useMemo(() => extractArtifactIds(tc.result), [tc.result]);
+    const artifacts = useMemo(() => {
+        if (artifactIds.length === 0) return [];
+        const idSet = new Set(artifactIds.map(id => id.toLowerCase()));
+        return allArtifacts.filter(a => idSet.has(a.id.toLowerCase()));
+    }, [artifactIds, allArtifacts]);
 
     return (
         <div className={`tool-call-card ${isError ? "tool-call-card--error" : isPending ? "tool-call-card--pending" : "tool-call-card--success"}`}>
@@ -43,6 +65,20 @@ function ToolCallCard({ tc }: { tc: ToolCallDisplay }) {
             )}
             {isError && tc.error && (
                 <div className="tool-call-card__error">{tc.error}</div>
+            )}
+            {artifacts.length > 0 && (
+                <div className="tool-call-card__artifacts">
+                    <FileText size={10} />
+                    <span className="tool-call-card__artifacts-label">Artifacts ({artifacts.length})</span>
+                    <div className="tool-call-card__artifacts-list">
+                        {artifacts.map(a => (
+                            <span key={a.id} className="msg-artifact-chip" title={a.description || a.name}>
+                                <span className="msg-artifact-chip__name">{a.name}</span>
+                                <span className="msg-artifact-chip__type">{a.type}</span>
+                            </span>
+                        ))}
+                    </div>
+                </div>
             )}
         </div>
     );

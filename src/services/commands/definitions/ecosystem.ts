@@ -74,6 +74,12 @@ export const createNetworkCommand: CommandDefinition = {
             context.ecosystem.setEcosystems((prev: any[]) => [...prev, ...created]);
             context.storage._networks = [...(context.storage._networks || []), ...created];
             context.workspace.addLog(`Created ${created.length} network(s): ${created.map((n: any) => n.name).join(", ")}`);
+
+            // Auto-activate the last created network
+            if (created.length > 0 && context.ecosystem.setActiveNetworkId) {
+                context.ecosystem.setActiveNetworkId(created[created.length - 1].id);
+            }
+
             return { success: true, results: created.map((n: any) => ({ networkId: n.id, name: n.name })) };
         }
 
@@ -161,6 +167,11 @@ export const createNetworkCommand: CommandDefinition = {
 
         context.ecosystem.setEcosystems((prev: any[]) => [...prev, net]);
         context.workspace.addLog(`Network "${args.name}" created in ecosystem.`);
+
+        // Auto-activate the newly created network so subsequent entity creation inherits it
+        if (context.ecosystem.setActiveNetworkId) {
+            context.ecosystem.setActiveNetworkId(networkId);
+        }
 
         // Write to shared storage for downstream steps
         context.storage.lastNetworkId = networkId;

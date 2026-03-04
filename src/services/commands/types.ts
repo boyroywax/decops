@@ -72,6 +72,7 @@ export interface CommandContext {
         setEcosystem: (updater: any) => void;
         // Active network
         activeNetworkId: string | null;
+        setActiveNetworkId: (id: string | null) => void;
         // Backward-compat derived arrays
         ecosystems: any[];
         bridges: any[];

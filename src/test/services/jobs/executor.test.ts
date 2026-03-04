@@ -25,7 +25,7 @@ function makeContext(overrides?: Partial<CommandContext>): CommandContext {
     storage: {},
     addDeliverable: vi.fn(),
     ecosystem: {
-      ecosystem: null, setEcosystem: vi.fn(), activeNetworkId: null,
+      ecosystem: null, setEcosystem: vi.fn(), activeNetworkId: null, setActiveNetworkId: vi.fn(),
       ecosystems: [], bridges: [], bridgeMessages: [],
       setEcosystems: vi.fn(), setBridges: vi.fn(), setBridgeMessages: vi.fn(),
       setActiveBridges: vi.fn(), createBridge: vi.fn(), removeBridge: vi.fn(),

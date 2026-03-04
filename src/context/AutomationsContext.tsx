@@ -85,6 +85,7 @@ const AutomationsProviderInner = ({ children, addLog }: { children: ReactNode, a
                 ecosystem: null,
                 setEcosystem: () => { },
                 activeNetworkId: null,
+                setActiveNetworkId: () => { },
                 ecosystems: [],
                 bridges: [],
                 bridgeMessages: [],

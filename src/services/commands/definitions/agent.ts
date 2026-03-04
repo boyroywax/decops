@@ -90,7 +90,7 @@ export const createAgentCommand: CommandDefinition = {
                 keys: generateKeyPair(),
                 createdAt: new Date().toISOString(),
                 status: "active" as const,
-                networkId: networkId || context.ecosystem?.activeNetworkId || undefined,
+                networkId: networkId || context.ecosystem?.activeNetworkId || (context.ecosystem?.ecosystems?.length === 1 ? context.ecosystem.ecosystems[0].id : undefined),
                 aieos: createAieosEntity(name, role, prompt),
             };
 
