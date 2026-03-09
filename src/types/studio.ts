@@ -77,3 +77,14 @@ export const NODE_SPACING_X = 320;
 export const NODE_SPACING_Y = 180;
 export const INITIAL_X = 60;
 export const INITIAL_Y = 80;
+
+// ── Node dimension constants (shared with canvas components) ──
+
+export const NODE_WIDTH = 240;
+export const NODE_HEIGHT = 140;
+export const DELIV_WIDTH = 180;
+export const DELIV_HEIGHT = 70;
+export const STORAGE_WIDTH = 160;
+export const STORAGE_HEIGHT = 56;
+export const INPUT_WIDTH = 170;
+export const INPUT_HEIGHT = 72;

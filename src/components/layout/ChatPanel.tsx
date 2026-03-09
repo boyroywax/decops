@@ -82,6 +82,10 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const jobs = useJobsContext();
     const architect = useArchitect(addLog || (() => {}), jobs.addJob, jobs.jobs);
 
+    // Toolkit extension APIs — pulled early so useCommandContext can inject them
+    const { api: studioApi } = useStudioContext();
+    const { api: editorApi, proposeEdit } = useEditorContext();
+
     // We only have access to React Context "workspace" via imported hook, NOT via prop.
     // The prop `context` is `WorkspaceContext` interface (data only), not the Hook result.
     // BUT `useCommandContext` expects `WorkspaceContextType` which has setters.
@@ -132,7 +136,8 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         jobs,
         ecosystem: ecosystem || { networks: [], bridges: [] }, // Fallback if missing, some cmds might fail
         architect,
-        addLog: addLog || (() => { }) as (msg: string) => void
+        addLog: addLog || (() => { }) as (msg: string) => void,
+        extensions: { studio: studioApi ?? undefined, editor: editorApi ?? undefined },
     });
 
     /** Queue a command as a proper job instead of executing directly */
@@ -389,11 +394,9 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const modelId = getChatModel();
     const llm = useLLM();
 
-    const { api: studioApi } = useStudioContext();
     const studioAvailable = !!studioApi && view === "jobs";
     const studioActive = studioAvailable && studioMode;
 
-    const { api: editorApi, proposeEdit } = useEditorContext();
     const editorAvailable = !!editorApi && view === "editor";
     const editorActive = editorAvailable && editorMode;
 

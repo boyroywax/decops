@@ -4,7 +4,6 @@ import { CommandContext } from "@/services/commands/types";
 import { type WorkspaceContextType } from "@/context/WorkspaceContext";
 import { type User } from "@/types";
 import { useAutomations } from "@/context/AutomationsContext";
-import { useStudioContext } from "@/context/StudioContext";
 import { getAgentModel, getCommandModel } from "@/services/ai";
 
 // Interfaces for props that are usually passed from other hooks
@@ -20,7 +19,8 @@ interface UseCommandContextProps {
     ecosystem: any; // EcosystemContextType
     architect: any; // Architect return
     addLog: (msg: string) => void;
-    // We can add more if needed
+    /** Toolkit-injected extensions (e.g. { studio: StudioAPI, editor: EditorAPI }) */
+    extensions?: Record<string, unknown>;
 }
 
 export function useCommandContext({
@@ -29,10 +29,10 @@ export function useCommandContext({
     jobs,
     ecosystem,
     architect,
-    addLog
+    addLog,
+    extensions,
 }: UseCommandContextProps): CommandContext {
     const automations = useAutomations();
-    const { api: studioApi } = useStudioContext();
 
     const context = useMemo<CommandContext>(() => {
         return {
@@ -92,6 +92,8 @@ export function useCommandContext({
                 runAutomation: automations.runAutomation,
                 runs: automations.runs
             },
+            // Toolkit-injected extension APIs (studio, editor, etc.)
+            extensions: extensions ?? {},
             // Chat-panel context has no job storage — provide empty defaults
             storage: {},
             addDeliverable: (deliverable) => {
@@ -111,10 +113,8 @@ export function useCommandContext({
                 };
                 jobs.importArtifact(artifact);
             },
-            // Studio visual job editor (may be null if tab not yet mounted)
-            studio: studioApi ?? null,
         };
-    }, [workspace, user, jobs, ecosystem, architect, addLog, automations, studioApi]);
+    }, [workspace, user, jobs, ecosystem, architect, addLog, automations, extensions]);
 
     return context;
 }

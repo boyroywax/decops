@@ -241,7 +241,7 @@ export function useJobExecutor({
                         },
                         automations: automations || { runAutomation: async () => { }, runs: [] },
                         workspaceManager: workspaceManager as CommandContext['workspaceManager'],
-                        studio: studioApi ?? null,
+                        extensions: { studio: studioApi ?? undefined },
                         storage: jobStorage,
                         addDeliverable: (deliverable) => {
                             // Stage deliverable content into storage for later assembly

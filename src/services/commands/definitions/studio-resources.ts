@@ -21,7 +21,7 @@ export const studioAddDeliverableCommand: CommandDefinition = {
     },
     output: "Added deliverable info",
     execute: async (args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         studio.addDeliverableEntry({ key: args.key, label: args.label, type: args.type, description: args.description });
         return { key: args.key, label: args.label, type: args.type };
@@ -38,7 +38,7 @@ export const studioRemoveDeliverableCommand: CommandDefinition = {
     },
     output: "Removal confirmation",
     execute: async (args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         studio.removeDeliverableEntry(args.index);
         return { removed: args.index };
@@ -60,7 +60,7 @@ export const studioAddStorageCommand: CommandDefinition = {
     },
     output: "Added storage entry",
     execute: async (args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         studio.addStorageEntryWithValues(args.key, args.value);
         return { key: args.key, value: args.value };
@@ -77,7 +77,7 @@ export const studioRemoveStorageCommand: CommandDefinition = {
     },
     output: "Removal confirmation",
     execute: async (args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         studio.removeStorageEntry(args.index);
         return { removed: args.index };
@@ -100,7 +100,7 @@ export const studioAddInputCommand: CommandDefinition = {
     },
     output: "Added entity input",
     execute: async (args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         studio.addInput({ name: args.name, type: args.type, entityId: args.entityId || "" });
         return { name: args.name, type: args.type, entityId: args.entityId };
@@ -117,7 +117,7 @@ export const studioRemoveInputCommand: CommandDefinition = {
     },
     output: "Removal confirmation",
     execute: async (args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         studio.removeInput(args.index);
         return { removed: args.index };
@@ -136,7 +136,7 @@ export const studioUpdateInputCommand: CommandDefinition = {
     },
     output: "Updated input",
     execute: async (args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         studio.updateInput(args.index, args.field as any, args.value);
         return { index: args.index, field: args.field, value: args.value };

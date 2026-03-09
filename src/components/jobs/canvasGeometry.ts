@@ -1,14 +1,7 @@
 import type { AnchorSide } from "@/types/studio";
 
-// ── Node dimension constants ──
-export const NODE_WIDTH = 240;
-export const NODE_HEIGHT = 140;
-export const DELIV_WIDTH = 180;
-export const DELIV_HEIGHT = 70;
-export const STORAGE_WIDTH = 160;
-export const STORAGE_HEIGHT = 56;
-export const INPUT_WIDTH = 170;
-export const INPUT_HEIGHT = 72;
+// Re-exported from types/studio.ts — canonical source of truth
+export { NODE_WIDTH, NODE_HEIGHT, DELIV_WIDTH, DELIV_HEIGHT, STORAGE_WIDTH, STORAGE_HEIGHT, INPUT_WIDTH, INPUT_HEIGHT } from "@/types/studio";
 
 // ── Anchor cycling ──
 export const ANCHOR_ORDER: AnchorSide[] = ["right", "bottom", "left", "top"];

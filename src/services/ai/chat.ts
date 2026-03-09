@@ -15,7 +15,7 @@ import {
   buildProviderRequest, parseProviderResponse,
   parseToolUseBlocks, buildToolResultMessages,
 } from "./providers";
-import { shouldDelegateToStudioBot } from "@/services/studioBot";
+import { getChatDelegation } from "./delegation";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -151,15 +151,12 @@ export async function chatWithWorkspace(
   const provider = getModelProvider(model);
   let systemPrompt = buildWorkspaceSystemPrompt(ctx);
 
-  // Studio Bot delegation: enhance system prompt for studio operations
-  const isStudioRequest = shouldDelegateToStudioBot(userMessage);
+  // Pluggable delegation: toolkits can register delegation checks
+  const delegation = getChatDelegation(userMessage);
   let maxRounds = 8;
-  if (isStudioRequest) {
-    systemPrompt += "\n\n[STUDIO BOT ACTIVE] This request involves Studio operations. " +
-      "ALWAYS call studio_auto_layout after creating or modifying jobs to ensure clean canvas layout. " +
-      "Use studio_create_job for building complete jobs in one call. " +
-      "Ensure all parallel steps write to unique storage keys.";
-    maxRounds = 12;
+  if (delegation) {
+    systemPrompt = delegation.enhance(systemPrompt);
+    maxRounds = delegation.maxRounds ?? 12;
   }
 
   // Build tools from command registry (tool use supported for anthropic + openai)

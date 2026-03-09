@@ -1,6 +1,5 @@
 
 import type { RoleId, JobRequest, JobDeliverable } from "@/types";
-import type { StudioAPI } from "@/context/StudioContext";
 
 export type CommandArgType = "string" | "number" | "boolean" | "object" | "array" | "group" | "agent" | "channel" | "network" | "workspace";
 
@@ -111,8 +110,12 @@ export interface CommandContext {
         duplicate: (sourceId: string, name?: string) => Promise<string>;
         currentId: string | null;
     };
-    /** Studio visual job editor — available when the Studio tab is mounted */
-    studio?: StudioAPI | null;
+    /**
+     * Extension point for toolkits to inject their APIs into the command context.
+     * E.g. Studio injects its StudioAPI as `extensions.studio`, Editor as `extensions.editor`.
+     * Core code never reads specific keys — only toolkit command definitions do.
+     */
+    extensions?: Record<string, unknown>;
 }
 
 export interface CommandDefinition<TArgs = any> {

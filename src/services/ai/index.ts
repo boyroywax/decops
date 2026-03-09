@@ -28,5 +28,9 @@ export type { WorkspaceContext } from "./prompts";
 export { streamChatWithWorkspace } from "./streaming";
 export type { StreamCallbacks } from "./streaming";
 
+// Pluggable chat delegation
+export { registerChatDelegation, getChatDelegation, getAllDelegations } from "./delegation";
+export type { ChatDelegation } from "./delegation";
+
 // Generators
 export { generateMeshConfig, generateAieosFromPrompt } from "./generators";

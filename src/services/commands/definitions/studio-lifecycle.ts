@@ -27,7 +27,7 @@ export const studioGetStateCommand: CommandDefinition = {
         storageEntries: "array",
     },
     execute: async (_args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available. Navigate to the Studio tab first." };
         return studio.getState();
     },
@@ -48,7 +48,7 @@ export const studioSetJobMetaCommand: CommandDefinition = {
     },
     output: "Updated job metadata",
     execute: async (args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         if (args.name !== undefined) studio.setName(args.name);
         if (args.description !== undefined) studio.setDescription(args.description);
@@ -68,7 +68,7 @@ export const studioSaveJobCommand: CommandDefinition = {
     args: {},
     output: "Saved job definition ID",
     execute: async (_args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         const result = studio.saveJob();
         return result;
@@ -83,7 +83,7 @@ export const studioRunJobCommand: CommandDefinition = {
     args: {},
     output: "Run status with final job result",
     execute: async (_args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         const result = studio.runJob();
         if ("error" in result) return result;
@@ -120,7 +120,7 @@ export const studioLoadJobCommand: CommandDefinition = {
     },
     output: "Loaded job info",
     execute: async (args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         const result = studio.loadJobById(args.jobId);
         return result;
@@ -135,7 +135,7 @@ export const studioClearCanvasCommand: CommandDefinition = {
     args: {},
     output: "Confirmation message",
     execute: async (_args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         studio.clearCanvas();
         return { cleared: true };
@@ -206,7 +206,7 @@ export const studioCreateJobCommand: CommandDefinition = {
     },
     output: "Created job info with optional save/run results",
     execute: async (args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
 
         // 1. Clear canvas
@@ -351,7 +351,7 @@ export const studioAddTriggerCommand: CommandDefinition = {
     },
     output: "Created trigger ID",
     execute: async (args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         const id = `trigger-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
         const filter = args.filter ? parseTriggerFilter(args.filter) : undefined;
@@ -372,7 +372,7 @@ export const studioRemoveTriggerCommand: CommandDefinition = {
     },
     output: "Removed trigger confirmation",
     execute: async (args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         if ((studio as any).removeTrigger) {
             (studio as any).removeTrigger(args.triggerId);
@@ -393,7 +393,7 @@ export const studioAutoLayoutCommand: CommandDefinition = {
     args: {},
     output: "Layout result",
     execute: async (_args, context) => {
-        const studio = context.studio;
+        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         if (studio.autoLayout) {
             studio.autoLayout();

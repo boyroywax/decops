@@ -29,12 +29,12 @@ import type {
     LayoutAnalysis,
     LayoutIssue,
 } from "@/types/studioBot";
-import { isParallelGroup, NODE_SPACING_X, NODE_SPACING_Y } from "@/types/studio";
-import { NODE_WIDTH, NODE_HEIGHT } from "@/components/jobs/canvasGeometry";
+import { isParallelGroup, NODE_SPACING_X, NODE_SPACING_Y, NODE_WIDTH, NODE_HEIGHT } from "@/types/studio";
 import { getSelectedModel } from "@/services/ai/models";
 import { getModelProvider, buildProviderRequest, parseProviderResponse, parseToolUseBlocks, buildToolResultMessages } from "@/services/ai/providers";
 import { getAllTools, executeToolCall } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
+import { registerChatDelegation } from "@/services/ai/delegation";
 
 // ── Module State ──
 
@@ -493,3 +493,20 @@ export function shouldDelegateToStudioBot(message: string): boolean {
 
     return strongPatterns.some(p => p.test(lowerMsg));
 }
+
+// ── Self-registration with the core AI delegation system ──
+// This runs when the studioBot module is first imported, connecting Studio's
+// delegation logic to the pluggable core chat service without core needing
+// to know about Studio directly.
+
+registerChatDelegation({
+    id: "studio-bot",
+    check: shouldDelegateToStudioBot,
+    enhance: (systemPrompt) =>
+        systemPrompt +
+        "\n\n[STUDIO BOT ACTIVE] This request involves Studio operations. " +
+        "ALWAYS call studio_auto_layout after creating or modifying jobs to ensure clean canvas layout. " +
+        "Use studio_create_job for building complete jobs in one call. " +
+        "Ensure all parallel steps write to unique storage keys.",
+    maxRounds: 12,
+});

@@ -16,7 +16,7 @@ import {
   parseToolUseBlocks, buildToolResultMessages,
 } from "./providers";
 import { chatWithWorkspace } from "./chat";
-import { shouldDelegateToStudioBot } from "@/services/studioBot";
+import { getChatDelegation } from "./delegation";
 
 // ── SSE Stream Parser ──────────────────────────────
 
@@ -173,16 +173,12 @@ export async function streamChatWithWorkspace(
   const provider = getModelProvider(model);
   let systemPrompt = buildWorkspaceSystemPrompt(ctx);
 
-  // Studio Bot delegation: when the message is studio-related, enhance the system prompt
-  // with explicit auto-layout instructions and increase tool rounds for complex jobs
-  const isStudioRequest = shouldDelegateToStudioBot(userMessage);
+  // Pluggable delegation: toolkits can register delegation checks
+  const delegation = getChatDelegation(userMessage);
   let maxToolRounds = 8;
-  if (isStudioRequest) {
-    systemPrompt += "\n\n[STUDIO BOT ACTIVE] This request involves Studio operations. " +
-      "ALWAYS call studio_auto_layout after creating or modifying jobs to ensure clean canvas layout. " +
-      "Use studio_create_job for building complete jobs in one call. " +
-      "Ensure all parallel steps write to unique storage keys.";
-    maxToolRounds = 12; // More rounds for complex job building
+  if (delegation) {
+    systemPrompt = delegation.enhance(systemPrompt);
+    maxToolRounds = delegation.maxRounds ?? 12;
   }
 
   // For non-Anthropic providers, fall back to non-streaming (emit all at once)
