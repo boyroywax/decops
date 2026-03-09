@@ -3,7 +3,7 @@
  *
  * Extracted from StudioView.tsx to reduce file size.
  */
-import type { StudioStep } from "@/types/studio";
+import type { StudioStep } from "@/toolkits/studio/types/studio";
 import type { JobDeliverable, EntityInput, JobTrigger } from "@/types";
 
 // ── Constants ──

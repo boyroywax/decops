@@ -7,7 +7,7 @@
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import type { JobDeliverable, JobDefinition, EntityInput, JobTrigger, TriggerEvent, StepHandler } from "@/types";
-import type { OutputMapping, InputBinding, StudioStep } from "@/types/studio";
+import type { OutputMapping, InputBinding, StudioStep } from "@/toolkits/studio/types/studio";
 
 /** The state snapshot returned by getState() */
 export interface StudioState {

@@ -19,8 +19,8 @@ import type {
 import {
     PARALLEL_GROUP_CMD,
     isParallelGroup,
-} from '@/components/views/StudioView';
-import type { StudioStep } from '@/components/views/StudioView';
+} from '@/toolkits/studio';
+import type { StudioStep } from '@/toolkits/studio';
 
 // ────────────────────────────────────────────────────
 // InputSourceKind

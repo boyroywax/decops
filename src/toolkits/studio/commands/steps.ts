@@ -21,7 +21,7 @@ export const studioAddStepCommand: CommandDefinition = {
     },
     output: "The ID of the newly created step",
     execute: async (args, context) => {
-        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
+        const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         const cmd = registry.get(args.commandId);
         if (!cmd) return { error: `Command "${args.commandId}" not found in registry.` };
@@ -45,7 +45,7 @@ export const studioRemoveStepCommand: CommandDefinition = {
     },
     output: "Confirmation message",
     execute: async (args, context) => {
-        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
+        const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         studio.removeStep(args.stepId);
         return { removed: args.stepId };
@@ -63,7 +63,7 @@ export const studioSetStepArgsCommand: CommandDefinition = {
     },
     output: "Updated args",
     execute: async (args, context) => {
-        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
+        const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         for (const [key, value] of Object.entries(args.args)) {
             studio.updateStepArg(args.stepId, key, value);
@@ -80,7 +80,7 @@ export const studioAddParallelGroupCommand: CommandDefinition = {
     args: {},
     output: "New parallel group step ID",
     execute: async (_args, context) => {
-        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
+        const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         const id = studio.addParallelGroup();
         return { groupId: id };
@@ -98,7 +98,7 @@ export const studioSetStepConditionCommand: CommandDefinition = {
     },
     output: "Updated condition",
     execute: async (args, context) => {
-        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
+        const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         studio.updateStepPreCondition(args.stepId, args.condition);
         return { stepId: args.stepId, condition: args.condition };
@@ -125,7 +125,7 @@ export const studioSetInputBindingsCommand: CommandDefinition = {
     },
     output: "Updated input bindings",
     execute: async (args, context) => {
-        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
+        const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         studio.updateStepInputBindings(args.stepId, args.bindings);
         return { stepId: args.stepId, bindings: args.bindings };
@@ -148,7 +148,7 @@ export const studioSetOutputMappingsCommand: CommandDefinition = {
     },
     output: "Updated output mappings",
     execute: async (args, context) => {
-        const studio = context.extensions?.studio as import("@/context/StudioContext").StudioAPI | undefined;
+        const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         studio.updateStepOutputMappings(args.stepId, args.mappings);
         return { stepId: args.stepId, mappings: args.mappings };

@@ -6,7 +6,7 @@
  *         rbac, tests, docs, activity
  */
 
-import type { ToolkitModule } from "../types";
+import type { ToolkitModule } from "@/services/toolkits/types";
 import {
   studioGetStateCommand,
   studioSetJobMetaCommand,
@@ -32,7 +32,7 @@ import {
   studioAddTriggerCommand,
   studioRemoveTriggerCommand,
   studioAutoLayoutCommand,
-} from "@/services/commands/definitions/studio";
+} from "@/toolkits/studio/commands";
 
 export const studioModule: ToolkitModule = {
   manifest: {

@@ -12,16 +12,16 @@ import {
     Clock, Terminal, Eye, Layers,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
-import { useStudioContext } from "@/context/StudioContext";
+import { useStudioContext } from "@/toolkits/studio/StudioContext";
 import {
     getStudioBotStatus,
     getStudioBotConfig,
     updateStudioBotConfig,
     analyzeLayout,
     getStudioBotLog,
-} from "@/services/studioBot";
-import type { LayoutAnalysis, StudioBotResponse } from "@/types/studioBot";
-import "../../styles/components/studio-bot.css";
+} from "@/toolkits/studio/studioBot";
+import type { LayoutAnalysis, StudioBotResponse } from "@/toolkits/studio/types/studioBot";
+import "../styles/studio-bot.css";
 
 export function StudioBotPanel() {
     const { api: studioApi } = useStudioContext();

@@ -5,10 +5,10 @@
  * Extracted to keep StudioView focused on state + UI.
  */
 import { registry } from "@/services/commands/registry";
-import type { StudioAPI, StudioState } from "@/context/StudioContext";
+import type { StudioAPI, StudioState } from "@/toolkits/studio/StudioContext";
 import type { JobDefinition, JobDeliverable, EntityInput, JobTrigger, StepHandler } from "@/types";
-import type { StudioStep, OutputMapping, InputBinding } from "@/types/studio";
-import { isParallelGroup, NODE_SPACING_X, NODE_SPACING_Y, INITIAL_X, INITIAL_Y } from "@/types/studio";
+import type { StudioStep, OutputMapping, InputBinding } from "@/toolkits/studio/types/studio";
+import { isParallelGroup, NODE_SPACING_X, NODE_SPACING_Y, INITIAL_X, INITIAL_Y } from "@/toolkits/studio/types/studio";
 import { buildJobDefFromRefs } from "./studioJobBuilder";
 
 export interface StudioRefs {

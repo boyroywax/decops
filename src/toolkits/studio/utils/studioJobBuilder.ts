@@ -5,8 +5,8 @@
  * Extracted from StudioView.tsx to reduce file size.
  */
 import type { JobDefinition, JobStep, JobDeliverable, EntityInput, JobTrigger } from "@/types";
-import type { StudioStep, InputBinding, OutputMapping } from "@/types/studio";
-import { isParallelGroup, PARALLEL_GROUP_CMD, NODE_SPACING_X, NODE_SPACING_Y, INITIAL_X, INITIAL_Y } from "@/types/studio";
+import type { StudioStep, InputBinding, OutputMapping } from "@/toolkits/studio/types/studio";
+import { isParallelGroup, PARALLEL_GROUP_CMD, NODE_SPACING_X, NODE_SPACING_Y, INITIAL_X, INITIAL_Y } from "@/toolkits/studio/types/studio";
 
 // ── Storage defaults builder ──
 

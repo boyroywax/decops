@@ -7,7 +7,7 @@ import {
     studioAddParallelGroupCommand,
     studioAddTriggerCommand,
     studioRemoveTriggerCommand,
-} from '@/services/commands/definitions/studio';
+} from '@/toolkits/studio';
 import { CommandContext } from '@/services/commands/types';
 
 describe('Studio Commands', () => {

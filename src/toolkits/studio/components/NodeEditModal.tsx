@@ -11,7 +11,7 @@ import { X, Database, Tag, Package, ChevronLeft, ChevronRight } from "lucide-rea
 import type { JobDeliverable, EntityInput, InputSourceKind, InputSource, ArtifactType } from "@/types";
 import { useWorkspaceStore, useEcosystemStore } from "@/stores";
 import { useJobsContext } from "@/context/JobsContext";
-import "../../styles/components/node-edit-modal.css";
+import "../styles/node-edit-modal.css";
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * Shared constants

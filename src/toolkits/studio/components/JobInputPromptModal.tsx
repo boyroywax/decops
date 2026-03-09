@@ -7,7 +7,7 @@ import { useState, useMemo } from "react";
 import { AlertCircle, Send, X, Keyboard } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { useJobsContext } from "@/context/JobsContext";
-import "../../styles/components/job-input-prompt.css";
+import "../styles/job-input-prompt.css";
 
 export function JobInputPromptModal() {
     const { jobs, resolvePromptInput, stopJob } = useJobsContext();

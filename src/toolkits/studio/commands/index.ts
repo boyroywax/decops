@@ -16,7 +16,7 @@ export {
     studioSetStepConditionCommand,
     studioSetInputBindingsCommand,
     studioSetOutputMappingsCommand,
-} from "./studio-steps";
+} from "./steps";
 
 export {
     studioAddDeliverableCommand,
@@ -26,7 +26,7 @@ export {
     studioAddInputCommand,
     studioRemoveInputCommand,
     studioUpdateInputCommand,
-} from "./studio-resources";
+} from "./resources";
 
 export {
     studioGetStateCommand,
@@ -39,5 +39,5 @@ export {
     studioAddTriggerCommand,
     studioRemoveTriggerCommand,
     studioAutoLayoutCommand,
-} from "./studio-lifecycle";
+} from "./lifecycle";
 

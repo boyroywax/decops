@@ -15,7 +15,7 @@ import { infrastructureModule } from "./infrastructure";
 import { ecosystemModule } from "./ecosystem";
 import { autonomyModule } from "./autonomy";
 import { artifactsModule } from "./artifacts";
-import { studioModule } from "./studio";
+import { studioModule } from "@/toolkits/studio";
 import { jobsModule } from "./jobs";
 import { imageGenModule } from "@/toolkits/image-gen";
 import { workspaceMgmtModule } from "./workspace-mgmt";

@@ -3,7 +3,7 @@ import type { JobDefinition } from "@/types";
 import { isSeedJob } from "@/services/jobs/seedCatalog";
 import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
-import "../../styles/components/job-catalog.css";
+import "../styles/job-catalog.css";
 
 interface JobCatalogProps {
     jobs: JobDefinition[];

@@ -8,7 +8,7 @@ import { getAgentModel, getCommandModel } from "@/services/ai";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContextType } from "@/context/WorkspaceContext";
 import type { User, JobEvent } from "@/types";
-import { useStudioContext } from "@/context/StudioContext";
+import { useStudioContext } from "@/toolkits/studio";
 import {
     resolveRefs, applyInputBindings, applyOutputMappings,
     evaluateCondition, getStepContext, executeStepHandler,

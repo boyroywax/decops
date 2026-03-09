@@ -14,7 +14,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useJobsContext } from "@/context/JobsContext";
 import { useJobCatalog } from "@/hooks/useJobCatalog";
 import { ViewSwitcher } from "./ViewSwitcher";
-import { StudioView } from "@/components/views/StudioView";
+import { StudioView } from "@/toolkits/studio";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { useJobExecutor } from "@/hooks/useJobExecutor";
 

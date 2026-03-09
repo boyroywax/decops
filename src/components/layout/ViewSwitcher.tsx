@@ -13,7 +13,7 @@ import { ToolKitsView } from "@/components/views/ToolKitsView";
 import { NetworkView } from "@/components/views/NetworkView";
 import { ArtifactsView } from "@/components/views/ArtifactsView";
 import { ActivityView } from "@/components/views/ActivityView";
-import { StudioView } from "@/components/views/StudioView";
+import { StudioView } from "@/toolkits/studio";
 import { EditorView } from "@/toolkits/editor";
 import { SystemView } from "@/components/views/SystemView";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";

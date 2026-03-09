@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { LayoutGrid, List, PlayCircle, Trash2, Edit, Clock, Activity, Zap } from "lucide-react";
 import { useAutomations } from "@/context/AutomationsContext";
-import { useStudioContext } from "@/context/StudioContext";
+import { useStudioContext } from "@/toolkits/studio";
 import { AutomationCard } from "@/components/automations/AutomationCard";
 import type { AutomationDefinition, DeclarativeAutomationDefinition } from "@/services/automations/types";
 import type { ViewId } from "@/types";

@@ -19,7 +19,7 @@
  *   - Job lifecycle (save, run, load, clear)
  */
 
-import type { StudioAPI, StudioState } from "@/context/StudioContext";
+import type { StudioAPI, StudioState } from "@/toolkits/studio/StudioContext";
 import type {
     StudioBotStatus,
     StudioBotConfig,
@@ -28,8 +28,8 @@ import type {
     StudioBotOperation,
     LayoutAnalysis,
     LayoutIssue,
-} from "@/types/studioBot";
-import { isParallelGroup, NODE_SPACING_X, NODE_SPACING_Y, NODE_WIDTH, NODE_HEIGHT } from "@/types/studio";
+} from "@/toolkits/studio/types/studioBot";
+import { isParallelGroup, NODE_SPACING_X, NODE_SPACING_Y, NODE_WIDTH, NODE_HEIGHT } from "@/toolkits/studio/types/studio";
 import { getSelectedModel } from "@/services/ai/models";
 import { getModelProvider, buildProviderRequest, parseProviderResponse, parseToolUseBlocks, buildToolResultMessages } from "@/services/ai/providers";
 import { getAllTools, executeToolCall } from "@/services/commands/tools";

@@ -1,7 +1,7 @@
-import type { AnchorSide } from "@/types/studio";
+import type { AnchorSide } from "@/toolkits/studio/types/studio";
 
 // Re-exported from types/studio.ts — canonical source of truth
-export { NODE_WIDTH, NODE_HEIGHT, DELIV_WIDTH, DELIV_HEIGHT, STORAGE_WIDTH, STORAGE_HEIGHT, INPUT_WIDTH, INPUT_HEIGHT } from "@/types/studio";
+export { NODE_WIDTH, NODE_HEIGHT, DELIV_WIDTH, DELIV_HEIGHT, STORAGE_WIDTH, STORAGE_HEIGHT, INPUT_WIDTH, INPUT_HEIGHT } from "@/toolkits/studio/types/studio";
 
 // ── Anchor cycling ──
 export const ANCHOR_ORDER: AnchorSide[] = ["right", "bottom", "left", "top"];

@@ -1,5 +1,5 @@
-import type { StudioStep, AnchorSide } from "@/types/studio";
-import { isParallelGroup } from "@/types/studio";
+import type { StudioStep, AnchorSide } from "@/toolkits/studio/types/studio";
+import { isParallelGroup } from "@/toolkits/studio/types/studio";
 import {
     NODE_WIDTH,
     NODE_HEIGHT,

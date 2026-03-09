@@ -11,7 +11,7 @@ import {
   GitBranch, RefreshCcw, ClipboardList, BarChart3, Activity, Plug,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
-import { StudioBotPanel } from "@/components/shared/StudioBotPanel";
+import { StudioBotPanel } from "@/toolkits/studio";
 import { ArchitectBotPanel } from "@/components/shared/ArchitectBotPanel";
 import "../../styles/components/toolkits.css";
 

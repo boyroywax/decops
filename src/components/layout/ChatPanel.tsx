@@ -16,7 +16,7 @@ import { registry as commandRegistry } from "@/services/commands/registry";
 import type { CommandDefinition } from "@/services/commands/types";
 import { CommandPrompt } from "@/components/actions/CommandPrompt";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
-import { useStudioContext } from "@/context/StudioContext";
+import { useStudioContext } from "@/toolkits/studio";
 import { useEditorContext } from "@/toolkits/editor";
 import type { ChatPosition } from "@/context/ThemeContext";
 import type { ViewId, JobStep } from "@/types";

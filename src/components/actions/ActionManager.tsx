@@ -4,11 +4,11 @@ import { ActionsMonitor } from "./ActionsMonitor";
 import { AutomationsPanel } from "./AutomationsPanel";
 import { HistoryPanel } from "./HistoryPanel";
 import { CommandsPanel } from "./CommandsPanel";
-import { JobCatalog } from "@/components/jobs/JobCatalog";
+import { JobCatalog } from "@/toolkits/studio";
 import { useJobsContext } from "@/context/JobsContext";
 import { useAutomations } from "@/context/AutomationsContext";
 
-import { useStudioContext } from "@/context/StudioContext";
+import { useStudioContext } from "@/toolkits/studio";
 import { JobDefinition, ViewId } from "@/types";
 import "../../styles/components/action-manager.css";
 

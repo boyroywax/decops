@@ -7,7 +7,7 @@ import './index.css'
 
 // Side-effect import: registers Studio Bot's chat delegation with the core AI service.
 // This must run before any chat interactions so the delegation is available.
-import './services/studioBot'
+import '@/toolkits/studio/studioBot'
 
 initializeToolkits();
 

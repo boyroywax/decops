@@ -1,7 +1,7 @@
 import { Settings, Package, Database, Tag, ArrowRightLeft, Plus, X, Link, Unlink, Cpu } from "lucide-react";
 import { registry } from "@/services/commands/registry";
 import { CommandArgInput } from "@/components/automations/CommandArgInput";
-import type { StudioStep, SelectedElement, OutputMapping, InputBinding } from "@/components/views/StudioView";
+import type { StudioStep, SelectedElement, OutputMapping, InputBinding } from "@/toolkits/studio/components/StudioView";
 import type { JobDeliverable, ArtifactType, EntityInput } from "@/types";
 import type { LLMModel } from "@/context/LLMContext";
 
