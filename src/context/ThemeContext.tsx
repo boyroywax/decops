@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
-import { setActiveStylePrefixes } from "@/services/imageGen";
+import { setActiveStylePrefixes } from "@/toolkits/image-gen";
 
 export type Theme = "dark" | "light" | "solar";
 export type ChatPosition = "bottom" | "left" | "right";

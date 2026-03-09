@@ -12,14 +12,14 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { Agent } from "@/types";
 import { ROLES } from "@/constants";
-import { generatePortrait, hasGeminiApiKey } from "@/services/imageGen";
+import { generatePortrait, hasGeminiApiKey } from "@/toolkits/image-gen";
 import {
   getCachedPortrait,
   setCachedPortrait,
   promptHash,
   type CachedPortrait,
-} from "@/services/portraitCache";
-import { getPortraitOptions } from "@/services/imageGen";
+} from "@/toolkits/image-gen";
+import { getPortraitOptions } from "@/toolkits/image-gen";
 
 // ── Helpers ──
 

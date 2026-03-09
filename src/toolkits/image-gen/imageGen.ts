@@ -8,7 +8,7 @@
  * Returns base64-encoded image data suitable for caching in IndexedDB.
  */
 
-import { getImageModel } from "./ai";
+import { getImageModel } from "@/services/ai";
 
 const GEMINI_API_BASE =
   "https://generativelanguage.googleapis.com/v1beta/models";

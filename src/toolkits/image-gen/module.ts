@@ -2,13 +2,13 @@
  * Image Generation toolkit module.
  */
 
-import type { ToolkitModule } from "../types";
+import type { ToolkitModule } from "@/services/toolkits/types";
 import {
   generateImageCommand,
   generateAllImagesCommand,
   clearImageCacheCommand,
   generateIconCommand,
-} from "@/services/commands/definitions/imageGen";
+} from "./commands";
 
 export const imageGenModule: ToolkitModule = {
   manifest: {

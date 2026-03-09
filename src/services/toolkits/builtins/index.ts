@@ -17,7 +17,7 @@ import { autonomyModule } from "./autonomy";
 import { artifactsModule } from "./artifacts";
 import { studioModule } from "./studio";
 import { jobsModule } from "./jobs";
-import { imageGenModule } from "./image-gen";
+import { imageGenModule } from "@/toolkits/image-gen";
 import { workspaceMgmtModule } from "./workspace-mgmt";
 
 // ── Capability toolkits (external integrations) ─

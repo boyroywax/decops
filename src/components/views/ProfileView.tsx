@@ -5,7 +5,7 @@ import { GradientIcon } from "@/components/shared/GradientIcon";
 import { useAuth } from "@/context/AuthContext";
 import { ANTHROPIC_MODELS } from "@/constants";
 import { getSelectedModel, setSelectedModel } from "@/services/ai";
-import { getGeminiApiKey, setGeminiApiKey as saveGeminiKey } from "@/services/imageGen";
+import { getGeminiApiKey, setGeminiApiKey as saveGeminiKey } from "@/toolkits/image-gen";
 import { GemAvatar } from "@/components/shared/GemAvatar";
 import { useDataManagement } from "@/hooks/useDataManagement";
 import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";

@@ -1,13 +1,13 @@
 
 import { CommandDefinition } from "@/services/commands/types";
-import { generatePortrait, hasGeminiApiKey, type ImageStyle } from "@/services/imageGen";
+import { generatePortrait, hasGeminiApiKey, type ImageStyle } from "./imageGen";
 import {
     setCachedPortrait,
     getCachedPortrait,
     promptHash,
     clearPortraitCache,
     type CachedPortrait,
-} from "@/services/portraitCache";
+} from "./portraitCache";
 
 // ── generate_image ──
 
@@ -298,7 +298,7 @@ export const generateAllImagesCommand: CommandDefinition = {
             try {
                 // Check cache (skip if not forcing)
                 if (!force) {
-                    const { getCachedPortrait } = await import("../../portraitCache");
+                    const { getCachedPortrait } = await import("./portraitCache");
                     const pHash = promptHash(item.prompt);
                     const cached = await getCachedPortrait(item.cacheKey, pHash);
                     if (cached) {
