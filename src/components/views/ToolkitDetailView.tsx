@@ -17,7 +17,7 @@ import {
   FileCode, Server, Workflow,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
-import { ArchitectBotPanel } from "@/components/shared/ArchitectBotPanel";
+import { ArchitectBotPanel } from "@/toolkits/architect";
 import "../../styles/components/toolkit-detail.css";
 
 /** Map toolkit icon names to actual Lucide components */

@@ -2,10 +2,10 @@
 import type { MeshConfig, ArchPhase, DeployProgress, ViewId } from "@/types";
 import { Sparkles } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
-import { ArchitectInput } from "./architect/ArchitectInput";
-import { ArchitectPreview } from "./architect/ArchitectPreview";
-import { ArchitectDeploying } from "./architect/ArchitectDeploying";
-import { ArchitectDone } from "./architect/ArchitectDone";
+import { ArchitectInput } from "./ArchitectInput";
+import { ArchitectPreview } from "./ArchitectPreview";
+import { ArchitectDeploying } from "./ArchitectDeploying";
+import { ArchitectDone } from "./ArchitectDone";
 
 interface ArchitectViewProps {
   archPrompt: string;

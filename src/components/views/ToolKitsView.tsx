@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { StudioBotPanel } from "@/toolkits/studio";
-import { ArchitectBotPanel } from "@/components/shared/ArchitectBotPanel";
+import { ArchitectBotPanel } from "@/toolkits/architect";
 import "../../styles/components/toolkits.css";
 
 /** Map toolkit icon names → Lucide components */

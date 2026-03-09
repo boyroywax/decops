@@ -12,7 +12,7 @@ import {
 import {
   promptArchitectCommand,
   deployNetworkCommand,
-} from "@/services/commands/definitions/architect";
+} from "@/toolkits/architect";
 import {
   createBridgeCommand,
   deleteBridgeCommand,

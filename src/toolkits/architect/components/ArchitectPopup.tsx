@@ -5,7 +5,7 @@ import { SCENARIO_PRESETS } from "@/constants";
 import type { ArchPhase, DeployProgress, ViewId, MeshConfig } from "@/types";
 import { PreviewContent } from "./ArchitectPreview";
 import { DoneContent } from "./ArchitectDone";
-import "../../styles/components/architect-popup.css";
+import "../styles/architect-popup.css";
 
 interface ArchitectPopupProps {
   isOpen: boolean;

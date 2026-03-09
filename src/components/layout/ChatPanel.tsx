@@ -9,7 +9,7 @@ import { makeId } from "@/components/chat/utils";
 import type { Conversation } from "@/components/chat/types";
 import { useCommandContext } from "@/hooks/useCommandContext";
 import { useJobsContext } from "@/context/JobsContext";
-import { useArchitect } from "@/hooks/useArchitect";
+import { useArchitect } from "@/toolkits/architect";
 import { useEcosystem } from "@/hooks/useEcosystem"; // Bridge UI — needed for command context ecosystem prop
 import { useAuth } from "@/context/AuthContext";
 import { registry as commandRegistry } from "@/services/commands/registry";

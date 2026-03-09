@@ -16,7 +16,7 @@ import { GradientIcon } from "@/components/shared/GradientIcon";
 import { useEcosystemStore } from "@/stores/ecosystemStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import type { ViewId } from "@/types";
-import "../../styles/components/architect-bot.css";
+import "../styles/architect-bot.css";
 
 interface ArchitectBotPanelProps {
     /** Navigate to a view. When provided, action buttons become active. */
