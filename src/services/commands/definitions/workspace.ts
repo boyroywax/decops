@@ -1,4 +1,4 @@
-import { CommandDefinition } from "@/services/commands/types";
+import type { CommandDefinition, CommandContext } from "@/services/commands/types";
 
 export const createWorkspaceCommand: CommandDefinition = {
     id: "create_workspace",
@@ -97,5 +97,76 @@ export const duplicateWorkspaceCommand: CommandDefinition = {
         const id = await (context.workspaceManager as any).duplicate(args.sourceId, args.name);
         context.workspace.addLog(`Duplicated workspace ${args.sourceId} to new workspace ${id}`);
         return id;
+    }
+};
+
+export const editWorkspaceCommand: CommandDefinition = {
+    id: "edit_workspace",
+    description: "Update the title or description of the current workspace",
+    tags: ["workspace", "system"],
+    rbac: ["orchestrator"],
+    args: {
+        title: {
+            name: "title",
+            type: "string",
+            description: "New title for the workspace",
+            required: false
+        },
+        description: {
+            name: "description",
+            type: "string",
+            description: "New description for the workspace",
+            required: false
+        }
+    },
+    output: "Confirmation message",
+    execute: async (args, context) => {
+        if (!args.title && !args.description) throw new Error("Provide at least one of title or description to update");
+        if (!context.workspaceManager) throw new Error("Workspace Manager not available");
+        const updates: string[] = [];
+        if (args.title) updates.push(`title → "${args.title}"`);
+        if (args.description) updates.push(`description → "${args.description}"`);
+        await (context.workspaceManager as any).edit(args.title, args.description);
+        context.workspace.addLog(`Edited workspace: ${updates.join(", ")}`);
+        return `Workspace updated: ${updates.join(", ")}`;
+    }
+};
+
+export const exportWorkspaceCommand: CommandDefinition = {
+    id: "export_workspace",
+    description: "Export the workspace ecosystem (agents, channels, groups, messages, networks, bridges) as JSON.",
+    tags: ["workspace", "export", "data"],
+    rbac: ["orchestrator", "curator"],
+    args: {},
+    output: "JSON export of the workspace ecosystem.",
+    outputSchema: {
+        type: "object",
+        properties: {
+            version: { type: "string" },
+            type: { type: "string", const: "workspace" },
+            data: { type: "object" }
+        }
+    },
+    execute: async (args, context: CommandContext) => {
+        const { agents, channels, groups, messages } = context.workspace;
+        const { networks, bridges } = context.ecosystem;
+
+        const data = {
+            version: "1.0",
+            type: "workspace",
+            exportedAt: new Date().toISOString(),
+            data: { agents, channels, groups, messages, networks, bridges },
+        };
+
+        // Produce deliverable
+        context.addDeliverable({
+            key: 'workspace-export',
+            name: `Workspace Export ${new Date().toISOString().slice(0, 10)}`,
+            type: 'json',
+            content: JSON.stringify(data, null, 2),
+        });
+        context.storage.lastExport = data;
+
+        return data;
     }
 };

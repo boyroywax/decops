@@ -2,7 +2,7 @@
  * LLM type definitions — provider, model and context types
  */
 
-export type ProviderId = "anthropic" | "google" | "openai" | "ollama";
+export type ProviderId = "anthropic" | "google" | "openai" | "ollama" | "openrouter";
 
 export interface LLMModel {
   id: string;

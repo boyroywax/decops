@@ -1,7 +1,8 @@
 import type React from "react";
 import type { AieosEntity } from "./aieos";
 import type { MeshConfig } from "./mesh";
-import type { Job, JobArtifact, JobStep } from "./jobs";
+import type { Job, JobArtifact, JobStep, JobEvent } from "./jobs";
+export type { JobEvent };
 
 export type RoleId = "researcher" | "builder" | "curator" | "validator" | "orchestrator";
 
@@ -27,7 +28,8 @@ export type ViewId =
   | "actions"
   | "jobs"
   | "toolkits"
-  | "editor";
+  | "editor"
+  | "system";
 
 /** Navigation context for hierarchical drill-down: Ecosystem → Network → Group → Agent → Channel */
 export interface NavContext {
@@ -143,33 +145,37 @@ export interface KeyPair {
   priv: string;
 }
 
-// ── AIEOS v1.1.0 — AI Entity Object Specification ──
+// ── AIEOS v1.2.0 — AI Entity Object Specification ──
 export type {
-  AieosSkill, AieosIdentity, AieosPhysicality, AieosPsychology,
+  AieosVersion, AieosSkill, AieosIdentity, AieosPhysicality, AieosPsychology,
   AieosLinguistics, AieosHistory, AieosInterests, AieosMotivations,
+  AieosPresence, AieosSocialLink, AieosAccess, AieosNetwork, AieosWallet, AieosSettlement,
   AieosEntity,
 } from "./aieos";
+
+// ── Agent Runtime ──
+export type {
+  AgentRuntimeStatus, AgentRuntimeState, AgentAutonomyLevel,
+  AgentAutonomyConfig, AgentEndpoint, AgentLifecycleEvent, AgentLifecycleEventKind,
+  AgentChatMessage, AgentToolCall, AgentToolDefinition,
+  AgentRequest, AgentResponse, AgentResponseChoice,
+  AgentInboxMessage,
+} from "./agentRuntime";
+export { DEFAULT_AGENT_AUTONOMY_CONFIG } from "./agentRuntime";
 
 // ── Toolkit System ──
 
 export type ToolkitId =
-  // Command-group toolkits
+  // Command-group toolkits (built-in)
   | "agent-management"
   | "infrastructure"
-  | "messaging"
   | "ecosystem"
-  | "data-export"
   | "autonomy"
-  | "governance"
   | "artifacts"
   | "studio"
   | "jobs"
   | "image-gen"
-  | "system"
-  | "topology"
-  | "query"
   | "workspace-mgmt"
-  | "architect"
   // Capability toolkits (external)
   | "web-crawler"
   | "ocr"
@@ -179,7 +185,6 @@ export type ToolkitId =
 export type ToolkitCategory =
   | "agents"
   | "infrastructure"
-  | "communication"
   | "data"
   | "ai"
   | "automation"
@@ -195,6 +200,15 @@ export interface ToolkitTool {
   inputSchema?: Record<string, any>;
 }
 
+export interface ToolkitAgent {
+  id: string;
+  name: string;
+  description: string;
+  capabilities?: string[];
+  status?: "active" | "idle" | "offline";
+  aieos?: AieosEntity;
+}
+
 export interface Toolkit {
   id: ToolkitId;
   name: string;
@@ -204,11 +218,61 @@ export interface Toolkit {
   gradient: [string, string];
   category: ToolkitCategory;
   tools: ToolkitTool[];
+  agents?: ToolkitAgent[];      // Sub-agents in this toolkit
   commands: string[];           // Command IDs in this toolkit
   jobTemplates?: string[];      // Job template IDs
   automations?: string[];       // Automation/trigger IDs
-  status: "available" | "coming-soon";
+  status: "available" | "coming-soon" | "deprecated";
+  builtIn?: boolean;            // Built-in toolkit (ships with platform)
   tags?: string[];              // Searchable tags
+  labels?: Record<string, string>;       // Structured k/v labels for filtering
+  annotations?: Record<string, string>;  // Non-identifying metadata
+  version?: string;             // Semantic version
+  /** Author/maintainer metadata. */
+  author?: { name: string; email?: string; url?: string };
+  /** SPDX license identifier. */
+  license?: string;
+  /** Source repository URL. */
+  repository?: string;
+  /** Homepage / documentation site. */
+  homepage?: string;
+  /** ISO-8601 creation timestamp. */
+  createdAt?: string;
+  /** ISO-8601 last-updated timestamp. */
+  updatedAt?: string;
+  /** OCI content-addressable digest. */
+  digest?: string;
+  /** Optional app/frontend surface contributed by this toolkit. */
+  app?: {
+    id: string;
+    name: string;
+    platforms: string[];
+    viewId?: string;
+    url?: string;
+    description?: string;
+  };
+  /** Whether the toolkit tracks user-facing activity. */
+  activityEnabled?: boolean;
+  /** Number of configuration fields exposed by this toolkit. */
+  configFieldCount?: number;
+  /** Number of observable metrics declared by this toolkit. */
+  metricCount?: number;
+  /** Number of task definitions. */
+  taskCount?: number;
+  /** Number of managed data collections. */
+  collectionCount?: number;
+  /** Number of notification templates. */
+  notificationCount?: number;
+  /** Number of RBAC permissions declared. */
+  permissionCount?: number;
+  /** Number of test cases. */
+  testCount?: number;
+  /** Number of documentation pages. */
+  docCount?: number;
+  /** Number of API endpoints. */
+  endpointCount?: number;
+  /** Active facets provided by this toolkit. */
+  facets?: string[];
 }
 
 export interface AgentToolkitBinding {
@@ -228,9 +292,16 @@ export interface Agent {
   createdAt: string;
   status: "active";
   networkId?: string;  // Which network this agent belongs to
-  aieos: AieosEntity;  // AIEOS v1.1.0 portable entity spec (always created on agent init)
+  aieos: AieosEntity;  // AIEOS v1.2.0 portable entity spec (always created on agent init)
   recommendedModel?: string; // Suggested LLM model id (e.g. "claude-sonnet-4-20250514")
   toolkits?: AgentToolkitBinding[];  // Enabled toolkits for this agent
+  // v1.2.0 — Agent runtime & autonomy fields
+  runtimeStatus?: import("./agentRuntime").AgentRuntimeStatus;  // Current operational state (idle/busy/thinking/listening/offline/error)
+  autonomyConfig?: import("./agentRuntime").AgentAutonomyConfig; // Autonomy settings for independent operation
+  endpoint?: import("./agentRuntime").AgentEndpoint;  // Communication endpoint (internal/webhook/openrouter)
+  lifecycleLog?: import("./agentRuntime").AgentLifecycleEvent[];  // Append-only audit trail
+  lastActivityAt?: string;  // ISO timestamp of last action
+  activeSince?: string;  // ISO timestamp when agent was activated
 }
 
 export interface Channel {

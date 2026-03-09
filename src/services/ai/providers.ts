@@ -6,12 +6,14 @@
 
 export const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
 export const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
+export const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 export const DEFAULT_MODEL = "claude-sonnet-4-20250514";
 export const ANTHROPIC_VERSION = "2023-06-01";
 
 /** Detect provider from model ID */
-export function getModelProvider(modelId: string): "anthropic" | "google" | "openai" | "ollama" {
+export function getModelProvider(modelId: string): "anthropic" | "google" | "openai" | "ollama" | "openrouter" {
   if (modelId.startsWith("ollama:")) return "ollama";
+  if (modelId.startsWith("openrouter:")) return "openrouter";
   if (modelId.startsWith("gpt-") || modelId.startsWith("o3") || modelId.startsWith("o4")) return "openai";
   if (modelId.startsWith("gemini") || modelId.startsWith("imagen")) return "google";
   return "anthropic";
@@ -50,6 +52,17 @@ export function getGoogleApiKey(): string {
   return key;
 }
 
+/** Read the OpenRouter API key from localStorage */
+export function getOpenRouterApiKey(): string {
+  const key = localStorage.getItem("openrouter_api_key");
+  if (!key) {
+    throw new Error(
+      "No OpenRouter API key configured. Go to LLM Manager → Providers to add your API key."
+    );
+  }
+  return key;
+}
+
 /** Get the API key for the detected provider of a model */
 export function getApiKeyForModel(model: string): string {
   const provider = getModelProvider(model);
@@ -57,6 +70,7 @@ export function getApiKeyForModel(model: string): string {
     case "openai": return getOpenAIApiKey();
     case "google": return getGoogleApiKey();
     case "anthropic": return getApiKey();
+    case "openrouter": return getOpenRouterApiKey();
     case "ollama": return ""; // Ollama doesn't need a key
   }
 }
@@ -155,6 +169,33 @@ export function buildProviderRequest(
     };
   }
 
+  if (provider === "openrouter") {
+    const apiKey = getOpenRouterApiKey();
+    // Strip "openrouter:" prefix → "org/model"
+    const routerModel = model.replace(/^openrouter:/, "");
+    return {
+      url: OPENROUTER_API_URL,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+        "HTTP-Referer": globalThis.location?.origin || "https://mesh.decops.dev",
+        "X-Title": "MESH",
+      },
+      body: {
+        model: routerModel,
+        max_tokens: maxTokens,
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        ...(tools && tools.length > 0 ? {
+          tools: tools.map(t => ({
+            type: "function",
+            function: { name: t.name, description: t.description, parameters: t.input_schema },
+          })),
+          tool_choice: "auto",
+        } : {}),
+      },
+    };
+  }
+
   // Default: Anthropic
   const apiKey = getApiKey();
   return {
@@ -174,7 +215,7 @@ export function buildProviderRequest(
 export function parseProviderResponse(model: string, data: any): string {
   const provider = getModelProvider(model);
 
-  if (provider === "openai") {
+  if (provider === "openai" || provider === "openrouter") {
     return data.choices?.[0]?.message?.content || "[No response]";
   }
   if (provider === "google") {
@@ -187,13 +228,13 @@ export function parseProviderResponse(model: string, data: any): string {
   return data.content?.map((b: { text?: string }) => b.text || "").join("") || "[No response]";
 }
 
-/** Check if a response contains tool use (returns blocks for Anthropic/OpenAI, empty for others) */
+/** Check if a response contains tool use (returns blocks for Anthropic/OpenAI/OpenRouter, empty for others) */
 export function parseToolUseBlocks(model: string, data: any): any[] {
   const provider = getModelProvider(model);
   if (provider === "anthropic") {
     return (data.content || []).filter((b: any) => b.type === "tool_use");
   }
-  if (provider === "openai") {
+  if (provider === "openai" || provider === "openrouter") {
     const toolCalls = data.choices?.[0]?.message?.tool_calls || [];
     // Normalize to Anthropic-like format for compatibility
     return toolCalls.map((tc: any) => ({
@@ -210,8 +251,8 @@ export function parseToolUseBlocks(model: string, data: any): any[] {
 export function buildToolResultMessages(model: string, assistantContent: any, toolResults: { id: string; content: string; isError?: boolean }[]): any[] {
   const provider = getModelProvider(model);
 
-  if (provider === "openai") {
-    // OpenAI: assistant message with tool_calls, then individual tool messages
+  if (provider === "openai" || provider === "openrouter") {
+    // OpenAI/OpenRouter: assistant message with tool_calls, then individual tool messages
     return [
       { role: "assistant", content: null, tool_calls: assistantContent },
       ...toolResults.map(tr => ({

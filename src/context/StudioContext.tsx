@@ -67,6 +67,10 @@ export interface StudioAPI {
     updateTrigger: (id: string, patch: Partial<JobTrigger>) => void;
     removeTrigger: (id: string) => void;
 
+    // --- Layout ---
+    /** Recompute all step positions based on parent-child graph (fixes stacking). */
+    autoLayout: () => void;
+
     // --- Job lifecycle ---
     saveJob: () => any;
     runJob: () => any;

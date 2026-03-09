@@ -15,6 +15,7 @@ import {
   buildProviderRequest, parseProviderResponse,
   parseToolUseBlocks, buildToolResultMessages,
 } from "./providers";
+import { shouldDelegateToStudioBot } from "@/services/studioBot";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -148,7 +149,18 @@ export async function chatWithWorkspace(
 ): Promise<{ text: string; toolCalls: ToolCallDisplay[] }> {
   const model = getSelectedModel();
   const provider = getModelProvider(model);
-  const systemPrompt = buildWorkspaceSystemPrompt(ctx);
+  let systemPrompt = buildWorkspaceSystemPrompt(ctx);
+
+  // Studio Bot delegation: enhance system prompt for studio operations
+  const isStudioRequest = shouldDelegateToStudioBot(userMessage);
+  let maxRounds = 8;
+  if (isStudioRequest) {
+    systemPrompt += "\n\n[STUDIO BOT ACTIVE] This request involves Studio operations. " +
+      "ALWAYS call studio_auto_layout after creating or modifying jobs to ensure clean canvas layout. " +
+      "Use studio_create_job for building complete jobs in one call. " +
+      "Ensure all parallel steps write to unique storage keys.";
+    maxRounds = 12;
+  }
 
   // Build tools from command registry (tool use supported for anthropic + openai)
   const tools = commandContext && (provider === "anthropic" || provider === "openai") ? getAllTools() : [];
@@ -160,7 +172,7 @@ export async function chatWithWorkspace(
   ];
 
   const allToolCalls: ToolCallDisplay[] = [];
-  const MAX_TOOL_ROUNDS = 8;
+  const MAX_TOOL_ROUNDS = maxRounds;
 
   try {
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {

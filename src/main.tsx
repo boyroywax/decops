@@ -2,10 +2,10 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
-import { initializeRegistry } from './services/commands/init'
+import { initializeToolkits } from './services/toolkits'
 import './index.css'
 
-initializeRegistry();
+initializeToolkits();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

@@ -300,6 +300,11 @@ export const studioCreateJobCommand: CommandDefinition = {
         // 9. Optionally save and/or run
         const result: any = { name: args.name, stepCount: stepIds.length, stepIds, groupCount: groupIds.length, groupIds };
 
+        // 9a. Auto-layout the canvas so steps don't stack on top of each other
+        if (studio.autoLayout) {
+            studio.autoLayout();
+        }
+
         if (args.save) {
             result.saved = studio.saveJob();
         }
@@ -373,5 +378,32 @@ export const studioRemoveTriggerCommand: CommandDefinition = {
             (studio as any).removeTrigger(args.triggerId);
         }
         return { removed: args.triggerId };
+    },
+};
+
+// ────────────────────────────────────────────────────
+// Layout Commands
+// ────────────────────────────────────────────────────
+
+export const studioAutoLayoutCommand: CommandDefinition = {
+    id: "studio_auto_layout",
+    description: "Recompute all step positions on the Studio canvas based on the parent-child graph. Fixes overlapping, stacking, and cramped layout issues. Should be called after building or modifying a job to ensure clean visual layout.",
+    tags: ["studio", "layout"],
+    rbac: ["orchestrator", "builder"],
+    args: {},
+    output: "Layout result",
+    execute: async (_args, context) => {
+        const studio = context.studio;
+        if (!studio) return { error: "Studio is not available." };
+        if (studio.autoLayout) {
+            studio.autoLayout();
+            const state = studio.getState();
+            return {
+                layoutApplied: true,
+                stepCount: state.steps.length,
+                message: `Auto-layout applied to ${state.steps.length} step(s).`,
+            };
+        }
+        return { error: "Auto-layout is not available." };
     },
 };

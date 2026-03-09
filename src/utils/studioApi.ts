@@ -8,7 +8,7 @@ import { registry } from "@/services/commands/registry";
 import type { StudioAPI, StudioState } from "@/context/StudioContext";
 import type { JobDefinition, JobDeliverable, EntityInput, JobTrigger, StepHandler } from "@/types";
 import type { StudioStep, OutputMapping, InputBinding } from "@/types/studio";
-import { isParallelGroup } from "@/types/studio";
+import { isParallelGroup, NODE_SPACING_X, NODE_SPACING_Y, INITIAL_X, INITIAL_Y } from "@/types/studio";
 import { buildJobDefFromRefs } from "./studioJobBuilder";
 
 export interface StudioRefs {
@@ -77,9 +77,12 @@ export function createStudioAPI(
         addStep: (cid) => {
             const stepId = refs.addStep.current(cid);
             if (stepId) {
+                // Sync refs from React state after a microtask so the updater has run
+                // For immediate reads, compute position from refs.steps.current
+                const prev = refs.steps.current;
                 const command = registry.get(cid);
+                const args: Record<string, any> = {};
                 if (command) {
-                    const args: Record<string, any> = {};
                     Object.entries(command.args).forEach(([key, def]) => {
                         if (def.defaultValue !== undefined) args[key] = def.defaultValue;
                         else if (def.type === "boolean") args[key] = false;
@@ -87,12 +90,28 @@ export function createStudioAPI(
                         else if (def.type === "number") args[key] = 0;
                         else args[key] = null;
                     });
-                    refs.steps.current = [...refs.steps.current, {
-                        id: stepId, commandId: cid, args, inputBindings: {},
-                        preCondition: "", postCondition: "",
-                        parentId: null, outputMappings: [], x: 0, y: 0,
-                    }];
                 }
+                // Compute position consistent with what StudioView's addStep does
+                let parentId: string | null = null;
+                if (prev.length > 0) {
+                    const idsBeingParent = new Set(prev.filter(s => s.parentId !== null).map(s => s.parentId!));
+                    const serialSteps = prev.filter(s => !s.isGroupChild);
+                    const leaves = serialSteps.filter(s => !idsBeingParent.has(s.id));
+                    const candidates = leaves.length > 0 ? leaves : serialSteps;
+                    parentId = candidates.length > 0 ? candidates[candidates.length - 1].id : prev[prev.length - 1].id;
+                }
+                const parent = parentId ? prev.find(s => s.id === parentId) : null;
+                const siblings = parentId ? prev.filter(s => s.parentId === parentId && !s.isGroupChild) : [];
+                const x = parent ? parent.x + NODE_SPACING_X : INITIAL_X;
+                const y = siblings.length > 0
+                    ? Math.max(...siblings.map(s => s.y)) + NODE_SPACING_Y
+                    : (parent ? parent.y : INITIAL_Y);
+
+                refs.steps.current = [...refs.steps.current, {
+                    id: stepId, commandId: cid, args, inputBindings: {},
+                    preCondition: "", postCondition: "",
+                    parentId, outputMappings: [], x, y,
+                }];
             }
             return stepId;
         },
@@ -108,8 +127,38 @@ export function createStudioAPI(
         updateStepPosition: (sid, x, y) => refs.updateStepPosition.current(sid, x, y),
         addParallelGroup: () => refs.addParallelGroup.current(),
         reparentStep: (stepId, newParentId, asGroupChild = false) => {
-            setters.setSteps(prev => prev.map(s => s.id === stepId ? { ...s, parentId: newParentId, isGroupChild: asGroupChild } : s));
-            refs.steps.current = refs.steps.current.map(s => s.id === stepId ? { ...s, parentId: newParentId, isGroupChild: asGroupChild } : s);
+            // When reparenting into a parallel group, reposition the step
+            setters.setSteps(prev => {
+                const parent = newParentId ? prev.find(s => s.id === newParentId) : null;
+                const step = prev.find(s => s.id === stepId);
+                if (!step) return prev;
+
+                let x = step.x;
+                let y = step.y;
+                if (asGroupChild && parent && isParallelGroup(parent)) {
+                    const groupChildren = prev.filter(s => s.parentId === newParentId && s.isGroupChild && s.id !== stepId);
+                    x = parent.x;
+                    y = groupChildren.length > 0
+                        ? Math.max(...groupChildren.map(s => s.y)) + NODE_SPACING_Y
+                        : parent.y;
+                }
+                return prev.map(s => s.id === stepId ? { ...s, parentId: newParentId, isGroupChild: asGroupChild, x, y } : s);
+            });
+            // Mirror in refs
+            const parent = newParentId ? refs.steps.current.find(s => s.id === newParentId) : null;
+            const step = refs.steps.current.find(s => s.id === stepId);
+            if (step) {
+                let x = step.x;
+                let y = step.y;
+                if (asGroupChild && parent && isParallelGroup(parent)) {
+                    const groupChildren = refs.steps.current.filter(s => s.parentId === newParentId && s.isGroupChild && s.id !== stepId);
+                    x = parent.x;
+                    y = groupChildren.length > 0
+                        ? Math.max(...groupChildren.map(s => s.y)) + NODE_SPACING_Y
+                        : parent.y;
+                }
+                refs.steps.current = refs.steps.current.map(s => s.id === stepId ? { ...s, parentId: newParentId, isGroupChild: asGroupChild, x, y } : s);
+            }
         },
         updateStepOutputMappings: (sid, m) => refs.updateStepOutputMappings.current(sid, m),
         updateStepInputBindings: (sid, b) => refs.updateStepInputBindings.current(sid, b),
@@ -233,5 +282,83 @@ export function createStudioAPI(
             refs.inputs.current = [];
             refs.triggers.current = [];
         },
+        autoLayout: () => {
+            setters.setSteps(prev => autoLayoutSteps(prev));
+            refs.steps.current = autoLayoutSteps(refs.steps.current);
+        },
     };
+}
+
+/**
+ * Pure function: recompute step positions based on the parent-child graph.
+ * - Root steps (no parent, or serial successors) go left→right.
+ * - Parallel group children stack vertically under their group.
+ * - Serial successors of groups go to the right of the group's rightmost edge.
+ */
+function autoLayoutSteps(steps: StudioStep[]): StudioStep[] {
+    if (steps.length === 0) return steps;
+
+    const positioned = steps.map(s => ({ ...s }));
+    const byId = new Map(positioned.map(s => [s.id, s]));
+
+    // Find root steps (parentId is null)
+    const roots = positioned.filter(s => s.parentId === null);
+
+    // Find the serial chain order starting from roots
+    // Build adjacency: parent → children (serial successors, not group children)
+    const serialChildren = new Map<string, StudioStep[]>();
+    const groupChildren = new Map<string, StudioStep[]>();
+
+    for (const s of positioned) {
+        if (!s.parentId) continue;
+        if (s.isGroupChild) {
+            const list = groupChildren.get(s.parentId) || [];
+            list.push(s);
+            groupChildren.set(s.parentId, list);
+        } else {
+            const list = serialChildren.get(s.parentId) || [];
+            list.push(s);
+            serialChildren.set(s.parentId, list);
+        }
+    }
+
+    // Traverse the serial chain, positioning each node
+    function layoutSerial(step: StudioStep, x: number, y: number): number {
+        step.x = x;
+        step.y = y;
+
+        let nextX = x + NODE_SPACING_X;
+        let maxBottomY = y;
+
+        // If this is a parallel group, layout its concurrent children vertically
+        if (isParallelGroup(step)) {
+            const children = groupChildren.get(step.id) || [];
+            let childY = y;
+            for (const child of children) {
+                child.x = x;
+                child.y = childY;
+                childY += NODE_SPACING_Y;
+            }
+            if (children.length > 0) {
+                maxBottomY = Math.max(maxBottomY, children[children.length - 1].y);
+            }
+        }
+
+        // Layout serial successors to the right
+        const successors = serialChildren.get(step.id) || [];
+        for (let i = 0; i < successors.length; i++) {
+            const bottomY = layoutSerial(successors[i], nextX, y + i * NODE_SPACING_Y);
+            maxBottomY = Math.max(maxBottomY, bottomY);
+        }
+
+        return maxBottomY;
+    }
+
+    let currentY = INITIAL_Y;
+    for (const root of roots) {
+        const bottomY = layoutSerial(root, INITIAL_X, currentY);
+        currentY = bottomY + NODE_SPACING_Y;
+    }
+
+    return positioned;
 }

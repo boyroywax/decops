@@ -45,6 +45,45 @@ export async function probeOpenAI(apiKey: string): Promise<boolean> {
   }
 }
 
+export async function probeOpenRouter(apiKey: string): Promise<boolean> {
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/models", {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${apiKey}` },
+    });
+    return res.ok || res.status === 429;
+  } catch {
+    return false;
+  }
+}
+
+/** Fetch available models from OpenRouter (returns popular models for the catalog) */
+export async function fetchOpenRouterModels(apiKey: string): Promise<LLMModel[]> {
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/models", {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${apiKey}` },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.data || !Array.isArray(data.data)) return [];
+    return data.data
+      .filter((m: any) => m.id && !m.id.includes(":free")) // skip free-tier duplicates
+      .slice(0, 50) // cap to prevent UI overload
+      .map((m: any) => ({
+        id: `openrouter:${m.id}`,
+        label: m.name || m.id,
+        desc: m.description?.slice(0, 80) || `via OpenRouter`,
+        tier: "openrouter",
+        provider: "openrouter" as ProviderId,
+        groupKey: "openrouter",
+        groupLabel: "OpenRouter",
+      }));
+  } catch {
+    return [];
+  }
+}
+
 export async function probeOllama(baseUrl: string): Promise<boolean> {
   try {
     const res = await fetch(`${baseUrl}/api/version`, { method: "GET" });

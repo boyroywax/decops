@@ -31,7 +31,7 @@ function makeAgent(overrides: Partial<Agent> = {}): Agent {
     createdAt: new Date().toISOString(),
     status: "active",
     aieos: {
-      version: "1.1.0",
+      version: "1.2.0",
       identity: { name: overrides.name ?? "Test Agent", entityType: "agent" },
       capabilities: {
         skills: overrides.aieos?.capabilities?.skills ?? [

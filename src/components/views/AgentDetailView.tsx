@@ -7,6 +7,7 @@ import {
   Download, Upload, ChevronDown, ChevronUp,
   Brain, Sparkles, Compass, BookOpen, Heart, Mic,
   Shield, Target, Cpu, Wrench, Globe, ScanText, AudioLines, Video, ChevronRight,
+  Activity,
 } from "lucide-react";
 import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
@@ -17,6 +18,7 @@ import { AgentTradingCard } from "@/components/shared/AgentTradingCard";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { downloadAgentAieos, aieosToAgent, validateAieos } from "@/utils/aieos";
 import { AieosEditor } from "./AieosEditor";
+import { AgentRuntimePanel } from "@/components/shared/AgentRuntimePanel";
 import { useLLM } from "@/context/LLMContext";
 import "../../styles/components/agent-detail.css";
 
@@ -363,6 +365,9 @@ export function AgentDetailView({
         <div className="agent-detail__identity-value"><CopyableId value={agent.keys.pub} label="Key" /></div>
       </div>
 
+      {/* Agent Runtime & Autonomy */}
+      <AgentRuntimePanel agent={agent} updateAgent={updateAgent} />
+
       {/* LLM Model */}
       <AgentModelPicker agentId={agent.id} recommendedModel={agent.recommendedModel} />
 
@@ -527,7 +532,7 @@ export function AgentDetailView({
           <div className="aieos-section__toggle-left">
             <Sparkles size={12} color="#fbbf24" />
             <span className="aieos-section__title">AIEOS Entity Spec</span>
-            <span className="aieos-section__version">v1.1.0</span>
+            <span className="aieos-section__version">v{entity?.standard?.version || "1.2.0"}</span>
             {entity && <CoverageBadge coverage={aieosValidation.coverage} />}
           </div>
           {aieosOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

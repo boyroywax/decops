@@ -23,9 +23,8 @@ export const enableToolkitCommand: CommandDefinition = {
     toolkitId: {
       name: "toolkitId",
       type: "string",
-      description: "The toolkit ID to enable",
+      description: "The toolkit ID to enable (validated at runtime against registered toolkits)",
       required: true,
-      enum: TOOLKITS.filter(t => t.status === "available").map(t => t.id),
     },
     config: {
       name: "config",
@@ -106,9 +105,8 @@ export const disableToolkitCommand: CommandDefinition = {
     toolkitId: {
       name: "toolkitId",
       type: "string",
-      description: "The toolkit ID to disable",
+      description: "The toolkit ID to disable (validated at runtime against registered toolkits)",
       required: true,
-      enum: TOOLKITS.filter(t => t.status === "available").map(t => t.id),
     },
   },
   output: "Confirmation of toolkit disablement.",

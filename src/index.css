@@ -16,6 +16,7 @@
 @import './styles/layout.css';
 @import './styles/utilities.css';
 @import './styles/animations.css';
+@import './styles/mobile.css';
 
 /* Component-specific styles */
 @import './styles/components/profile-modal.css';
@@ -35,6 +36,9 @@
 @import './styles/components/command-card-modal.css';
 @import './styles/components/dry-run-report.css';
 @import './styles/components/delete-confirm.css';
+@import './styles/components/system-view.css';
+@import './styles/components/agent-runtime.css';
+@import './styles/components/studio-bot.css';
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * FONT IMPORTS

@@ -5,7 +5,7 @@ import {
   Sparkles, Globe, Bot, ArrowLeftRight,
   Hexagon, MessageSquare, Clapperboard,
   ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
-  Activity, Zap, FileText, ChevronDown, Layers, Wrench,
+  Activity, Zap, FileText, ChevronDown, Layers, Wrench, Monitor,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import "../../styles/components/sidebar.css";
@@ -30,6 +30,7 @@ const EDITOR_ITEM = { id: "editor" as ViewId, label: "Editor", icon: FileText, a
 const ARCHITECT_ITEM = { id: "architect" as ViewId, label: "Architect", icon: Sparkles, accent: "#fbbf24", gradient: ["#fbbf24", "#fb923c"] as [string, string] };
 const STUDIO_ITEM = { id: "jobs" as ViewId, label: "Studio", icon: Clapperboard, accent: "#8b5cf6", gradient: ["#8b5cf6", "#a78bfa"] as [string, string] };
 const TOOLKITS_ITEM = { id: "toolkits" as ViewId, label: "Tool Kits", icon: Wrench, accent: "#f97316", gradient: ["#f97316", "#fb923c"] as [string, string] };
+const SYSTEM_ITEM = { id: "system" as ViewId, label: "System", icon: Monitor, accent: "#64748b", gradient: ["#64748b", "#94a3b8"] as [string, string] };
 
 const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; gradient: [string, string] }[] = [
   { id: "networks", label: "Networks", icon: Globe, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] },
@@ -94,6 +95,8 @@ export function Sidebar({ view, setView, networks, messages, bridgeMessages, age
         return "channel";
       case "groups":
         return "group";
+      case "system":
+        return "info";
       default:
         return "accent";
     }
@@ -245,6 +248,24 @@ export function Sidebar({ view, setView, networks, messages, bridgeMessages, age
         {(!collapsed || isMobile) && (
           <>
             {TOOLKITS_ITEM.label}
+          </>
+        )}
+      </button>
+
+      <button
+        onClick={() => setView(SYSTEM_ITEM.id)}
+        title={collapsed && !isMobile ? SYSTEM_ITEM.label : undefined}
+        className={`sidebar-nav-item sidebar-nav-item--system ${view === SYSTEM_ITEM.id ? 'active' : ''}`}
+        data-accent="info"
+        style={view === SYSTEM_ITEM.id ? { color: SYSTEM_ITEM.accent } : undefined}
+      >
+        {view === SYSTEM_ITEM.id
+          ? <GradientIcon icon={SYSTEM_ITEM.icon} size={14} gradient={SYSTEM_ITEM.gradient} />
+          : <SYSTEM_ITEM.icon size={14} />
+        }
+        {(!collapsed || isMobile) && (
+          <>
+            {SYSTEM_ITEM.label}
           </>
         )}
       </button>

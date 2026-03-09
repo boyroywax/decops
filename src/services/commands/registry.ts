@@ -78,6 +78,11 @@ export class CommandRegistry {
         this.commands.set(command.id, command);
     }
 
+    /** Remove a command from the registry (used by toolkit hot-unload). */
+    unregister(id: string): boolean {
+        return this.commands.delete(id);
+    }
+
     get(id: string): CommandDefinition | undefined {
         return this.commands.get(id);
     }

@@ -277,7 +277,9 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
 
   // Lifted footer panel state (so we can render ChatPanel in different positions)
   const [footerPanel, setFooterPanel] = useState<PanelMode>("none");
-  const { chatPosition } = useTheme();
+  const { chatPosition: rawChatPosition } = useTheme();
+  // Force bottom chat on mobile — side panels don't work on small screens
+  const chatPosition = isMobile ? "bottom" as const : rawChatPosition;
 
   // Chat panel sizing
   const DEFAULT_CHAT_SIZE = chatPosition === "bottom" ? 420 : 380;
@@ -300,13 +302,13 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
       } else {
         chatSavedRef.current = chatSize;
         setChatSize(chatPosition === "bottom"
-          ? window.innerHeight - 93
+          ? (isMobile ? Math.floor(window.innerHeight * 0.8) : window.innerHeight - 93)
           : window.innerWidth - 320
         );
         return true;
       }
     });
-  }, [chatSize, chatPosition]);
+  }, [chatSize, chatPosition, isMobile]);
 
   // Auto-open Actions when entering Studio mode
   useEffect(() => {
@@ -398,7 +400,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     <div className="app-shell">
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
 
-      <Header user={user} logout={logout} setView={setView} onProfileClick={() => setShowProfileModal(true)} activityPulse={activityPulse} onActivityClick={() => setShowActivityModal(true)} />
+      <Header user={user} logout={logout} setView={setView} onProfileClick={() => setShowProfileModal(true)} activityPulse={activityPulse} onActivityClick={() => setShowActivityModal(true)} isMobile={isMobile} />
 
         <div className={`app-content ${isMobile ? "app-content--mobile" : ""}`}>
           <div className={`app-sidebar-wrapper ${isMobile ? "app-sidebar-wrapper--mobile" : ""}`}>

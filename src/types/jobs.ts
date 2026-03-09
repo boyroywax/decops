@@ -7,6 +7,36 @@ export type JobStatus = "queued" | "running" | "completed" | "failed" | "awaitin
 
 export type ArtifactType = "markdown" | "json" | "yaml" | "csv" | "image" | "code" | "txt";
 
+/** Lifecycle event types that are recorded in a job's timeline. */
+export type JobEventKind =
+  | "created"
+  | "started"
+  | "step:started"
+  | "step:completed"
+  | "step:failed"
+  | "step:skipped"
+  | "awaiting-input"
+  | "input-received"
+  | "completed"
+  | "failed"
+  | "stopped";
+
+/** A single traceable event in the job's lifecycle. */
+export interface JobEvent {
+  /** When this event occurred (epoch ms) */
+  timestamp: number;
+  /** The kind of lifecycle event */
+  kind: JobEventKind;
+  /** Human-readable label (e.g. "Step: Fetch Data started") */
+  label: string;
+  /** Optional reference to a step ID */
+  stepId?: string;
+  /** Optional additional detail (error message, result summary, input value) */
+  detail?: string;
+  /** Duration in ms (for completed/failed events that have a start counterpart) */
+  duration?: number;
+}
+
 export interface JobArtifact {
   id: string;
   type: ArtifactType;
@@ -46,6 +76,10 @@ export interface JobStep {
   name?: string;
   status?: "pending" | "running" | "completed" | "failed" | "skipped";
   result?: string;
+  /** When this step started executing (epoch ms) */
+  startedAt?: number;
+  /** When this step finished executing (epoch ms) */
+  completedAt?: number;
   condition?: string;
   modelId?: string;
   /** Action hook that runs when this step completes successfully */
@@ -149,6 +183,12 @@ export interface Job {
   artifacts: JobArtifact[];
   createdAt: number;
   updatedAt: number;
+  /** When the job actually began executing (epoch ms) — distinct from createdAt */
+  startedAt?: number;
+  /** When the job reached a terminal state (epoch ms) */
+  completedAt?: number;
+  /** Ordered timeline of lifecycle events for full traceability */
+  timeline?: JobEvent[];
   jobDefinitionId?: string;
   steps?: JobStep[];
   currentStepIndex?: number;

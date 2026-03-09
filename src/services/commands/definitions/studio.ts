@@ -38,5 +38,6 @@ export {
     studioCreateJobCommand,
     studioAddTriggerCommand,
     studioRemoveTriggerCommand,
+    studioAutoLayoutCommand,
 } from "./studio-lifecycle";
 

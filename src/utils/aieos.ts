@@ -1,5 +1,5 @@
 /**
- * AIEOS v1.1.0 — AI Entity Object Specification utilities
+ * AIEOS v1.2.0 — AI Entity Object Specification utilities
  * https://aieos.org · https://github.com/entitai/aieos
  *
  * Functions for creating, exporting, and importing AIEOS-compliant
@@ -11,9 +11,10 @@ import type {
   AieosIdentity, AieosPhysicality, AieosPsychology, AieosLinguistics,
   AieosMotivations, AieosInterests, AieosHistory,
 } from "@/types";
+import type { AieosPresence } from "@/types/aieos";
 import { ROLES } from "@/constants";
 
-const AIEOS_SCHEMA_URL = "https://aieos.org/schema/v1.1/aieos.schema.json";
+const AIEOS_SCHEMA_URL = "https://aieos.org/schema/v1.2/aieos.schema.json";
 
 // ── Factory ──
 
@@ -27,13 +28,15 @@ export function createAieosEntity(
   const roleObj = ROLES.find(r => r.id === role);
 
   return {
-    standard: { protocol: "AIEOS", version: "1.1.0", schema_url: AIEOS_SCHEMA_URL },
+    standard: { protocol: "AIEOS", version: "1.2.0", schema_url: AIEOS_SCHEMA_URL },
     metadata: {
       instance_id: crypto.randomUUID(),
       instance_version: "1.0",
       generator: "decops",
       created_at: now,
       last_updated: now,
+      entity_id: crypto.randomUUID(),
+      alias: name,
     },
     capabilities: {
       skills: roleToSkills(role),
@@ -43,6 +46,11 @@ export function createAieosEntity(
       bio: { gender: "non-binary" },
       origin: { nationality: "Digital", birthplace: { city: "Mesh", country: "Cyberspace" } },
       residence: { current_city: "Decops Workspace", current_country: "Mesh Network", dwelling_type: "Virtual Node" },
+    },
+    presence: {
+      access: {},
+      network: {},
+      settlement: {},
     },
     physicality: roleToDefaultPhysicality(role),
     psychology: roleToDefaultPsychology(role),
@@ -78,13 +86,13 @@ export function createAieosEntity(
 
 // ── Export: Agent → AIEOS JSON ──
 
-/** Produce a full AIEOS v1.1.0 JSON document from an Agent */
+/** Produce a full AIEOS v1.2.0 JSON document from an Agent */
 export function agentToAieos(agent: Agent): Record<string, unknown> {
   const entity = agent.aieos ?? createAieosEntity(agent.name, agent.role, agent.prompt);
 
   return {
     "@context": {
-      aieos: "https://aieos.org/schema/v1.1#",
+      aieos: "https://aieos.org/schema/v1.2#",
       schema: "https://schema.org/",
       xsd: "http://www.w3.org/2001/XMLSchema#",
     },
@@ -93,6 +101,9 @@ export function agentToAieos(agent: Agent): Record<string, unknown> {
     metadata: {
       ...entity.metadata,
       last_updated: new Date().toISOString().slice(0, 10),
+      entity_id: entity.metadata.entity_id || agent.id,
+      alias: entity.metadata.alias || agent.name,
+      public_key: entity.metadata.public_key || agent.keys.pub,
       // Preserve cross-platform provenance
       _decops: {
         agent_id: agent.id,
@@ -105,6 +116,7 @@ export function agentToAieos(agent: Agent): Record<string, unknown> {
     },
     capabilities: entity.capabilities,
     identity: entity.identity,
+    presence: entity.presence,
     physicality: entity.physicality,
     psychology: entity.psychology,
     linguistics: entity.linguistics,
@@ -167,16 +179,22 @@ export function aieosToAgent(json: unknown): AieosImportResult {
 
   // Rebuild the AIEOS entity from the import
   const aieos: AieosEntity = {
-    standard: obj.standard ?? { protocol: "AIEOS", version: "1.1.0", schema_url: AIEOS_SCHEMA_URL },
+    standard: obj.standard ?? { protocol: "AIEOS", version: "1.2.0", schema_url: AIEOS_SCHEMA_URL },
     metadata: {
       instance_id: obj.metadata?.instance_id || crypto.randomUUID(),
       instance_version: obj.metadata?.instance_version || "1.0",
       generator: obj.metadata?.generator || "external",
       created_at: obj.metadata?.created_at || new Date().toISOString().slice(0, 10),
       last_updated: new Date().toISOString().slice(0, 10),
+      entity_id: obj.metadata?.entity_id,
+      alias: obj.metadata?.alias,
+      auth_protocol: obj.metadata?.auth_protocol,
+      public_key: obj.metadata?.public_key,
+      signature: obj.metadata?.signature,
     },
     capabilities: obj.capabilities,
     identity: obj.identity,
+    presence: obj.presence,
     physicality: obj.physicality,
     psychology: obj.psychology,
     linguistics: obj.linguistics,

@@ -16,8 +16,8 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef, ty
 export type { ProviderId, LLMModel, LivenessStatus, ProviderState, OllamaInstance, AgentModelMap, CommandModelMap, GroupModelMap, LLMContextType } from "@/types/llm";
 
 import type { ProviderId, LLMModel, LivenessStatus, ProviderState, OllamaInstance, OllamaInstanceStored, AgentModelMap, CommandModelMap, GroupModelMap, LLMContextType } from "@/types/llm";
-import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS, LS_KEYS, DEFAULT_MODEL, DEFAULT_IMAGE_MODEL } from "./llmModels";
-import { probeAnthropic, probeGoogle, probeOpenAI, probeOllama, fetchOllamaModelTags } from "./llmProbes";
+import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS, OPENROUTER_MODELS, LS_KEYS, DEFAULT_MODEL, DEFAULT_IMAGE_MODEL } from "./llmModels";
+import { probeAnthropic, probeGoogle, probeOpenAI, probeOpenRouter, fetchOpenRouterModels, probeOllama, fetchOllamaModelTags } from "./llmProbes";
 
 // ── Context ──────────────────────────────────────────────────
 
@@ -36,12 +36,18 @@ export function LLMProvider({ children }: { children: ReactNode }) {
   const [anthropicKey, setAnthropicKey] = useState(() => localStorage.getItem(LS_KEYS.anthropicKey) || "");
   const [geminiKey, setGeminiKeyState] = useState(() => localStorage.getItem(LS_KEYS.geminiKey) || "");
   const [openaiKey, setOpenaiKeyState] = useState(() => localStorage.getItem(LS_KEYS.openaiKey) || "");
+  const [openrouterKey, setOpenrouterKeyState] = useState(() => localStorage.getItem(LS_KEYS.openrouterKey) || "");
   const [anthropicLiveness, setAnthropicLiveness] = useState<LivenessStatus>(anthropicKey ? "unknown" : "no-key");
   const [googleLiveness, setGoogleLiveness] = useState<LivenessStatus>(geminiKey ? "unknown" : "no-key");
   const [openaiLiveness, setOpenaiLiveness] = useState<LivenessStatus>(openaiKey ? "unknown" : "no-key");
+  const [openrouterLiveness, setOpenrouterLiveness] = useState<LivenessStatus>(openrouterKey ? "unknown" : "no-key");
   const [anthropicLastChecked, setAnthropicLastChecked] = useState<string | null>(null);
   const [googleLastChecked, setGoogleLastChecked] = useState<string | null>(null);
   const [openaiLastChecked, setOpenaiLastChecked] = useState<string | null>(null);
+  const [openrouterLastChecked, setOpenrouterLastChecked] = useState<string | null>(null);
+
+  // OpenRouter dynamic models
+  const [openrouterDynamicModels, setOpenrouterDynamicModels] = useState<LLMModel[]>([]);
 
   // Ollama instances
   const [ollamaInstances, setOllamaInstancesState] = useState<OllamaInstance[]>(() => {
@@ -115,6 +121,11 @@ export function LLMProvider({ children }: { children: ReactNode }) {
       if (trimmed) localStorage.setItem(LS_KEYS.openaiKey, trimmed);
       else localStorage.removeItem(LS_KEYS.openaiKey);
       setOpenaiLiveness(trimmed ? "unknown" : "no-key");
+    } else if (provider === "openrouter") {
+      setOpenrouterKeyState(trimmed);
+      if (trimmed) localStorage.setItem(LS_KEYS.openrouterKey, trimmed);
+      else localStorage.removeItem(LS_KEYS.openrouterKey);
+      setOpenrouterLiveness(trimmed ? "unknown" : "no-key");
     }
   }, []);
 
@@ -122,15 +133,17 @@ export function LLMProvider({ children }: { children: ReactNode }) {
     if (provider === "anthropic") return anthropicKey;
     if (provider === "google") return geminiKey;
     if (provider === "openai") return openaiKey;
+    if (provider === "openrouter") return openrouterKey;
     return "";
-  }, [anthropicKey, geminiKey, openaiKey]);
+  }, [anthropicKey, geminiKey, openaiKey, openrouterKey]);
 
   const hasProviderKey = useCallback((provider: ProviderId) => {
     if (provider === "anthropic") return !!anthropicKey;
     if (provider === "google") return !!geminiKey;
     if (provider === "openai") return !!openaiKey;
+    if (provider === "openrouter") return !!openrouterKey;
     return false;
-  }, [anthropicKey, geminiKey, openaiKey]);
+  }, [anthropicKey, geminiKey, openaiKey, openrouterKey]);
 
   // ── Per-agent ──
 
@@ -208,6 +221,7 @@ export function LLMProvider({ children }: { children: ReactNode }) {
     const doAnthropic = !provider || provider === "anthropic";
     const doGoogle = !provider || provider === "google";
     const doOpenai = !provider || provider === "openai";
+    const doOpenrouter = !provider || provider === "openrouter";
 
     if (doAnthropic) {
       if (!anthropicKey) { setAnthropicLiveness("no-key"); return; }
@@ -230,7 +244,19 @@ export function LLMProvider({ children }: { children: ReactNode }) {
       setOpenaiLiveness(ok ? "online" : "offline");
       setOpenaiLastChecked(now);
     }
-  }, [anthropicKey, geminiKey, openaiKey]);
+    if (doOpenrouter) {
+      if (!openrouterKey) { setOpenrouterLiveness("no-key"); return; }
+      setOpenrouterLiveness("checking");
+      const ok = await probeOpenRouter(openrouterKey);
+      setOpenrouterLiveness(ok ? "online" : "offline");
+      setOpenrouterLastChecked(now);
+      // Fetch dynamic models on successful probe
+      if (ok) {
+        const models = await fetchOpenRouterModels(openrouterKey);
+        if (models.length > 0) setOpenrouterDynamicModels(models);
+      }
+    }
+  }, [anthropicKey, geminiKey, openaiKey, openrouterKey]);
 
   // ── Ollama instance management ──
 
@@ -293,6 +319,7 @@ export function LLMProvider({ children }: { children: ReactNode }) {
     if (anthropicKey) checkLiveness("anthropic");
     if (geminiKey) checkLiveness("google");
     if (openaiKey) checkLiveness("openai");
+    if (openrouterKey) checkLiveness("openrouter");
     // Probe all saved Ollama instances
     ollamaInstances.forEach(inst => {
       checkOllamaLiveness(inst.id);
@@ -302,14 +329,16 @@ export function LLMProvider({ children }: { children: ReactNode }) {
   // ── Derived ──
 
   const ollamaModels = ollamaInstances.flatMap(i => i.models);
-  const allModels: LLMModel[] = [...ANTHROPIC_MODELS, ...GOOGLE_MODELS, ...OPENAI_MODELS, ...ollamaModels];
+  const openrouterModels = openrouterDynamicModels.length > 0 ? openrouterDynamicModels : OPENROUTER_MODELS;
+  const allModels: LLMModel[] = [...ANTHROPIC_MODELS, ...GOOGLE_MODELS, ...OPENAI_MODELS, ...openrouterModels, ...ollamaModels];
 
   const getModelById = useCallback((id: string) => {
     return ANTHROPIC_MODELS.find(m => m.id === id)
       || GOOGLE_MODELS.find(m => m.id === id)
       || OPENAI_MODELS.find(m => m.id === id)
+      || openrouterModels.find(m => m.id === id)
       || ollamaModels.find(m => m.id === id);
-  }, [ollamaModels]);
+  }, [ollamaModels, openrouterModels]);
 
   const providers: ProviderState[] = [
     {
@@ -344,6 +373,17 @@ export function LLMProvider({ children }: { children: ReactNode }) {
       liveness: openaiLiveness,
       lastChecked: openaiLastChecked,
       models: OPENAI_MODELS,
+    },
+    {
+      id: "openrouter",
+      label: "OpenRouter",
+      keyPlaceholder: "sk-or-...",
+      keyPrefix: "sk-or-",
+      keyHelpUrl: "https://openrouter.ai/keys",
+      apiKey: openrouterKey,
+      liveness: openrouterLiveness,
+      lastChecked: openrouterLastChecked,
+      models: openrouterModels,
     },
   ];
 

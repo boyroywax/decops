@@ -395,3 +395,59 @@ export const searchArtifactsCommand: CommandDefinition = {
         return { query: args.query, total: results.length, results: trimmed };
     }
 };
+
+export const exportArtifactCommand: CommandDefinition = {
+    id: "export_artifact",
+    description: "Export an artifact's content as a downloadable JSON package including metadata.",
+    tags: ["artifact", "export", "data"],
+    rbac: ["researcher", "builder", "orchestrator"],
+    args: {
+        id: {
+            name: "id",
+            type: "string",
+            description: "ID of the artifact to export",
+            required: true
+        }
+    },
+    output: "JSON export of the artifact with full metadata.",
+    outputSchema: {
+        type: "object",
+        properties: {
+            success: { type: "boolean" },
+            artifact: { type: "object" }
+        }
+    },
+    execute: async (args, context: CommandContext) => {
+        const artifact = context.jobs.allArtifacts.find((a: any) => a.id === args.id);
+        if (!artifact) {
+            throw new Error(`Artifact ${args.id} not found.`);
+        }
+
+        const exportData = {
+            version: "1.0",
+            type: "artifact-export",
+            exportedAt: new Date().toISOString(),
+            artifact: {
+                id: artifact.id,
+                name: artifact.name,
+                type: artifact.type,
+                content: artifact.content,
+                tags: artifact.tags || [],
+                description: artifact.description || "",
+                source: artifact.source || "unknown",
+                createdAt: artifact.createdAt || null,
+            },
+        };
+
+        // Produce deliverable
+        context.addDeliverable({
+            key: `artifact-export-${artifact.id}`,
+            name: `${artifact.name} Export`,
+            type: 'json',
+            content: JSON.stringify(exportData, null, 2),
+        });
+
+        context.workspace.addLog(`Exported artifact: ${artifact.name}`);
+        return { success: true, artifact: exportData.artifact };
+    }
+};

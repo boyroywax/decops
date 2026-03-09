@@ -80,19 +80,21 @@ Example output format (multi-network with bridge):
 export async function generateAieosFromPrompt(description: string): Promise<AieosEntity> {
   const model = getSelectedModel();
 
-  const systemPrompt = `You generate AIEOS v1.1.0 (AI Entity Object Specification) JSON profiles from personality descriptions.
+  const systemPrompt = `You generate AIEOS v1.2.0 (AI Entity Object Specification) JSON profiles from personality descriptions.
 
 RESPOND WITH ONLY VALID JSON. No markdown. No backticks. No explanation. Just the JSON object.
 
 The output must conform to this COMPLETE schema — ALL sections are REQUIRED, no empty strings or empty arrays:
 {
-  "standard": { "protocol": "AIEOS", "version": "1.1.0", "schema_url": "https://aieos.org/schema/v1.1.0" },
+  "standard": { "protocol": "AIEOS", "version": "1.2.0", "schema_url": "https://aieos.org/schema/v1.2/aieos.schema.json" },
   "metadata": {
     "instance_id": "<uuid>",
     "instance_version": "1.0",
     "generator": "decops-ai-generator",
     "created_at": "<YYYY-MM-DD>",
-    "last_updated": "<YYYY-MM-DD>"
+    "last_updated": "<YYYY-MM-DD>",
+    "entity_id": "<uuid>",
+    "alias": "<short alias for this entity>"
   },
   "capabilities": {
     "skills": [{ "name": "skill-id", "description": "What this skill does", "priority": 1, "auto_activate": true }]
@@ -102,6 +104,11 @@ The output must conform to this COMPLETE schema — ALL sections are REQUIRED, n
     "bio": { "birthday": "YYYY-MM-DD", "age_biological": 0, "age_perceived": 0, "gender": "" },
     "origin": { "nationality": "", "ethnicity": "", "birthplace": { "city": "", "country": "" } },
     "residence": { "current_city": "", "current_country": "", "dwelling_type": "" }
+  },
+  "presence": {
+    "access": { "email": "", "website": "", "social": [{ "platform": "", "handle": "", "uri": "" }] },
+    "network": { "ipv4": "", "ipv6": "", "webhook": "" },
+    "settlement": { "wallets": [{ "network": "", "address": "" }] }
   },
   "physicality": {
     "face": {
@@ -233,7 +240,7 @@ Rules:
 
     // Validate minimum structure
     if (!entity.standard) {
-      entity.standard = { protocol: "AIEOS", version: "1.1.0", schema_url: "https://aieos.org/schema/v1.1.0" };
+      entity.standard = { protocol: "AIEOS", version: "1.2.0", schema_url: "https://aieos.org/schema/v1.2/aieos.schema.json" };
     }
     if (!entity.metadata) {
       entity.metadata = {
@@ -242,6 +249,7 @@ Rules:
         generator: "decops-ai-generator",
         created_at: new Date().toISOString().slice(0, 10),
         last_updated: new Date().toISOString().slice(0, 10),
+        entity_id: crypto.randomUUID(),
       };
     }
 

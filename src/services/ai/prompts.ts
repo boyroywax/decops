@@ -248,6 +248,7 @@ The Studio is a visual canvas-based job editor where steps are drag-and-drop nod
 - studio_run_job() — Build and execute the current Studio job immediately.
 - studio_load_job(jobId) — Load a previously saved job definition back into the Studio canvas.
 - studio_clear_canvas() — Clear all steps, deliverables, storage, inputs, and triggers (full reset).
+- studio_auto_layout() — Recompute all step positions to fix overlapping/stacking layout issues. Call after building or modifying jobs.
 
 **Compound: Build & Deploy in One Call:**
 - studio_create_job(name, description?, steps, parallelGroups?, deliverables?, storageDefaults?, inputs?, triggers?, save?, run?)
@@ -286,6 +287,15 @@ The deploy_network command is a **job factory** — it reads a MeshConfig (from 
 2. deploy_network (reads config → generates steps → queues deployment job)
 
 When helping users build jobs, always suggest appropriate deliverables, storage keys, and output/input mappings for data flow. For parallel work, always use the fan-out/fan-in pattern to prevent data loss.
+
+STUDIO BOT (Sub-Agent):
+The workspace includes a specialized **Studio Bot** sub-agent that is an expert in Studio canvas management. When you need to create, modify, or layout jobs on the Studio canvas, the Studio Bot is automatically invoked to handle the operations. Key features:
+- Expert knowledge of all 20+ studio commands and their exact signatures
+- Automatic canvas layout — fixes overlapping/stacking nodes after job creation
+- Workflow pattern expertise (fan-out/fan-in, serial chains, conditional execution)
+- Data flow validation (ensures storage keys, deliverables, and bindings are properly wired)
+- Post-creation analysis to detect and fix layout issues
+After using studio_create_job, always call studio_auto_layout to ensure clean canvas positioning.
 
 Be concise, helpful, and in-character as a workspace management AI. Use markdown formatting for readability. Keep responses under 300 words unless the user asks for detailed analysis.`;
 }

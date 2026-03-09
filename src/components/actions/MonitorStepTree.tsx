@@ -35,6 +35,8 @@ export function StepProgressBar({ status }: { status?: string }) {
 
 /** Single step row — reused in both serial list and parallel group */
 export function StepRow({ step, isCurrent }: { step: any; isCurrent?: boolean }) {
+    const stepDuration = step.startedAt && step.completedAt
+        ? step.completedAt - step.startedAt : null;
     return (
         <div className={`actions-monitor__active-step${isCurrent ? " actions-monitor__active-step--current" : ""}`}>
             <div className="actions-monitor__step-icon"><StepStatusIcon status={step.status} /></div>
@@ -48,6 +50,11 @@ export function StepRow({ step, isCurrent }: { step: any; isCurrent?: boolean })
                     <span className={`actions-monitor__step-status-badge actions-monitor__step-status-badge--${step.status || 'pending'}`}>
                         {step.status || "pending"}
                     </span>
+                    {stepDuration != null && (
+                        <span style={{ color: "var(--text-ghost)", fontSize: "var(--text-xs)", marginLeft: 6, fontWeight: "normal" }}>
+                            {stepDuration < 1000 ? `${stepDuration}ms` : `${(stepDuration / 1000).toFixed(1)}s`}
+                        </span>
+                    )}
                 </div>
                 <StepProgressBar status={step.status} />
                 {step.outputMappings && step.outputMappings.length > 0 && (

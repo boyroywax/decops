@@ -43,7 +43,7 @@ function makeAgent(id: string, name: string, role = "researcher", networkId?: st
     createdAt: new Date().toISOString(),
     status: "active",
     networkId,
-    aieos: { version: "1.1.0", identity: { name, entityType: "agent" } } as any,
+    aieos: { version: "1.2.0", identity: { name, entityType: "agent" } } as any,
   };
 }
 

@@ -15,6 +15,7 @@ import { ArtifactsView } from "@/components/views/ArtifactsView";
 import { ActivityView } from "@/components/views/ActivityView";
 import { StudioView } from "@/components/views/StudioView";
 import { EditorView } from "@/components/views/EditorView";
+import { SystemView } from "@/components/views/SystemView";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { Breadcrumb } from "./Breadcrumb";
 import type { WorkspaceContextType } from "@/context/WorkspaceContext";
@@ -368,6 +369,14 @@ export function ViewSwitcher({
                     updateArtifact={updateArtifact}
                     importArtifact={importArtifact}
                 />
+            </ErrorBoundary>
+        );
+    }
+
+    if (view === "system") {
+        return (
+            <ErrorBoundary>
+                <SystemView />
             </ErrorBoundary>
         );
     }

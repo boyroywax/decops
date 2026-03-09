@@ -111,13 +111,8 @@ export const COMMAND_ERRORS: Record<string, CommandError[]> = {
     { message: "Search query cannot be empty", cause: "Empty query string" },
   ],
 
-  // ── Data / Export ────────
-  export_full_backup: [],
+  // ── Workspace Export ──────
   export_workspace: [],
-  export_data: [
-    { message: "Unknown entity type: {type}", cause: "Invalid type argument" },
-    { message: "{type} with ID {id} not found", cause: "Entity doesn't exist" },
-  ],
 
   // ── Workspace ────────────
   create_workspace: [

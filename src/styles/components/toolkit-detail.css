@@ -522,3 +522,452 @@
   font-style: italic;
   font-family: var(--font-mono);
 }
+
+/* ── Facet Overview Strip ── */
+
+.toolkit-detail__facets-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-lg);
+}
+
+.toolkit-detail__facets-label {
+  font-size: var(--text-2xs);
+  font-weight: var(--font-medium);
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.toolkit-detail__facets-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.toolkit-detail__facet-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toolkit-detail__facet-badge:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+}
+
+/* ── Header meta additions ── */
+
+.toolkit-detail__version-badge,
+.toolkit-detail__author-badge,
+.toolkit-detail__license-badge {
+  font-size: var(--text-2xs);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-faint);
+}
+
+/* ── Collapsible Section Toggle ── */
+
+.toolkit-detail__section-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-faint);
+  transition: color 0.15s ease;
+}
+
+.toolkit-detail__section-toggle:hover {
+  color: var(--text-secondary);
+}
+
+/* ── Facet Cards ── */
+
+.toolkit-detail__facet-card {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.toolkit-detail__facet-card-header {
+  display: flex;
+  gap: var(--space-sm);
+  align-items: flex-start;
+}
+
+.toolkit-detail__facet-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.toolkit-detail__facet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-faint);
+}
+
+.toolkit-detail__facet-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.toolkit-detail__facet-detail-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-xs);
+}
+
+.toolkit-detail__facet-label {
+  font-size: 10px;
+  font-weight: var(--font-medium);
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+.toolkit-detail__facet-value {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+}
+
+/* ── Job Steps ── */
+
+.toolkit-detail__facet-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toolkit-detail__step-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-xs);
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-sm);
+}
+
+.toolkit-detail__step-num {
+  font-size: 10px;
+  font-weight: var(--font-semibold);
+  color: var(--text-faint);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.toolkit-detail__step-name {
+  color: var(--text-secondary);
+}
+
+.toolkit-detail__step-cmd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-subtle);
+  margin-left: auto;
+}
+
+/* ── Priority & Status ── */
+
+.toolkit-detail__priority-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: var(--font-semibold);
+  margin-left: var(--space-xs);
+}
+
+.toolkit-detail__status-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-left: var(--space-xs);
+}
+
+/* ── Checklist ── */
+
+.toolkit-detail__checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-left: 2px;
+}
+
+.toolkit-detail__checklist-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* ── Collection fields ── */
+
+.toolkit-detail__collection-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.toolkit-detail__field-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toolkit-detail__field-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-xs);
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-sm);
+  flex-wrap: wrap;
+}
+
+/* ── Log level badge ── */
+
+.toolkit-detail__level-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: var(--font-semibold);
+  margin-left: var(--space-xs);
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+}
+
+.toolkit-detail__level-badge[data-level="debug"] {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+}
+
+.toolkit-detail__level-badge[data-level="info"] {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.toolkit-detail__level-badge[data-level="warn"] {
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+}
+
+.toolkit-detail__level-badge[data-level="error"] {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.toolkit-detail__level-badge[data-level="fatal"] {
+  background: rgba(220, 38, 38, 0.2);
+  color: #dc2626;
+}
+
+/* ── RBAC ── */
+
+.toolkit-detail__rbac-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.toolkit-detail__rbac-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.toolkit-detail__perm-actions {
+  display: flex;
+  gap: 3px;
+  margin-left: auto;
+}
+
+.toolkit-detail__perm-action {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: rgba(56, 189, 248, 0.08);
+  color: #38bdf8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ── Test type badge ── */
+
+.toolkit-detail__test-type {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  padding: 1px 5px;
+  border-radius: var(--radius-full);
+  background: rgba(168, 85, 247, 0.12);
+  color: #a855f7;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: var(--font-semibold);
+  margin-left: var(--space-xs);
+}
+
+/* ── API Endpoints ── */
+
+.toolkit-detail__api-base {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+}
+
+.toolkit-detail__api-base code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.toolkit-detail__api-endpoint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.toolkit-detail__http-method {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: var(--font-bold);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.toolkit-detail__api-path {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ── UI Contributions ── */
+
+.toolkit-detail__ui-type {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(99, 102, 241, 0.12);
+  color: #818cf8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: var(--font-semibold);
+  flex-shrink: 0;
+}
+
+/* ── OCI / Packaging Info ── */
+
+.toolkit-detail__oci-info {
+  padding: var(--space-sm);
+}
+
+.toolkit-detail__oci-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-md);
+}
+
+.toolkit-detail__oci-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toolkit-detail__digest {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-faint);
+  word-break: break-all;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}

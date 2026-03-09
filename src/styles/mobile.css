@@ -1,0 +1,720 @@
+/**
+ * Mobile Responsive Styles
+ * Comprehensive mobile-first responsive overrides for Mesh Workspace
+ * Breakpoints: 480px (small phone), 768px (tablet/large phone)
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TOUCH OPTIMIZATION - Prevent double-tap zoom, improve tap feel
+ * ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Prevent iOS text size inflation */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Smoother scrolling on iOS */
+  body,
+  .app-main,
+  .modal-body {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * HEADER — Compact mobile header
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .app-header {
+    padding: var(--space-md) var(--space-lg);
+    gap: var(--space-sm);
+  }
+
+  .header-brand {
+    gap: var(--space-md);
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .header-logo {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .header-title {
+    font-size: var(--text-md);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .header-subtitle {
+    display: none;
+  }
+
+  .header-actions {
+    gap: var(--space-sm);
+    flex-shrink: 0;
+  }
+
+  .header-icon-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .header-user-btn {
+    padding: var(--space-xs);
+    gap: var(--space-xs);
+  }
+
+  .header-user-info {
+    display: none;
+  }
+
+  .header-logout-btn {
+    padding: var(--space-sm);
+    min-width: 32px;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * MAIN CONTENT — Reduced padding on mobile
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .app-main {
+    padding: var(--space-lg);
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * SIDEBAR MOBILE — Improved horizontal tabs
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .sidebar-mobile-container {
+    border-bottom-width: 1px;
+  }
+
+  .app-sidebar.mobile {
+    padding: var(--space-xs) var(--space-md);
+    gap: var(--space-xs);
+  }
+
+  .app-sidebar.mobile .sidebar-nav-item {
+    padding: var(--space-md) var(--space-lg);
+    font-size: var(--text-sm);
+    min-height: 40px;
+    min-width: 40px;
+  }
+
+  /* Ecosystem toggle in mobile */
+  .app-sidebar.mobile .sidebar-eco-toggle {
+    min-height: 40px;
+  }
+
+  /* Sub-items in mobile horizontal mode */
+  .app-sidebar.mobile .sidebar-eco-subitems {
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-xs);
+  }
+
+  .app-sidebar.mobile .sidebar-nav-subitem {
+    padding-left: var(--space-lg) !important;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * GRIDS — Single column on mobile
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .grid-agents,
+  .grid-groups {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-governance {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * VIEW HEADER — Stack on mobile
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .view-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+  }
+
+  .view-title {
+    font-size: var(--text-xl);
+  }
+
+  .view-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * MODALS — Full-screen on mobile
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .modal-backdrop {
+    align-items: flex-end;
+  }
+
+  .modal,
+  .modal-sm,
+  .modal-lg {
+    width: 100vw;
+    max-height: 90vh;
+    border-radius: var(--radius-3xl) var(--radius-3xl) 0 0;
+    margin: 0;
+  }
+
+  .modal-header {
+    padding: var(--space-xl) var(--space-xl) var(--space-lg);
+  }
+
+  .modal-body {
+    padding: var(--space-lg) var(--space-xl) var(--space-2xl);
+  }
+
+  .modal-footer {
+    padding: var(--space-lg) var(--space-xl);
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * FOOTER — Mobile-optimized bottom bar
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .app-footer {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-sm);
+    /* Ensure footer items don't overflow */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .footer__stats {
+    gap: var(--space-sm);
+    flex-shrink: 0;
+  }
+
+  .footer__controls {
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .footer__toggle {
+    padding: var(--space-xs) var(--space-sm);
+    min-height: 32px;
+    font-size: var(--text-xs);
+  }
+
+  .footer__stat-btn {
+    min-height: 32px;
+  }
+
+  .footer__separator {
+    margin: 0 1px;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * SPLIT PANE — Stack on mobile
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .split-pane {
+    flex-direction: column;
+  }
+
+  .split-pane-sidebar {
+    width: 100%;
+    max-height: 200px;
+    border-right: none;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * CARDS — Better spacing on mobile
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .card {
+    padding: var(--space-lg);
+  }
+
+  .card-header {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * BUTTONS — Larger touch targets on mobile
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .btn {
+    min-height: 40px;
+    padding: var(--space-md) var(--space-xl);
+  }
+
+  .btn-sm {
+    min-height: 36px;
+    padding: var(--space-sm) var(--space-lg);
+  }
+
+  .btn-ghost {
+    min-height: 36px;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * FORM INPUTS — Better mobile sizing
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .input,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="url"],
+  textarea,
+  select {
+    min-height: 40px;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * BULK ACTION BAR — Full width on mobile
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .bulk-action-bar {
+    flex-direction: column;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+    border-radius: var(--radius-xl);
+  }
+
+  .bulk-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * DROPDOWNS — Full width on mobile
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .dropdown {
+    position: fixed;
+    left: var(--space-md);
+    right: var(--space-md);
+    top: auto;
+    bottom: 60px;
+    width: auto;
+    max-height: 60vh;
+    overflow-y: auto;
+    border-radius: var(--radius-2xl);
+  }
+
+  .dropdown-item {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * MESSAGE THREAD — Tighter on mobile
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .message-thread {
+    padding: var(--space-lg);
+    border-radius: var(--radius-2xl);
+  }
+
+  .message-item-response {
+    padding-left: var(--space-xl);
+  }
+
+  .message-bubble {
+    padding: var(--space-md) var(--space-lg);
+    font-size: var(--text-sm);
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * CHAT PANEL — Full width on mobile
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .chat-panel {
+    width: 100% !important;
+    max-width: 100vw;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  .chat-panel--side {
+    position: fixed;
+    inset: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh !important;
+    z-index: var(--z-modal);
+    border-radius: 0;
+  }
+
+  .chat-panel__input-row {
+    padding: var(--space-md);
+  }
+
+  .chat-panel__input {
+    font-size: 16px; /* Prevent iOS zoom */
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SMALL PHONE BREAKPOINT (480px)
+ * Extra-tight layout for very small screens
+ * ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .app-header {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .header-title {
+    font-size: var(--text-sm);
+  }
+
+  .header-logo {
+    width: 24px;
+    height: 24px;
+  }
+
+  .app-main {
+    padding: var(--space-md);
+  }
+
+  .view-title {
+    font-size: var(--text-lg);
+  }
+
+  /* Stack footer controls */
+  .app-footer {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+  }
+
+  .footer__toggle span:not(.footer__badge) {
+    display: none;
+  }
+
+  .footer__toggle {
+    min-width: 32px;
+    min-height: 32px;
+    justify-content: center;
+  }
+
+  /* Grids always single column */
+  .grid-governance {
+    grid-template-columns: 1fr;
+  }
+
+  /* Chat panel adjustments */
+  .chat-panel__messages {
+    padding: var(--space-md);
+  }
+
+  /* Modal takes full screen on very small devices */
+  .modal,
+  .modal-sm,
+  .modal-lg {
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TABLET BREAKPOINT (769px - 1024px)
+ * Moderate density adjustments
+ * ═══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .app-main {
+    padding: var(--space-2xl);
+  }
+
+  .grid-agents {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+
+  .grid-groups {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * COMPONENT-SPECIFIC MOBILE OVERRIDES
+ * ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Network view grids */
+  .network-detail__agents-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Automations grid */
+  .automations-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Commands panel */
+  .commands-grid,
+  .commands-actions-grid,
+  .commands-featured-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Job catalog */
+  .job-catalog-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Action library */
+  .action-library-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Agents grid */
+  .agents-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Group detail members grid */
+  .group-detail__members-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Automations panel grid */
+  .automations-panel-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Workspace card stats */
+  .ws-card__stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Node edit modal role grid */
+  .node-role-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Display panel grids */
+  .display-themes-grid,
+  .display-position-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Artifacts panel */
+  .artifacts-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Profile modal sections */
+  .profile-modal-body {
+    padding: var(--space-lg);
+  }
+
+  /* Activity modal */
+  .activity-modal__content {
+    padding: var(--space-lg);
+  }
+
+  /* Login view */
+  .login-container {
+    padding: var(--space-xl);
+    width: calc(100vw - var(--space-2xl));
+  }
+
+  /* Action manager panel */
+  .action-manager {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  /* LLM Manager */
+  .llm-manager {
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  /* Settings panel */
+  .settings-panel {
+    padding: var(--space-lg);
+  }
+
+  /* Trading card — ensure readability */
+  .trading-card {
+    min-width: unset;
+    width: 100%;
+  }
+
+  /* Login page — full-width card on mobile */
+  .login__card {
+    width: calc(100vw - var(--space-2xl));
+    max-width: 420px;
+    padding: var(--space-3xl);
+  }
+
+  .login__title {
+    font-size: var(--text-2xl);
+  }
+
+  .login__input {
+    font-size: 16px; /* Prevent iOS zoom */
+    min-height: 44px;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * UNIFIED BUILDER — Stack 3-pane layout on mobile
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .builder__body {
+    flex-direction: column !important;
+  }
+
+  .builder__sidebar {
+    width: 100% !important;
+    max-height: 200px;
+    overflow-y: auto;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .builder__config {
+    width: 100% !important;
+    border-left: none !important;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .builder__controls {
+    flex-wrap: wrap;
+  }
+
+  .builder__schedule-input {
+    width: 100px !important;
+  }
+
+  .builder__schedule-select {
+    min-width: 120px !important;
+  }
+
+  .builder__desc-input {
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .builder__kv-input--key,
+  .builder__kv-input--label {
+    width: 100% !important;
+  }
+
+  .builder__kv-input--value {
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .builder__kv-select {
+    width: 100% !important;
+  }
+
+  .builder__deliverable-row,
+  .builder__storage-row {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * NETWORK VIEW — Reduce oversized empty state
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .network-view__empty {
+    padding: var(--space-3xl) !important;
+    height: auto !important;
+    min-height: 200px;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * PROFILE MODAL — Stack form rows
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .profile-form-row {
+    flex-wrap: wrap;
+  }
+
+  /* ═════════════════════════════════════════════════════════════════════════
+   * ACTIVITY — Wrap header on mobile
+   * ═════════════════════════════════════════════════════════════════════════ */
+  .activity__header {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SAFE AREA INSETS (notch/home indicator on modern phones)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+@supports (padding: env(safe-area-inset-bottom)) {
+  @media (max-width: 768px) {
+    .app-footer {
+      padding-bottom: calc(var(--space-sm) + env(safe-area-inset-bottom));
+    }
+
+    .modal {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .chat-panel--side {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HOVER vs TOUCH — Disable hover effects on touch devices
+ * ═══════════════════════════════════════════════════════════════════════════ */
+@media (hover: none) {
+  .sidebar-nav-item:hover {
+    background: transparent;
+  }
+
+  .sidebar-nav-item.active:hover {
+    background: rgba(0, 229, 160, 0.10);
+  }
+
+  .btn:hover:not(:disabled) {
+    filter: none;
+  }
+
+  .dropdown-item:hover {
+    background: transparent;
+  }
+
+  /* Larger scroll indicators for touch */
+  .sidebar-scroll-btn {
+    width: 40px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * LANDSCAPE MODE — Adjust for horizontal phones
+ * ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-height: 500px) and (orientation: landscape) {
+  .app-header {
+    padding: var(--space-xs) var(--space-lg);
+  }
+
+  .sidebar-mobile-container {
+    display: none;
+  }
+
+  .app-main {
+    padding: var(--space-md);
+  }
+
+  .modal,
+  .modal-sm,
+  .modal-lg {
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
+}

@@ -7,7 +7,7 @@ import { resolveToolJob, rejectToolJob } from "@/services/commands/tools";
 import { getAgentModel, getCommandModel } from "@/services/ai";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContextType } from "@/context/WorkspaceContext";
-import type { User } from "@/types";
+import type { User, JobEvent } from "@/types";
 import { useStudioContext } from "@/context/StudioContext";
 import {
     resolveRefs, applyInputBindings, applyOutputMappings,
@@ -134,6 +134,21 @@ export function useJobExecutor({
                         if (inp.name && inp.entityId) inputMap[inp.name] = inp.entityId;
                     }
 
+                    /** Accumulated timeline events for this job execution */
+                    const timelineBuffer: Omit<JobEvent, "timestamp">[] = [];
+
+                    /** Push a timeline event + sync it into job state */
+                    const pushTimelineEvent = (event: Omit<JobEvent, "timestamp">) => {
+                        timelineBuffer.push(event);
+                        if (updateJob) {
+                            updateJob(queuedJob.id, {
+                                timeline: [...(queuedJob.timeline || [{ timestamp: queuedJob.createdAt, kind: 'created' as const, label: 'Job created' }]), ...timelineBuffer.map(e => ({ ...e, timestamp: Date.now() }))],
+                            });
+                        }
+                    };
+
+                    pushTimelineEvent({ kind: "started", label: "Job started" });
+
                     // Check for unresolved prompt inputs — pause job and ask user
                     const unresolvedPrompt = inputDefaults.find(
                         (inp: any) => inp.source?.kind === "prompt" && !inp.entityId
@@ -151,6 +166,11 @@ export function useJobExecutor({
                                 step: unresolvedPrompt.step,
                                 placeholder: unresolvedPrompt.placeholder,
                             },
+                        });
+                        pushTimelineEvent({
+                            kind: "awaiting-input",
+                            label: `Waiting for input: ${unresolvedPrompt.name}`,
+                            detail: unresolvedPrompt.source?.promptText,
                         });
                         addLog(`Job "${queuedJob.type}" is waiting for user input: ${unresolvedPrompt.name}`);
                         processingRef.current.delete(queuedJob.id);
@@ -332,17 +352,17 @@ export function useJobExecutor({
                         // Multi-step Job
                         if (queuedJob.mode === "parallel") {
                             const steps = [...queuedJob.steps];
-                            // Mark all running? Or pending? Parallel means all start running.
-                            // But we can't update state inside map strictly.
-                            // Let's launch them.
 
-                            // Update job to mark all running
+                            // Update job to mark all running with startedAt
                             if (updateJob) {
-                                const runningSteps = steps.map((s: any) => ({ ...s, status: 'running' }));
+                                const now = Date.now();
+                                const runningSteps = steps.map((s: any) => ({ ...s, status: 'running', startedAt: now }));
                                 syncJobState({ steps: runningSteps });
                             }
+                            pushTimelineEvent({ kind: "step:started", label: `All ${steps.length} steps started (parallel)` });
 
                             const promises = queuedJob.steps.map(async (step: any, idx: number) => {
+                                const stepStarted = Date.now();
                                 try {
                                     const boundArgs = applyInputBindings(step.args, step.inputBindings, jobStorage, deliverableContents);
                                     const resolvedArgs = resolveRefs(boundArgs, refs);
@@ -360,7 +380,7 @@ export function useJobExecutor({
                                         // haltAfterSuccess is ignored in parallel mode (all steps already launched)
                                     }
 
-                                    return { stepId: step.id, result: res, status: 'completed', outputMappings: step.outputMappings };
+                                    return { stepId: step.id, result: res, status: 'completed', outputMappings: step.outputMappings, startedAt: stepStarted, completedAt: Date.now() };
                                 } catch (e: any) {
                                     // ── onFailure handler (parallel) ──
                                     let continueFlag = false;
@@ -380,19 +400,34 @@ export function useJobExecutor({
                                         status: continueFlag ? 'completed' : 'failed',
                                         outputMappings: undefined,
                                         continued: continueFlag,
+                                        startedAt: stepStarted,
+                                        completedAt: Date.now(),
                                     };
                                 }
                             });
 
                             const results = await Promise.all(promises);
 
-                            // Update final state of steps
+                            // Update final state of steps with timestamps
                             if (updateJob) {
                                 const finalSteps = queuedJob.steps.map((s: any) => {
                                     const res = results.find(r => r.stepId === s.id);
-                                    return res ? { ...s, result: res.result || res.error, status: res.status } : s;
+                                    return res ? { ...s, result: res.result || res.error, status: res.status, startedAt: res.startedAt, completedAt: res.completedAt } : s;
                                 });
                                 syncJobState({ steps: finalSteps });
+                            }
+
+                            // Push timeline events for parallel results
+                            for (const r of results) {
+                                const step = queuedJob.steps.find((s: any) => s.id === r.stepId);
+                                const stepName = step?.name || step?.commandId || r.stepId;
+                                pushTimelineEvent({
+                                    kind: r.status === 'completed' ? 'step:completed' : 'step:failed',
+                                    label: `${stepName} ${r.status}`,
+                                    stepId: r.stepId,
+                                    detail: r.error || (typeof r.result === 'string' ? r.result.slice(0, 120) : undefined),
+                                    duration: r.completedAt && r.startedAt ? r.completedAt - r.startedAt : undefined,
+                                });
                             }
 
                             // Apply output mappings from parallel results
@@ -436,19 +471,23 @@ export function useJobExecutor({
                                 const idx = steps.findIndex(s => s.id === stepId);
                                 if (idx < 0) return { status: 'failed', error: `Step ${stepId} not found` };
                                 const step = steps[idx];
+                                const stepName = step.name || step.commandId || stepId;
 
                                 // Condition check
                                 if (step.condition) {
                                     if (!evaluateCondition(step.condition, context, steps)) {
                                         steps[idx] = { ...steps[idx], status: 'skipped', result: 'Condition not met' };
                                         syncJobState({ steps: [...steps] });
+                                        pushTimelineEvent({ kind: 'step:skipped', label: `${stepName} skipped`, stepId, detail: 'Condition not met' });
                                         return { status: 'skipped' };
                                     }
                                 }
 
                                 // Mark running
-                                steps[idx] = { ...steps[idx], status: 'running' };
+                                const stepStart = Date.now();
+                                steps[idx] = { ...steps[idx], status: 'running', startedAt: stepStart };
                                 syncJobState({ steps: [...steps] });
+                                pushTimelineEvent({ kind: 'step:started', label: `${stepName} started`, stepId });
 
                                 try {
                                     const boundArgs = applyInputBindings(step.args, step.inputBindings, jobStorage, deliverableContents);
@@ -456,7 +495,7 @@ export function useJobExecutor({
                                     const stepCtx = stepCtxFor(step);
                                     const res = await registry.execute(step.commandId, resolvedArgs, stepCtx);
                                     const resultStr = typeof res === 'string' ? res : JSON.stringify(res);
-                                    steps[idx] = { ...steps[idx], status: 'completed', result: resultStr };
+                                    steps[idx] = { ...steps[idx], status: 'completed', result: resultStr, completedAt: Date.now() };
 
                                     // Output mappings
                                     applyOutputMappings(step.outputMappings, res, jobStorage);
@@ -473,9 +512,10 @@ export function useJobExecutor({
                                     }
 
                                     syncJobState({ steps: [...steps] });
+                                    pushTimelineEvent({ kind: 'step:completed', label: `${stepName} completed`, stepId, duration: Date.now() - stepStart, detail: resultStr.slice(0, 120) });
                                     return { status: 'completed', result: resultStr };
                                 } catch (e: any) {
-                                    steps[idx] = { ...steps[idx], status: 'failed', result: e.message };
+                                    steps[idx] = { ...steps[idx], status: 'failed', result: e.message, completedAt: Date.now() };
 
                                     // ── onFailure handler (mixed) ──
                                     if (step.onFailure) {
@@ -493,6 +533,7 @@ export function useJobExecutor({
                                     }
 
                                     syncJobState({ steps: [...steps] });
+                                    pushTimelineEvent({ kind: 'step:failed', label: `${stepName} failed`, stepId, duration: Date.now() - stepStart, detail: e.message });
                                     return { status: 'failed', error: e.message };
                                 }
                             };
@@ -524,25 +565,31 @@ export function useJobExecutor({
                             const steps = [...queuedJob.steps];
 
                             for (let i = 0; i < steps.length; i++) {
+                                const stepName = steps[i].name || steps[i].commandId || steps[i].id;
                                 // Check condition if exists
                                 if (steps[i].condition) {
                                     if (!evaluateCondition(steps[i].condition, context, steps)) {
                                         steps[i] = { ...steps[i], status: 'skipped', result: 'Condition not met' };
                                         syncJobState({ steps: [...steps] });
+                                        pushTimelineEvent({ kind: 'step:skipped', label: `${stepName} skipped`, stepId: steps[i].id, detail: 'Condition not met' });
                                         continue;
                                     }
                                 }
 
                                 // Mark current running
-                                steps[i] = { ...steps[i], status: 'running' };
+                                const stepStart = Date.now();
+                                steps[i] = { ...steps[i], status: 'running', startedAt: stepStart };
                                 syncJobState({ steps: [...steps] });
+                                pushTimelineEvent({ kind: 'step:started', label: `${stepName} started`, stepId: steps[i].id });
 
                                 try {
                                     const boundArgs = applyInputBindings(steps[i].args, steps[i].inputBindings, jobStorage, deliverableContents);
                                     const resolvedArgs = resolveRefs(boundArgs, refs);
                                     const stepCtx = stepCtxFor(steps[i]);
                                     const res = await registry.execute(steps[i].commandId, resolvedArgs, stepCtx);
-                                    steps[i] = { ...steps[i], status: 'completed', result: typeof res === 'string' ? res : JSON.stringify(res) };
+                                    steps[i] = { ...steps[i], status: 'completed', result: typeof res === 'string' ? res : JSON.stringify(res), completedAt: Date.now() };
+
+                                    pushTimelineEvent({ kind: 'step:completed', label: `${stepName} completed`, stepId: steps[i].id, duration: Date.now() - stepStart, detail: (typeof res === 'string' ? res : JSON.stringify(res)).slice(0, 120) });
 
                                     // Apply output mappings
                                     applyOutputMappings(steps[i].outputMappings, res, jobStorage);
@@ -564,7 +611,9 @@ export function useJobExecutor({
                                         }
                                     }
                                 } catch (e: any) {
-                                    steps[i] = { ...steps[i], status: 'failed', result: e.message };
+                                    steps[i] = { ...steps[i], status: 'failed', result: e.message, completedAt: Date.now() };
+
+                                    pushTimelineEvent({ kind: 'step:failed', label: `${stepName} failed`, stepId: steps[i].id, duration: Date.now() - stepStart, detail: e.message });
 
                                     // ── onFailure handler ──
                                     if (steps[i].onFailure) {

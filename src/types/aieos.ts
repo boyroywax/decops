@@ -1,7 +1,15 @@
 /**
- * AIEOS v1.1.0 — AI Entity Object Specification types.
+ * AIEOS v1.2.0 — AI Entity Object Specification types.
+ * Supports both v1.1.0 and v1.2.0 schemas for backward compatibility.
  * Extracted from types/index.ts for modularity.
+ *
+ * v1.2.0 additions:
+ *  - Presence section (access, network, settlement)
+ *  - Extended metadata (entity_id, auth_protocol, public_key, signature, alias)
+ *  - Skill URI and version fields (already optional in v1.1.0)
  */
+
+export type AieosVersion = "1.1.0" | "1.2.0";
 
 export interface AieosSkill {
   name: string;
@@ -11,6 +19,43 @@ export interface AieosSkill {
   auto_activate?: boolean;
   priority?: number; // 1 (highest) – 10 (lowest)
 }
+
+// ── Presence (v1.2.0) ──────────────────────────────
+
+export interface AieosSocialLink {
+  platform: string;
+  handle: string;
+  uri?: string;
+}
+
+export interface AieosAccess {
+  email?: string;
+  website?: string;
+  social?: AieosSocialLink[];
+}
+
+export interface AieosNetwork {
+  ipv4?: string;
+  ipv6?: string;
+  webhook?: string;
+}
+
+export interface AieosWallet {
+  network: string;
+  address: string;
+}
+
+export interface AieosSettlement {
+  wallets?: AieosWallet[];
+}
+
+export interface AieosPresence {
+  access?: AieosAccess;
+  network?: AieosNetwork;
+  settlement?: AieosSettlement;
+}
+
+// ── Identity ───────────────────────────────────────
 
 export interface AieosIdentity {
   names: { first: string; middle?: string; last?: string; nickname?: string };
@@ -108,18 +153,25 @@ export interface AieosMotivations {
   fears?: { rational?: string[]; irrational?: string[] };
 }
 
-/** AIEOS v1.1.0 — full entity object attached to an agent */
+/** AIEOS v1.2.0 — full entity object attached to an agent */
 export interface AieosEntity {
-  standard: { protocol: "AIEOS"; version: "1.1.0"; schema_url: string };
+  standard: { protocol: "AIEOS"; version: AieosVersion; schema_url: string };
   metadata: {
     instance_id: string;
     instance_version: string;
     generator: string;
     created_at: string;
     last_updated: string;
+    // v1.2.0 additions
+    entity_id?: string;
+    alias?: string;
+    auth_protocol?: string;
+    public_key?: string;
+    signature?: string;
   };
   capabilities?: { skills: AieosSkill[] };
   identity?: AieosIdentity;
+  presence?: AieosPresence;          // v1.2.0
   physicality?: AieosPhysicality;
   psychology?: AieosPsychology;
   linguistics?: AieosLinguistics;

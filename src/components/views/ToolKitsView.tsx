@@ -6,9 +6,13 @@ import {
   Zap, Vote, FileText, Clapperboard, ListChecks, Image, Settings,
   FolderOpen, Sparkles, Search, Wrench, ScanText, AudioLines, Video,
   ChevronDown, ChevronUp, Play, ExternalLink, Link2, Camera, Layers,
-  Terminal, Clock, CheckCircle2, Lock, Hash, Filter, X,
+  Terminal, Clock, CheckCircle2, Lock, Hash, Filter, X, Package,
+  Briefcase, Database, Shield, FlaskConical, BookOpen, Bell,
+  GitBranch, RefreshCcw, ClipboardList, BarChart3, Activity, Plug,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
+import { StudioBotPanel } from "@/components/shared/StudioBotPanel";
+import { ArchitectBotPanel } from "@/components/shared/ArchitectBotPanel";
 import "../../styles/components/toolkits.css";
 
 /** Map toolkit icon names → Lucide components */
@@ -37,7 +41,6 @@ const CATEGORY_LABELS: Record<CategoryFilter, string> = {
   all: "All",
   agents: "Agents",
   infrastructure: "Infrastructure",
-  communication: "Communication",
   data: "Data",
   ai: "AI & Intelligence",
   automation: "Automation",
@@ -78,6 +81,7 @@ export function ToolKitsView({ navigateTo }: ToolKitsViewProps) {
           tk.description.toLowerCase().includes(q) ||
           tk.commands.some(c => c.toLowerCase().includes(q)) ||
           tk.tools.some(t => t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)) ||
+          (tk.agents || []).some(a => a.name.toLowerCase().includes(q) || a.description.toLowerCase().includes(q)) ||
           (tk.tags || []).some(t => t.toLowerCase().includes(q))
         );
       }
@@ -87,6 +91,8 @@ export function ToolKitsView({ navigateTo }: ToolKitsViewProps) {
 
   const totalCommands = TOOLKITS.reduce((sum, tk) => sum + tk.commands.length, 0);
   const totalTools = TOOLKITS.reduce((sum, tk) => sum + tk.tools.length, 0);
+  const totalAgents = TOOLKITS.reduce((sum, tk) => sum + (tk.agents || []).length, 0);
+  const totalFacets = TOOLKITS.reduce((sum, tk) => sum + (tk.facets?.length ?? 0), 0);
   const availableCount = TOOLKITS.filter(tk => tk.status === "available").length;
 
   const toggleExpanded = (id: string) => {
@@ -173,7 +179,7 @@ export function ToolKitsView({ navigateTo }: ToolKitsViewProps) {
           <div>
             <h2 className="toolkits__title">Tool Kits</h2>
             <p className="toolkits__subtitle">
-              {availableCount} active · {totalCommands} commands · {totalTools} tools
+              {availableCount} active · {totalCommands} commands · {totalTools} tools{totalAgents > 0 ? ` · ${totalAgents} agents` : ''} · {totalFacets} facets
             </p>
           </div>
         </div>
@@ -221,7 +227,8 @@ export function ToolKitsView({ navigateTo }: ToolKitsViewProps) {
         {filtered.map(tk => {
           const isExpanded = expandedToolkit === tk.id;
           const IconComp = ICON_MAP[tk.icon] || Wrench;
-          const itemCount = tk.commands.length + tk.tools.length;
+          const agentCount = (tk.agents || []).length;
+          const itemCount = tk.commands.length + tk.tools.length + agentCount;
 
           return (
             <div
@@ -239,6 +246,16 @@ export function ToolKitsView({ navigateTo }: ToolKitsViewProps) {
                 <div className="toolkits__card-info">
                   <div className="toolkits__card-name">
                     {tk.name}
+                    {tk.builtIn && (
+                      <span className="toolkits__badge toolkits__badge--builtin">
+                        <Package size={9} /> Built-in
+                      </span>
+                    )}
+                    {agentCount > 0 && (
+                      <span className="toolkits__badge toolkits__badge--bot">
+                        <Bot size={9} /> {agentCount} Bot{agentCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
                     {tk.status === "coming-soon" && (
                       <span className="toolkits__badge toolkits__badge--soon">
                         <Clock size={10} /> Soon
@@ -263,16 +280,34 @@ export function ToolKitsView({ navigateTo }: ToolKitsViewProps) {
                         <Wrench size={10} /> {tk.tools.length} tool{tk.tools.length !== 1 ? 's' : ''}
                       </span>
                     )}
+                    {agentCount > 0 && (
+                      <span className="toolkits__card-count toolkits__card-count--agent">
+                        <Bot size={10} /> {agentCount} agent{agentCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {tk.version && (
+                      <span className="toolkits__card-count toolkits__card-count--version">
+                        <GitBranch size={10} /> v{tk.version}
+                      </span>
+                    )}
+                    {(tk.facets?.length ?? 0) > 3 && (
+                      <span className="toolkits__card-count toolkits__card-count--facets">
+                        <Package size={10} /> {tk.facets!.length} facets
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="toolkits__card-actions">
-                  <button
+                  <span
+                    role="button"
+                    tabIndex={0}
                     className="btn-ghost toolkits__details-btn"
                     onClick={(e) => { e.stopPropagation(); navigateTo("toolkits", { toolkitId: tk.id }); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); navigateTo("toolkits", { toolkitId: tk.id }); } }}
                     title="View details"
                   >
                     <ExternalLink size={12} />
-                  </button>
+                  </span>
                   {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 </div>
               </button>
@@ -280,6 +315,19 @@ export function ToolKitsView({ navigateTo }: ToolKitsViewProps) {
               {/* Expanded detail */}
               {isExpanded && (
                 <div className="toolkits__card-body">
+                  {/* Agents section */}
+                  {(tk.agents || []).length > 0 && (
+                    <div className="toolkits__section">
+                      <h4 className="toolkits__section-title">
+                        <Bot size={12} /> Agents
+                      </h4>
+                      {/* Studio Bot — special interactive panel */}
+                      {tk.id === "studio" && <StudioBotPanel />}
+                      {/* Architect Bot — network design panel */}
+                      {tk.id === "ecosystem" && <ArchitectBotPanel navigateTo={navigateTo} />}
+                    </div>
+                  )}
+
                   {/* Commands section */}
                   {tk.commands.length > 0 && (
                     <div className="toolkits__section">
@@ -341,6 +389,50 @@ export function ToolKitsView({ navigateTo }: ToolKitsViewProps) {
                           <Hash size={9} /> {tag}
                         </span>
                       ))}
+                    </div>
+                  )}
+
+                  {/* Facet Summary */}
+                  {tk.facets && tk.facets.length > 3 && (
+                    <div className="toolkits__facet-summary">
+                      <h4 className="toolkits__section-title">
+                        <Package size={12} /> Capabilities
+                      </h4>
+                      <div className="toolkits__facet-grid">
+                        {(tk.jobTemplates?.length ?? 0) > 0 && (
+                          <span className="toolkits__facet-item"><Briefcase size={10} /> {tk.jobTemplates!.length} jobs</span>
+                        )}
+                        {(tk.automations?.length ?? 0) > 0 && (
+                          <span className="toolkits__facet-item"><RefreshCcw size={10} /> {tk.automations!.length} automations</span>
+                        )}
+                        {(tk.taskCount ?? 0) > 0 && (
+                          <span className="toolkits__facet-item"><ClipboardList size={10} /> {tk.taskCount} tasks</span>
+                        )}
+                        {(tk.collectionCount ?? 0) > 0 && (
+                          <span className="toolkits__facet-item"><Database size={10} /> {tk.collectionCount} collections</span>
+                        )}
+                        {(tk.configFieldCount ?? 0) > 0 && (
+                          <span className="toolkits__facet-item"><Settings size={10} /> {tk.configFieldCount} config fields</span>
+                        )}
+                        {(tk.metricCount ?? 0) > 0 && (
+                          <span className="toolkits__facet-item"><BarChart3 size={10} /> {tk.metricCount} metrics</span>
+                        )}
+                        {(tk.notificationCount ?? 0) > 0 && (
+                          <span className="toolkits__facet-item"><Bell size={10} /> {tk.notificationCount} notifications</span>
+                        )}
+                        {(tk.permissionCount ?? 0) > 0 && (
+                          <span className="toolkits__facet-item"><Shield size={10} /> {tk.permissionCount} permissions</span>
+                        )}
+                        {(tk.testCount ?? 0) > 0 && (
+                          <span className="toolkits__facet-item"><FlaskConical size={10} /> {tk.testCount} tests</span>
+                        )}
+                        {(tk.docCount ?? 0) > 0 && (
+                          <span className="toolkits__facet-item"><BookOpen size={10} /> {tk.docCount} docs</span>
+                        )}
+                        {(tk.endpointCount ?? 0) > 0 && (
+                          <span className="toolkits__facet-item"><Plug size={10} /> {tk.endpointCount} endpoints</span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

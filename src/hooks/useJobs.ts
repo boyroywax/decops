@@ -1,6 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import type { Job, JobStatus, JobArtifact, JobRequest } from "@/types";
+import type { Job, JobStatus, JobArtifact, JobRequest, JobEvent } from "@/types";
+
+/** Push a lifecycle event onto a job's timeline (immutable). */
+function pushEvent(existing: JobEvent[] | undefined, event: Omit<JobEvent, "timestamp">): JobEvent[] {
+    return [...(existing || []), { ...event, timestamp: Date.now() }];
+}
 
 export function useJobs() {
     const [jobs, setJobs] = useLocalStorage<Job[]>("decops_jobs", []);
@@ -8,12 +13,14 @@ export function useJobs() {
     const [standaloneArtifacts, setStandaloneArtifacts] = useLocalStorage<JobArtifact[]>("decops_artifacts", []);
 
     const addJob = useCallback((jobData: JobRequest) => {
+        const now = Date.now();
         const newJob: Job = {
-            id: `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: `job-${now}-${Math.random().toString(36).substr(2, 9)}`,
             status: "queued",
             artifacts: [],
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
+            createdAt: now,
+            updatedAt: now,
+            timeline: [{ timestamp: now, kind: "created", label: `Job created` }],
             ...jobData,
         };
         setJobs((prev) => [newJob, ...prev]);
@@ -23,7 +30,24 @@ export function useJobs() {
     const updateJobStatus = useCallback((id: string, status: JobStatus, result?: string) => {
         setJobs((prev) => prev.map((job) => {
             if (job.id === id) {
-                return { ...job, status, result, updatedAt: Date.now() };
+                const now = Date.now();
+                const kind = status as JobEvent["kind"]; // "completed"|"failed"|"started" etc.
+                const duration = (status === "completed" || status === "failed") && job.startedAt
+                    ? now - job.startedAt : undefined;
+                return {
+                    ...job,
+                    status,
+                    result,
+                    updatedAt: now,
+                    ...(status === "running" ? { startedAt: job.startedAt || now } : {}),
+                    ...(status === "completed" || status === "failed" ? { completedAt: now } : {}),
+                    timeline: pushEvent(job.timeline, {
+                        kind,
+                        label: `Job ${status}`,
+                        detail: result?.slice(0, 200),
+                        duration,
+                    }),
+                };
             }
             return job;
         }));
@@ -98,7 +122,19 @@ export function useJobs() {
     const stopJob = useCallback((id: string) => {
         setJobs(prev => prev.map(job => {
             if (job.id === id && (job.status === "running" || job.status === "awaiting-input")) {
-                return { ...job, status: "failed", result: "Stopped by user", pendingPrompt: undefined, updatedAt: Date.now() };
+                const now = Date.now();
+                return {
+                    ...job,
+                    status: "failed",
+                    result: "Stopped by user",
+                    pendingPrompt: undefined,
+                    updatedAt: now,
+                    completedAt: now,
+                    timeline: pushEvent(job.timeline, {
+                        kind: "stopped",
+                        label: "Stopped by user",
+                    }),
+                };
             }
             return job;
         }));
@@ -112,13 +148,19 @@ export function useJobs() {
                 const updatedInputs = (job.inputs || job.request?.inputDefaults || []).map((inp: any) =>
                     inp.name === inputName ? { ...inp, entityId: value } : inp
                 );
+                const now = Date.now();
                 return {
                     ...job,
                     status: "queued" as JobStatus,
                     inputs: updatedInputs,
                     inputDefaults: updatedInputs,
                     pendingPrompt: undefined,
-                    updatedAt: Date.now(),
+                    updatedAt: now,
+                    timeline: pushEvent(job.timeline, {
+                        kind: "input-received",
+                        label: `User provided input: ${inputName}`,
+                        detail: value.slice(0, 200),
+                    }),
                 };
             }
             return job;
