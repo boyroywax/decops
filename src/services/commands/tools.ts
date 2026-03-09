@@ -9,7 +9,7 @@
 
 import type { CommandDefinition, CommandArg, CommandArgType, CommandContext } from "./types";
 import type { Agent } from "@/types";
-import { TOOLKITS } from "@/constants";
+import { TOOLKITS } from "@/services/toolkits";
 import { registry } from "./registry";
 
 // ── Anthropic Tool Schema Types ────────────────────

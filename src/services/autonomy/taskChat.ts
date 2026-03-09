@@ -14,7 +14,8 @@
 
 import type { Agent } from "@/types";
 import type { AgentTask } from "@/types/autonomy";
-import { ROLES, TOOLKITS } from "@/constants";
+import { ROLES } from "@/constants";
+import { TOOLKITS } from "@/services/toolkits";
 import { getAgentModel } from "@/services/ai/models";
 import {
   buildProviderRequest,

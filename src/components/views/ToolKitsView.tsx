@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import type { Toolkit, ToolkitCategory, ViewId, NavContext } from "@/types";
-import { TOOLKITS } from "@/constants";
+import { TOOLKITS } from "@/services/toolkits";
 import {
   Bot, ArrowLeftRight, MessageSquare, Globe, Network, Download,
   Zap, Vote, FileText, Clapperboard, ListChecks, Image, Settings,

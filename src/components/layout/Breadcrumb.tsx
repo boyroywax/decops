@@ -1,6 +1,6 @@
 import type { ViewId, NavContext, Network, Agent, Group, Channel } from "@/types";
 import { ChevronRight, Globe, Bot, Wrench } from "lucide-react";
-import { TOOLKITS } from "@/constants";
+import { TOOLKITS } from "@/services/toolkits";
 import "../../styles/components/breadcrumb.css";
 
 interface BreadcrumbProps {

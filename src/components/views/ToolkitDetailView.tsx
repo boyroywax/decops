@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Agent, ToolkitId, ViewId, NavContext } from "@/types";
-import { TOOLKITS } from "@/constants";
+import { TOOLKITS } from "@/services/toolkits";
 import { registry } from "@/services/commands/registry";
 import { toolkitRegistry } from "@/services/toolkits";
 import {

@@ -109,7 +109,3 @@ export const ANTHROPIC_MODELS = [
   { id: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet", desc: "Previous generation balanced model", tier: "standard" },
 ] as const;
 
-// ── Toolkit Registry ──
-// TOOLKITS is now derived from the modular ToolkitRegistry.
-// Re-exported here for backward compatibility.
-export { TOOLKITS } from "@/services/toolkits";

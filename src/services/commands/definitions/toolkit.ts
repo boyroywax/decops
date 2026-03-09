@@ -5,7 +5,7 @@
  */
 
 import { CommandDefinition } from "@/services/commands/types";
-import { TOOLKITS } from "@/constants";
+import { TOOLKITS } from "@/services/toolkits";
 import type { Agent, ToolkitId, AgentToolkitBinding } from "@/types";
 
 export const enableToolkitCommand: CommandDefinition = {

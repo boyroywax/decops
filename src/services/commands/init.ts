@@ -1,4 +1,5 @@
 import { initializeToolkits } from "@/services/toolkits";
+import { builtinModules } from "@/services/toolkits/builtins";
 
 /**
  * Legacy initializer — delegates to the modular ToolkitRegistry system.
@@ -8,6 +9,6 @@ import { initializeToolkits } from "@/services/toolkits";
  * and tests.
  */
 export function initializeRegistry() {
-    initializeToolkits();
+    initializeToolkits(builtinModules);
 }
 

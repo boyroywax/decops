@@ -5,7 +5,7 @@
  */
 
 import type { Agent, Channel, Group, Message, Network, Bridge, Job } from "@/types";
-import { TOOLKITS } from "@/constants";
+import { TOOLKITS } from "@/services/toolkits";
 
 export interface WorkspaceContext {
   agents: Agent[];

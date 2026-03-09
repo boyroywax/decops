@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { initializeToolkits } from './services/toolkits'
+import { builtinModules } from './services/toolkits/builtins'
 import './index.css'
 
 // Side-effect import: registers Studio Bot's chat delegation with the core AI service.
@@ -14,7 +15,7 @@ import '@/toolkits/studio/studioBot'
 import '@/toolkits/studio/register'
 import '@/toolkits/editor/register'
 
-initializeToolkits();
+initializeToolkits(builtinModules);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

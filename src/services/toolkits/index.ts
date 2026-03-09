@@ -98,9 +98,9 @@ export type {
 export { ToolkitRegistry } from "./registry";
 
 import type { Toolkit } from "@/types";
+import type { ToolkitModule } from "./types";
 import { registry as commandRegistry } from "@/services/commands/registry";
 import { ToolkitRegistry } from "./registry";
-import { builtinModules } from "./builtins";
 
 // ── Singleton ────────────────────────────────────
 
@@ -125,9 +125,12 @@ export let TOOLKITS: Toolkit[] = [];
 /**
  * Register all built-in toolkit modules.
  * Should be called once at startup before the React tree mounts.
+ *
+ * Accepts modules as a parameter to avoid top-level import of builtins,
+ * which would create circular dependencies with command definition files.
  */
-export function initializeToolkits(): void {
-  for (const mod of builtinModules) {
+export function initializeToolkits(modules: ToolkitModule[]): void {
+  for (const mod of modules) {
     // register is async-capable but built-in modules are synchronous
     toolkitRegistry.register(mod);
   }

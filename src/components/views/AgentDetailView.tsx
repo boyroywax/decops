@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import type { Agent, Channel, Group, Message, Network, ViewId, NavContext, AieosEntity, ToolkitId } from "@/types";
-import { ROLES, CHANNEL_TYPES, TOOLKITS } from "@/constants";
+import { ROLES, CHANNEL_TYPES } from "@/constants";
+import { TOOLKITS } from "@/services/toolkits";
 import {
   Users, Calendar, Trash2, Radio,
   MessageSquare, Key, FileText, Edit3, Check, X,

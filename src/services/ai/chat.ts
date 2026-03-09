@@ -4,7 +4,8 @@
  */
 
 import type { Agent, Message, BridgeMessage } from "@/types";
-import { ROLES, TOOLKITS } from "@/constants";
+import { ROLES } from "@/constants";
+import { TOOLKITS } from "@/services/toolkits";
 import { getAllTools, getToolsForAgent, executeToolCall } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContext } from "./prompts";
