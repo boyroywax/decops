@@ -7,7 +7,7 @@ import { ArtifactsPanel } from "./ArtifactsPanel";
 import { LLMManager } from "./LLMManager";
 import { DisplayPanel } from "./DisplayPanel";
 import { useLLM, type LivenessStatus } from "@/context/LLMContext";
-import { useEditorContext } from "@/context/EditorContext";
+import { useEditorContext } from "@/toolkits/editor";
 import "../../styles/components/footer.css";
 import "../../styles/components/llm-manager.css";
 

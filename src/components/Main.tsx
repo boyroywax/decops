@@ -5,7 +5,7 @@ import { AuthenticatedApp } from "./layout/AuthenticatedApp";
 import { LoginView } from "./views/LoginView";
 import { AutomationsProvider } from "@/context/AutomationsContext";
 import { StudioProvider } from "@/context/StudioContext";
-import { EditorProvider } from "@/context/EditorContext";
+import { EditorProvider } from "@/toolkits/editor";
 import { LLMProvider } from "@/context/LLMContext";
 import { useNotebook } from "@/hooks/useNotebook";
 import { JobInputPromptModal } from "@/components/jobs/JobInputPromptModal";

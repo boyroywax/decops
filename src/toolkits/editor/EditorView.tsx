@@ -13,9 +13,9 @@ import {
   Braces, FileJson, FileSpreadsheet,
   Sparkles, Columns,
 } from "lucide-react";
-import { useEditorContext } from "@/context/EditorContext";
-import type { EditorAPI, PersistedEditorState } from "@/context/EditorContext";
-import "../../styles/components/editor.css";
+import { useEditorContext } from "./EditorContext";
+import type { EditorAPI, PersistedEditorState } from "./EditorContext";
+import "./editor.css";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 
