@@ -65,6 +65,8 @@ export type {
   ToolkitLogLevel,
   ToolkitLogChannel,
   ToolkitLogging,
+  LogBackendType,
+  LogSinkConfig,
   // Notifications
   ToolkitNotifications,
   ToolkitNotificationTemplate,

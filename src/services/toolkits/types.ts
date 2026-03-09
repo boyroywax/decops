@@ -142,10 +142,35 @@ export interface ToolkitAuthor {
 export interface ToolkitDependency {
   /** Target kit identifier. */
   id: ToolkitId | string;
-  /** Semver range (e.g. "^1.0.0", ">=2.1.0"). */
+  /**
+   * Semver range (e.g. "^1.0.0", ">=2.1.0").
+   * When `minimumVersion` is provided this becomes a shorthand alias for it.
+   */
   version: string;
   /** If true, the dependency is optional (won't block registration). */
   optional?: boolean;
+
+  // ── Version tiers ─────────────────────────────
+  // Toolkit dependencies can declare three version tiers so that the
+  // platform can warn on stale dependencies and recommend upgrades.
+
+  /**
+   * Minimum compatible version — the kit **will not load** if the
+   * dependency is older than this.  Follows semver range syntax.
+   */
+  minimumVersion?: string;
+  /**
+   * Recommended version — the version the author tested against and
+   * considers stable.  The platform may display a soft warning when
+   * the installed dependency is below this but above `minimumVersion`.
+   */
+  recommendedVersion?: string;
+  /**
+   * Latest known version — informational; used by the UI to show
+   * available upgrade paths and by the OCI resolver to pull the
+   * newest compatible release.
+   */
+  latestVersion?: string;
 }
 
 /** Static metadata that describes a toolkit to the UI and AI system. */
@@ -596,18 +621,30 @@ export interface ToolkitConfiguration {
 //  11. Logging (with channel pub/sub)
 // ═══════════════════════════════════════════════════
 
-export type ToolkitLogLevel = "debug" | "info" | "warn" | "error";
+export type ToolkitLogLevel = "trace" | "debug" | "info" | "warn" | "error" | "fatal";
 
 /** A single structured log entry. */
 export interface ToolkitLogEntry {
+  /** Globally unique entry ID (UUIDv7 / ULID). */
+  id?: string;
   /** ISO-8601 timestamp. */
   timestamp: string;
   /** Severity level. */
   level: ToolkitLogLevel;
   /** Human-readable message. */
   message: string;
+  /** Source toolkit that emitted this entry. */
+  sourceKit?: string;
+  /** Channel this entry was published to. */
+  channel?: string;
   /** Optional structured data (trace IDs, error codes, etc.). */
   data?: Record<string, unknown>;
+  /** Content-addressable identifier on the storage backend (e.g. IPFS CID). */
+  cid?: string;
+  /** Parent CID for IPLD DAG linkage (previous entry or batch root). */
+  parentCid?: string;
+  /** Tags for categorization and search. */
+  tags?: string[];
 }
 
 /** A named log channel that supports pub/sub subscriptions. */
@@ -618,8 +655,18 @@ export interface ToolkitLogChannel {
   name: string;
   /** Brief description of what this channel captures. */
   description?: string;
+  /** Minimum level for entries published to this channel. */
+  minLevel?: ToolkitLogLevel;
   /** Kit IDs that are automatically subscribed to this channel. */
   subscribers?: string[];
+  /** Whether this channel persists to the decentralized backend. */
+  persistent?: boolean;
+  /** Retention policy override for this channel. */
+  retention?: {
+    maxEntries?: number;
+    maxAge?: number;
+    policy?: "fifo" | "lru";
+  };
 }
 
 /** Configuration for the kit's logging behavior (legacy). */
@@ -633,9 +680,110 @@ export interface ToolkitLogConfig {
   maxEntries?: number;
 }
 
+// ── Modular Log Backends / Sinks ────────────────
+
+/** Identifies which backend type a log sink uses. */
+export type LogBackendType =
+  | "console"
+  | "file"
+  | "ipfs"
+  | "ipld"
+  | "http"
+  | "syslog"
+  | "custom";
+
+/** Configuration for a single log sink (output destination). */
+export interface LogSinkConfig {
+  /** Unique sink identifier. */
+  id: string;
+  /** Display name. */
+  name: string;
+  /** Backend type. */
+  type: LogBackendType;
+  /** Whether this sink is active. */
+  enabled: boolean;
+  /** Minimum level for entries routed to this sink. */
+  minLevel?: ToolkitLogLevel;
+  /** Channel filter — if set only entries from these channels are routed. */
+  channels?: string[];
+
+  // ── Backend-specific options ─────────────────
+
+  /** Console backend options. */
+  console?: {
+    /** Use structured JSON output instead of human-readable. */
+    json?: boolean;
+    /** Include color codes. */
+    color?: boolean;
+  };
+
+  /** File backend options. */
+  file?: {
+    /** File path or pattern (e.g. "/var/log/decops/{{kit}}.log"). */
+    path: string;
+    /** Maximum file size before rotation (bytes). */
+    maxSize?: number;
+    /** Number of rotated files to retain. */
+    maxFiles?: number;
+    /** Output format. */
+    format?: "json" | "text" | "csv";
+  };
+
+  /** IPFS backend options. */
+  ipfs?: {
+    /** IPFS API endpoint (e.g. "http://localhost:5001"). */
+    apiUrl: string;
+    /** Whether to pin log entries. */
+    pin?: boolean;
+    /** Batch size — entries are buffered and flushed as a single DAG node. */
+    batchSize?: number;
+    /** Flush interval in milliseconds (0 = immediate). */
+    flushInterval?: number;
+  };
+
+  /**
+   * IPLD backend options — extends IPFS with DAG structure.
+   * Each log batch becomes an IPLD node linking to the previous batch,
+   * forming a verifiable append-only log.
+   */
+  ipld?: {
+    /** IPFS API endpoint. */
+    apiUrl: string;
+    /** IPLD codec to use (default "dag-cbor"). */
+    codec?: "dag-cbor" | "dag-json" | "dag-pb";
+    /** Hash algorithm (default "sha2-256"). */
+    hashAlg?: "sha2-256" | "blake3" | "sha3-256";
+    /** Whether to build a Prolly-tree index for range queries. */
+    indexEnabled?: boolean;
+    /** Maximum entries per DAG node before splitting. */
+    nodeCapacity?: number;
+    /** Pin root CID after each flush. */
+    pin?: boolean;
+    /** Batch size before flush. */
+    batchSize?: number;
+    /** Flush interval in milliseconds. */
+    flushInterval?: number;
+  };
+
+  /** HTTP/webhook backend options. */
+  http?: {
+    /** Target URL. */
+    url: string;
+    /** HTTP method (default "POST"). */
+    method?: "POST" | "PUT";
+    /** Additional headers. */
+    headers?: Record<string, string>;
+    /** Batch size. */
+    batchSize?: number;
+  };
+
+  /** Custom backend — opaque config passed to a user-supplied handler. */
+  custom?: Record<string, unknown>;
+}
+
 /**
  * Complete logging configuration — extends legacy `ToolkitLogConfig` with
- * channel-based pub/sub and cross-kit subscriptions.
+ * channel-based pub/sub, modular sink routing, and IPFS/IPLD support.
  */
 export interface ToolkitLogging {
   /** Basic log behavior (level, retention). */
@@ -644,6 +792,18 @@ export interface ToolkitLogging {
   channels?: ToolkitLogChannel[];
   /** Channel IDs this kit subscribes to (from other kits). */
   subscriptions?: string[];
+  /**
+   * Log sinks — modular output destinations.
+   * Each sink routes log entries to a specific backend (console, file,
+   * IPFS/IPLD, HTTP, etc.).  When omitted the platform default sinks
+   * are used.
+   */
+  sinks?: LogSinkConfig[];
+  /**
+   * IPFS/IPLD root CID — resolved lazily by the aggregator.
+   * Set by the platform when the kit's log DAG is first created.
+   */
+  rootCid?: string;
 }
 
 // ═══════════════════════════════════════════════════

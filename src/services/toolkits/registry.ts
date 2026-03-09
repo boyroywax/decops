@@ -64,12 +64,42 @@ export class ToolkitRegistry {
       await this.unregister(id);
     }
 
-    // Validate dependencies
+    // Validate dependencies (including version tiers)
     if (module.manifest.dependencies) {
       for (const dep of module.manifest.dependencies) {
-        if (!dep.optional && !this.modules.has(dep.id)) {
+        const depModule = this.modules.get(dep.id);
+        if (!depModule) {
+          if (!dep.optional) {
+            console.warn(
+              `Toolkit "${id}" depends on "${dep.id}" (${dep.version}) which is not registered.`
+            );
+          }
+          continue;
+        }
+
+        const depVersion = depModule.manifest.version;
+
+        // Check minimum version (hard floor)
+        if (dep.minimumVersion && depVersion < dep.minimumVersion) {
           console.warn(
-            `Toolkit "${id}" depends on "${dep.id}" (${dep.version}) which is not registered.`
+            `Toolkit "${id}" requires "${dep.id}" >= ${dep.minimumVersion} ` +
+            `but ${depVersion} is registered. Kit may not function correctly.`
+          );
+        }
+
+        // Check recommended version (soft warning)
+        if (dep.recommendedVersion && depVersion < dep.recommendedVersion) {
+          console.info(
+            `Toolkit "${id}": dependency "${dep.id}" is at ${depVersion}, ` +
+            `recommended ${dep.recommendedVersion}. Consider upgrading.`
+          );
+        }
+
+        // Log latest version availability (informational)
+        if (dep.latestVersion && depVersion < dep.latestVersion) {
+          console.debug(
+            `Toolkit "${id}": dependency "${dep.id}" has newer version ` +
+            `${dep.latestVersion} available (current: ${depVersion}).`
           );
         }
       }
@@ -80,13 +110,18 @@ export class ToolkitRegistry {
       this.commandRegistry.register(cmd);
     }
 
+    // Add the module to the registry BEFORE running init so that
+    // subsequently registered modules can see this one during their
+    // dependency validation (important for synchronous registration
+    // loops like `initializeToolkits`).
+    this.modules.set(id, module);
+
     // Run lifecycle init hook
     if (module.init) {
       const ctx: ToolkitContext = { commandRegistry: this.commandRegistry };
       await module.init(ctx);
     }
 
-    this.modules.set(id, module);
     this.notify();
   }
 

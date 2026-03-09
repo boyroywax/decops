@@ -9,6 +9,7 @@ import {
   Terminal, Clock, CheckCircle2, Lock, Hash, Filter, X, Package,
   Briefcase, Database, Shield, FlaskConical, BookOpen, Bell,
   GitBranch, RefreshCcw, ClipboardList, BarChart3, Activity, Plug,
+  ScrollText,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { StudioBotPanel } from "@/toolkits/studio";
@@ -20,6 +21,7 @@ const ICON_MAP: Record<string, any> = {
   Bot, ArrowLeftRight, MessageSquare, Globe, Network, Download,
   Zap, Vote, FileText, Clapperboard, ListChecks, Image, Settings,
   FolderOpen, Sparkles, Search, Wrench, ScanText, AudioLines, Video,
+  ScrollText,
 };
 
 /** Map tool IDs → icons */

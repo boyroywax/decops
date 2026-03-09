@@ -19,6 +19,7 @@ import { studioModule } from "@/toolkits/studio";
 import { jobsModule } from "./jobs";
 import { imageGenModule } from "@/toolkits/image-gen";
 import { workspaceMgmtModule } from "./workspace-mgmt";
+import { loggingModule } from "./logging";
 
 // ── Capability toolkits (external integrations) ─
 import { webCrawlerModule } from "./web-crawler";
@@ -31,6 +32,8 @@ import { videoToTextModule } from "./video-to-text";
  * Registration order matches the original TOOLKITS constant order.
  */
 export const builtinModules: ToolkitModule[] = [
+  // Core platform toolkits (register first — others may depend on them)
+  loggingModule,
   // Command-group toolkits
   agentManagementModule,
   infrastructureModule,
@@ -50,6 +53,7 @@ export const builtinModules: ToolkitModule[] = [
 
 // Re-export individual modules for targeted imports
 export {
+  loggingModule,
   agentManagementModule,
   infrastructureModule,
   ecosystemModule,

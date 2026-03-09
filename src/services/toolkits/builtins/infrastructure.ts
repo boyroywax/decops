@@ -46,6 +46,15 @@ export const infrastructureModule: ToolkitModule = {
     license: "MIT",
     createdAt: "2025-01-01T00:00:00Z",
     updatedAt: "2025-01-01T00:00:00Z",
+    dependencies: [
+      {
+        id: "logging",
+        version: "^2.0.0",
+        minimumVersion: "2.0.0",
+        recommendedVersion: "2.0.0",
+        latestVersion: "2.0.0",
+      },
+    ],
   },
   commands: [
     createChannelCommand,

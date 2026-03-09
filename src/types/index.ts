@@ -177,6 +177,7 @@ export type ToolkitId =
   | "jobs"
   | "image-gen"
   | "workspace-mgmt"
+  | "logging"
   // Capability toolkits (external)
   | "web-crawler"
   | "ocr"
