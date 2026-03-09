@@ -1,14 +1,37 @@
+import React from "react";
 import { useAuth } from "@/context/AuthContext";
 import { JobsProvider, useJobsContext } from "@/context/JobsContext";
 import { WorkspaceProvider } from "@/context/WorkspaceContext";
 import { AuthenticatedApp } from "./layout/AuthenticatedApp";
 import { LoginView } from "./views/LoginView";
 import { AutomationsProvider } from "@/context/AutomationsContext";
-import { StudioProvider } from "@/toolkits/studio";
-import { EditorProvider } from "@/toolkits/editor";
 import { LLMProvider } from "@/context/LLMContext";
 import { useNotebook } from "@/hooks/useNotebook";
-import { JobInputPromptModal } from "@/toolkits/studio";
+import { getToolkitProviders, getToolkitGlobals } from "@/services/toolkits/uiRegistry";
+
+/**
+ * Dynamically compose all toolkit-registered providers around `children`.
+ * Providers are sorted by `order` (lower = closer to root).
+ */
+function ToolkitProviders({ children }: { children: React.ReactNode }) {
+    const providers = getToolkitProviders();
+    return providers.reduceRight(
+        (acc, { Provider }) => React.createElement(Provider, null, acc),
+        children,
+    );
+}
+
+/** Render all toolkit-registered global overlays (modals, FABs, etc.). */
+function ToolkitGlobals() {
+    const globals = getToolkitGlobals();
+    return (
+        <>
+            {globals.map(({ key, Component }) => (
+                <Component key={key} />
+            ))}
+        </>
+    );
+}
 
 function InternalApp() {
     const { addJob } = useJobsContext();
@@ -18,12 +41,10 @@ function InternalApp() {
         <LLMProvider>
             <WorkspaceProvider addJob={addJob}>
                 <AutomationsProvider addLog={notebook.addLog}>
-                    <StudioProvider>
-                        <EditorProvider>
-                            <AuthenticatedApp notebook={notebook} />
-                            <JobInputPromptModal />
-                        </EditorProvider>
-                    </StudioProvider>
+                    <ToolkitProviders>
+                        <AuthenticatedApp notebook={notebook} />
+                        <ToolkitGlobals />
+                    </ToolkitProviders>
                 </AutomationsProvider>
             </WorkspaceProvider>
         </LLMProvider>

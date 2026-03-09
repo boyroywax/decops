@@ -29,6 +29,7 @@ export type ViewId =
   | "jobs"
   | "toolkits"
   | "editor"
+  | "studio"
   | "system";
 
 /** Navigation context for hierarchical drill-down: Ecosystem → Network → Group → Agent → Channel */

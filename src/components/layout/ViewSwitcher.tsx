@@ -13,8 +13,7 @@ import { ToolKitsView } from "@/components/views/ToolKitsView";
 import { NetworkView } from "@/components/views/NetworkView";
 import { ArtifactsView } from "@/components/views/ArtifactsView";
 import { ActivityView } from "@/components/views/ActivityView";
-import { StudioView } from "@/toolkits/studio";
-import { EditorView } from "@/toolkits/editor";
+import { getToolkitView } from "@/services/toolkits/uiRegistry";
 import { SystemView } from "@/components/views/SystemView";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { Breadcrumb } from "./Breadcrumb";
@@ -362,17 +361,6 @@ export function ViewSwitcher({
         );
     }
 
-    if (view === "editor") {
-        return (
-            <ErrorBoundary>
-                <EditorView
-                    updateArtifact={updateArtifact}
-                    importArtifact={importArtifact}
-                />
-            </ErrorBoundary>
-        );
-    }
-
     if (view === "system") {
         return (
             <ErrorBoundary>
@@ -398,6 +386,23 @@ export function ViewSwitcher({
             <ErrorBoundary>
                 <ToolKitsView
                     navigateTo={navigateTo}
+                />
+            </ErrorBoundary>
+        );
+    }
+
+    // ── Dynamic toolkit views ───────────────────────
+    // If a toolkit registered a view for this ViewId, render it.
+    const toolkitView = getToolkitView(view);
+    if (toolkitView) {
+        const { Component } = toolkitView;
+        return (
+            <ErrorBoundary>
+                <Component
+                    navigateTo={navigateTo}
+                    workspace={workspace}
+                    updateArtifact={updateArtifact}
+                    importArtifact={importArtifact}
                 />
             </ErrorBoundary>
         );

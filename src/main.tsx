@@ -9,6 +9,11 @@ import './index.css'
 // This must run before any chat interactions so the delegation is available.
 import '@/toolkits/studio/studioBot'
 
+// Side-effect imports: register toolkit UI contributions (providers, views, globals)
+// with the runtime UI registry before the app renders.
+import '@/toolkits/studio/register'
+import '@/toolkits/editor/register'
+
 initializeToolkits();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

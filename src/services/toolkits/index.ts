@@ -135,3 +135,20 @@ export function initializeToolkits(): void {
   // Populate the legacy TOOLKITS array
   TOOLKITS = toolkitRegistry.getAllAsToolkits();
 }
+
+// ── UI Registry re-exports ───────────────────────
+
+export {
+  registerToolkitProvider,
+  registerToolkitView,
+  registerToolkitGlobal,
+  getToolkitProviders,
+  getToolkitView,
+  getToolkitGlobals,
+} from "./uiRegistry";
+
+export type {
+  ToolkitProviderContribution,
+  ToolkitViewContribution,
+  ToolkitGlobalContribution,
+} from "./uiRegistry";
