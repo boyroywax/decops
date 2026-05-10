@@ -7,6 +7,7 @@ import { MessageSquare, Send, ChevronDown, ChevronUp } from "lucide-react";
 import { MarkdownContent } from "@/components/shared/MarkdownContent";
 import { useWorkspaceStore } from "@/stores";
 import { useAuth } from "@/context/AuthContext";
+import { useCommandCtx } from "@/context/CommandContextProvider";
 import "../../styles/components/agent-chat.css";
 
 interface AgentChatProps {
@@ -26,6 +27,7 @@ export function AgentChat({ agent }: AgentChatProps) {
   const messagesAll = useWorkspaceStore((s) => s.messages);
   const addMessage = useWorkspaceStore((s) => s.addMessage);
   const setMessages = useWorkspaceStore((s) => s.setMessages);
+  const commandContext = useCommandCtx();
 
   const channelId = directChannelId(agent.id);
   const userId = user?.did || "user";
@@ -89,7 +91,12 @@ export function AgentChat({ agent }: AgentChatProps) {
     const historyForModel = history;
 
     try {
-      const response = await chatWithAgent(agent, text, historyForModel);
+      const { text: response } = await chatWithAgent(
+        agent,
+        text,
+        historyForModel,
+        commandContext ?? undefined,
+      );
       setMessages((prev) =>
         prev.map((m) =>
           m.id === msgId ? { ...m, response, status: "delivered" } : m
@@ -106,7 +113,7 @@ export function AgentChat({ agent }: AgentChatProps) {
     } finally {
       setLoading(false);
     }
-  }, [input, loading, history, agent, channelId, userId, addMessage, setMessages]);
+  }, [input, loading, history, agent, channelId, userId, addMessage, setMessages, commandContext]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {

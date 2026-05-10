@@ -92,15 +92,26 @@ export async function callAgentAI(
 /**
  * Direct user-to-agent chat. The user is a human operator, not another agent.
  * Uses the agent's system prompt and role to respond in-character.
+ *
+ * If a CommandContext is supplied, the agent gains tool-use capability scoped to
+ * its enabled toolkits, and we run a tool-call loop until the model emits a
+ * final text response (or hits the round limit).
  */
 export async function chatWithAgent(
   agent: Agent,
   userMessage: string,
   history: ChatMessage[],
-): Promise<string> {
+  commandContext?: CommandContext,
+  onToolCall?: (display: ToolCallDisplay) => void,
+): Promise<{ text: string; toolCalls: ToolCallDisplay[] }> {
   const model = getAgentModel(agent.id);
+  const provider = getModelProvider(model);
 
   const role = ROLES.find(r => r.id === agent.role);
+  const tools = commandContext && (provider === "anthropic" || provider === "openai")
+    ? getToolsForAgent(agent)
+    : [];
+
   const systemPrompt = [
     `You are "${agent.name}", a ${role?.label || agent.role} agent in a decentralized mesh workspace.`,
     `Your DID: ${agent.did}`,
@@ -111,34 +122,91 @@ export async function chatWithAgent(
           return tk ? `${tk.name} (${tk.commands.length} commands)` : b.toolkitId;
         }).join(", ")}. You can only use commands from these toolkits. If you need a capability from a disabled toolkit, ask the operator to enable it.`
       : "",
+    tools.length > 0
+      ? `\nYou have ${tools.length} tools available. When the operator asks you to do something that requires a tool, CALL THE TOOL — do not promise to do it later. After you receive tool results, summarize them concisely for the operator.`
+      : "",
     `\nYou are chatting directly with a human operator who manages this workspace.`,
     `Respond concisely and in-character. Keep responses under 200 words. Use markdown formatting when appropriate.`,
   ].filter(Boolean).join("\n");
 
-  const messages = [
+  const apiMessages: any[] = [
     ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
     { role: "user" as const, content: userMessage },
   ];
 
+  const allToolCalls: ToolCallDisplay[] = [];
+  const MAX_TOOL_ROUNDS = tools.length > 0 ? 6 : 1;
+
   try {
-    const req = buildProviderRequest(model, systemPrompt, messages, 1000);
-    const response = await fetch(req.url, {
-      method: "POST",
-      headers: req.headers,
-      body: JSON.stringify(req.body),
-    });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
+    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+      const req = buildProviderRequest(
+        model, systemPrompt, apiMessages, 1500,
+        tools.length > 0 ? tools : undefined,
+      );
+      const response = await fetch(req.url, {
+        method: "POST",
+        headers: req.headers,
+        body: JSON.stringify(req.body),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
+      }
+      const data = await response.json();
+
+      const toolUseBlocks = tools.length > 0 ? parseToolUseBlocks(model, data) : [];
+      if (toolUseBlocks.length === 0 || !commandContext) {
+        const text = parseProviderResponse(model, data);
+        return { text, toolCalls: allToolCalls };
+      }
+
+      // Execute tools and feed results back
+      const rawAssistant = provider === "openai"
+        ? data.choices?.[0]?.message?.tool_calls
+        : data.content;
+
+      const toolResults: { id: string; content: string; isError?: boolean }[] = [];
+      for (const block of toolUseBlocks) {
+        const result = await executeToolCall(
+          block.id,
+          block.name,
+          block.input || {},
+          commandContext,
+        );
+        const display: ToolCallDisplay = {
+          name: result.name,
+          input: result.input,
+          result: result.result,
+          error: result.error,
+          duration_ms: result.duration_ms,
+          jobId: result.jobId,
+        };
+        allToolCalls.push(display);
+        onToolCall?.(display);
+
+        toolResults.push({
+          id: block.id,
+          content: result.error
+            ? JSON.stringify({ error: result.error })
+            : JSON.stringify(result.result ?? { success: true }),
+          isError: !!result.error,
+        });
+      }
+
+      const resultMsgs = buildToolResultMessages(model, rawAssistant, toolResults);
+      apiMessages.push(...resultMsgs);
     }
-    const data = await response.json();
-    return parseProviderResponse(model, data);
+
+    return { text: "[Tool call loop limit reached]", toolCalls: allToolCalls };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes("No Anthropic API key") || msg.includes("No OpenAI API key") || msg.includes("No Google API key")) {
-      return `⚠️ No API key configured. Go to **LLM Manager → Providers** to add your API key.`;
+      return {
+        text: `⚠️ No API key configured. Go to **LLM Manager → Providers** to add your API key.`,
+        toolCalls: allToolCalls,
+      };
     }
-    return `[Agent error: ${msg}]`;
+    return { text: `[Agent error: ${msg}]`, toolCalls: allToolCalls };
   }
 }
 

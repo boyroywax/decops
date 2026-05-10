@@ -25,6 +25,7 @@ import { ProfileModal } from "./ProfileModal";
 import { ArchitectPopup } from "@/toolkits/architect";
 import { ActivityModal } from "./ActivityModal";
 import { useTheme } from "@/context/ThemeContext";
+import { CommandContextProvider } from "@/context/CommandContextProvider";
 import "../../styles/components/authenticated-app.css";
 import "../../styles/components/global.css";
 
@@ -397,6 +398,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   );
 
   return (
+    <CommandContextProvider ecosystem={ecosystem} architect={architect} addLog={addLog}>
     <div className="app-shell">
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
 
@@ -534,5 +536,6 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           setView={setView}
         />
     </div>
+    </CommandContextProvider>
   );
 }

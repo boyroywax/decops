@@ -289,9 +289,9 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                         targetAgents.map((a: any) => chatWithAgent(a, cleanText, currentMessages.slice(-10)))
                     );
                     const combined = targetAgents.length === 1
-                        ? `**${targetAgents[0].name}** says:\n\n${replies[0]}`
+                        ? `**${targetAgents[0].name}** says:\n\n${replies[0].text}`
                         : targetAgents.map((a: any, i: number) =>
-                            `**${a.name}** (${a.title || a.role}):\n${replies[i]}`
+                            `**${a.name}** (${a.title || a.role}):\n${replies[i].text}`
                         ).join("\n\n---\n\n");
                     const finalMsgs = [...updatedMsgs, { role: "assistant" as const, content: combined }];
                     updateConversation(currentId!, finalMsgs);
