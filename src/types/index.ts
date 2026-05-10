@@ -30,6 +30,7 @@ export type ViewId =
   | "toolkits"
   | "editor"
   | "studio"
+  | "libp2p"
   | "system";
 
 /** Navigation context for hierarchical drill-down: Ecosystem → Network → Group → Agent → Channel */
@@ -178,6 +179,7 @@ export type ToolkitId =
   | "image-gen"
   | "workspace-mgmt"
   | "logging"
+  | "libp2p"
   // Capability toolkits (external)
   | "web-crawler"
   | "ocr"

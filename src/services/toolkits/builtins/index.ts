@@ -18,6 +18,7 @@ import { artifactsModule } from "./artifacts";
 import { studioModule } from "@/toolkits/studio";
 import { jobsModule } from "./jobs";
 import { imageGenModule } from "@/toolkits/image-gen";
+import { libp2pModule } from "@/toolkits/libp2p";
 import { workspaceMgmtModule } from "./workspace-mgmt";
 import { loggingModule } from "./logging";
 
@@ -43,6 +44,7 @@ export const builtinModules: ToolkitModule[] = [
   studioModule,
   jobsModule,
   imageGenModule,
+  libp2pModule,
   workspaceMgmtModule,
   // Capability toolkits
   webCrawlerModule,
@@ -62,6 +64,7 @@ export {
   studioModule,
   jobsModule,
   imageGenModule,
+  libp2pModule,
   workspaceMgmtModule,
   webCrawlerModule,
   ocrModule,

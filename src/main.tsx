@@ -14,6 +14,7 @@ import '@/toolkits/studio/studioBot'
 // with the runtime UI registry before the app renders.
 import '@/toolkits/studio/register'
 import '@/toolkits/editor/register'
+import '@/toolkits/libp2p/register'
 
 initializeToolkits(builtinModules);
 

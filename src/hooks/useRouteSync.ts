@@ -15,6 +15,7 @@ const VIEW_TO_PATH: Record<string, string> = {
   actions: "/actions",
   jobs: "/jobs",
   editor: "/editor",
+  libp2p: "/libp2p",
 };
 
 /** Map URL path segment back to ViewId */
@@ -30,6 +31,7 @@ const PATH_TO_VIEW: Record<string, ViewId> = {
   actions: "actions",
   jobs: "jobs",
   editor: "editor",
+  libp2p: "libp2p",
 };
 
 /**
