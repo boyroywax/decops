@@ -59,6 +59,12 @@ export function AgentChat({ agent }: AgentChatProps) {
     if (!collapsed) inputRef.current?.focus();
   }, [collapsed]);
 
+  // Re-focus the input once the agent finishes responding so the
+  // operator can keep typing without re-clicking the textbox.
+  useEffect(() => {
+    if (!loading && !collapsed) inputRef.current?.focus();
+  }, [loading, collapsed]);
+
   // Reset input when agent changes
   useEffect(() => {
     setInput("");

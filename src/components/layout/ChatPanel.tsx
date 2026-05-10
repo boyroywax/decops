@@ -79,6 +79,14 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         }
     }, [showConvos, activeId]);
 
+    // Re-focus input after the assistant finishes responding so the
+    // operator can keep typing without re-clicking the textbox.
+    useEffect(() => {
+        if (!loading && !showConvos && inputRef.current?.offsetParent !== null) {
+            inputRef.current?.focus();
+        }
+    }, [loading, showConvos]);
+
     // Build Commmand Context for CLI
     const { user } = useAuth();
     const jobs = useJobsContext();
