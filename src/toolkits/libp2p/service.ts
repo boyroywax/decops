@@ -166,6 +166,7 @@ class Libp2pService {
                     { bootstrap },
                     { identify },
                     { ping },
+                    { dcutr },
                     { gossipsub },
                     { pubsubPeerDiscovery },
                 ] = await Promise.all([
@@ -178,6 +179,7 @@ class Libp2pService {
                     import("@libp2p/bootstrap"),
                     import("@libp2p/identify"),
                     import("@libp2p/ping"),
+                    import("@libp2p/dcutr"),
                     import("@chainsafe/libp2p-gossipsub"),
                     import("@libp2p/pubsub-peer-discovery"),
                 ]);
@@ -214,6 +216,10 @@ class Libp2pService {
                     services: {
                         identify: identify(),
                         ping: ping(),
+                        // DCUtR (Direct Connection Upgrade through Relay) — once a relayed
+                        // connection is established, peers attempt a hole-punched direct
+                        // dial so traffic stops flowing through the relay.
+                        dcutr: dcutr(),
                         // Cast to any to bypass duplicate `@libp2p/interface` type identity
                         // when nested deps install their own copy.
                         pubsub: gossipsub({ allowPublishToZeroTopicPeers: true }) as any,
