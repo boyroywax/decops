@@ -1,4 +1,4 @@
-import type { KeyPair } from "../types";
+import type { KeyPair } from "@/types";
 
 export function generateDID(): string {
   const chars = "abcdef0123456789";
@@ -22,4 +22,10 @@ export function generateNetworkDID(): string {
   const chars = "abcdef0123456789";
   const id = Array.from({ length: 48 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
   return `did:network:${id.slice(0, 12)}...${id.slice(-6)}`;
+}
+
+export function generateEcosystemDID(): string {
+  const chars = "abcdef0123456789";
+  const id = Array.from({ length: 56 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  return `did:ecosystem:${id.slice(0, 14)}...${id.slice(-6)}`;
 }

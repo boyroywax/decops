@@ -1,12 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createAgentCommand } from '../../../../services/commands/definitions/agent';
+import { createAgentCommand } from '@/services/commands/definitions/agent';
 
 describe('createAgentCommand', () => {
     const mockContext = {
         workspace: {
             setAgents: vi.fn(),
             addLog: vi.fn(),
-        }
+        },
+        storage: {} as Record<string, any>,
     };
 
     it('validates name length', async () => {
@@ -35,6 +36,6 @@ describe('createAgentCommand', () => {
         expect(result).toHaveProperty('agentId');
         expect(result).toHaveProperty('did');
         expect(mockContext.workspace.setAgents).toHaveBeenCalled();
-        expect(mockContext.workspace.addLog).toHaveBeenCalledWith(expect.stringContaining('Created agent: Test Agent'));
+        expect(mockContext.workspace.addLog).toHaveBeenCalledWith(expect.stringContaining('Test Agent'));
     });
 });

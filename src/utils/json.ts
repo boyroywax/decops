@@ -1,4 +1,4 @@
-import type { MeshConfig } from "../types";
+import type { MeshConfig } from "@/types";
 
 export function sanitizeJSONString(raw: string): string {
   let s = raw.replace(/```json|```/g, "").trim();

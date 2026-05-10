@@ -1,5 +1,5 @@
 import { useRef, useEffect } from "react";
-import type { Network, Bridge } from "../../types";
+import type { Network, Bridge } from "@/types";
 
 interface EcosystemCanvasProps {
   networks: Network[];

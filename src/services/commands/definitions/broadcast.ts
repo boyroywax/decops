@@ -1,6 +1,6 @@
-import { CommandDefinition } from "../types";
-import { Message } from "../../../types";
-import { callAgentAI } from "../../ai";
+import { CommandDefinition } from "@/services/commands/types";
+import { Message } from "@/types";
+import { callAgentAI } from "@/services/ai";
 
 export const broadcastMessageCommand: CommandDefinition = {
     id: "broadcast_message",
@@ -8,9 +8,9 @@ export const broadcastMessageCommand: CommandDefinition = {
     tags: ["messaging", "interaction", "group"],
     rbac: ["orchestrator"],
     args: {
-        group_id: { name: "group_id", type: "string", description: "Group ID", required: true },
+        group_id: { name: "group_id", type: "group", description: "Group ID", required: true },
         message: { name: "message", type: "string", description: "Message Content", required: true },
-        sender_id: { name: "sender_id", type: "string", description: "Sender Agent ID", required: false } // optional, defaults to first member
+        sender_id: { name: "sender_id", type: "agent", description: "Sender Agent ID", required: false } // optional, defaults to first member
     },
     output: "Confirmation",
     execute: async (args, context) => {
@@ -87,6 +87,20 @@ export const broadcastMessageCommand: CommandDefinition = {
         }));
 
         addLog("Broadcast complete");
+
+        // Write responses to shared storage
+        context.storage.lastBroadcastResponses = results;
+        context.storage.lastBroadcastCount = newMessages.length;
+
+        // Produce deliverable with broadcast results
+        context.addDeliverable({
+            key: 'broadcast-results',
+            name: `Broadcast to ${group.name}`,
+            type: 'json',
+            content: JSON.stringify({ group: group.name, message, responses: results }, null, 2),
+            tags: ['broadcast', `group:${group.name}`],
+        });
+
         return { success: true, count: newMessages.length };
     }
 };

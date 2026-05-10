@@ -1,9 +1,9 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useAgents } from '../hooks/useAgents';
-import { useChannels } from '../hooks/useChannels';
-import { useGroups } from '../hooks/useGroups';
-import { useMessages } from '../hooks/useMessages';
-import type { Agent, Channel, Group, Message, NewAgentForm, ChannelForm, GroupForm } from '../types';
+import { useAgents } from '@/hooks/useAgents';
+import { useChannels } from '@/hooks/useChannels';
+import { useGroups } from '@/hooks/useGroups';
+import { useMessages } from '@/hooks/useMessages';
+import type { Agent, Channel, Group, Message, NewAgentForm, ChannelForm, GroupForm } from '@/types';
 
 export interface WorkspaceContextType {
     // Agents
@@ -21,6 +21,7 @@ export interface WorkspaceContextType {
     setEditPromptText: React.Dispatch<React.SetStateAction<string>>;
     createAgent: () => void;
     updateAgentPrompt: (id: string) => void;
+    updateAgent: (id: string, patch: Partial<Agent>) => void;
     removeAgent: (id: string) => void;
     removeAgents: (ids: Set<string>) => void;
 
@@ -67,6 +68,10 @@ export interface WorkspaceContextType {
     sendMessage: () => void;
     sendBroadcast: () => void;
     removeMessages: (ids: Set<string>) => void;
+    markAsRead: (ids: string[]) => void;
+    markChannelRead: (channelId: string) => void;
+    unreadCounts: Record<string, number>;
+    totalUnread: number;
 
     // Globals
     clearWorkspace: () => void;
@@ -74,6 +79,10 @@ export interface WorkspaceContextType {
     acCh: Channel | undefined;
     acFrom: Agent | undefined;
     acTo: Agent | undefined;
+
+    // Import/Export
+    exportWorkspace: () => Omit<import('../types').Workspace, 'metadata'>;
+    importWorkspace: (data: Omit<import('../types').Workspace, 'metadata'>) => void;
 }
 
 const WorkspaceContext = createContext<WorkspaceContextType | null>(null);
@@ -106,7 +115,10 @@ export function WorkspaceProvider({ children, addJob }: WorkspaceProviderProps) 
     );
 
     const clearWorkspace = () => {
-        addJob({ type: "reset_workspace", request: {} });
+        agentStore.setAgents([]);
+        channelStore.setChannels([]);
+        groupStore.setGroups([]);
+        messageStore.setMessages([]);
     };
 
     // Computed values for active channel
@@ -114,13 +126,31 @@ export function WorkspaceProvider({ children, addJob }: WorkspaceProviderProps) 
     const acFrom = acCh ? agentStore.agents.find((a) => a.id === acCh.from) : undefined;
     const acTo = acCh ? agentStore.agents.find((a) => a.id === acCh.to) : undefined;
 
+    const exportWorkspace = () => {
+        return {
+            agents: agentStore.agents,
+            channels: channelStore.channels,
+            groups: groupStore.groups,
+            messages: messageStore.messages
+        };
+    };
+
+    const importWorkspace = (data: Omit<import('../types').Workspace, 'metadata'>) => {
+        agentStore.setAgents(data.agents || []);
+        channelStore.setChannels(data.channels || []);
+        groupStore.setGroups(data.groups || []);
+        messageStore.setMessages(data.messages || []);
+    };
+
     const value: WorkspaceContextType = {
         ...agentStore,
         ...channelStore,
         ...groupStore,
         ...messageStore,
         clearWorkspace,
-        acCh, acFrom, acTo
+        acCh, acFrom, acTo,
+        exportWorkspace,
+        importWorkspace
     };
 
     return (

@@ -1,6 +1,6 @@
-import api from '../../api/client';
-import { encryptPassword } from '../../utils/crypto';
-import type { ApiResponse, User, DIDDocument } from '../../types';
+import api from '@/api/client';
+import { encryptPassword } from '@/utils/crypto';
+import type { ApiResponse, User, DIDDocument } from '@/types';
 import { CredeblResponse, LoginResponse, SignupRequest, UserProfile, DIDCreationResponse } from './types';
 import { generateAndPersistLocalDIDKey, getOrCreateLocalDIDKey } from './did';
 

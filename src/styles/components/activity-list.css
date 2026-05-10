@@ -1,0 +1,100 @@
+/**
+ * ActivityList Component Styles
+ * Timeline-grouped list of activity entries by day
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * EMPTY STATE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.activity-list__empty {
+  text-align: center;
+  padding: 60px var(--space-3xl);
+  color: var(--text-subtle);
+  font-family: var(--font-mono);
+}
+
+.activity-list__empty-title {
+  font-size: 16px;
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-md);
+  color: var(--text-secondary);
+}
+
+.activity-list__empty-desc {
+  font-size: var(--text-md);
+  max-width: 400px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.activity-list__empty-btn {
+  margin-top: var(--space-2xl);
+  font-size: var(--text-md);
+  padding: var(--space-md) var(--space-2xl);
+  color: #000;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * LIST CONTAINER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.activity-list {
+  position: relative;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * DAY GROUP
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.activity-list__group {
+  margin-bottom: var(--space-3xl);
+}
+
+.activity-list__day-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-xl);
+}
+
+.activity-list__day-label {
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.activity-list__day-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.activity-list__day-count {
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+  font-family: var(--font-mono);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ENTRIES WITH TIMELINE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.activity-list__entries {
+  position: relative;
+  padding-left: 28px;
+}
+
+.activity-list__timeline {
+  position: absolute;
+  left: 9px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(0, 229, 160, 0.3) 0%, rgba(0, 229, 160, 0.05) 100%);
+  border-radius: 1px;
+}

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { broadcastMessageCommand } from '../../../../services/commands/definitions/broadcast';
-import * as aiService from '../../../../services/ai';
+import { broadcastMessageCommand } from '@/services/commands/definitions/broadcast';
+import * as aiService from '@/services/ai';
 
 vi.mock('../../../../services/ai', () => ({
     callAgentAI: vi.fn()
@@ -28,7 +28,9 @@ describe('broadcastMessageCommand', () => {
             setMessages: vi.fn(),
             addLog: vi.fn(),
             setActiveChannels: vi.fn()
-        }
+        },
+        storage: {} as Record<string, any>,
+        addDeliverable: vi.fn(),
     };
 
     beforeEach(() => {

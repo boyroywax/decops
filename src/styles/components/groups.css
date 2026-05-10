@@ -1,0 +1,417 @@
+/**
+ * Groups View Component Styles
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GROUPS HEADER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.groups-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2xl);
+}
+
+.groups-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.groups-title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.groups-toggle-btn {
+  padding: var(--space-md) var(--space-xl);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-base);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  transition: all var(--transition-fast);
+}
+
+.groups-toggle-btn--create {
+  background: rgba(244, 114, 182, 0.12);
+  color: var(--color-group);
+  border: 1px solid rgba(244, 114, 182, 0.25);
+}
+
+.groups-toggle-btn--cancel {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--color-danger);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GROUP FORM
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.group-form {
+  background: rgba(244, 114, 182, 0.04);
+  border: 1px solid rgba(244, 114, 182, 0.12);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-2xl);
+  margin-bottom: var(--space-2xl);
+}
+
+.group-form-no-networks {
+  text-align: center;
+  padding: var(--space-3xl);
+  color: var(--text-subtle);
+}
+
+.group-form-no-networks-icon {
+  margin-bottom: var(--space-md);
+  opacity: 0.5;
+}
+
+.group-form-no-networks-title {
+  font-size: var(--text-md);
+  margin-bottom: var(--space-xs);
+}
+
+.group-form-no-networks-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+}
+
+.group-form-select {
+  width: 100%;
+  border-color: rgba(244, 114, 182, 0.2);
+  margin-bottom: var(--space-xl);
+}
+
+.group-form-name-input {
+  border-color: rgba(244, 114, 182, 0.15);
+  margin-bottom: var(--space-xl);
+}
+
+/* Governance Model Grid */
+.group-governance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+}
+
+.group-governance-btn {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  color: var(--text-subtle);
+  padding: var(--space-lg) 14px;
+  border-radius: var(--radius-xl);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.group-governance-btn--selected {
+  background: rgba(244, 114, 182, 0.1);
+  border-color: rgba(244, 114, 182, 0.35);
+  color: var(--color-group);
+}
+
+.group-governance-label {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-xs);
+}
+
+.group-governance-desc {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+}
+
+/* Threshold Input */
+.group-threshold-section {
+  margin-bottom: var(--space-xl);
+}
+
+.group-threshold-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.group-threshold-input {
+  width: 60px;
+  text-align: center;
+  border-color: rgba(244, 114, 182, 0.15);
+}
+
+.group-threshold-label {
+  font-size: var(--text-base);
+  color: var(--text-subtle);
+}
+
+/* Member Selection */
+.group-members-notice {
+  font-size: var(--text-base);
+  color: var(--text-subtle);
+  padding: var(--space-xl);
+  text-align: center;
+}
+
+.group-members-list {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-xl);
+}
+
+.group-member-toggle {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  color: var(--text-subtle);
+  padding: var(--space-md) 14px;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-base);
+  transition: all var(--transition-fast);
+}
+
+/* Form Footer */
+.group-form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.group-form-count {
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+}
+
+.group-form-submit {
+  background: var(--color-group);
+  color: var(--bg-primary);
+  border: none;
+  padding: var(--space-lg) var(--space-2xl);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-md);
+  font-weight: var(--font-medium);
+  transition: all var(--transition-fast);
+}
+
+.group-form-submit:disabled {
+  background: var(--text-invisible);
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GROUPS EMPTY STATE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.groups-empty-state {
+  text-align: center;
+  padding: 60px;
+  color: var(--text-invisible);
+  border: 1px dashed rgba(244, 114, 182, 0.1);
+  border-radius: var(--radius-3xl);
+}
+
+.groups-empty-text {
+  font-size: var(--text-md);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GROUPS GRID
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-lg);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GROUP CARD
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.group-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-2xl);
+  padding: 18px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.group-card--checked {
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.group-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.group-card-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.group-card-name {
+  font-weight: var(--font-semibold);
+  font-size: 14px;
+  font-family: var(--font-display);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.group-card-governance {
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+  margin-top: 2px;
+}
+
+.group-card-badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.group-network-badge {
+  font-size: var(--text-xs);
+  padding: 2px var(--space-sm);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.group-member-count {
+  font-size: var(--text-sm);
+  color: var(--text-ghost);
+  background: var(--bg-surface-hover);
+  padding: 3px var(--space-md);
+  border-radius: var(--radius-md);
+}
+
+/* Group DID */
+.group-did {
+  margin-top: var(--space-lg);
+  font-size: var(--text-sm);
+}
+
+.group-did-label {
+  color: var(--text-ghost);
+  margin-bottom: var(--space-xs);
+  letter-spacing: 0.05em;
+}
+
+.group-did-value {
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+/* Threshold Info */
+.group-threshold-info {
+  margin-top: var(--space-lg);
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+}
+
+/* Member Badges */
+.group-members-badges {
+  margin-top: var(--space-lg);
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.group-member-badge {
+  font-size: var(--text-sm);
+  padding: 3px var(--space-lg);
+  border-radius: var(--radius-2xl);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.group-member-badge-prompt {
+  font-size: 8px;
+  opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GROUP EXPANDED DETAILS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.group-details {
+  margin-top: 14px;
+  padding-top: 14px;
+}
+
+.group-capability-card {
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-sm);
+  border-radius: var(--radius-lg);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.group-capability-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  margin-bottom: 3px;
+}
+
+.group-capability-prompt {
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.group-capability-prompt--empty {
+  color: var(--text-invisible);
+}
+
+.group-capability-prompt--filled {
+  color: var(--text-muted);
+}
+
+/* Group Actions */
+.group-actions {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.group-action-btn {
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.group-action-btn--broadcast {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  color: var(--color-warning);
+}
+
+.group-action-btn--dissolve {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--color-danger);
+}

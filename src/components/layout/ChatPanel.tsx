@@ -1,88 +1,184 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { X, AlignJustify, MessageCircle } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { chatWithWorkspace, getSelectedModel } from "../../services/ai";
-import type { ChatMessage, WorkspaceContext } from "../../services/ai";
-import { ANTHROPIC_MODELS } from "../../constants";
-import MessageBubble from "../chat/MessageBubble";
-import { loadConversations, saveConversations, loadActiveId, saveActiveId, makeId, deriveTitle } from "../chat/utils";
-import type { Conversation } from "../chat/types";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3, Eye, Send, Square } from "lucide-react";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "@/services/ai";
+import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "@/services/ai";
+import { useLLM } from "@/context/LLMContext";
+import MessageBubble from "@/components/chat/MessageBubble";
+import { makeId } from "@/components/chat/utils";
+import type { Conversation } from "@/components/chat/types";
+import { useCommandContext } from "@/hooks/useCommandContext";
+import { useJobsContext } from "@/context/JobsContext";
+import { useArchitect } from "@/toolkits/architect";
+import { useEcosystem } from "@/hooks/useEcosystem"; // Bridge UI — needed for command context ecosystem prop
+import { useAuth } from "@/context/AuthContext";
+import { registry as commandRegistry } from "@/services/commands/registry";
+import type { CommandDefinition } from "@/services/commands/types";
+import { CommandPrompt } from "@/components/actions/CommandPrompt";
+import { useWorkspaceContext } from "@/context/WorkspaceContext";
+import { useStudioContext } from "@/toolkits/studio";
+import { useEditorContext } from "@/toolkits/editor";
+import type { ChatPosition } from "@/context/ThemeContext";
+import type { ViewId, JobStep } from "@/types";
+import { useConversations } from "@/hooks/useConversations";
+import { useChatResize } from "@/hooks/useChatResize";
+import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
+import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {
     context: WorkspaceContext;
+    ecosystem?: any; // Automated ecosystem object
     onClose: () => void;
     addLog?: (msg: string) => void;
+    height: number;
+    setHeight: (h: number) => void;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
+    position?: ChatPosition;
+    view?: ViewId;
 }
 
-export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
-    const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
-    const [activeId, setActiveId] = useState<string | null>(loadActiveId);
+export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeight, isExpanded, onToggleExpand, position = "bottom", view }: ChatPanelProps) {
+    const { activeWorkspaceId } = useWorkspaceManager();
+    const {
+        conversations, setConversations,
+        activeId, setActiveId,
+        showConvos, setShowConvos,
+        active, messages,
+        endRef, inputRef, initialScrollDone,
+        updateConversation, createNewChat, switchTo, deleteConvo,
+    } = useConversations(activeWorkspaceId);
+
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
-    const [showConvos, setShowConvos] = useState(false);
-    const endRef = useRef<HTMLDivElement>(null);
-    const inputRef = useRef<HTMLInputElement>(null);
+    const [streamingText, setStreamingText] = useState<string | null>(null);
+    const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallDisplay[]>([]);
+    const [studioMode, setStudioMode] = useState(true);
+    const [editorMode, setEditorMode] = useState(true);
+    const [pendingCommand, setPendingCommand] = useState<{ command: CommandDefinition; initialArgs: Record<string, any>; convoId: string; msgs: ChatMessage[] } | null>(null);
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+    const [mentionIndex, setMentionIndex] = useState(0);
+    const abortRef = useRef<AbortController | null>(null);
 
-    // Derive active conversation
-    const active = conversations.find(c => c.id === activeId) || null;
-    const messages = active?.messages || [];
+    /** Cancel an in-progress streaming chat */
+    const stopStreaming = useCallback(() => {
+        abortRef.current?.abort();
+        abortRef.current = null;
+    }, []);
 
-    // Persist
+    // Smooth scroll for new messages / streaming updates
     useEffect(() => {
-        saveConversations(conversations);
-    }, [conversations]);
+        if (initialScrollDone.current) {
+            endRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages.length, loading, streamingText]);
 
     useEffect(() => {
-        saveActiveId(activeId);
-    }, [activeId]);
-
-    useEffect(() => {
-        endRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages.length, loading]);
-
-    useEffect(() => {
-        if (!showConvos) inputRef.current?.focus();
+        if (!showConvos && inputRef.current?.offsetParent !== null) {
+            inputRef.current?.focus();
+        }
     }, [showConvos, activeId]);
 
-    const updateConversation = useCallback((id: string, msgs: ChatMessage[]) => {
-        setConversations(prev => prev.map(c =>
-            c.id === id
-                ? { ...c, messages: msgs, title: deriveTitle(msgs), updatedAt: Date.now() }
-                : c
-        ));
-    }, []);
+    // Build Commmand Context for CLI
+    const { user } = useAuth();
+    const jobs = useJobsContext();
+    const architect = useArchitect(addLog || (() => {}), jobs.addJob, jobs.jobs);
 
-    const createNewChat = useCallback(() => {
-        const id = makeId();
-        const convo: Conversation = {
-            id,
-            title: "New Chat",
-            messages: [],
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-        };
-        setConversations(prev => [convo, ...prev]);
-        setActiveId(id);
-        setShowConvos(false);
-    }, []);
+    // Toolkit extension APIs — pulled early so useCommandContext can inject them
+    const { api: studioApi } = useStudioContext();
+    const { api: editorApi, proposeEdit } = useEditorContext();
 
-    const switchTo = useCallback((id: string) => {
-        setActiveId(id);
-        setShowConvos(false);
-    }, []);
+    // We only have access to React Context "workspace" via imported hook, NOT via prop.
+    // The prop `context` is `WorkspaceContext` interface (data only), not the Hook result.
+    // BUT `useCommandContext` expects `WorkspaceContextType` which has setters.
+    // We need to use the hook `useWorkspaceContext` here to get full context!
+    // The prop `context` passed from Footer is just a data snapshot used for AI context.
 
-    const deleteConvo = useCallback((id: string) => {
-        setConversations(prev => prev.filter(c => c.id !== id));
-        if (activeId === id) {
-            const remaining = conversations.filter(c => c.id !== id);
-            setActiveId(remaining.length > 0 ? remaining[0].id : null);
+    // Get workspace entity data + setters via the workspace context (required for useCommandContext)
+    const workspaceCtx = useWorkspaceContext();
+
+    // @mention autocomplete candidates
+    const mentionCandidates = useMemo(() => {
+        if (mentionQuery === null) return [];
+        const q = mentionQuery.toLowerCase();
+        const agents = (workspaceCtx.agents || []).map((a: any) => ({
+            type: "agent" as const, id: a.id as string, name: a.name as string,
+            detail: (a.title || a.role || "") as string,
+        }));
+        const groups = (workspaceCtx.groups || []).map((g: any) => ({
+            type: "group" as const, id: g.id as string, name: g.name as string,
+            detail: `${g.governance} · ${g.members.length} members`,
+        }));
+        return [...agents, ...groups]
+            .filter(c => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q))
+            .slice(0, 8);
+    }, [mentionQuery, workspaceCtx.agents, workspaceCtx.groups]);
+
+    const insertMention = useCallback((candidate: { name: string }) => {
+        const cursorPos = inputRef.current?.selectionStart || input.length;
+        const before = input.slice(0, cursorPos);
+        const after = input.slice(cursorPos);
+        const m = before.match(/(^|.*\s)@(\w*)$/);
+        if (m) {
+            const prefix = m[1];
+            const tag = `@${candidate.name.replace(/\s+/g, "_")}`;
+            setInput(prefix + tag + (after.startsWith(" ") ? "" : " ") + after);
         }
-    }, [activeId, conversations]);
+        setMentionQuery(null);
+        inputRef.current?.focus();
+    }, [input]);
+
+    // Determine which ecosystem object to use. 
+    // If passed via props, use it. usage of useEcosystem inside ChatPanel would be wrong.
+    // If not passed, we can't run ecosystem commands safely.
+
+    const commandContext = useCommandContext({
+        workspace: workspaceCtx,
+        user,
+        jobs,
+        ecosystem: ecosystem || { networks: [], bridges: [] }, // Fallback if missing, some cmds might fail
+        architect,
+        addLog: addLog || (() => { }) as (msg: string) => void,
+        extensions: { studio: studioApi ?? undefined, editor: editorApi ?? undefined },
+    });
+
+    /** Queue a command as a proper job instead of executing directly */
+    const queueCommandAsJob = useCallback((
+        commandId: string,
+        cmdDef: CommandDefinition,
+        args: Record<string, any>,
+        convoId: string,
+        msgs: ChatMessage[],
+    ) => {
+        const step: JobStep = {
+            id: `step-${Date.now()}`,
+            commandId,
+            args,
+            name: cmdDef.description,
+            status: "pending",
+        };
+
+        const newJob = jobs.addJob({
+            type: commandId,
+            request: { description: cmdDef.description },
+            steps: [step],
+            mode: "serial",
+        });
+
+        addLog?.(`CLI: Queued /${commandId} as job`);
+        const successMsg = [...msgs, {
+            role: "assistant" as const,
+            content: `📋 Command \`/${commandId}\` queued as a job.${Object.keys(args).length > 0 ? `\n\nArgs: \`${JSON.stringify(args, null, 2)}\`` : ""}`,
+            jobIds: [newJob.id],
+        }];
+        updateConversation(convoId, successMsg);
+    }, [jobs, addLog, updateConversation]);
 
     const send = useCallback(async () => {
         const text = input.trim();
         if (!text || loading) return;
         setInput("");
+        setMentionQuery(null);
 
         // Auto-create conversation if none active
         let currentId = activeId;
@@ -107,137 +203,272 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
         setLoading(true);
 
         try {
-            const response = await chatWithWorkspace(text, currentMessages, context);
-            const finalMsgs = [...updatedMsgs, { role: "assistant" as const, content: response }];
-            updateConversation(currentId, finalMsgs);
-            addLog?.(`Chat: "${text.slice(0, 40)}${text.length > 40 ? "…" : ""}"`);
+            // CLI INTERCEPTION — commands go through arg prompt → job queue
+            if (text.startsWith("/")) {
+                const part1 = text.split(" ")[0];
+                const commandId = part1.slice(1);
+                const argsString = text.slice(part1.length).trim();
+
+                // Validate command exists
+                const cmdDef = commandRegistry.get(commandId);
+                if (!cmdDef) {
+                    const errMsg = [...updatedMsgs, { role: "assistant" as const, content: `❌ Unknown command \`/${commandId}\`. Type \`/\` to see available commands.` }];
+                    updateConversation(currentId, errMsg);
+                    setLoading(false);
+                    return;
+                }
+
+                // Parse any inline args
+                let parsedArgs: Record<string, any> = {};
+                if (argsString) {
+                    if (argsString.startsWith("{")) {
+                        try { parsedArgs = JSON.parse(argsString); } catch { /* ignore */ }
+                    }
+                    if (Object.keys(parsedArgs).length === 0 && argsString.includes("=")) {
+                        const regex = /(\w+)=(?:"([^"]*)"|(\S+))/g;
+                        let match;
+                        while ((match = regex.exec(argsString)) !== null) {
+                            parsedArgs[match[1]] = match[2] || match[3];
+                        }
+                    }
+                }
+
+                // Determine if we need the arg prompt
+                const hasArgs = Object.keys(cmdDef.args).length > 0;
+                const requiredArgs = Object.entries(cmdDef.args).filter(
+                    ([, a]) => a.required !== false && a.defaultValue === undefined
+                );
+                const missingRequired = requiredArgs.filter(([name]) => !(name in parsedArgs));
+
+                if (hasArgs && missingRequired.length > 0) {
+                    // Show the prompt modal for user to fill in args
+                    setPendingCommand({
+                        command: cmdDef,
+                        initialArgs: parsedArgs,
+                        convoId: currentId,
+                        msgs: updatedMsgs,
+                    });
+                    setLoading(false);
+                    return;
+                }
+
+                // No missing required args — queue as job directly
+                queueCommandAsJob(commandId, cmdDef, parsedArgs, currentId, updatedMsgs);
+                setLoading(false);
+                return;
+            } else {
+                // @mention routing — direct agent or group chat
+                const mentionRe = /@([A-Za-z0-9_]+)/g;
+                let mMatch;
+                const targetAgents: any[] = [];
+                const mentionLabels: string[] = [];
+                while ((mMatch = mentionRe.exec(text)) !== null) {
+                    const mName = mMatch[1].replace(/_/g, " ");
+                    const agent = (workspaceCtx.agents || []).find((a: any) =>
+                        a.name.toLowerCase() === mName.toLowerCase() || a.id.toLowerCase() === mName.toLowerCase()
+                    );
+                    if (agent && !targetAgents.find((a: any) => a.id === agent.id)) {
+                        targetAgents.push(agent);
+                        mentionLabels.push(agent.name);
+                        continue;
+                    }
+                    const group = (workspaceCtx.groups || []).find((g: any) =>
+                        g.name.toLowerCase() === mName.toLowerCase() || g.id.toLowerCase() === mName.toLowerCase()
+                    );
+                    if (group) {
+                        const members = (workspaceCtx.agents || []).filter((a: any) => group.members.includes(a.id));
+                        for (const mem of members) {
+                            if (!targetAgents.find((a: any) => a.id === mem.id)) targetAgents.push(mem);
+                        }
+                        mentionLabels.push(`${group.name} (group)`);
+                    }
+                }
+                if (targetAgents.length > 0) {
+                    const cleanText = text.replace(/@[A-Za-z0-9_]+/g, "").trim();
+                    const replies = await Promise.all(
+                        targetAgents.map((a: any) => chatWithAgent(a, cleanText, currentMessages.slice(-10)))
+                    );
+                    const combined = targetAgents.length === 1
+                        ? `**${targetAgents[0].name}** says:\n\n${replies[0]}`
+                        : targetAgents.map((a: any, i: number) =>
+                            `**${a.name}** (${a.title || a.role}):\n${replies[i]}`
+                        ).join("\n\n---\n\n");
+                    const finalMsgs = [...updatedMsgs, { role: "assistant" as const, content: combined }];
+                    updateConversation(currentId!, finalMsgs);
+                    addLog?.(`Chat: @${mentionLabels.join(", @")} — "${cleanText.slice(0, 30)}…"`);
+                    return;
+                }
+
+                // Streaming chat
+                setStreamingText("");
+                setStreamingToolCalls([]);
+
+                const controller = new AbortController();
+                abortRef.current = controller;
+
+                const streamCallbacks: StreamCallbacks = {
+                    onToken: (token) => {
+                        setStreamingText(prev => (prev ?? "") + token);
+                    },
+                    signal: controller.signal,
+                    onToolCallStart: (name) => {
+                        setStreamingToolCalls(prev => [
+                            ...prev,
+                            { name, input: {}, result: null, duration_ms: 0 },
+                        ]);
+                    },
+                    onToolCallComplete: (display: ToolCallDisplay) => {
+                        setStreamingToolCalls(prev => {
+                            const updated = [...prev];
+                            // Replace the last pending tool call with the completed one (polyfill for findLastIndex)
+                            let idx = -1;
+                            for (let i = updated.length - 1; i >= 0; i--) {
+                                if (updated[i].name === display.name && updated[i].duration_ms === 0) {
+                                    idx = i;
+                                    break;
+                                }
+                            }
+                            if (idx >= 0) {
+                                updated[idx] = display;
+                            } else {
+                                updated.push(display);
+                            }
+                            return updated;
+                        });
+                    },
+                };
+
+                // Build editor context suffix if editor mode is active
+                let messageToSend = text;
+                if (editorActive && editorApi) {
+                    const editorState = editorApi.getState();
+                    const editorSuffix = `\n\nEDITOR MODE ACTIVE:\nYou are assisting with a file open in the Editor view. The user wants help editing it.\n\nCurrent file: "${editorState.docName}" (${editorState.fileType})\nFile content (${editorState.stats.lines} lines, ${editorState.stats.words} words):\n\`\`\`${editorState.fileType === "markdown" ? "md" : editorState.fileType}\n${editorState.content.length > 4000 ? editorState.content.substring(0, 4000) + "\n... (truncated)" : editorState.content}\n\`\`\`${!editorState.validation.valid ? `\nValidation Error: ${editorState.validation.error}` : ""}\n\nWhen helping with this file:\n- Provide COMPLETE updated file content in a fenced code block so the user can apply it.\n- Be precise with the format (${editorState.fileType}).\n- For small edits, show context around the change and the complete replacement.\n- Do NOT include explanatory text inside the code block, only the file content.`;
+                    messageToSend = text + editorSuffix;
+                }
+
+                const { text: response, toolCalls } = await streamChatWithWorkspace(
+                    messageToSend, currentMessages, context, streamCallbacks, commandContext,
+                );
+
+                abortRef.current = null;
+                setStreamingText(null);
+                setStreamingToolCalls([]);
+
+                // Collect jobIds from tool calls for inline progress tracking
+                const collectedJobIds = toolCalls
+                    .filter(tc => tc.jobId)
+                    .map(tc => tc.jobId!);
+
+                const finalMsgs = [...updatedMsgs, {
+                    role: "assistant" as const,
+                    content: response,
+                    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+                    jobIds: collectedJobIds.length > 0 ? collectedJobIds : undefined,
+                }];
+                updateConversation(currentId, finalMsgs);
+                addLog?.(`Chat: "${text.slice(0, 40)}${text.length > 40 ? "…" : ""}"`);
+            }
         } catch (err) {
             const errMsg = [...updatedMsgs, { role: "assistant" as const, content: `Error: ${err instanceof Error ? err.message : String(err)}` }];
             updateConversation(currentId, errMsg);
         } finally {
             setLoading(false);
         }
-    }, [input, loading, activeId, conversations, context, addLog, updateConversation]);
+    }, [input, loading, activeId, conversations, context, addLog, updateConversation, commandContext, queueCommandAsJob, workspaceCtx]);
 
-    const [height, setHeight] = useState(400);
-    const [isResizing, setIsResizing] = useState(false);
+    // Handle prompt modal submission
+    const handlePromptSubmit = useCallback((commandId: string, args: Record<string, any>) => {
+        if (!pendingCommand) return;
+        queueCommandAsJob(commandId, pendingCommand.command, args, pendingCommand.convoId, pendingCommand.msgs);
+        setPendingCommand(null);
+    }, [pendingCommand, queueCommandAsJob]);
 
-    const startResizing = useCallback((e: React.MouseEvent) => {
-        e.preventDefault();
-        setIsResizing(true);
-    }, []);
-
-    const stopResizing = useCallback(() => {
-        setIsResizing(false);
-    }, []);
-
-    const resize = useCallback((e: MouseEvent) => {
-        if (isResizing) {
-            const newHeight = window.innerHeight - e.clientY;
-            if (newHeight > 200 && newHeight < window.innerHeight - 100) {
-                setHeight(newHeight);
-            }
+    const handlePromptCancel = useCallback(() => {
+        if (pendingCommand) {
+            const cancelMsg = [...pendingCommand.msgs, { role: "assistant" as const, content: `Command \`/${pendingCommand.command.id}\` cancelled.` }];
+            updateConversation(pendingCommand.convoId, cancelMsg);
         }
-    }, [isResizing]);
+        setPendingCommand(null);
+    }, [pendingCommand, updateConversation]);
 
+    const { isResizing, isSide, startResizing } = useChatResize(position, height, setHeight);
+
+    const modelId = getChatModel();
+    const llm = useLLM();
+
+    const studioAvailable = !!studioApi && view === "jobs";
+    const studioActive = studioAvailable && studioMode;
+
+    const editorAvailable = !!editorApi && view === "editor";
+    const editorActive = editorAvailable && editorMode;
+
+    // Auto-enable studio mode when studio becomes available
     useEffect(() => {
-        if (isResizing) {
-            window.addEventListener("mousemove", resize);
-            window.addEventListener("mouseup", stopResizing);
-        }
-        return () => {
-            window.removeEventListener("mousemove", resize);
-            window.removeEventListener("mouseup", stopResizing);
-        };
-    }, [isResizing, resize, stopResizing]);
+        if (studioAvailable) setStudioMode(true);
+    }, [studioAvailable]);
 
-    const modelId = getSelectedModel();
-    const modelLabel = ANTHROPIC_MODELS.find(m => m.id === modelId)?.label || modelId;
+    // Auto-enable editor mode when editor becomes available
+    useEffect(() => {
+        if (editorAvailable) setEditorMode(true);
+    }, [editorAvailable]);
+
+    // Cmd+J / Ctrl+J to toggle studio mode
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "j") {
+                e.preventDefault();
+                if (studioAvailable) setStudioMode(prev => !prev);
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [studioAvailable]);
+
+    const isReady = !!input.trim() && !loading;
 
     return (
-        <div style={{
-            height,
-            background: "rgba(0,0,0,0.8)",
-            borderTop: "1px solid rgba(0,229,160,0.12)",
-            display: "flex",
-            flexDirection: "column",
-            fontFamily: "inherit",
-            backdropFilter: "blur(12px)",
-            position: "relative",
-            transition: isResizing ? "none" : "height 0.1s ease-out",
-        }}>
+        <div
+            className={`chat-panel${isResizing ? " chat-panel--resizing" : ""}${isSide ? ` chat-panel--${position}` : ""}`}
+            style={isSide ? { width: height, flexShrink: 0 } : { height }}
+        >
             {/* Resize Handle */}
-            <div
-                onMouseDown={startResizing}
-                style={{
-                    position: "absolute",
-                    top: -4,
-                    left: 0,
-                    right: 0,
-                    height: 8,
-                    cursor: "ns-resize",
-                    zIndex: 10,
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                }}
-            >
-                <div style={{ width: 40, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.1)" }} />
+            <div onMouseDown={startResizing} className={`chat-panel__resize-handle${isSide ? " chat-panel__resize-handle--side" : ""}`}>
+                <div className="chat-panel__resize-indicator" />
             </div>
 
             {/* Header */}
-            <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "6px 14px",
-                borderBottom: "1px solid rgba(255,255,255,0.04)",
-                flexShrink: 0,
-            }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 9, color: "#52525b", letterSpacing: "0.1em" }}>WORKSPACE CHAT</span>
-                    <span style={{ fontSize: 9, color: "#3f3f46", background: "rgba(255,255,255,0.04)", padding: "1px 6px", borderRadius: 4 }}>{modelLabel}</span>
-                    <span style={{ color: "#27272a", fontSize: 10 }}>│</span>
+            <div className="chat-panel__header">
+                <div className="chat-panel__header-left">
+                    <span className="chat-panel__title">WORKSPACE CHAT</span>
+                    <span className="chat-panel__separator">│</span>
                     {/* Conversations toggle */}
                     <button
                         onClick={() => setShowConvos(!showConvos)}
-                        style={{
-                            background: showConvos ? "rgba(0,229,160,0.08)" : "none",
-                            border: "none",
-                            color: showConvos ? "#00e5a0" : "#52525b",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                            fontSize: 9,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                            padding: "2px 6px",
-                            borderRadius: 3,
-                            transition: "all 0.15s",
-                        }}
+                        className={`chat-panel__convos-toggle${showConvos ? " chat-panel__convos-toggle--active" : ""}`}
                     >
                         <AlignJustify size={9} />
                         Conversations
                         {conversations.length > 0 && (
-                            <span style={{
-                                fontSize: 8,
-                                background: showConvos ? "rgba(0,229,160,0.15)" : "rgba(255,255,255,0.06)",
-                                padding: "0 4px",
-                                borderRadius: 4,
-                                color: showConvos ? "#00e5a0" : "#52525b",
-                            }}>{conversations.length}</span>
+                            <span className={`chat-panel__convos-count${showConvos ? " chat-panel__convos-count--active" : ""}`}>{conversations.length}</span>
                         )}
                     </button>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div className="chat-panel__header-right">
                     <button
                         onClick={createNewChat}
-                        style={{ background: "none", border: "none", color: "#52525b", cursor: "pointer", fontSize: 9, fontFamily: "inherit", padding: "2px 6px" }}
+                        className="chat-panel__new-btn"
                         title="New conversation"
                     >+ New</button>
+                    {!isSide && (
+                        <button
+                            onClick={onToggleExpand}
+                            className="chat-panel__expand-btn"
+                            title={isExpanded ? "Collapse panel" : "Expand panel"}
+                        >{isExpanded ? <ChevronsDown size={14} /> : <ChevronsUp size={14} />}</button>
+                    )}
                     <button
                         onClick={onClose}
-                        style={{ background: "none", border: "none", color: "#71717a", cursor: "pointer", padding: "0 4px", lineHeight: 1, display: "flex", alignItems: "center" }}
+                        className="chat-panel__close-btn"
                         title="Close chat"
                     ><X size={14} /></button>
                 </div>
@@ -246,22 +477,13 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
             {/* Body: either conversations list or chat */}
             {showConvos ? (
                 /* Conversations list */
-                <div style={{ flex: 1, overflow: "auto", padding: "8px 10px" }}>
+                <div className="chat-panel__convos-list">
                     {conversations.length === 0 && (
-                        <div style={{ textAlign: "center", padding: "40px 0", color: "#3f3f46" }}>
-                            <div style={{ fontSize: 11, marginBottom: 6 }}>No conversations yet</div>
+                        <div className="chat-panel__empty-state">
+                            <div className="chat-panel__empty-text">No conversations yet</div>
                             <button
                                 onClick={createNewChat}
-                                style={{
-                                    background: "rgba(0,229,160,0.08)",
-                                    border: "1px solid rgba(0,229,160,0.2)",
-                                    borderRadius: 6,
-                                    padding: "6px 14px",
-                                    color: "#00e5a0",
-                                    fontSize: 11,
-                                    fontFamily: "inherit",
-                                    cursor: "pointer",
-                                }}
+                                className="chat-panel__start-btn"
                             >+ Start a conversation</button>
                         </div>
                     )}
@@ -269,76 +491,67 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
                         <div
                             key={c.id}
                             onClick={() => switchTo(c.id)}
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                padding: "8px 10px",
-                                borderRadius: 6,
-                                cursor: "pointer",
-                                background: c.id === activeId ? "rgba(0,229,160,0.06)" : "transparent",
-                                border: c.id === activeId ? "1px solid rgba(0,229,160,0.12)" : "1px solid transparent",
-                                marginBottom: 2,
-                                transition: "all 0.1s",
-                            }}
+                            className={`chat-panel__convo-item${c.id === activeId ? " chat-panel__convo-item--active" : ""}`}
                         >
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{
-                                    fontSize: 11,
-                                    color: c.id === activeId ? "#e4e4e7" : "#a1a1aa",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                    fontWeight: c.id === activeId ? 500 : 400,
-                                }}>{c.title}</div>
-                                <div style={{ fontSize: 9, color: "#3f3f46", marginTop: 2, display: "flex", gap: 8 }}>
+                            <div className="chat-panel__convo-info">
+                                <div className="chat-panel__convo-title">{c.title}</div>
+                                <div className="chat-panel__convo-meta">
                                     <span>{c.messages.length} msgs</span>
                                     <span>{new Date(c.updatedAt).toLocaleDateString()}</span>
                                 </div>
                             </div>
                             <button
                                 onClick={e => { e.stopPropagation(); deleteConvo(c.id); }}
-                                style={{
-                                    background: "none",
-                                    border: "none",
-                                    color: "#3f3f46",
-                                    cursor: "pointer",
-                                    fontSize: 12,
-                                    padding: "2px 6px",
-                                    flexShrink: 0,
-                                    opacity: 0.5,
-                                    transition: "opacity 0.1s",
-                                }}
+                                className="chat-panel__convo-delete"
                                 title="Delete conversation"
-                                onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
-                                onMouseLeave={e => (e.currentTarget.style.opacity = "0.5")}
                             ><X size={12} /></button>
                         </div>
                     ))}
                 </div>
             ) : (
                 /* Chat messages */
-                <div style={{ flex: 1, overflow: "auto", padding: "12px 14px" }}>
+                <div className="chat-panel__messages">
                     {messages.length === 0 && !loading && (
-                        <div style={{ textAlign: "center", padding: "40px 0", color: "#3f3f46" }}>
+                        <div className="chat-panel__chat-empty">
                             <GradientIcon icon={MessageCircle} size={24} gradient={["#00e5a0", "#38bdf8"]} />
-                            <div style={{ fontSize: 11, marginBottom: 4 }}>Workspace AI Assistant</div>
-                            <div style={{ fontSize: 10, color: "#27272a", maxWidth: 300, margin: "0 auto", lineHeight: 1.5 }}>
+                            <div className="chat-panel__chat-empty-title">Workspace AI Assistant</div>
+                            <div className="chat-panel__chat-empty-desc">
                                 Ask about your agents, channels, groups, topology — or request workspace actions.
                             </div>
                         </div>
                     )}
-                    {messages.map((m, i) => <MessageBubble key={i} msg={m} context={context} />)}
-                    {loading && (
-                        <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: 8 }}>
-                            <div style={{
-                                background: "rgba(255,255,255,0.04)",
-                                border: "1px solid rgba(255,255,255,0.06)",
-                                borderRadius: "12px 12px 12px 2px",
-                                padding: "8px 16px",
-                                fontSize: 12,
-                                color: "#52525b",
-                            }}>
+                    {messages.map((m, i) => (
+                        <div key={i}>
+                            <MessageBubble msg={m} context={context} />
+                            {editorActive && editorApi && m.role === "assistant" && m.content.includes("```") && (
+                                <button
+                                    className="chat-panel__apply-editor-btn"
+                                    onClick={() => {
+                                        const match = m.content.match(/```(?:[\w]*)?\.?\n([\s\S]*?)```/);
+                                        if (match?.[1]) proposeEdit(match[1].trim());
+                                    }}
+                                    title="Preview AI changes as inline diff in the editor"
+                                >
+                                    <Eye size={11} /> Preview in Editor
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                    {streamingText !== null && (
+                        <MessageBubble
+                            msg={{
+                                role: "assistant",
+                                content: streamingText || "",
+                                toolCalls: streamingToolCalls.length > 0 ? streamingToolCalls : undefined,
+                                jobIds: streamingToolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!),
+                            }}
+                            context={context}
+                            isStreaming
+                        />
+                    )}
+                    {loading && streamingText === null && (
+                        <div className="chat-panel__loading">
+                            <div className="chat-panel__loading-bubble">
                                 <span style={{ animation: "pulse 1.5s ease-in-out infinite" }}>●</span>
                                 <span style={{ animation: "pulse 1.5s ease-in-out 0.3s infinite" }}> ●</span>
                                 <span style={{ animation: "pulse 1.5s ease-in-out 0.6s infinite" }}> ●</span>
@@ -351,48 +564,101 @@ export function ChatPanel({ context, onClose, addLog }: ChatPanelProps) {
 
             {/* Input (always visible) */}
             {!showConvos && (
-                <div style={{
-                    padding: "8px 14px",
-                    borderTop: "1px solid rgba(255,255,255,0.04)",
-                    display: "flex",
-                    gap: 8,
-                    flexShrink: 0,
-                }}>
+                <div className="chat-panel__input-area">
+                    {/* @mention autocomplete picker */}
+                    {mentionQuery !== null && mentionCandidates.length > 0 && (
+                        <div className="chat-panel__mention-picker">
+                            {mentionCandidates.map((c, i) => (
+                                <div
+                                    key={`${c.type}-${c.id}`}
+                                    className={`chat-panel__mention-item${i === mentionIndex ? " chat-panel__mention-item--active" : ""}`}
+                                    onMouseDown={e => { e.preventDefault(); insertMention(c); }}
+                                    onMouseEnter={() => setMentionIndex(i)}
+                                >
+                                    <span className={`chat-panel__mention-badge chat-panel__mention-badge--${c.type}`}>
+                                        {c.type === "agent" ? "A" : "G"}
+                                    </span>
+                                    <span className="chat-panel__mention-name">{c.name}</span>
+                                    <span className="chat-panel__mention-detail">{c.detail}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {studioAvailable && (
+                        <button
+                            className={`chat-panel__studio-input-badge${!studioMode ? " chat-panel__studio-input-badge--off" : ""}`}
+                            onClick={() => setStudioMode(prev => !prev)}
+                            title={studioMode ? "Studio mode active — click to disable (⌘J)" : "Studio mode disabled — click to enable (⌘J)"}
+                        >
+                            <Clapperboard size={13} />
+                        </button>
+                    )}
+                    {editorAvailable && !studioAvailable && (
+                        <button
+                            className={`chat-panel__editor-input-badge${!editorMode ? " chat-panel__editor-input-badge--off" : ""}`}
+                            onClick={() => setEditorMode(prev => !prev)}
+                            title={editorMode ? "Editor mode active — click to disable" : "Editor mode disabled — click to enable"}
+                        >
+                            <Edit3 size={13} />
+                        </button>
+                    )}
                     <input
                         ref={inputRef}
                         value={input}
-                        onChange={e => setInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-                        placeholder="Ask about your workspace..."
-                        disabled={loading}
-                        style={{
-                            flex: 1,
-                            background: "rgba(0,0,0,0.4)",
-                            border: "1px solid rgba(255,255,255,0.06)",
-                            borderRadius: 8,
-                            padding: "8px 12px",
-                            color: "#e4e4e7",
-                            fontSize: 12,
-                            fontFamily: "inherit",
-                            outline: "none",
+                        onChange={e => {
+                            const val = e.target.value;
+                            setInput(val);
+                            const cur = e.target.selectionStart ?? val.length;
+                            const before = val.slice(0, cur);
+                            const mt = before.match(/(^|\s)@(\w*)$/);
+                            if (mt) { setMentionQuery(mt[2]); setMentionIndex(0); }
+                            else { setMentionQuery(null); }
                         }}
+                        onKeyDown={e => {
+                            if (mentionQuery !== null && mentionCandidates.length > 0) {
+                                if (e.key === "ArrowDown") { e.preventDefault(); setMentionIndex(j => (j + 1) % mentionCandidates.length); return; }
+                                if (e.key === "ArrowUp") { e.preventDefault(); setMentionIndex(j => (j - 1 + mentionCandidates.length) % mentionCandidates.length); return; }
+                                if (e.key === "Enter" || e.key === "Tab" || e.key === " ") { e.preventDefault(); insertMention(mentionCandidates[mentionIndex]); return; }
+                                if (e.key === "Escape") { e.preventDefault(); setMentionQuery(null); return; }
+                            }
+                            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+                        }}
+                        placeholder={studioActive ? "Ask the AI to build on the Studio canvas..." : editorActive ? "Ask the AI to help edit your file..." : "Ask about your workspace — type @ to mention agents..."}
+                        disabled={loading && !streamingText}
+                        className={`chat-panel__input${studioActive ? " chat-panel__input--studio" : editorActive ? " chat-panel__input--editor" : ""}`}
                     />
-                    <button
-                        onClick={send}
-                        disabled={loading || !input.trim()}
-                        style={{
-                            background: input.trim() && !loading ? "rgba(0,229,160,0.15)" : "rgba(255,255,255,0.03)",
-                            border: `1px solid ${input.trim() && !loading ? "rgba(0,229,160,0.3)" : "rgba(255,255,255,0.06)"}`,
-                            borderRadius: 8,
-                            padding: "8px 14px",
-                            color: input.trim() && !loading ? "#00e5a0" : "#3f3f46",
-                            cursor: input.trim() && !loading ? "pointer" : "default",
-                            fontSize: 12,
-                            fontFamily: "inherit",
-                            transition: "all 0.15s",
-                        }}
-                    >Send</button>
+                    {loading ? (
+                        <button
+                            onClick={stopStreaming}
+                            className="chat-panel__send-btn chat-panel__send-btn--stop"
+                            title="Stop generating"
+                        ><Square size={14} /></button>
+                    ) : (
+                        <button
+                            onClick={send}
+                            disabled={!input.trim()}
+                            className={`chat-panel__send-btn${isReady ? " chat-panel__send-btn--ready" : ""}`}
+                        ><Send size={14} /></button>
+                    )}
                 </div>
+            )}
+
+            {/* Command Prompt Modal */}
+            {pendingCommand && (
+                <CommandPrompt
+                    command={pendingCommand.command}
+                    initialArgs={pendingCommand.initialArgs}
+                    entities={{
+                        agents: workspaceCtx.agents.map((a: any) => ({ id: a.id, name: a.name })),
+                        channels: workspaceCtx.channels.map((c: any) => ({ id: c.id, from: c.from, to: c.to, type: c.type })),
+                        groups: workspaceCtx.groups.map((g: any) => ({ id: g.id, name: g.name })),
+                        networks: (ecosystem?.networks || []).map((n: any) => ({ id: n.id, name: n.name, color: n.color })),
+                    }}
+                    currentUser={user}
+                    onSubmit={handlePromptSubmit}
+                    dryRunContext={commandContext}
+                    onCancel={handlePromptCancel}
+                />
             )}
         </div>
     );

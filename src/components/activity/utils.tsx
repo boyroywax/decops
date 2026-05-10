@@ -1,7 +1,7 @@
 import DOMPurify from "dompurify";
 import { marked } from "marked";
 import { Zap, Upload, Compass, Settings, FileText } from "lucide-react";
-import type { NotebookCategory } from "../../types";
+import type { NotebookCategory } from "@/types";
 
 export const CATEGORY_META: Record<NotebookCategory, { label: string; color: string; icon: React.ReactNode }> = {
     action: { label: "Action", color: "#00e5a0", icon: <Zap size={12} color="#00e5a0" /> },

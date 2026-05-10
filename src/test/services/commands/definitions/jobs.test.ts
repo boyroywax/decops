@@ -7,8 +7,8 @@ import {
     listCatalogJobsCommand,
     saveJobDefinitionCommand,
     deleteJobDefinitionCommand
-} from '../../../../services/commands/definitions/jobs';
-import { CommandContext } from '../../../../services/commands/types';
+} from '@/services/commands/definitions/jobs';
+import { CommandContext } from '@/services/commands/types';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 describe('Jobs Commands', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useEcosystem } from '../../hooks/useEcosystem';
+import { useEcosystem } from '@/hooks/useEcosystem';
 
 describe('useEcosystem', () => {
     const mockDeps = {
@@ -22,41 +22,23 @@ describe('useEcosystem', () => {
         vi.clearAllMocks();
     });
 
-    it('initializes with empty ecosystems', () => {
+    it('initializes with empty networks', () => {
         const { result } = renderHook(() => useEcosystem(mockDeps, mockAddJob));
-        expect(result.current.ecosystems).toEqual([]);
+        expect(result.current.networks).toEqual([]);
         expect(result.current.bridges).toEqual([]);
     });
 
-    it('queues save_ecosystem job', () => {
-        const { result } = renderHook(() => useEcosystem({ ...mockDeps, agents: [{ id: 'a1' } as any] }, mockAddJob));
-
-        act(() => {
-            result.current.setEcoSaveName('Backup');
-        });
-
-        act(() => {
-            result.current.saveCurrentNetwork();
-        });
-
-        expect(mockAddJob).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'save_ecosystem',
-            request: { name: 'Backup' }
-        }));
-    });
-
-    it('queues load_ecosystem job', () => {
+    it('queues destroy_network job', () => {
         const { result } = renderHook(() => useEcosystem(mockDeps, mockAddJob));
 
         act(() => {
-            result.current.loadNetwork('net-1');
+            result.current.dissolveNetwork('net-1');
         });
 
         expect(mockAddJob).toHaveBeenCalledWith(expect.objectContaining({
-            type: 'load_ecosystem',
-            request: { id: 'net-1' }
+            type: 'destroy_network',
+            request: { id: 'net-1', cascade: true }
         }));
-        expect(mockDeps.setView).toHaveBeenCalledWith('agents');
     });
 
     it('creates bridge via job', () => {

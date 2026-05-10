@@ -1,0 +1,91 @@
+/**
+ * ComposePanel Component Styles
+ * New entry form: title, body, category selector
+ */
+
+.compose-panel {
+  margin-bottom: var(--space-2xl);
+  padding: var(--space-xl);
+  background: rgba(251, 191, 36, 0.04);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: var(--radius-xl);
+}
+
+.compose-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: var(--space-lg);
+}
+
+.compose-panel__title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+}
+
+.compose-panel__categories {
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.compose-panel__cat-btn {
+  padding: 2px var(--space-md);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-subtle);
+  background: transparent;
+  color: var(--text-ghost);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition: all var(--transition-fast);
+}
+
+.compose-panel__input {
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-md);
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: var(--font-semibold);
+  box-sizing: border-box;
+}
+
+.compose-panel__textarea {
+  width: 100%;
+  padding: 10px var(--space-lg);
+  margin-bottom: 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+  resize: vertical;
+  box-sizing: border-box;
+  line-height: 1.6;
+}
+
+.compose-panel__actions {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: flex-end;
+}
+
+.compose-panel__btn {
+  font-size: var(--text-base);
+  padding: var(--space-sm) 14px;
+}
+
+.compose-panel__btn--submit {
+  padding: var(--space-sm) 18px;
+  color: #000;
+  font-weight: var(--font-bold);
+}

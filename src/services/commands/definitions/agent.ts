@@ -1,7 +1,9 @@
 
-import { CommandDefinition } from "../types";
-import { generateDID, generateKeyPair } from "../../../utils/identity";
-import { ROLES } from "../../../constants";
+import { CommandDefinition } from "@/services/commands/types";
+import { generateDID, generateKeyPair } from "@/utils/identity";
+import { createAieosEntity } from "@/utils/aieos";
+import { ROLES } from "@/constants";
+import { slugifyStorageKey, isUnresolvedRef } from "@/utils/storageKey";
 
 export const createAgentCommand: CommandDefinition = {
     id: "create_agent",
@@ -19,9 +21,10 @@ export const createAgentCommand: CommandDefinition = {
         role: {
             name: "role",
             type: "string",
-            description: "The role of the agent (researcher, builder, etc.)",
+            description: "The role of the agent",
             required: true,
-            validation: (val) => ROLES.some(r => r.id === val) || "Invalid role",
+            enum: ["researcher", "builder", "curator", "validator", "orchestrator"],
+            validation: (val) => ROLES.some(r => r.id === val) || "Invalid role. Must be one of: researcher, builder, curator, validator, orchestrator",
         },
         prompt: {
             name: "prompt",
@@ -29,6 +32,24 @@ export const createAgentCommand: CommandDefinition = {
             description: "Getting started prompt for the agent",
             required: true,
             defaultValue: 0
+        },
+        title: {
+            name: "title",
+            type: "string",
+            description: "Job title or descriptor (e.g. 'Lead Researcher', 'Security Analyst')",
+            required: false,
+        },
+        networkId: {
+            name: "networkId",
+            type: "network",
+            description: "ID of the network this agent belongs to",
+            required: false,
+        },
+        items: {
+            name: "items",
+            type: "array",
+            description: "Batch mode: array of {name, role, prompt, networkId?} specs. Overrides individual args.",
+            required: false,
         }
     },
     output: "JSON object containing the created agent's ID and details.",
@@ -47,26 +68,101 @@ export const createAgentCommand: CommandDefinition = {
         }
     },
     execute: async (args, context) => {
-        const { name, role, prompt } = args;
         const { workspace } = context;
 
-        // Simulate delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Normalize: batch items or single spec
+        const specs = args.items
+            ? (Array.isArray(args.items) ? args.items : [args.items])
+            : [{ name: args.name, role: args.role, prompt: args.prompt, networkId: args.networkId }];
 
-        const newAgent = {
-            id: crypto.randomUUID(),
-            name,
-            role,
-            prompt,
-            did: generateDID(),
-            keys: generateKeyPair(),
-            createdAt: new Date().toISOString(),
-            status: "active" as const,
-        };
+        const created: any[] = [];
+        for (const spec of specs) {
+            const { name, role, prompt, title } = spec;
+            // Drop unresolved $storage.* refs so we fall back to activeNetworkId
+            // instead of persisting a literal placeholder string.
+            const rawNetworkId = spec.networkId;
+            const networkId = isUnresolvedRef(rawNetworkId) ? undefined : rawNetworkId;
 
-        workspace.setAgents((prev: any[]) => [...prev, newAgent]);
-        workspace.addLog(`Created agent: ${name} (${role})`);
+            await new Promise(resolve => setTimeout(resolve, 300));
 
-        return { agentId: newAgent.id, did: newAgent.did };
+            const newAgent = {
+                id: crypto.randomUUID(),
+                name,
+                ...(title ? { title } : {}),
+                role,
+                prompt,
+                did: generateDID(),
+                keys: generateKeyPair(),
+                createdAt: new Date().toISOString(),
+                status: "active" as const,
+                networkId: networkId || context.ecosystem?.activeNetworkId || (context.ecosystem?.networks?.length === 1 ? context.ecosystem.networks[0].id : undefined),
+                aieos: createAieosEntity(name, role, prompt),
+            };
+
+            created.push(newAgent);
+
+            // Write to shared storage for downstream steps
+            context.storage.lastAgentId = newAgent.id;
+            context.storage.lastAgentName = newAgent.name;
+            context.storage[`agent_${name}`] = newAgent.id;
+            context.storage[`agent_${slugifyStorageKey(name)}`] = newAgent.id;
+        }
+
+        workspace.setAgents((prev: any[]) => [...prev, ...created]);
+        workspace.addLog(`Created ${created.length} agent(s): ${created.map(a => a.name).join(", ")}`);
+
+        // Accumulate in storage so downstream steps (channels, groups) can look up
+        // agents even when React state hasn't re-rendered yet
+        context.storage._agents = [...(context.storage._agents || []), ...created];
+
+        // Single mode: backwards-compatible return shape
+        if (!args.items) {
+            return { agentId: created[0].id, did: created[0].did };
+        }
+        // Batch mode
+        return { results: created.map(a => ({ agentId: a.id, name: a.name, did: a.did })) };
     },
+};
+
+export const pingAgentCommand: CommandDefinition = {
+    id: "ping_agent",
+    description: "Ping an agent to check if they are responsive.",
+    tags: ["agent", "system", "health"],
+    rbac: ["orchestrator"],
+    args: {
+        agentId: {
+            name: "agentId",
+            type: "agent",
+            description: "Target Agent ID",
+            required: true
+        }
+    },
+    output: "Pong response with latency and status.",
+    execute: async (args, context) => {
+        const { agentId } = args;
+        const agent = context.workspace.agents.find(a => a.id === agentId);
+
+        if (!agent) {
+            throw new Error(`Agent ${agentId} not found`);
+        }
+
+        // Simulate network latency and response
+        const latency = Math.floor(Math.random() * 200) + 50; // 50-250ms
+        await new Promise(resolve => setTimeout(resolve, latency));
+
+        // Simulate occasional failure (5% chance)
+        const isHealthy = Math.random() > 0.05;
+
+        if (!isHealthy) {
+            throw new Error(`Agent ${agent.name} is unresponsive (timeout)`);
+        }
+
+        return {
+            agentId,
+            name: agent.name,
+            status: "online",
+            latency: `${latency}ms`,
+            timestamp: new Date().toISOString()
+        };
+    }
 };

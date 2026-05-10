@@ -1,27 +1,29 @@
 import { useState } from "react";
-import { useLocalStorage } from "./useLocalStorage";
-import type { Group, GroupForm, JobRequest } from "../types";
+import { useWorkspaceStore } from "@/stores";
+import type { Group, GroupForm, JobRequest } from "@/types";
 
 export function useGroups(addJob: (job: JobRequest) => void) {
-    const [groups, setGroups] = useLocalStorage<Group[]>("decops_groups", []);
+    const groups = useWorkspaceStore((s) => s.groups);
+    const setGroups = useWorkspaceStore((s) => s.setGroups);
 
     // UI State
     const [showGroupCreate, setShowGroupCreate] = useState(false);
-    const [groupForm, setGroupForm] = useState<GroupForm>({ name: "", governance: "majority", members: [], threshold: 2 });
+    const [groupForm, setGroupForm] = useState<GroupForm>({ name: "", governance: "majority", members: [], threshold: 2, networkId: "" });
     const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
     const [broadcastGroup, setBroadcastGroup] = useState<string | null>(null);
 
     const createGroup = () => {
-        if (!groupForm.name.trim() || groupForm.members.length < 2) return;
+        if (!groupForm.name.trim() || groupForm.members.length < 2 || !groupForm.networkId) return;
         addJob({
             type: "create_group",
             request: {
                 name: groupForm.name.trim(),
                 members: groupForm.members,
-                governance: groupForm.governance
+                governance: groupForm.governance,
+                networkId: groupForm.networkId
             }
         });
-        setGroupForm({ name: "", governance: "majority", members: [], threshold: 2 });
+        setGroupForm({ name: "", governance: "majority", members: [], threshold: 2, networkId: groupForm.networkId });
         setShowGroupCreate(false);
     };
 

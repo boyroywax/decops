@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { encryptPassword } from '../../utils/crypto';
+import { encryptPassword } from '@/utils/crypto';
 
 describe('crypto utils', () => {
     describe('encryptPassword', () => {

@@ -1,23 +1,31 @@
-import { CommandDefinition } from "../types";
+import { CommandDefinition } from "@/services/commands/types";
 
 // --- Queue Management ---
 
 export const queueNewJobCommand: CommandDefinition = {
     id: "queue_new_job",
-    description: "Adds a new job to the execution queue.",
+    description: "Adds a new job to the execution queue. Supports single-command or multi-step jobs with deliverables and shared storage.",
     tags: ["job", "system"],
-    rbac: ["orchestrator", "builder", "researcher"], // Open to most
+    rbac: ["orchestrator", "builder", "researcher"],
     args: {
-        type: { name: "type", type: "string", description: "Command ID to run", required: true },
+        type: { name: "type", type: "string", description: "Command ID to run (or job name for multi-step)", required: true },
         request: { name: "request", type: "object", description: "Arguments for the command", required: true, defaultValue: {} },
-        // Optional multi-step support args could go here but keeping simple for now
+        steps: { name: "steps", type: "array", description: "Optional list of JobSteps for multi-step jobs. Each step supports: { commandId, args, condition?, modelId?, onSuccess?: { commandId?, args?, setStorage?, log?, haltAfterSuccess? }, onFailure?: { commandId?, args?, setStorage?, log?, continueOnFailure? }, outputMappings?, inputBindings? }", required: false },
+        mode: { name: "mode", type: "string", description: "Execution mode: serial | parallel (default: serial)", required: false, defaultValue: "serial" },
+        deliverables: { name: "deliverables", type: "array", description: "Declared outputs: [{key, label, type, description?}]", required: false },
+        storageDefaults: { name: "storageDefaults", type: "object", description: "Initial shared storage key-value pairs for inter-step data", required: false },
+        parallelGroups: { name: "parallelGroups", type: "array", description: "Parallel group metadata: [{ id, label, stepIds[] }]", required: false },
     },
     output: "The ID of the queued job.",
     execute: async (args, context) => {
-        const { type, request } = args;
-        context.jobs.addJob({ type, request });
-        // We don't get the ID back synchronously from addJob easily unless we change the hook signature, 
-        // but for now we trust it's added.
+        const { type, request, steps, mode, deliverables, storageDefaults, parallelGroups } = args;
+        const jobPayload: any = { type, request };
+        if (steps) jobPayload.steps = steps;
+        if (mode) jobPayload.mode = mode;
+        if (deliverables) jobPayload.deliverables = deliverables;
+        if (storageDefaults) jobPayload.storageDefaults = storageDefaults;
+        if (parallelGroups) jobPayload.parallelGroups = parallelGroups;
+        context.jobs.addJob(jobPayload);
         return "Job queued";
     }
 };
@@ -91,24 +99,37 @@ export const listCatalogJobsCommand: CommandDefinition = {
 
 export const saveJobDefinitionCommand: CommandDefinition = {
     id: "save_job_definition",
-    description: "Saves a job definition to the catalog.",
+    description: "Saves a job definition to the catalog. Supports deliverables (declared outputs) and storageDefaults (inter-step shared state).",
     tags: ["job", "catalog"],
     rbac: ["orchestrator", "builder"],
     args: {
         name: { name: "name", type: "string", description: "Job Name", required: true },
         description: { name: "description", type: "string", description: "Job Description", required: false, defaultValue: "" },
-        mode: { name: "mode", type: "string", description: "serial | parallel", required: false, defaultValue: "serial" },
-        steps: { name: "steps", type: "array", description: "List of JobSteps", required: true }
+        mode: { name: "mode", type: "string", description: "serial | parallel | mixed", required: false, defaultValue: "serial" },
+        steps: { name: "steps", type: "array", description: "List of JobSteps. Each step: { commandId, args, condition?, modelId?, onSuccess?: { commandId?, args?, setStorage?, log?, haltAfterSuccess? }, onFailure?: { commandId?, args?, setStorage?, log?, continueOnFailure? }, outputMappings?: [{ outputKey, target, targetKey }], inputBindings?: { argName: { source, sourceKey } } }", required: true },
+        deliverables: { name: "deliverables", type: "array", description: "Declared outputs: [{key, label, type (markdown|json|yaml|csv|image|code), description?}]", required: false },
+        storageDefaults: { name: "storageDefaults", type: "object", description: "Default inter-step shared storage key-value pairs", required: false },
+        parallelGroups: { name: "parallelGroups", type: "array", description: "Parallel group metadata: [{ id, label, stepIds[] }]", required: false },
+        inputDefaults: { name: "inputDefaults", type: "array", description: "Default entity inputs: [{ name, type, entityId }]", required: false },
+        triggers: { name: "triggers", type: "array", description: "Trigger rules: [{ event, filter?, label?, cron? }]", required: false },
     },
     output: "ID of saved definition",
     execute: async (args, context) => {
         const id = `job-def-${Date.now()}`;
+        const now = Date.now();
         const def = {
             id,
             name: args.name,
             description: args.description,
             mode: args.mode,
             steps: args.steps,
+            deliverables: args.deliverables || undefined,
+            storageDefaults: args.storageDefaults || undefined,
+            parallelGroups: args.parallelGroups || undefined,
+            inputDefaults: args.inputDefaults || undefined,
+            triggers: args.triggers || undefined,
+            createdAt: now,
+            updatedAt: now,
         };
         context.jobs.saveDefinition(def);
         return id;

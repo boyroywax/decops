@@ -4,9 +4,10 @@ import {
   RefreshCw, Settings, Handshake,
   Vote, Lock, User, Sparkles,
   Dna, Palette, Siren, Rocket,
+  GitBranch, Network,
 } from "lucide-react";
-import { GradientIcon } from "../components/shared/GradientIcon";
-import type { Role, ChannelType, GovernanceModel, PromptTemplate, ScenarioPreset } from "../types";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import type { Role, ChannelType, GovernanceModel, PromptTemplate, ScenarioPreset } from "@/types";
 
 export const ROLES: Role[] = [
   { id: "researcher", label: "Researcher", char: "R", icon: <GradientIcon icon={Microscope} size={16} gradient={["#00e5a0", "#34d399"]} />, color: "#00e5a0" },
@@ -81,6 +82,20 @@ export const SCENARIO_PRESETS: ScenarioPreset[] = [
     color: "#a78bfa",
     desc: "Decentralized supply chain with procurement, logistics, quality assurance, and compliance agents under threshold governance.",
   },
+  {
+    id: "cross-org-alliance",
+    label: "Cross-Org Alliance",
+    icon: <GradientIcon icon={GitBranch} size={20} gradient={["#fbbf24", "#f59e0b"]} />,
+    color: "#fbbf24",
+    desc: "Multi-network ecosystem: two organizations with separate agent teams bridged together for shared intelligence and coordinated ops.",
+  },
+  {
+    id: "federated-research",
+    label: "Federated Research",
+    icon: <GradientIcon icon={Network} size={20} gradient={["#38bdf8", "#818cf8"]} />,
+    color: "#818cf8",
+    desc: "Three bridged networks — data collection, analysis hub, and review board — each with specialized agents, connected by cross-network bridges.",
+  },
 ];
 
 export const NETWORK_COLORS = ["#00e5a0", "#38bdf8", "#f472b6", "#fbbf24", "#a78bfa", "#fb923c", "#34d399", "#ef4444"];
@@ -93,3 +108,4 @@ export const ANTHROPIC_MODELS = [
   { id: "claude-haiku-3-5-20241022", label: "Claude 3.5 Haiku", desc: "Fastest and most affordable", tier: "fast" },
   { id: "claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet", desc: "Previous generation balanced model", tier: "standard" },
 ] as const;
+

@@ -1,0 +1,162 @@
+/**
+ * DeleteConfirmInline — standardized 2-step inline delete confirmation
+ * Used across all entity deletions in the app as the single UX pattern.
+ * Mirrors the workspace-card delete confirmation styling.
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * FULL-SIZE (card back / panel)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.delete-confirm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: var(--space-lg);
+    text-align: center;
+    animation: deleteConfirm-fadeIn 0.2s ease;
+}
+
+@keyframes deleteConfirm-fadeIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.delete-confirm__body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+.delete-confirm__icon {
+    color: var(--color-danger, #ef4444);
+    margin-bottom: var(--space-sm);
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.3));
+}
+
+.delete-confirm__title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+}
+
+.delete-confirm__label {
+    font-size: var(--text-sm);
+    color: var(--text-subtle);
+    font-family: var(--font-mono);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.delete-confirm__warning {
+    font-size: var(--text-lg, 13px);
+    color: var(--text-muted);
+    margin: 0;
+    line-height: 1.4;
+    max-width: 220px;
+}
+
+.delete-confirm__actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 240px;
+}
+
+.delete-confirm__cancel {
+    flex: 1;
+    height: 34px;
+    border-radius: var(--radius-lg);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-weight: var(--font-medium);
+    font-size: var(--text-lg, 13px);
+    font-family: inherit;
+    transition: all 0.15s ease;
+}
+
+.delete-confirm__cancel:hover {
+    background: var(--bg-surface-hover, rgba(255,255,255,0.06));
+}
+
+.delete-confirm__confirm {
+    flex: 1;
+    height: 34px;
+    border-radius: var(--radius-lg);
+    background: var(--color-danger, #ef4444);
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-weight: var(--font-semibold);
+    font-size: var(--text-lg, 13px);
+    font-family: inherit;
+    transition: all 0.15s ease;
+}
+
+.delete-confirm__confirm:hover {
+    background: #dc2626;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * COMPACT MODE — for inline list rows, table cells, action bars
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.delete-confirm--compact {
+    flex-direction: row;
+    height: auto;
+    gap: var(--space-md);
+    justify-content: space-between;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-lg);
+    background: rgba(239, 68, 68, 0.06);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+    animation: deleteConfirm-fadeIn 0.15s ease;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.delete-confirm--compact .delete-confirm__body {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+.delete-confirm--compact .delete-confirm__icon {
+    margin-bottom: 0;
+    filter: none;
+}
+
+.delete-confirm__title-inline {
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.delete-confirm--compact .delete-confirm__actions {
+    max-width: none;
+    width: auto;
+    flex-shrink: 0;
+}
+
+.delete-confirm--compact .delete-confirm__cancel,
+.delete-confirm--compact .delete-confirm__confirm {
+    height: 28px;
+    font-size: var(--text-sm);
+    padding: 0 var(--space-lg);
+    flex: 0 0 auto;
+}

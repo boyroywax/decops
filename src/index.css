@@ -1,0 +1,198 @@
+/**
+ * Mesh Workspace - Main Stylesheet
+ * 
+ * This file imports all design system CSS files and provides
+ * global base styles. Based on mesh-style-guide.html v1.0
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * DESIGN SYSTEM IMPORTS
+ * Order matters: tokens first, then components, then utilities
+ * ═══════════════════════════════════════════════════════════════════════════ */
+@import './styles/design-tokens.css';
+@import './styles/theme-light.css';
+@import './styles/theme-solar.css';
+@import './styles/components.css';
+@import './styles/layout.css';
+@import './styles/utilities.css';
+@import './styles/animations.css';
+@import './styles/mobile.css';
+
+/* Component-specific styles */
+@import './styles/components/profile-modal.css';
+@import './styles/components/header.css';
+@import './styles/components/sidebar.css';
+@import './styles/components/artifacts.css';
+@import './styles/components/login.css';
+@import './styles/components/settings.css';
+@import './styles/components/activity.css';
+@import './styles/components/automations.css';
+@import './styles/components/profile.css';
+@import './styles/components/network-view.css';
+@import './toolkits/architect/styles/architect.css';
+@import './styles/components/unified-builder.css';
+@import './styles/components/copyable-id.css';
+@import './styles/components/trading-card.css';
+@import './styles/components/command-card-modal.css';
+@import './styles/components/dry-run-report.css';
+@import './styles/components/delete-confirm.css';
+@import './styles/components/system-view.css';
+@import './styles/components/agent-runtime.css';
+@import './toolkits/studio/styles/studio-bot.css';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * FONT IMPORTS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap');
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * BASE RESET & DEFAULTS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  line-height: 1.6;
+  min-width: 320px;
+  min-height: 100vh;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TYPOGRAPHY DEFAULTS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: var(--font-semibold);
+  line-height: 1.3;
+}
+
+h1 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  font-size: var(--text-2xl);
+  letter-spacing: -0.01em;
+}
+
+h3 {
+  font-size: var(--text-xl);
+}
+
+a {
+  color: var(--color-info);
+  text-decoration: none;
+}
+
+a:hover {
+  opacity: 0.8;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * FORM ELEMENT DEFAULTS
+ * ═══════════════════════════════════════════════════════════════════════════ */
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input, textarea, select {
+  font-family: inherit;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SCROLLBAR STYLING
+ * Based on mesh-style-guide.html specifications
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Webkit (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb, rgba(255, 255, 255, 0.15));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover, rgba(255, 255, 255, 0.25));
+}
+
+/* Firefox & standard scrollbar-color */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.15)) transparent;
+}
+
+/* Scrollable container gutter — prevents layout shift when scrollbar appears */
+.app-main,
+.chat-panel__messages,
+.action-manager__tab-content,
+.profile-modal-body,
+.activity-modal__content,
+.ws-modal__content {
+  scrollbar-gutter: stable;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SELECT OPTION STYLING
+ * ═══════════════════════════════════════════════════════════════════════════ */
+select option {
+  background: #18181b;
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * FOCUS STYLES
+ * ═══════════════════════════════════════════════════════════════════════════ */
+:focus-visible {
+  outline: 2px solid rgba(0, 229, 160, 0.5);
+  outline-offset: 2px;
+}
+
+/* Remove focus outline for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SELECTION STYLING
+ * ═══════════════════════════════════════════════════════════════════════════ */
+::selection {
+  background: rgba(0, 229, 160, 0.3);
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * NO SCROLLBAR UTILITY (for mobile navigation)
+ * ═══════════════════════════════════════════════════════════════════════════ */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

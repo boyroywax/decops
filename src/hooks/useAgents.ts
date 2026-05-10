@@ -1,28 +1,31 @@
 import { useState } from "react";
-import { useLocalStorage } from "./useLocalStorage";
-import type { Agent, NewAgentForm, JobRequest } from "../types";
+import { useWorkspaceStore } from "@/stores";
+import type { Agent, NewAgentForm, JobRequest } from "@/types";
 
 export function useAgents(addJob: (job: JobRequest) => void) {
-    const [agents, setAgents] = useLocalStorage<Agent[]>("decops_agents", []);
+    const agents = useWorkspaceStore((s) => s.agents);
+    const setAgents = useWorkspaceStore((s) => s.setAgents);
 
     // UI State
     const [showCreate, setShowCreate] = useState(false);
-    const [newAgent, setNewAgent] = useState<NewAgentForm>({ name: "", role: "researcher", prompt: "", templateIdx: 0 });
+    const [newAgent, setNewAgent] = useState<NewAgentForm>({ name: "", title: "", role: "researcher", prompt: "", templateIdx: 0, networkId: "" });
     const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
     const [editingPrompt, setEditingPrompt] = useState<string | null>(null);
     const [editPromptText, setEditPromptText] = useState("");
 
     const createAgent = () => {
-        if (!newAgent.name.trim()) return;
+        if (!newAgent.name.trim() || !newAgent.networkId) return;
         addJob({
             type: "create_agent",
             request: {
                 name: newAgent.name.trim(),
+                title: newAgent.title.trim() || undefined,
                 role: newAgent.role,
-                prompt: newAgent.prompt.trim()
+                prompt: newAgent.prompt.trim(),
+                networkId: newAgent.networkId
             }
         });
-        setNewAgent({ name: "", role: "researcher", prompt: "", templateIdx: 0 });
+        setNewAgent({ name: "", title: "", role: "researcher", prompt: "", templateIdx: 0, networkId: newAgent.networkId });
         setShowCreate(false);
     };
 
@@ -46,6 +49,10 @@ export function useAgents(addJob: (job: JobRequest) => void) {
         if (selectedAgent && ids.has(selectedAgent)) setSelectedAgent(null);
     };
 
+    const updateAgent = (id: string, patch: Partial<Agent>) => {
+        setAgents(prev => prev.map(a => a.id === id ? { ...a, ...patch } : a));
+    };
+
     return {
         agents, setAgents,
         showCreate, setShowCreate,
@@ -53,6 +60,6 @@ export function useAgents(addJob: (job: JobRequest) => void) {
         selectedAgent, setSelectedAgent,
         editingPrompt, setEditingPrompt,
         editPromptText, setEditPromptText,
-        createAgent, updateAgentPrompt, removeAgent, removeAgents
+        createAgent, updateAgentPrompt, updateAgent, removeAgent, removeAgents
     };
 }

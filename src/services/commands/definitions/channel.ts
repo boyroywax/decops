@@ -1,5 +1,6 @@
-import { CommandDefinition } from "../types";
-import { Channel } from "../../../types";
+import { CommandDefinition } from "@/services/commands/types";
+import { Channel } from "@/types";
+import { isUnresolvedRef } from "@/utils/storageKey";
 
 export const createChannelCommand: CommandDefinition = {
     id: "create_channel",
@@ -9,13 +10,13 @@ export const createChannelCommand: CommandDefinition = {
     args: {
         from: {
             name: "from",
-            type: "string",
+            type: "agent",
             description: "ID or Name of first agent",
             required: true,
         },
         to: {
             name: "to",
-            type: "string",
+            type: "agent",
             description: "ID or Name of second agent",
             required: true,
         },
@@ -25,6 +26,18 @@ export const createChannelCommand: CommandDefinition = {
             description: "Type of channel (data, control, financial)",
             required: false,
             defaultValue: "data",
+        },
+        networkId: {
+            name: "networkId",
+            type: "network",
+            description: "ID of the network this channel belongs to",
+            required: false,
+        },
+        items: {
+            name: "items",
+            type: "array",
+            description: "Batch mode: array of {from, to, type?, networkId?} specs. Overrides individual args.",
+            required: false,
         }
     },
     output: "JSON object containing the created channel details.",
@@ -43,39 +56,77 @@ export const createChannelCommand: CommandDefinition = {
         }
     },
     execute: async (args, context) => {
-        const { from, to, type } = args;
         const { agents, channels, setChannels, addLog } = context.workspace;
 
-        const fromAgent = agents.find((a: any) => a.id === from || a.name === from);
-        const toAgent = agents.find((a: any) => a.id === to || a.name === to);
+        // Combine workspace agents with any created in previous job steps
+        // (React state may be stale within the same job execution cycle)
+        const allAgents = [...agents, ...(context.storage._agents || [])];
 
-        if (!fromAgent) throw new Error(`Agent '${from}' not found`);
-        if (!toAgent) throw new Error(`Agent '${to}' not found`);
-        if (fromAgent.id === toAgent.id) throw new Error("Cannot create channel to self");
+        // Normalize: batch items or single spec
+        const specs = args.items
+            ? (Array.isArray(args.items) ? args.items : [args.items])
+            : [{ from: args.from, to: args.to, type: args.type, networkId: args.networkId }];
 
-        // Check existence
-        const exists = channels.some((c: any) =>
-            (c.from === fromAgent.id && c.to === toAgent.id) ||
-            (c.from === toAgent.id && c.to === fromAgent.id)
-        );
+        const created: Channel[] = [];
+        const skipped: string[] = [];
+        const allChannels = [...channels, ...(context.storage._channels || [])];
 
-        if (exists) {
-            addLog(`Channel between ${fromAgent.name} and ${toAgent.name} already exists`);
-            return { status: "exists", message: "Channel already exists" };
+        for (const spec of specs) {
+            const fromAgent = allAgents.find((a: any) => a.id === spec.from || a.name === spec.from);
+            const toAgent = allAgents.find((a: any) => a.id === spec.to || a.name === spec.to);
+
+            if (!fromAgent) throw new Error(`Agent '${spec.from}' not found`);
+            if (!toAgent) throw new Error(`Agent '${spec.to}' not found`);
+            if (fromAgent.id === toAgent.id) throw new Error("Cannot create channel to self");
+
+            // Check existence against both existing and newly-created channels
+            const exists = allChannels.concat(created).some((c: any) =>
+                (c.from === fromAgent.id && c.to === toAgent.id) ||
+                (c.from === toAgent.id && c.to === fromAgent.id)
+            );
+
+            if (exists) {
+                skipped.push(`${fromAgent.name} ⟷ ${toAgent.name}`);
+                continue;
+            }
+
+            const specNetworkId = isUnresolvedRef(spec.networkId) ? undefined : spec.networkId;
+            const newChannel: Channel = {
+                id: crypto.randomUUID(),
+                from: fromAgent.id,
+                to: toAgent.id,
+                type: spec.type || "data",
+                offset: Math.random() * 100,
+                createdAt: new Date().toISOString(),
+                networkId: specNetworkId || context.ecosystem?.activeNetworkId || fromAgent.networkId || (context.ecosystem?.networks?.length === 1 ? context.ecosystem.networks[0].id : undefined),
+            };
+
+            created.push(newChannel);
+
+            // Write to shared storage for downstream steps
+            context.storage.lastChannelId = newChannel.id;
+            context.storage[`channel_${fromAgent.name}_${toAgent.name}`] = newChannel.id;
         }
 
-        const newChannel: Channel = {
-            id: crypto.randomUUID(),
-            from: fromAgent.id,
-            to: toAgent.id,
-            type: type || "data",
-            offset: Math.random() * 100,
-            createdAt: new Date().toISOString(),
+        if (created.length > 0) {
+            setChannels((prev: any[]) => [...prev, ...created]);
+            addLog(`Created ${created.length} channel(s)${skipped.length ? `, ${skipped.length} already existed` : ""}`);
+        } else {
+            addLog(`All ${skipped.length} channel(s) already exist`);
+        }
+
+        // Accumulate in storage so downstream steps can find channels
+        context.storage._channels = [...(context.storage._channels || []), ...created];
+
+        // Single mode: backwards-compatible return shape
+        if (!args.items) {
+            if (created.length === 0) return { status: "exists", message: "Channel already exists" };
+            return { status: "created", channelId: created[0].id };
+        }
+        // Batch mode
+        return {
+            results: created.map(c => ({ channelId: c.id, from: c.from, to: c.to })),
+            skipped,
         };
-
-        setChannels((prev: any[]) => [...prev, newChannel]);
-        addLog(`Channel created: ${fromAgent.name} ⟷ ${toAgent.name}`);
-
-        return { status: "created", channelId: newChannel.id };
     },
 };

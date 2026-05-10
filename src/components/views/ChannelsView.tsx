@@ -1,14 +1,18 @@
-import type { Agent, Channel, ChannelForm, ViewId, Message } from "../../types";
-import { CHANNEL_TYPES, ROLES } from "../../constants";
-import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar, PillButton } from "../shared/ui";
-import { ArrowLeftRight, X } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import { useBulkSelect } from "../../hooks/useBulkSelect";
+import type { Agent, Channel, ChannelForm, ViewId, NavContext, Message, Network } from "@/types";
+import { CHANNEL_TYPES, ROLES } from "@/constants";
+import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar, PillButton } from "@/components/shared/ui";
+import { ArrowLeftRight, X, Globe } from "lucide-react";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import { useBulkSelect } from "@/hooks/useBulkSelect";
+import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
+import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
+import "../../styles/components/channels.css";
 
 interface ChannelsViewProps {
   agents: Agent[];
   channels: Channel[];
   messages: Message[];
+  networks: Network[];
   channelForm: ChannelForm;
   setChannelForm: (v: ChannelForm) => void;
   createChannel: () => void;
@@ -16,14 +20,23 @@ interface ChannelsViewProps {
   removeChannels: (ids: Set<string>) => void;
   setActiveChannel: (id: string) => void;
   setView: (v: ViewId) => void;
+  navigateTo?: (view: ViewId, ctx: NavContext) => void;
 }
 
 export function ChannelsView({
-  agents, channels, messages,
+  agents, channels, messages, networks,
   channelForm, setChannelForm,
   createChannel, removeChannel, removeChannels, setActiveChannel, setView,
+  navigateTo,
 }: ChannelsViewProps) {
   const bulk = useBulkSelect();
+  const del = useDeleteConfirm();
+
+  const getNetworkName = (networkId?: string) => {
+    if (!networkId) return null;
+    const net = networks.find(n => n.id === networkId);
+    return net ? { name: net.name, color: net.color } : null;
+  };
 
   const handleBulkDelete = () => {
     removeChannels(bulk.selected);
@@ -32,8 +45,8 @@ export function ChannelsView({
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 600, margin: 0 }}><GradientIcon icon={ArrowLeftRight} size={18} gradient={["#a78bfa", "#c084fc"]} /> P2P Channels</h2>
+      <div className="channels-header">
+        <h2 className="channels-title"><GradientIcon icon={ArrowLeftRight} size={18} gradient={["#a78bfa", "#c084fc"]} /> P2P Channels</h2>
         {channels.length > 0 && (
           <BulkCheckbox
             checked={bulk.isAllSelected(channels.map(c => c.id))}
@@ -43,32 +56,64 @@ export function ChannelsView({
         )}
       </div>
 
-      {agents.length < 2 ? (
-        <div style={{ textAlign: "center", padding: 40, color: "#3f3f46", border: "1px dashed rgba(167,139,250,0.15)", borderRadius: 12 }}>
-          <div style={{ fontSize: 12 }}>Need at least 2 agents.</div>
+      {networks.length === 0 ? (
+        <div className="channels-empty-state">
+          <Globe size={24} className="channels-empty-icon" />
+          <div className="channels-empty-title">No networks available</div>
+          <div className="channels-empty-subtitle">Create a network first before adding channels.</div>
         </div>
       ) : (
-        <div style={{ background: "rgba(167,139,250,0.04)", border: "1px solid rgba(167,139,250,0.12)", borderRadius: 10, padding: 20, marginBottom: 20 }}>
+        <div className="channel-form">
           <SectionTitle text="Establish Channel" />
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <select value={channelForm.from} onChange={(e) => setChannelForm({ ...channelForm, from: e.target.value })} style={{ ...inputStyle, width: "auto", minWidth: 140, border: "1px solid rgba(167,139,250,0.2)" }}>
-              <option value="">From…</option>
-              {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-            <ArrowLeftRight size={10} color="#52525b" />
-            <select value={channelForm.to} onChange={(e) => setChannelForm({ ...channelForm, to: e.target.value })} style={{ ...inputStyle, width: "auto", minWidth: 140, border: "1px solid rgba(167,139,250,0.2)" }}>
-              <option value="">To…</option>
-              {agents.filter((a) => a.id !== channelForm.from).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-            <div style={{ display: "flex", gap: 4 }}>
-              {CHANNEL_TYPES.map((t) => (
-                <PillButton key={t.id} active={channelForm.type === t.id} activeColor="#a78bfa" onClick={() => setChannelForm({ ...channelForm, type: t.id })}>
-                  {t.icon} {t.label}
-                </PillButton>
+          <div className="channel-form-row">
+            <select 
+              value={channelForm.networkId} 
+              onChange={(e) => setChannelForm({ ...channelForm, networkId: e.target.value, from: "", to: "" })} 
+              className="input input-channel channel-form-select"
+            >
+              <option value="">Select network...</option>
+              {networks.map((n) => (
+                <option key={n.id} value={n.id}>{n.name}</option>
               ))}
-            </div>
-            <button onClick={createChannel} style={{ background: "#a78bfa", color: "#0a0a0f", border: "none", padding: "10px 18px", borderRadius: 6, cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 500 }}>Connect</button>
+            </select>
           </div>
+          {channelForm.networkId && (() => {
+            const networkAgents = agents.filter(a => a.networkId === channelForm.networkId);
+            if (networkAgents.length < 2) {
+              return (
+                <div className="channel-form-notice">
+                  Need at least 2 agents in this network to create a channel.
+                </div>
+              );
+            }
+            return (
+              <div className="channel-form-agents-row">
+                <select value={channelForm.from} onChange={(e) => setChannelForm({ ...channelForm, from: e.target.value })} className="input input-channel channel-form-agent-select">
+                  <option value="">From…</option>
+                  {networkAgents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+                <ArrowLeftRight size={10} className="channel-arrow-icon" />
+                <select value={channelForm.to} onChange={(e) => setChannelForm({ ...channelForm, to: e.target.value })} className="input input-channel channel-form-agent-select">
+                  <option value="">To…</option>
+                  {networkAgents.filter((a) => a.id !== channelForm.from).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+                <div className="channel-type-pills">
+                  {CHANNEL_TYPES.map((t) => (
+                    <PillButton key={t.id} active={channelForm.type === t.id} activeColor="#a78bfa" onClick={() => setChannelForm({ ...channelForm, type: t.id })}>
+                      {t.icon} {t.label}
+                    </PillButton>
+                  ))}
+                </div>
+                <button 
+                  onClick={createChannel} 
+                  disabled={!channelForm.from || !channelForm.to}
+                  className={`channel-submit-btn ${channelForm.from && channelForm.to ? 'channel-submit-btn--enabled' : 'channel-submit-btn--disabled'}`}
+                >
+                  Connect
+                </button>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -77,21 +122,30 @@ export function ChannelsView({
         const to = agents.find((a) => a.id === ch.to);
         const cType = CHANNEL_TYPES.find((t) => t.id === ch.type);
         const msgCount = messages.filter((m) => m.channelId === ch.id).length;
+        const network = getNetworkName(ch.networkId);
         const isChecked = bulk.has(ch.id);
         if (!from || !to) return null;
         return (
-          <div key={ch.id} style={{ background: isChecked ? "rgba(239,68,68,0.06)" : "rgba(255,255,255,0.02)", border: `1px solid ${isChecked ? "rgba(239,68,68,0.25)" : "rgba(255,255,255,0.05)"}`, borderRadius: 8, padding: 14, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", transition: "all 0.2s" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 12 }}>
+          <div key={ch.id} className={`channel-item ${isChecked ? 'channel-item--checked' : ''}`}
+            onClick={() => navigateTo?.("channels", { networkId: ch.networkId, channelId: ch.id })}
+            style={{ cursor: navigateTo ? "pointer" : undefined }}
+          >
+            <div className="channel-item-left">
               <BulkCheckbox checked={isChecked} onChange={() => bulk.toggle(ch.id)} color="#a78bfa" />
               <span style={{ color: ROLES.find(r => r.id === from.role)?.color }}>{from.name}</span>
-              <ArrowLeftRight size={10} color="#52525b" />
+              <ArrowLeftRight size={10} className="channel-arrow-icon" />
               <span style={{ color: ROLES.find(r => r.id === to.role)?.color }}>{to.name}</span>
-              <span style={{ background: "rgba(167,139,250,0.1)", color: "#a78bfa", padding: "3px 8px", borderRadius: 4, fontSize: 10 }}>{cType?.icon} {cType?.label}</span>
-              {msgCount > 0 && <span style={{ fontSize: 9, color: "#fbbf24", background: "rgba(251,191,36,0.1)", padding: "2px 6px", borderRadius: 4 }}>{msgCount} msgs</span>}
+              <span className="channel-item-type-badge">{cType?.icon} {cType?.label}</span>
+              {network && <span className="channel-item-network-badge" style={{ color: network.color, background: network.color + '15' }}><Globe size={9} /> {network.name}</span>}
+              {msgCount > 0 && <span className="channel-item-msg-badge">{msgCount} msgs</span>}
             </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={() => { setActiveChannel(ch.id); setView("messages"); }} style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.2)", color: "#fbbf24", padding: "4px 10px", borderRadius: 4, fontFamily: "inherit", fontSize: 10, cursor: "pointer" }}>Message</button>
-              <button onClick={() => removeChannel(ch.id)} style={{ background: "transparent", border: "1px solid rgba(239,68,68,0.2)", color: "#71717a", padding: "4px 10px", borderRadius: 4, fontFamily: "inherit", fontSize: 10, cursor: "pointer", display: "flex", alignItems: "center", gap: 3 }}><X size={10} /></button>
+            <div className="channel-item-actions">
+              <button onClick={() => { setActiveChannel(ch.id); setView("messages"); }} className="btn btn-sm btn-message">Message</button>
+              {del.isPending(ch.id) ? (
+                <DeleteConfirmInline entityName="Channel" entityLabel={`${from.name} ↔ ${to.name}`} warning="All messages will be lost." onConfirm={() => del.confirm(() => removeChannel(ch.id))} onCancel={del.cancel} compact />
+              ) : (
+                <button onClick={() => del.requestDelete(ch.id)} className="btn btn-sm btn-ghost"><X size={10} /></button>
+              )}
             </div>
           </div>
         );

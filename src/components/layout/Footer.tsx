@@ -1,22 +1,35 @@
-import { useState, useEffect } from "react";
-import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job } from "../../types";
-import { Bot, ArrowLeftRight, Hexagon, MessageSquare, Globe, Network as NetworkIcon, MessageCircle, ListTodo, Zap, WifiOff } from "lucide-react";
-import { ChatPanel } from "./ChatPanel";
-import { JobsPanel } from "./JobsPanel";
+import { useState, useEffect, useRef, useCallback } from "react";
+import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "@/types";
+import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor } from "lucide-react";
+import type { ChatPosition } from "@/context/ThemeContext";
+import { ActionManager } from "@/components/actions/ActionManager";
+import { ArtifactsPanel } from "./ArtifactsPanel";
+import { LLMManager } from "./LLMManager";
+import { DisplayPanel } from "./DisplayPanel";
+import { useLLM, type LivenessStatus } from "@/context/LLMContext";
+import { useEditorContext } from "@/toolkits/editor";
+import "../../styles/components/footer.css";
+import "../../styles/components/llm-manager.css";
 
+// Update interface
 interface FooterProps {
     agents: Agent[];
     channels: Channel[];
     groups: Group[];
     messages: Message[];
-    ecosystems: Network[];
+    networks: Network[];
     bridges: Bridge[];
+    ecosystem?: any; // Automated ecosystem object
     addLog?: (msg: string) => void;
     setView: (view: ViewId) => void;
     jobs: Job[];
     removeJob: (id: string) => void;
     clearJobs: () => void;
     addJob: (job: any) => void;
+    allArtifacts: JobArtifact[];
+    importArtifact: (artifact: JobArtifact) => void;
+    removeArtifact: (id: string) => void;
+    updateArtifact: (id: string, updates: Partial<JobArtifact>) => void;
     isPaused: boolean;
     toggleQueuePause: () => void;
     stopJob: (id: string) => void;
@@ -26,13 +39,65 @@ interface FooterProps {
     savedJobs: any[];
     saveJob: (job: any) => void;
     deleteJob: (id: string) => void;
+    view?: ViewId;
+    panel: PanelMode;
+    setPanel: (p: PanelMode) => void;
+    chatPosition: ChatPosition;
+    sideChatVisible: boolean;
+    toggleSideChat: () => void;
 }
 
-type PanelMode = "none" | "chat" | "jobs";
+export type PanelMode = "none" | "chat" | "jobs" | "artifacts" | "llm" | "display";
 
-export function Footer({ agents, channels, groups, messages, ecosystems, bridges, addLog, setView, jobs, removeJob, clearJobs, addJob, savedJobs, saveJob, deleteJob, ...jobsProps }: FooterProps) {
-    const [panel, setPanel] = useState<PanelMode>("none");
+const DEFAULT_PANEL_HEIGHT = 420;
+
+export function Footer({ agents, channels, groups, messages, networks, bridges, ecosystem, addLog, setView, jobs, removeJob, clearJobs, addJob, allArtifacts, importArtifact, removeArtifact, updateArtifact, savedJobs, saveJob, deleteJob, view, panel, setPanel, chatPosition, sideChatVisible, toggleSideChat, ...jobsProps }: FooterProps) {
+    const isSideChat = chatPosition === "left" || chatPosition === "right";
+    const [panelHeight, setPanelHeight] = useState(DEFAULT_PANEL_HEIGHT);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const savedHeightRef = useRef(DEFAULT_PANEL_HEIGHT);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
+    const llm = useLLM();
+    const { api: editorApi, queueArtifact } = useEditorContext();
+
+    const handleOpenInEditor = useCallback((artifact: JobArtifact) => {
+        // If editor is already mounted, load directly
+        if (editorApi) {
+            editorApi.loadArtifact(artifact);
+        } else {
+            // Queue for when editor mounts
+            queueArtifact(artifact);
+        }
+        setView("editor");
+        setPanel("none");
+    }, [editorApi, queueArtifact, setView, setPanel]);
+
+    const isStudioMode = view === "jobs";
+
+    // LLM status dot color
+    const dotColors: Record<LivenessStatus, string> = {
+        online: "#00e5a0", offline: "#ef4444", checking: "#fbbf24",
+        unknown: "#71717a", "no-key": "#71717a",
+    };
+    const llmModel = llm.getModelById(llm.globalModel);
+
+    // Resize handler: sets height and clears expanded state
+    const handleSetHeight = (h: number) => {
+        setPanelHeight(h);
+        setIsExpanded(false);
+    };
+
+    // Toggle between full height and previous height (default or user-set)
+    const handleToggleExpand = () => {
+        if (isExpanded) {
+            setPanelHeight(savedHeightRef.current);
+            setIsExpanded(false);
+        } else {
+            savedHeightRef.current = panelHeight;
+            setPanelHeight(window.innerHeight - 93);
+            setIsExpanded(true);
+        }
+    };
 
     useEffect(() => {
         const handleOnline = () => setIsOnline(true);
@@ -47,186 +112,155 @@ export function Footer({ agents, channels, groups, messages, ecosystems, bridges
         };
     }, []);
 
-    const toggle = (mode: PanelMode) => setPanel(prev => prev === mode ? "none" : mode);
+    const toggle = (mode: PanelMode) => setPanel(panel === mode ? "none" : mode);
 
-    const footerBtnStyle = {
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        gap: 4,
-        fontSize: 10,
-        fontFamily: "inherit",
-        color: "#71717a",
-        padding: "2px 4px",
-        borderRadius: 4,
-        transition: "all 0.1s",
-    };
-
-    const pulseStyle = `
-      @keyframes softPulse {
-        0% { box-shadow: 0 0 0 0 rgba(0, 229, 160, 0.4); opacity: 1; }
-        70% { box-shadow: 0 0 0 6px rgba(0, 229, 160, 0); opacity: 1; }
-        100% { box-shadow: 0 0 0 0 rgba(0, 229, 160, 0); opacity: 1; }
-      }
-    `;
-
-    const workspaceContext = { agents, channels, groups, messages, ecosystems, bridges, addJob, jobs };
+    // Watch for external open requests (e.g. from ProfileModal → llm.openManager())
+    useEffect(() => {
+        if (llm.managerOpenRequest > 0) {
+            setPanel("llm");
+        }
+    }, [llm.managerOpenRequest]);
 
     return (
         <>
-            {panel === "chat" && (
-                <ChatPanel
-                    context={workspaceContext}
-                    onClose={() => setPanel("none")}
-                    addLog={addLog}
-                />
-            )}
-
             {panel === "jobs" && (
-                <JobsPanel
-                    jobs={jobs}
+                <ActionManager
                     onClose={() => setPanel("none")}
-                    removeJob={removeJob}
-                    clearJobs={clearJobs}
-                    isPaused={jobsProps.isPaused}
-                    toggleQueuePause={jobsProps.toggleQueuePause}
-                    stopJob={jobsProps.stopJob}
-                    reorderQueue={jobsProps.reorderQueue}
+                    isMobile={jobsProps.isMobile}
                     savedJobs={savedJobs}
                     saveJob={saveJob}
                     deleteJob={deleteJob}
-                    addJob={addJob}
+                    height={panelHeight}
+                    setHeight={handleSetHeight}
+                    isExpanded={isExpanded}
+                    onToggleExpand={handleToggleExpand}
+                    isStudioMode={isStudioMode}
+                    setView={setView}
                 />
             )}
 
-            <footer style={{
-                background: "rgba(0,229,160,0.04)",
-                borderTop: "1px solid rgba(0,229,160,0.1)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "4px 12px",
-                fontSize: 10,
-                fontFamily: "inherit",
-                flexShrink: 0,
-                gap: 8,
-                flexWrap: "wrap",
-            }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <button onClick={() => setView("agents")} style={footerBtnStyle} title="View Agents">
-                        <Bot size={10} color="#00e5a0" /> {agents.length} {!jobsProps.isMobile && "agents"}
+            {panel === "artifacts" && (
+                <ArtifactsPanel
+                    artifacts={allArtifacts}
+                    importArtifact={importArtifact}
+                    removeArtifact={removeArtifact}
+                    updateArtifact={updateArtifact}
+                    onClose={() => setPanel("none")}
+                    height={panelHeight}
+                    setHeight={handleSetHeight}
+                    isExpanded={isExpanded}
+                    onToggleExpand={handleToggleExpand}
+                    onOpenInEditor={handleOpenInEditor}
+                />
+            )}
+
+            {panel === "llm" && (
+                <LLMManager
+                    onClose={() => setPanel("none")}
+                    height={panelHeight}
+                    setHeight={handleSetHeight}
+                    isExpanded={isExpanded}
+                    onToggleExpand={handleToggleExpand}
+                />
+            )}
+
+            {panel === "display" && (
+                <DisplayPanel
+                    onClose={() => setPanel("none")}
+                    height={panelHeight}
+                    setHeight={handleSetHeight}
+                    isExpanded={isExpanded}
+                    onToggleExpand={handleToggleExpand}
+                />
+            )}
+
+            <footer className="app-footer">
+                <div className="footer__stats">
+                    <button
+                        onClick={() => toggle("llm")}
+                        className={`footer__llm-btn${panel === "llm" ? " footer__llm-btn--active" : ""}`}
+                        title={`LLM: ${llm.overallStatus} — ${llmModel?.label || llm.globalModel}`}
+                    >
+                        <span
+                            className={`llm-dot${llm.overallStatus === "checking" ? " llm-dot--pulse" : ""}`}
+                            style={{ width: 6, height: 6, background: dotColors[llm.overallStatus] }}
+                        />
+                        <Zap size={10} />
+                        {!jobsProps.isMobile && (
+                            <span className="footer__llm-label">
+                                {llmModel?.label || "LLM"}
+                            </span>
+                        )}
                     </button>
-                    <button onClick={() => setView("channels")} style={footerBtnStyle} title="View Channels">
-                        <ArrowLeftRight size={10} color="#a78bfa" /> {channels.length} {!jobsProps.isMobile && "ch"}
-                    </button>
-                    <button onClick={() => setView("groups")} style={footerBtnStyle} title="View Groups">
-                        <Hexagon size={10} color="#f472b6" /> {groups.length} {!jobsProps.isMobile && "groups"}
-                    </button>
-                    <button onClick={() => setView("messages")} style={footerBtnStyle} title="View Messages">
-                        <MessageSquare size={10} color="#fbbf24" /> {messages.length} {!jobsProps.isMobile && "msgs"}
-                    </button>
-                    {ecosystems.length > 0 && (
-                        <button onClick={() => setView("ecosystem")} style={footerBtnStyle} title="View Ecosystems">
-                            <Globe size={10} color="#38bdf8" /> {ecosystems.length} {!jobsProps.isMobile && "nets"}
+
+                    <span className="footer__separator">│</span>
+                    {isSideChat ? (
+                        <button
+                            onClick={toggleSideChat}
+                            className={`footer__toggle ${sideChatVisible ? "footer__toggle--active" : ""}`}
+                            title={sideChatVisible ? "Hide chat" : "Show chat"}
+                        >
+                            <MessageCircle size={10} />
+                            Chat
                         </button>
-                    )}
-                    {bridges.length > 0 && (
-                        <button onClick={() => setView("network")} style={footerBtnStyle} title="View Topology">
-                            <NetworkIcon size={10} color="#fb923c" /> {bridges.length} {!jobsProps.isMobile && "bridges"}
+                    ) : (
+                        <button
+                            onClick={() => toggle("chat")}
+                            className={`footer__toggle ${panel === "chat" ? "footer__toggle--active" : ""}`}
+                        >
+                            <MessageCircle size={10} />
+                            Chat
                         </button>
                     )}
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                    <button
-                        onClick={() => toggle("chat")}
-                        style={{
-                            background: panel === "chat" ? "rgba(0,229,160,0.1)" : "none",
-                            border: "none",
-                            color: panel === "chat" ? "#00e5a0" : "#52525b",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                            fontSize: 10,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
-                            padding: "2px 6px",
-                            borderRadius: 3,
-                            transition: "all 0.15s",
-                        }}
-                    >
-                        <MessageCircle size={10} />
-                        Chat
-                    </button>
-
-                    <span style={{ color: "#27272a", fontSize: 10 }}>│</span>
+                <div className="footer__controls">
 
                     <button
                         onClick={() => toggle("jobs")}
-                        style={{
-                            background: panel === "jobs" ? "rgba(0,229,160,0.1)" : "none",
-                            border: "none",
-                            color: panel === "jobs" ? "#00e5a0" : "#52525b",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                            fontSize: 10,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
-                            padding: "2px 6px",
-                            borderRadius: 3,
-                            transition: "all 0.15s",
-                        }}
+                        className={`footer__toggle ${panel === "jobs" ? "footer__toggle--active" : ""}`}
                     >
-                        <ListTodo size={10} />
-                        Jobs
+                        <Terminal size={10} />
+                        Actions
                         {jobs.filter(j => j.status === 'running' || j.status === 'queued').length > 0 && (
-                            <span style={{
-                                fontSize: 9,
-                                background: panel === "jobs" ? "rgba(0,229,160,0.15)" : "rgba(255,255,255,0.06)",
-                                padding: "0 5px",
-                                borderRadius: 6,
-                                color: panel === "jobs" ? "#00e5a0" : "#71717a",
-                            }}>{jobs.filter(j => j.status === 'running' || j.status === 'queued').length}</span>
+                            <span className={`footer__badge ${panel === "jobs" ? "footer__badge--active" : ""}`}>
+                                {jobs.filter(j => j.status === 'running' || j.status === 'queued').length}
+                            </span>
                         )}
                     </button>
-
-                    <span style={{ color: "#27272a", fontSize: 10 }}>│</span>
+                    <span className="footer__separator">│</span>
 
                     <button
-                        onClick={() => setView("activity")}
-                        style={{
-                            background: "none",
-                            border: "none",
-                            color: "#52525b",
-                            cursor: "pointer",
-                            fontFamily: "inherit",
-                            fontSize: 10,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
-                            padding: "2px 6px",
-                            borderRadius: 3,
-                            transition: "all 0.15s",
-                            animation: jobsProps.activityPulse ? "softPulse 3s infinite" : "none",
-                        }}
-                        title="Activity"
+                        onClick={() => toggle("artifacts")}
+                        className={`footer__toggle ${panel === "artifacts" ? "footer__toggle--active footer__toggle--artifacts" : ""}`}
                     >
-                        <Zap size={10} color={jobsProps.activityPulse ? "#00e5a0" : "#52525b"} style={{ fill: jobsProps.activityPulse ? "#00e5a0" : "none" }} />
+                        <Gem size={10} color="#818cf8" />
+                        Artifacts
+                        {allArtifacts.length > 0 && (
+                            <span className={`footer__badge footer__badge--artifacts${panel === "artifacts" ? " footer__badge--artifacts-active" : ""}`}>
+                                {allArtifacts.length}
+                            </span>
+                        )}
                     </button>
                     {!isOnline && (
                         <>
-                            <span style={{ color: "#27272a", fontSize: 10 }}>│</span>
-                            <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#ef4444", fontSize: 10 }}>
+                            <span className="footer__separator">│</span>
+                            <div className="footer__offline">
                                 <WifiOff size={10} />
                                 <span>Offline</span>
                             </div>
                         </>
                     )}
+
+                    <span className="footer__separator">│</span>
+                    <button
+                        onClick={() => toggle("display")}
+                        className={`footer__toggle ${panel === "display" ? "footer__toggle--active" : ""}`}
+                        title="Display settings"
+                    >
+                        <Monitor size={10} />
+                    </button>
                 </div>
-                <style>{pulseStyle}</style>
             </footer >
         </>
     );

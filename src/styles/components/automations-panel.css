@@ -1,0 +1,277 @@
+/**
+ * AutomationsPanel Component Styles
+ * Card + table view for browsing live automations
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CONTAINER
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.automations-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TOOLBAR — search + view toggle + count
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.automations-panel__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.automations-panel__search {
+  flex: 1;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-primary);
+  border: 1px solid var(--text-void);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-md);
+}
+
+.automations-panel__search::placeholder {
+  color: var(--text-ghost);
+}
+
+.automations-panel__view-toggle {
+  display: flex;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.automations-panel__view-btn {
+  background: none;
+  border: none;
+  color: var(--text-ghost);
+  cursor: pointer;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.automations-panel__view-btn:hover {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.automations-panel__view-btn--active {
+  background: rgba(0, 229, 160, 0.08);
+  color: var(--color-accent);
+}
+
+.automations-panel__count {
+  font-size: var(--text-xs);
+  color: var(--text-ghost);
+  white-space: nowrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CARD GRID
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.automations-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-2xl);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TABLE VIEW
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.automations-panel__table-wrap {
+  overflow-x: auto;
+}
+
+.automations-panel__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-base);
+}
+
+.automations-panel__th {
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-ghost);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  white-space: nowrap;
+}
+
+.automations-panel__th--status {
+  width: 90px;
+  text-align: center;
+}
+
+.automations-panel__th--last-run {
+  width: 160px;
+}
+
+.automations-panel__th--actions {
+  width: 70px;
+}
+
+.automations-panel__row {
+  transition: background var(--transition-fast);
+}
+
+.automations-panel__row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.automations-panel__td {
+  padding: var(--space-md);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  vertical-align: middle;
+}
+
+.automations-panel__td--name {
+  white-space: nowrap;
+}
+
+.automations-panel__name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-md);
+}
+
+.automations-panel__td--desc {
+  color: var(--text-muted);
+  font-size: var(--text-base);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.automations-panel__td--schedule {
+  font-size: var(--text-base);
+  color: var(--text-subtle);
+  font-family: var(--font-mono);
+}
+
+.automations-panel__td--tags {
+  max-width: 200px;
+}
+
+.automations-panel__tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.automations-panel__tag {
+  font-size: 8px;
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  white-space: nowrap;
+  color: var(--text-ghost);
+}
+
+.automations-panel__td--status-cell {
+  text-align: center;
+}
+
+.automations-panel__status-badge {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid;
+  text-transform: capitalize;
+}
+
+.automations-panel__td--last-run {
+  font-size: var(--text-base);
+}
+
+.automations-panel__time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-ghost);
+}
+
+.automations-panel__td--actions {
+  text-align: center;
+}
+
+.automations-panel__action-btns {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  justify-content: center;
+}
+
+.automations-panel__action-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+}
+
+.automations-panel__action-btn:hover {
+  opacity: 0.85;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.automations-panel__action-btn--run {
+  color: var(--color-info);
+}
+
+.automations-panel__action-btn--run:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.automations-panel__action-btn--delete {
+  color: var(--color-danger);
+}
+
+.automations-panel__action-btn--edit {
+  color: #8b5cf6;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * EMPTY STATE
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.automations-panel__empty {
+  text-align: center;
+  padding: var(--space-4xl);
+  color: var(--text-ghost);
+}
+
+.automations-panel__empty-icon {
+  opacity: 0.25;
+  margin-bottom: var(--space-lg);
+}
+
+.automations-panel__empty-title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--space-sm);
+}
+
+.automations-panel__empty-desc {
+  font-size: var(--text-md);
+  color: var(--text-ghost);
+}

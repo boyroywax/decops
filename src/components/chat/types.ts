@@ -1,4 +1,4 @@
-import type { ChatMessage } from "../../services/ai";
+import type { ChatMessage } from "@/services/ai";
 
 export interface ParsedAction {
     type: string;

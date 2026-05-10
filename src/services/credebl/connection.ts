@@ -1,5 +1,5 @@
-import api from '../../api/client';
-import type { ApiResponse, Connection } from '../../types';
+import api from '@/api/client';
+import type { ApiResponse, Connection } from '@/types';
 import { CredeblResponse } from './types';
 
 const ORG_ID = import.meta.env.VITE_CREDEBL_ORG_ID || '';

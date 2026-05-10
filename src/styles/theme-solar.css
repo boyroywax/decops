@@ -1,0 +1,2165 @@
+/**
+ * Solar Theme — Warm Light
+ * Applied via [data-theme="solar"] on <html>
+ * A warm, golden-toned light theme optimized for comfortable reading
+ * Inspired by Solarized Light with amber/honey accents
+ */
+
+[data-theme="solar"] {
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * CORE PALETTE - Warm Background & Surface Layers
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --bg-primary: #fdf6e3;
+  --bg-elevated: rgba(253, 246, 227, 0.85);
+  --bg-surface: rgba(120, 80, 20, 0.04);
+  --bg-surface-hover: rgba(120, 80, 20, 0.07);
+  --bg-input: rgba(120, 80, 20, 0.05);
+  --bg-modal: #fefaf0;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * BORDERS — Warm tints
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --border-subtle: rgba(120, 80, 20, 0.08);
+  --border-default: rgba(120, 80, 20, 0.10);
+  --border-medium: rgba(120, 80, 20, 0.15);
+  --border-accent: rgba(180, 130, 20, 0.18);
+  --border-accent-strong: rgba(180, 130, 20, 0.35);
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * TEXT HIERARCHY — Warm dark browns
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --text-primary: #3b2e1a;
+  --text-secondary: #504030;
+  --text-muted: #6b5b4a;
+  --text-subtle: #8a7968;
+  --text-ghost: #a89882;
+  --text-invisible: #c4b8a6;
+  --text-void: #d9d0c2;
+  --text-faint: #a89882;
+  --text-accent: #9c6d10;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * SEMANTIC COLORS — Warm-shifted for solar backgrounds
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --color-accent: #b8860b;
+  --color-warning: #c47d0a;
+  --color-danger: #c0392b;
+  --color-info: #2980b9;
+  --color-channel: #6c3fa0;
+  --color-group: #b83278;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * ROLE COLORS — Deeper, warm-shifted for solar backgrounds
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --color-researcher: #2e7d32;
+  --color-builder: #a0600a;
+  --color-curator: #5e35b1;
+  --color-validator: #1565c0;
+  --color-orchestrator: #ad1457;
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * SHADOWS — Warm amber-tinted
+   * ═══════════════════════════════════════════════════════════════════════════ */
+  --shadow-sm: 0 1px 3px rgba(120, 80, 20, 0.08);
+  --shadow-md: 0 4px 12px rgba(120, 80, 20, 0.10);
+  --shadow-lg: 0 8px 24px rgba(120, 80, 20, 0.12);
+  --shadow-xl: 0 25px 60px rgba(120, 80, 20, 0.14);
+
+  /* Scrollbar */
+  --scrollbar-thumb: rgba(120, 80, 20, 0.18);
+  --scrollbar-thumb-hover: rgba(120, 80, 20, 0.28);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SOLAR COMPONENT OVERRIDES
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] body {
+  background: #fdf6e3;
+  color: #3b2e1a;
+}
+
+/* Scrollbar */
+[data-theme="solar"] ::-webkit-scrollbar-thumb {
+  background: rgba(120, 80, 20, 0.18);
+}
+[data-theme="solar"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 80, 20, 0.28);
+}
+
+/* Select options */
+[data-theme="solar"] select option {
+  background: #fefaf0;
+  color: #3b2e1a;
+}
+
+/* Canvas & topology backgrounds */
+[data-theme="solar"] .network-detail__topology {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+/* Cards in detail views */
+[data-theme="solar"] .nd-card,
+[data-theme="solar"] .group-detail__member,
+[data-theme="solar"] .agent-detail__connection,
+[data-theme="solar"] .agent-detail__group-chip {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .nd-card:hover,
+[data-theme="solar"] .group-detail__member:hover,
+[data-theme="solar"] .agent-detail__connection:hover,
+[data-theme="solar"] .agent-detail__group-chip:hover {
+  background: rgba(120, 80, 20, 0.06);
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+/* Breadcrumb hover */
+[data-theme="solar"] .breadcrumb__item:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+/* Portrait containers — solar */
+[data-theme="solar"] .agent-flip__portrait {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .agent-flip:hover .agent-flip__portrait {
+  border-color: rgba(120, 80, 20, 0.18);
+}
+
+/* Agents view toggle — solar */
+[data-theme="solar"] .agents-view-toggle {
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .agents-view-btn:hover {
+  background: rgba(120, 80, 20, 0.04);
+  color: #78572a;
+}
+
+[data-theme="solar"] .agents-view-btn--active {
+  background: rgba(156, 109, 16, 0.08);
+  color: #9c6d10;
+}
+
+/* Agents table — solar */
+[data-theme="solar"] .agents-th {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+  color: #a89880;
+}
+
+[data-theme="solar"] .agents-row:hover {
+  background: rgba(120, 80, 20, 0.02);
+}
+
+[data-theme="solar"] .agents-row--checked {
+  background: rgba(239, 68, 68, 0.04);
+}
+
+[data-theme="solar"] .agents-td {
+  border-bottom-color: rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .agents-table-name {
+  color: #4a3520;
+}
+
+[data-theme="solar"] .agents-table-did {
+  color: #c8b8a0;
+}
+
+[data-theme="solar"] .agents-table-title-empty {
+  color: #c8b8a0;
+}
+
+[data-theme="solar"] .agents-table-model {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.08);
+  color: #8a7050;
+}
+
+[data-theme="solar"] .agents-table-model--override {
+  color: #9c6d10;
+  background: rgba(156, 109, 16, 0.06);
+  border-color: rgba(156, 109, 16, 0.15);
+}
+
+[data-theme="solar"] .agents-table-action-btn {
+  border-color: rgba(120, 80, 20, 0.08);
+  color: #a89880;
+}
+
+[data-theme="solar"] .agents-table-action-btn:hover {
+  color: #78572a;
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .agents-table-action-btn--danger:hover {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+[data-theme="solar"] .agent-portrait-wrap:hover {
+  border-color: rgba(120, 80, 20, 0.22) !important;
+}
+
+[data-theme="solar"] .agent-detail__portrait {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.12);
+  box-shadow: 0 2px 12px rgba(120, 80, 20, 0.06);
+}
+
+/* Identity / prompt cards */
+[data-theme="solar"] .agent-detail__identity,
+[data-theme="solar"] .agent-detail__prompt,
+[data-theme="solar"] .group-detail__governance,
+[data-theme="solar"] .network-detail__description {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .agent-detail__identity-value {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+/* Stats */
+[data-theme="solar"] .network-detail__stat,
+[data-theme="solar"] .agent-detail__stat {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+/* Empty states */
+[data-theme="solar"] .network-detail__empty,
+[data-theme="solar"] .group-detail__empty,
+[data-theme="solar"] .agent-detail__empty {
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #a89882;
+}
+
+/* Action buttons */
+[data-theme="solar"] .agent-detail__action-btn,
+[data-theme="solar"] .group-detail__action-btn {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #6b5b4a;
+}
+
+[data-theme="solar"] .agent-detail__action-btn:hover,
+[data-theme="solar"] .group-detail__action-btn:hover {
+  background: rgba(120, 80, 20, 0.08);
+  color: #504030;
+}
+
+/* Channel Detail View */
+[data-theme="solar"] .channel-detail__stat,
+[data-theme="solar"] .cd-endpoint,
+[data-theme="solar"] .cd-message {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .cd-endpoint:hover,
+[data-theme="solar"] .channel-detail__stat--clickable:hover {
+  background: rgba(120, 80, 20, 0.06);
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .channel-detail__empty {
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #a89882;
+}
+
+[data-theme="solar"] .channel-detail__actions {
+  border-top-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .channel-detail__action-btn--primary {
+  background: rgba(108, 63, 160, 0.08);
+  border-color: rgba(108, 63, 160, 0.18);
+}
+
+[data-theme="solar"] .channel-detail__action-btn--danger {
+  background: rgba(192, 57, 43, 0.06);
+  border-color: rgba(192, 57, 43, 0.14);
+}
+
+[data-theme="solar"] .cd-message__response {
+  border-top-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .agent-detail__action-btn--danger,
+[data-theme="solar"] .group-detail__action-btn--danger {
+  background: rgba(192, 57, 43, 0.06);
+  border-color: rgba(192, 57, 43, 0.14);
+}
+
+[data-theme="solar"] .agent-detail__action-btn--danger:hover,
+[data-theme="solar"] .group-detail__action-btn--danger:hover {
+  background: rgba(192, 57, 43, 0.12);
+  color: #c0392b;
+}
+
+/* LLM Model Picker — solar */
+[data-theme="solar"] .agent-detail__model-picker-btn,
+[data-theme="solar"] .group-detail__model-picker-btn {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #504030;
+}
+
+[data-theme="solar"] .agent-detail__model-picker-btn:hover,
+[data-theme="solar"] .group-detail__model-picker-btn:hover {
+  background: rgba(120, 80, 20, 0.06);
+  border-color: rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .agent-detail__model-picker-btn--override,
+[data-theme="solar"] .group-detail__model-picker-btn--override {
+  border-color: rgba(156, 109, 16, 0.25);
+  background: rgba(156, 109, 16, 0.05);
+}
+
+[data-theme="solar"] .agent-detail__model-picker-badge,
+[data-theme="solar"] .group-detail__model-picker-badge {
+  background: rgba(156, 109, 16, 0.14);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .agent-detail__model-dropdown,
+[data-theme="solar"] .group-detail__model-dropdown {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.12);
+  box-shadow: 0 12px 48px rgba(120, 80, 20, 0.10), 0 0 0 1px rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .agent-detail__model-option:hover,
+[data-theme="solar"] .group-detail__model-option:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .agent-detail__model-option--active,
+[data-theme="solar"] .group-detail__model-option--active {
+  background: rgba(156, 109, 16, 0.08);
+}
+
+[data-theme="solar"] .agent-detail__model-option--active .agent-detail__model-option-label,
+[data-theme="solar"] .group-detail__model-option--active .group-detail__model-option-label {
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .agent-detail__model-option-label,
+[data-theme="solar"] .group-detail__model-option-label {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .agent-detail__model-option-desc,
+[data-theme="solar"] .group-detail__model-option-desc {
+  color: #a89882;
+}
+
+[data-theme="solar"] .agent-detail__model-option--reset,
+[data-theme="solar"] .group-detail__model-option--reset {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+  color: #a89882;
+}
+
+[data-theme="solar"] .agent-detail__model-option--reset:hover,
+[data-theme="solar"] .group-detail__model-option--reset:hover {
+  color: #c0392b;
+  background: rgba(192, 57, 43, 0.05);
+}
+
+[data-theme="solar"] .agent-detail__model-option-tier--recommended,
+[data-theme="solar"] .group-detail__model-option-tier--recommended { background: rgba(46, 125, 50, 0.12); color: #2e7d32; }
+[data-theme="solar"] .agent-detail__model-option-tier--premium,
+[data-theme="solar"] .group-detail__model-option-tier--premium { background: rgba(94, 53, 177, 0.10); color: #5e35b1; }
+[data-theme="solar"] .agent-detail__model-option-tier--fast,
+[data-theme="solar"] .group-detail__model-option-tier--fast { background: rgba(160, 96, 10, 0.10); color: #a0600a; }
+[data-theme="solar"] .agent-detail__model-option-tier--standard,
+[data-theme="solar"] .group-detail__model-option-tier--standard { background: rgba(100, 90, 70, 0.10); color: #6b5b4a; }
+
+/* Sidebar */
+[data-theme="solar"] .app-sidebar {
+  background: rgba(253, 246, 227, 0.7);
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .sidebar-nav-item:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .sidebar-nav-item.active {
+  background: rgba(120, 80, 20, 0.08);
+}
+
+/* Sidebar collapsed badges */
+[data-theme="solar"] .sidebar-badge.accent {
+  background: rgba(0, 160, 100, 0.15);
+  color: #268060;
+}
+[data-theme="solar"] .sidebar-badge.warning {
+  background: rgba(180, 120, 0, 0.15);
+  color: #8a6000;
+}
+[data-theme="solar"] .sidebar-badge.info {
+  background: rgba(30, 120, 180, 0.15);
+  color: #1a7ab0;
+}
+[data-theme="solar"] .sidebar-badge.channel {
+  background: rgba(110, 70, 200, 0.15);
+  color: #6a40b0;
+}
+[data-theme="solar"] .sidebar-badge.group {
+  background: rgba(200, 60, 130, 0.15);
+  color: #b83068;
+}
+
+/* Header */
+[data-theme="solar"] .app-header {
+  background: rgba(253, 246, 227, 0.85);
+  border-color: rgba(120, 80, 20, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+/* Footer */
+[data-theme="solar"] .app-footer {
+  background: rgba(253, 246, 227, 0.85);
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .footer__stat-btn {
+  color: #6b5b4a;
+}
+
+[data-theme="solar"] .footer__toggle {
+  color: #6b5b4a;
+}
+
+[data-theme="solar"] .footer__toggle:hover {
+  color: #504030;
+  background: rgba(120, 80, 20, 0.05);
+}
+
+/* Chat panel */
+[data-theme="solar"] .chat-panel {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .chat-panel__header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .chat-panel__resize-indicator {
+  background: rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .chat-panel__model-badge {
+  background: rgba(120, 80, 20, 0.05);
+  color: var(--text-subtle);
+}
+
+[data-theme="solar"] .chat-panel__convos-count {
+  background: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .chat-panel__convos-list {
+  scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
+}
+
+[data-theme="solar"] .chat-panel__loading-bubble {
+  background: rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .chat-panel__input-area {
+  border-top-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .chat-panel__send-btn {
+  background: rgba(120, 80, 20, 0.03);
+}
+
+[data-theme="solar"] .chat-panel__messages {
+  scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
+}
+
+[data-theme="solar"] .chat-panel__convos-list::-webkit-scrollbar-thumb,
+[data-theme="solar"] .chat-panel__messages::-webkit-scrollbar-thumb {
+  background: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .chat-panel__convos-list::-webkit-scrollbar-thumb:hover,
+[data-theme="solar"] .chat-panel__messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 80, 20, 0.28);
+}
+
+[data-theme="solar"] .chat-panel__convo-item--active {
+  background: rgba(184, 134, 11, 0.08);
+  border-color: rgba(184, 134, 11, 0.18);
+}
+
+[data-theme="solar"] .chat-panel__convo-item:hover {
+  background: rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .chat-panel__input {
+  background: #fdf6e3;
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .chat-panel__input:focus {
+  border-color: rgba(184, 134, 11, 0.35);
+}
+
+[data-theme="solar"] .chat-panel__send-btn--ready {
+  background: rgba(184, 134, 11, 0.10);
+  border-color: rgba(184, 134, 11, 0.25);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .chat-panel__start-btn {
+  background: rgba(184, 134, 11, 0.08);
+  border-color: rgba(184, 134, 11, 0.20);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .chat-panel__empty-state,
+[data-theme="solar"] .chat-panel__chat-empty {
+  color: #a89882;
+}
+
+[data-theme="solar"] .chat-panel__chat-empty-desc {
+  color: #b8a88c;
+}
+
+/* Message bubbles in chat panel */
+[data-theme="solar"] .mb-bubble--user {
+  background: rgba(184, 134, 11, 0.10);
+  border-color: rgba(184, 134, 11, 0.22);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .mb-bubble--assistant {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #504030;
+}
+
+/* Tool call cards in chat */
+[data-theme="solar"] .tool-calls-section {
+  border-top-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .tool-calls-section__label {
+  color: rgba(80, 64, 48, 0.45);
+}
+
+[data-theme="solar"] .tool-call-card--success {
+  background: rgba(184, 134, 11, 0.06);
+  border-color: rgba(184, 134, 11, 0.18);
+}
+
+[data-theme="solar"] .tool-call-card--error {
+  background: rgba(180, 50, 30, 0.05);
+  border-color: rgba(180, 50, 30, 0.18);
+}
+
+[data-theme="solar"] .tool-call-card__name {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .tool-call-card__icon,
+[data-theme="solar"] .tool-call-card__duration {
+  color: rgba(80, 64, 48, 0.4);
+}
+
+[data-theme="solar"] .tool-call-card__args {
+  color: rgba(80, 64, 48, 0.5);
+}
+
+[data-theme="solar"] .tool-call-card__job-id {
+  color: rgba(80, 64, 48, 0.4);
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .tool-call-card__status--success {
+  color: #b8860b;
+}
+
+[data-theme="solar"] .tool-call-card__status--error {
+  color: #b4321e;
+}
+
+[data-theme="solar"] .tool-call-card__error {
+  color: #b4321e;
+}
+
+[data-theme="solar"] .mb-bubble--streaming {
+  border-color: rgba(184, 134, 11, 0.2);
+}
+
+[data-theme="solar"] .mb-streaming-cursor {
+  color: #b8860b;
+}
+
+[data-theme="solar"] .tool-call-card--pending {
+  background: rgba(184, 134, 11, 0.05);
+  border-color: rgba(184, 134, 11, 0.15);
+}
+
+[data-theme="solar"] .tool-call-card__status--pending {
+  color: #b8860b;
+}
+
+/* Chat markdown in solar mode */
+[data-theme="solar"] .chat-md {
+  color: #504030;
+}
+
+[data-theme="solar"] .chat-md h3 {
+  color: #6b5b4a;
+}
+
+[data-theme="solar"] .chat-md h4 {
+  color: #7a6a58;
+}
+
+[data-theme="solar"] .chat-md li::marker {
+  color: #a89882;
+}
+
+[data-theme="solar"] .chat-md pre {
+  background: rgba(120, 80, 20, 0.05);
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .chat-md pre code {
+  color: #504030;
+}
+
+[data-theme="solar"] .chat-md :not(pre) > code {
+  background: rgba(184, 134, 11, 0.10);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .chat-md blockquote {
+  border-left-color: rgba(184, 134, 11, 0.35);
+  background: rgba(184, 134, 11, 0.04);
+  color: #6b5b4a;
+}
+
+[data-theme="solar"] .chat-md strong {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .chat-md a {
+  color: #2980b9;
+}
+
+[data-theme="solar"] .chat-md th {
+  background: rgba(120, 80, 20, 0.05);
+  color: #6b5b4a;
+}
+
+[data-theme="solar"] .chat-md th,
+[data-theme="solar"] .chat-md td {
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+/* ─── Action Manager — Solar ─── */
+[data-theme="solar"] .action-manager {
+  background: #fefaf0;
+  border-top-color: rgba(120, 80, 20, 0.10);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="solar"] .action-manager__resize-grip {
+  background: rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .action-manager__header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .action-manager__tab-count {
+  background: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .action-manager__tab--active .action-manager__tab-count {
+  background: rgba(184, 134, 11, 0.15);
+}
+
+[data-theme="solar"] .action-manager__tab-content {
+  scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
+}
+
+[data-theme="solar"] .action-manager__library {
+  scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
+}
+
+[data-theme="solar"] .action-manager__tab-content::-webkit-scrollbar-thumb,
+[data-theme="solar"] .action-manager__library::-webkit-scrollbar-thumb {
+  background: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .action-manager__tab-content::-webkit-scrollbar-thumb:hover,
+[data-theme="solar"] .action-manager__library::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 80, 20, 0.28);
+}
+
+[data-theme="solar"] .action-manager__section-title {
+  color: #5c5040;
+}
+
+[data-theme="solar"] .action-manager__tab {
+  color: #8a7c68;
+}
+
+[data-theme="solar"] .action-manager__tab:hover {
+  color: #5c5040;
+}
+
+[data-theme="solar"] .action-manager__tab--active {
+  background: rgba(184, 134, 11, 0.08);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .action-manager__separator {
+  color: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .action-manager__close-btn:hover {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .action-manager__expand-btn:hover {
+  color: #8b6914;
+}
+
+[data-theme="solar"] .action-library__search,
+[data-theme="solar"] .commands-panel__search {
+  background: var(--bg-input);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: var(--text-primary);
+}
+
+[data-theme="solar"] .commands-panel__view-toggle {
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .commands-panel__view-btn:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .commands-panel__view-btn--active {
+  background: rgba(184, 134, 11, 0.08);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .commands-panel__th {
+  border-bottom-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .commands-panel__row:hover {
+  background: rgba(120, 80, 20, 0.03);
+}
+
+[data-theme="solar"] .commands-panel__td {
+  border-bottom-color: rgba(120, 80, 20, 0.05);
+}
+
+/* ─── Actions Monitor — Solar ─── */
+[data-theme="solar"] .actions-monitor__pause-btn {
+  background: rgba(120, 80, 20, 0.05);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #5c5040;
+}
+
+[data-theme="solar"] .actions-monitor__pause-btn:hover {
+  background: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .actions-monitor__empty {
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #a89f8c;
+}
+
+[data-theme="solar"] .actions-monitor__job-card {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.10);
+  box-shadow: 0 1px 3px rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .actions-monitor__job-status {
+  background: rgba(120, 80, 20, 0.06);
+  color: #5c5040;
+}
+
+[data-theme="solar"] .actions-monitor__auto-card {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.10);
+  box-shadow: 0 1px 3px rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .actions-monitor__history-item {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.10);
+  box-shadow: 0 1px 3px rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .actions-monitor__history-item:hover {
+  border-color: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .actions-monitor__history-step {
+  background: rgba(253, 246, 227, 0.6);
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .actions-monitor__step-result {
+  background: rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .actions-monitor__request-param {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.08);
+  color: #5c5040;
+}
+
+[data-theme="solar"] .actions-monitor__request-param-key {
+  color: #7c6f5b;
+}
+
+[data-theme="solar"] .actions-monitor__history-status--completed {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.18);
+}
+
+[data-theme="solar"] .actions-monitor__history-status--failed {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.18);
+}
+
+[data-theme="solar"] .actions-monitor__recent-select {
+  background: rgba(120, 80, 20, 0.05);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #5c5040;
+}
+
+/* ─── Automations Panel — Solar ─── */
+[data-theme="solar"] .automations-panel__search {
+  background: var(--bg-input);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: var(--text-primary);
+}
+
+[data-theme="solar"] .automations-panel__view-toggle {
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .automations-panel__view-btn:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .automations-panel__view-btn--active {
+  background: rgba(184, 134, 11, 0.08);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .automations-panel__th {
+  border-bottom-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .automations-panel__row:hover {
+  background: rgba(120, 80, 20, 0.03);
+}
+
+[data-theme="solar"] .automations-panel__td {
+  border-bottom-color: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .automations-panel__action-btn:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+/* ─── History Panel — Solar ─── */
+[data-theme="solar"] .history-panel__search {
+  background: var(--bg-input);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: var(--text-primary);
+}
+
+[data-theme="solar"] .history-panel__status-filter {
+  background: var(--bg-input);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: var(--text-primary);
+}
+
+[data-theme="solar"] .history-panel__view-toggle {
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .history-panel__view-btn:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .history-panel__view-btn--active {
+  background: rgba(184, 134, 11, 0.08);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .history-panel__card {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.10);
+  box-shadow: 0 1px 3px rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .history-panel__card:hover {
+  border-color: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .history-panel__step {
+  background: rgba(253, 246, 227, 0.6);
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .history-panel__step-result {
+  background: rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .history-panel__request-param {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.08);
+  color: #5c5040;
+}
+
+[data-theme="solar"] .history-panel__request-param-key {
+  color: #7c6f5b;
+}
+
+[data-theme="solar"] .history-panel__status-pill--completed {
+  background: rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.18);
+}
+
+[data-theme="solar"] .history-panel__status-pill--failed {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.18);
+}
+
+[data-theme="solar"] .history-panel__th {
+  border-bottom-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .history-panel__row:hover {
+  background: rgba(120, 80, 20, 0.03);
+}
+
+[data-theme="solar"] .history-panel__td {
+  border-bottom-color: rgba(120, 80, 20, 0.05);
+}
+
+/* ─── Command Cards — Solar ─── */
+[data-theme="solar"] {
+  --cmd-card-back-bg: #fdf6e3;
+  --cmd-card-arg-type-bg: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .cmd-card__front {
+  background: linear-gradient(145deg, rgba(253,246,227,0.9) 0%, rgba(253,246,227,0.98) 100%) !important;
+  box-shadow: 0 2px 8px rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .cmd-card__description {
+  color: #5c5040;
+}
+
+[data-theme="solar"] .cmd-card__back {
+  box-shadow: 0 4px 12px rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .cmd-card__config-header {
+  color: #5c5040;
+  border-bottom-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .cmd-card__arg-name {
+  color: #3d3526;
+}
+
+[data-theme="solar"] .cmd-card__arg-type {
+  color: #7c6f5b;
+  background: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .cmd-card__output-label {
+  color: #7c6f5b;
+}
+
+[data-theme="solar"] .cmd-card__output-text {
+  color: #5c5040;
+}
+
+/* ─── Artifacts Panel — Solar ─── */
+[data-theme="solar"] .artifacts-panel {
+  background: rgba(253, 246, 227, 0.95);
+  border-top-color: rgba(120, 80, 20, 0.10);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="solar"] .artifacts-panel__resize-grip {
+  background: rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .artifacts-panel__header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .artifacts-panel__toolbar {
+  border-bottom-color: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .artifacts-panel__search {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .artifacts-panel__filter {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .artifacts-panel__tags-sidebar {
+  background: rgba(120, 80, 20, 0.03);
+  border-right-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .artifacts-panel__tag-item:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .artifacts-panel__tag-item--active {
+  background: rgba(184, 134, 11, 0.10);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .artifacts-panel__chip {
+  background: rgba(120, 80, 20, 0.05);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #8a7968;
+}
+
+[data-theme="solar"] .artifacts-panel__chip:hover {
+  background: rgba(184, 134, 11, 0.10);
+  border-color: rgba(184, 134, 11, 0.25);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .artifacts-panel__group-header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .artifacts-panel__group-count {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .artifacts-panel__active-filter {
+  background: rgba(184, 134, 11, 0.06);
+  border-bottom-color: rgba(184, 134, 11, 0.12);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .artifacts-panel__preview {
+  background: rgba(120, 80, 20, 0.03);
+  border-left-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .artifacts-panel__preview-header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .artifacts-panel__preview-badge {
+  background: rgba(184, 134, 11, 0.10);
+  border-color: rgba(184, 134, 11, 0.18);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .artifacts-panel__preview-actions {
+  border-top-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .artifacts-panel__btn--download {
+  background: rgba(120, 80, 20, 0.05);
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .artifacts-panel__btn--download:hover {
+  background: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .artifacts-panel__btn--delete {
+  background: rgba(192, 57, 43, 0.06);
+  border-color: rgba(192, 57, 43, 0.15);
+}
+
+[data-theme="solar"] .artifacts-panel__import-btn,
+[data-theme="solar"] .artifacts-panel__create-btn {
+  background: rgba(184, 134, 11, 0.08);
+  border-color: rgba(184, 134, 11, 0.18);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .artifacts-panel__create-btn {
+  background: rgba(46, 125, 50, 0.08);
+  border-color: rgba(46, 125, 50, 0.18);
+  color: #2e7d32;
+}
+
+/* ─── LLM Manager Panel — Solar ─── */
+[data-theme="solar"] .llm-panel {
+  background: rgba(253, 246, 227, 0.95);
+  border-top-color: rgba(120, 80, 20, 0.10);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="solar"] .llm-panel__resize-grip {
+  background: rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .llm-panel__header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .llm-panel__separator {
+  color: rgba(120, 80, 20, 0.25);
+}
+
+[data-theme="solar"] .llm-panel__icon-btn {
+  color: #8a7c68;
+}
+
+[data-theme="solar"] .llm-panel__icon-btn:hover {
+  color: #3b2e1a;
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .llm-panel__tab {
+  color: #8a7c68;
+}
+
+[data-theme="solar"] .llm-panel__tab:hover {
+  color: #5c5040;
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .llm-panel__tab--active {
+  color: #8b6914;
+  background: rgba(184, 134, 11, 0.08);
+}
+
+[data-theme="solar"] .llm-panel__tab-badge {
+  background: rgba(184, 134, 11, 0.12);
+  color: #8b6914;
+}
+
+[data-theme="solar"] .llm-panel__body {
+  scrollbar-color: rgba(120, 80, 20, 0.18) transparent;
+}
+
+[data-theme="solar"] .llm-panel__body::-webkit-scrollbar-thumb {
+  background: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .llm-panel__body::-webkit-scrollbar-thumb:hover {
+  background: rgba(120, 80, 20, 0.28);
+}
+
+/* Provider cards */
+[data-theme="solar"] .llm-provider-card {
+  border-color: rgba(120, 80, 20, 0.10);
+  background: rgba(120, 80, 20, 0.02);
+}
+
+[data-theme="solar"] .llm-provider-input-wrap input {
+  background: #fdf6e3;
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .llm-provider-model-tag {
+  color: #6b5b4a;
+}
+
+/* Ollama section */
+[data-theme="solar"] .llm-ollama-section {
+  border-top-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .llm-ollama-card {
+  border-color: rgba(130, 80, 200, 0.12);
+}
+
+[data-theme="solar"] .llm-ollama-add-form {
+  border-color: rgba(120, 80, 20, 0.12);
+  background: rgba(120, 80, 20, 0.02);
+}
+
+[data-theme="solar"] .llm-ollama-count {
+  background: rgba(120, 80, 20, 0.06);
+  color: #8a7b6a;
+}
+
+/* Model picker */
+[data-theme="solar"] .llm-model-option {
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #504030;
+}
+
+[data-theme="solar"] .llm-model-option:hover {
+  background: rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .llm-model-radio {
+  border-color: rgba(120, 80, 20, 0.25);
+}
+
+[data-theme="solar"] .llm-model-desc {
+  color: #a89882;
+}
+
+[data-theme="solar"] .llm-model-group-label {
+  color: #a89882;
+}
+
+/* Agent / Command rows */
+[data-theme="solar"] .llm-agent-row,
+[data-theme="solar"] .llm-command-row {
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .llm-agent-header:hover,
+[data-theme="solar"] .llm-command-header:hover {
+  background: rgba(120, 80, 20, 0.04);
+}
+
+[data-theme="solar"] .llm-agent-picker,
+[data-theme="solar"] .llm-command-picker {
+  background: rgba(120, 80, 20, 0.03);
+  border-top-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .llm-override-badge {
+  background: rgba(184, 134, 11, 0.10);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .llm-default-badge {
+  color: #a89882;
+}
+
+[data-theme="solar"] .llm-default-badge {
+  color: #a89882;
+}
+
+[data-theme="solar"] .llm-recommended-badge {
+  background: rgba(38, 139, 210, 0.10);
+  color: #268bd2;
+}
+
+[data-theme="solar"] .llm-recommended-hint {
+  color: #268bd2;
+}
+
+/* Footer LLM button */
+[data-theme="solar"] .footer__llm-btn {
+  color: #8a7c68;
+}
+
+[data-theme="solar"] .footer__llm-btn:hover {
+  color: #504030;
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .footer__llm-btn--active {
+  color: #8b6914;
+  background: rgba(184, 134, 11, 0.08);
+}
+
+/* Panel modal */
+[data-theme="solar"] .ap-modal {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.12);
+  box-shadow: 0 20px 60px rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .ap-modal__header {
+  border-bottom-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .ap-modal__input,
+[data-theme="solar"] .ap-modal__select,
+[data-theme="solar"] .ap-modal__textarea {
+  background: #fdf6e3;
+  border-color: rgba(120, 80, 20, 0.14);
+}
+
+[data-theme="solar"] .ap-modal__footer {
+  border-top-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .ap-modal__btn--cancel {
+  background: rgba(120, 80, 20, 0.05);
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .ap-modal__btn--create {
+  background: rgba(46, 125, 50, 0.10);
+  border-color: rgba(46, 125, 50, 0.25);
+  color: #2e7d32;
+}
+
+/* Modals */
+[data-theme="solar"] .modal-overlay {
+  background: rgba(60, 40, 10, 0.3);
+}
+
+/* Networks view */
+[data-theme="solar"] .networks-create-btn {
+  color: #fefaf0;
+}
+
+[data-theme="solar"] .networks-tab {
+  color: #8a7968;
+}
+
+[data-theme="solar"] .networks-tab--active {
+  color: #2980b9;
+  border-color: #2980b9;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CREATE NETWORK MODAL — Solar
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .cnm__backdrop {
+  background: rgba(60, 40, 10, 0.3);
+}
+
+[data-theme="solar"] .cnm__panel {
+  background: #fefaf0;
+  border-color: rgba(41, 128, 185, 0.22);
+  box-shadow: 0 25px 50px -12px rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .cnm__title {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .cnm__close-btn {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #a89882;
+}
+
+[data-theme="solar"] .cnm__close-btn:hover {
+  color: #6b5b4a;
+  background: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .cnm__label {
+  color: #6b5b4a;
+}
+
+[data-theme="solar"] .cnm__input {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(41, 128, 185, 0.20);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .cnm__input--desc {
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .cnm__textarea {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(184, 134, 11, 0.28);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .cnm__toggle {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .cnm__toggle--active {
+  background: rgba(184, 134, 11, 0.08);
+  border-color: rgba(184, 134, 11, 0.28);
+}
+
+[data-theme="solar"] .cnm__toggle-icon {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .cnm__toggle-label {
+  color: #6b5b4a;
+}
+
+[data-theme="solar"] .cnm__toggle-desc {
+  color: #a89882;
+}
+
+[data-theme="solar"] .cnm__switch {
+  background: rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .cnm__switch-knob {
+  background: #fefaf0;
+}
+
+[data-theme="solar"] .cnm__switch--active .cnm__switch-knob {
+  background: #fefaf0;
+}
+
+[data-theme="solar"] .cnm__info {
+  color: #8a7968;
+  background: rgba(41, 128, 185, 0.06);
+  border-color: rgba(41, 128, 185, 0.14);
+}
+
+[data-theme="solar"] .cnm__cancel-btn {
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #6b5b4a;
+}
+
+[data-theme="solar"] .cnm__cancel-btn:hover {
+  background: rgba(120, 80, 20, 0.05);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .cnm__submit-btn {
+  background: rgba(120, 80, 20, 0.08);
+  color: rgba(120, 80, 20, 0.30);
+}
+
+[data-theme="solar"] .cnm__submit-btn--enabled {
+  color: #fefaf0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * WORKSPACE MODAL — Solar
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .ws-modal__backdrop {
+  background: rgba(60, 40, 10, 0.3);
+}
+
+[data-theme="solar"] .ws-modal__container {
+  background: #fefaf0;
+  box-shadow: 0 50px 100px -20px rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .ws-modal__header {
+  background: rgba(120, 80, 20, 0.03);
+}
+
+[data-theme="solar"] .ws-modal__close-btn {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .ws-modal__close-btn:hover {
+  color: #3b2e1a;
+  background: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .ws-modal__create-card {
+  border-color: rgba(120, 80, 20, 0.14);
+  background: rgba(120, 80, 20, 0.02);
+}
+
+[data-theme="solar"] .ws-modal__create-card:hover {
+  background: rgba(184, 134, 11, 0.06);
+}
+
+[data-theme="solar"] .ws-modal__create-circle {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .ws-modal__overlay {
+  background: rgba(253, 246, 227, 0.85);
+  backdrop-filter: blur(6px);
+}
+
+[data-theme="solar"] .ws-modal__overlay--switch {
+  background: rgba(253, 246, 227, 0.90);
+}
+
+[data-theme="solar"] .ws-modal__form {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.12);
+  box-shadow: 0 25px 50px -12px rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .ws-modal__input {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .ws-modal__textarea {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .ws-modal__cancel-btn {
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .ws-modal__create-btn {
+  background: rgba(120, 80, 20, 0.08);
+  color: rgba(120, 80, 20, 0.30);
+}
+
+[data-theme="solar"] .ws-modal__create-btn--enabled {
+  color: #fefaf0;
+}
+
+[data-theme="solar"] .ws-modal__switch-card {
+  background: #fefaf0;
+  border-color: rgba(184, 134, 11, 0.22);
+  box-shadow: 0 25px 50px -12px rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .ws-modal__stay-btn {
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .ws-modal__switch-btn {
+  color: #fefaf0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * WORKSPACE CARD — Solar
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .ws-card__back {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .ws-card__id {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .ws-card__switch-btn {
+  color: #fefaf0;
+}
+
+[data-theme="solar"] .ws-card__copy-btn {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .ws-card__cancel-btn {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * BRIDGE BUILDER — Solar
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .bridge-builder {
+  background: rgba(184, 134, 11, 0.05);
+  border-color: rgba(184, 134, 11, 0.18);
+}
+
+[data-theme="solar"] .bridge-builder__title {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .bridge-builder__col-label {
+  color: #8a7968;
+}
+
+[data-theme="solar"] .bridge-builder__submit {
+  background: rgba(120, 80, 20, 0.08);
+  color: rgba(120, 80, 20, 0.35);
+}
+
+[data-theme="solar"] .bridge-builder__submit--enabled {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .bridge-builder__hint {
+  color: #a89882;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * UNIFIED BUILDER (Job/Automation) — Solar
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .builder__header {
+  background: #fdf8ee;
+}
+
+[data-theme="solar"] .builder__name-input {
+  color: #3b2e1a;
+  border-bottom-color: rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .builder__name-input::placeholder {
+  color: #a89882;
+}
+
+[data-theme="solar"] .builder__toggle-group,
+[data-theme="solar"] .builder__exec-toggle {
+  background: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .builder__toggle-btn--active,
+[data-theme="solar"] .builder__exec-btn--active {
+  background: #fefaf0;
+  color: #3b2e1a;
+  box-shadow: 0 1px 3px rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .builder__schedule-input,
+[data-theme="solar"] .builder__desc-input {
+  background: rgba(120, 80, 20, 0.04);
+  color: #5a4a32;
+}
+
+[data-theme="solar"] .builder__schedule-select {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #5a4a32;
+}
+
+[data-theme="solar"] .builder__schedule-input:focus,
+[data-theme="solar"] .builder__desc-input:focus {
+  background: rgba(120, 80, 20, 0.07);
+}
+
+[data-theme="solar"] .builder__schedule-select:focus {
+  border-color: rgba(180, 130, 40, 0.3);
+}
+
+[data-theme="solar"] .builder__search-input {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .builder__command {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .builder__command:hover {
+  background: #fdf5e6;
+  border-color: rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .builder__command-name {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .builder__command-desc {
+  color: #8a7a62;
+}
+
+[data-theme="solar"] .builder__steps {
+  background: #faf5ea;
+}
+
+[data-theme="solar"] .builder__step {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .builder__step--selected {
+  background: rgba(184, 134, 11, 0.06);
+  border-color: rgba(184, 134, 11, 0.25);
+}
+
+[data-theme="solar"] .builder__step-name {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .builder__step-meta {
+  color: #8a7a62;
+}
+
+[data-theme="solar"] .builder__config {
+  background: #fdf8ee;
+}
+
+[data-theme="solar"] .builder__config-header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+  color: #8a7a62;
+}
+
+[data-theme="solar"] .builder__config-title {
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .builder__config-desc {
+  color: #8a7a62;
+}
+
+[data-theme="solar"] .builder__arg-label {
+  color: #5a4a32;
+}
+
+[data-theme="solar"] .builder__condition-input {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .builder__icon-btn:hover:not(:disabled) {
+  background: rgba(120, 80, 20, 0.08);
+  color: #3b2e1a;
+}
+
+/* Deliverables & Storage sections */
+[data-theme="solar"] .builder__meta-toggle {
+  color: #5a4a32;
+}
+
+[data-theme="solar"] .builder__meta-toggle:hover {
+  background: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .builder__meta-add {
+  border-color: rgba(120, 80, 20, 0.18);
+  color: #8a7a62;
+}
+
+[data-theme="solar"] .builder__kv-input,
+[data-theme="solar"] .builder__kv-select {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .builder__storage-hint code {
+  background: rgba(120, 80, 20, 0.06);
+  color: #5a4a32;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * PROFILE MODAL — Solar
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .profile-modal-backdrop {
+  background: rgba(60, 40, 10, 0.3);
+}
+
+[data-theme="solar"] .profile-modal {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.12);
+  box-shadow: 0 25px 50px -12px rgba(120, 80, 20, 0.18);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ACTIVITY MODAL — Solar
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .activity-modal__backdrop {
+  background: rgba(60, 40, 10, 0.3);
+}
+
+[data-theme="solar"] .activity-modal__panel {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.12);
+  box-shadow: 0 25px 50px -12px rgba(120, 80, 20, 0.18);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ARCHITECT POPUP — Solar
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .architect-popup-backdrop {
+  background: rgba(60, 40, 10, 0.3);
+}
+
+[data-theme="solar"] .architect-popup {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.12);
+  box-shadow: 0 25px 50px -12px rgba(120, 80, 20, 0.18);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * ARTIFACTS VIEW (full page) — Solar
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .artifacts__tags-sidebar {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .artifacts__tag-item:hover {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .artifacts__tag-item--active {
+  background: rgba(184, 134, 11, 0.10);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .artifacts__tag-count {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .artifacts__active-filter {
+  background: rgba(184, 134, 11, 0.05);
+  border-color: rgba(184, 134, 11, 0.14);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .artifacts__group-header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .artifacts__group-count {
+  background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .artifact-card__chip {
+  background: rgba(120, 80, 20, 0.05);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #8a7968;
+}
+
+[data-theme="solar"] .artifact-card__chip:hover {
+  background: rgba(184, 134, 11, 0.10);
+  border-color: rgba(184, 134, 11, 0.25);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .artifacts__preview {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .artifacts__preview-header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .artifacts__preview-badge {
+  background: rgba(184, 134, 11, 0.10);
+  border-color: rgba(184, 134, 11, 0.18);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .artifacts__preview-body {
+  background: #fdf6e3;
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+/* ArtifactsView modal */
+[data-theme="solar"] .av-modal {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.12);
+  box-shadow: 0 20px 60px rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .av-modal__header {
+  border-bottom-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .av-modal__input,
+[data-theme="solar"] .av-modal__select,
+[data-theme="solar"] .av-modal__textarea {
+  background: #fdf6e3;
+  border-color: rgba(120, 80, 20, 0.14);
+}
+
+[data-theme="solar"] .av-modal__footer {
+  border-top-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .av-modal__btn--cancel {
+  background: rgba(120, 80, 20, 0.05);
+  border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .av-modal__btn--create {
+  background: rgba(46, 125, 50, 0.10);
+  border-color: rgba(46, 125, 50, 0.25);
+  color: #2e7d32;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * AGENT CHAT — Solar
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .agent-chat__panel {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.10);
+}
+
+[data-theme="solar"] .agent-chat__header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .agent-chat__input-area {
+  border-top-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .agent-chat__input {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .agent-chat__bubble--user {
+  background: rgba(184, 134, 11, 0.10);
+  border-color: rgba(184, 134, 11, 0.22);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .agent-chat__bubble--assistant {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #504030;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SETTINGS VIEW — Solar
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .settings-section {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .settings-input,
+[data-theme="solar"] .settings-select {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .settings-input:focus,
+[data-theme="solar"] .settings-select:focus {
+  border-color: rgba(184, 134, 11, 0.35);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * LOGIN — Solar
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .login-card {
+  background: #fefaf0;
+  border-color: rgba(120, 80, 20, 0.12);
+  box-shadow: 0 25px 50px -12px rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .login-input {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .login-input:focus {
+  border-color: rgba(184, 134, 11, 0.35);
+}
+
+/* ─── Display Panel — Solar ─── */
+[data-theme="solar"] .display-panel {
+  background: rgba(253, 246, 227, 0.95);
+  border-top-color: rgba(120, 80, 20, 0.10);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="solar"] .display-panel__resize-grip {
+  background: rgba(120, 80, 20, 0.15);
+}
+
+[data-theme="solar"] .display-panel__header {
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .display-panel__expand-btn:hover,
+[data-theme="solar"] .display-panel__close-btn:hover {
+  color: #504030;
+  background: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .display-panel__section-title {
+  color: #8a7968;
+}
+
+[data-theme="solar"] .display-panel__theme-btn {
+  background: rgba(120, 80, 20, 0.03);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #6b5d4d;
+}
+
+[data-theme="solar"] .display-panel__theme-btn:hover {
+  background: rgba(120, 80, 20, 0.07);
+  border-color: rgba(120, 80, 20, 0.20);
+  color: #3b2e1a;
+}
+
+[data-theme="solar"] .display-panel__theme-btn--active {
+  background: rgba(184, 134, 11, 0.10);
+  border-color: rgba(184, 134, 11, 0.30);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .display-panel__theme-btn--active:hover {
+  background: rgba(184, 134, 11, 0.16);
+  border-color: rgba(184, 134, 11, 0.40);
+}
+
+[data-theme="solar"] .display-panel__theme-icon {
+  color: #8a7968;
+}
+
+[data-theme="solar"] .display-panel__theme-btn--active .display-panel__theme-icon {
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .display-panel__theme-desc {
+  color: #a89880;
+}
+
+[data-theme="solar"] .display-panel__theme-btn--active .display-panel__theme-desc {
+  color: rgba(156, 109, 16, 0.6);
+}
+
+[data-theme="solar"] .display-panel__body {
+  scrollbar-color: rgba(120, 80, 20, 0.15) transparent;
+}
+
+/* ═══ Graphics Panel — Solar ═══ */
+[data-theme="solar"] .display-panel__add-btn {
+  border-color: rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .display-panel__add-btn:hover {
+  border-color: rgba(156, 109, 16, 0.25);
+  background: rgba(156, 109, 16, 0.06);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .display-panel__cache-toast {
+  color: #9c6d10;
+  background: rgba(156, 109, 16, 0.06);
+  border-color: rgba(156, 109, 16, 0.15);
+}
+
+[data-theme="solar"] .display-panel__custom-form {
+  background: rgba(120, 80, 20, 0.02);
+  border-color: rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .display-panel__graphics-btn {
+  background: rgba(120, 80, 20, 0.02);
+  border-color: rgba(120, 80, 20, 0.08);
+  color: #8a7050;
+}
+
+[data-theme="solar"] .display-panel__graphics-btn:hover {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: #4a3520;
+}
+
+[data-theme="solar"] .display-panel__graphics-btn--active {
+  background: rgba(156, 109, 16, 0.08);
+  border-color: rgba(156, 109, 16, 0.3);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .display-panel__graphics-btn--active:hover {
+  background: rgba(156, 109, 16, 0.12);
+  border-color: rgba(156, 109, 16, 0.4);
+}
+
+[data-theme="solar"] .display-panel__graphics-btn--active .display-panel__graphics-desc {
+  color: rgba(156, 109, 16, 0.6);
+}
+
+[data-theme="solar"] .display-panel__graphics-btn--active .display-panel__graphics-icon {
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .display-panel__graphics-delete:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+/* Portrait option toggles */
+[data-theme="solar"] .display-panel__toggle-row {
+  background: #f7f0e0;
+  border-color: #e8dcc8;
+}
+
+[data-theme="solar"] .display-panel__toggle-row:hover {
+  background: #f0e8d4;
+}
+
+[data-theme="solar"] .display-panel__switch {
+  background: #d4c8a8;
+  border-color: #d4c8a8;
+}
+
+[data-theme="solar"] .display-panel__switch--on {
+  background: #9c6d10;
+  border-color: #9c6d10;
+}
+
+[data-theme="solar"] .display-panel__switch-knob {
+  background: #fefaf0;
+}
+
+/* ═══ Ecosystem Overview ═══ */
+[data-theme="solar"] .channel-btn--active-eco {
+  background: rgba(156, 109, 16, 0.06);
+  border-color: rgba(156, 109, 16, 0.2);
+}
+
+[data-theme="solar"] .msg-item--eco {
+  border-left-color: #e8dcc8;
+}
+
+[data-theme="solar"] .msg-item--eco:hover {
+  border-left-color: rgba(156, 109, 16, 0.4);
+}
+
+[data-theme="solar"] .msg-input-bar--eco {
+  background: #f8f0de;
+}
+
+[data-theme="solar"] .msg-eco-footer {
+  color: #a89880;
+}
+
+/* Artifact reference chips */
+[data-theme="solar"] .msg-artifact-chip {
+  border-color: #9c6d10;
+  background: rgba(156, 109, 16, 0.06);
+  color: #9c6d10;
+}
+
+[data-theme="solar"] .msg-artifact-chip:hover {
+  background: rgba(156, 109, 16, 0.12);
+  box-shadow: 0 2px 6px rgba(156, 109, 16, 0.12);
+}
+
+[data-theme="solar"] .msg-artifact-chip__type {
+  color: #a89880;
+}

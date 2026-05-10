@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { sendMessageCommand } from '../../../../services/commands/definitions/messaging';
-import * as aiService from '../../../../services/ai';
+import { sendMessageCommand } from '@/services/commands/definitions/messaging';
+import * as aiService from '@/services/ai';
 
 // Mock the AI service
 vi.mock('../../../../services/ai', () => ({
@@ -28,7 +28,11 @@ describe('sendMessageCommand', () => {
                 // Simulate state update if needed, but for unit test we check mock call
             }),
             addLog: vi.fn(),
-        }
+        },
+        auth: {
+            user: { did: 'did:user:123', profile: { name: 'TestUser' } }
+        },
+        storage: {} as Record<string, any>,
     };
 
     beforeEach(() => {
@@ -37,8 +41,8 @@ describe('sendMessageCommand', () => {
 
     it('sends a message and triggers AI response', async () => {
         const args = {
-            from_agent_name: 'Sender',
-            to_agent_name: 'Receiver',
+            from_agent_id: 'agent-1',
+            to_agent_id: 'agent-2',
             message: 'Hello'
         };
 
@@ -55,8 +59,8 @@ describe('sendMessageCommand', () => {
 
     it('sends a message to agent without prompt (no AI trigger)', async () => {
         const args = {
-            from_agent_name: 'Sender',
-            to_agent_name: 'Passive', // agent-3 has no prompt
+            from_agent_id: 'agent-1',
+            to_agent_id: 'agent-3', // agent-3 has no prompt
             message: 'Hello'
         };
 
@@ -69,12 +73,12 @@ describe('sendMessageCommand', () => {
 
     it('throws if agent not found', async () => {
         const args = {
-            from_agent_name: 'Unknown',
-            to_agent_name: 'Receiver',
+            from_agent_id: 'unknown-id',
+            to_agent_id: 'agent-2',
             message: 'Hello'
         };
 
-        await expect(sendMessageCommand.execute(args, mockContext as any)).rejects.toThrow("Sender agent 'Unknown' not found");
+        await expect(sendMessageCommand.execute(args, mockContext as any)).rejects.toThrow("Sender agent 'unknown-id' not found");
     });
 
     it('throws if channel does not exist', async () => {
@@ -88,13 +92,29 @@ describe('sendMessageCommand', () => {
         };
 
         const args = {
-            from_agent_name: 'Sender',
-            to_agent_name: 'Receiver', // Agents exist, but no channel
+            from_agent_id: 'agent-1',
+            to_agent_id: 'agent-2', // Agents exist, but no channel
             message: 'Hello'
         };
 
         // The implementation throws "No channel exists..." if not found
         // Note: implementation might construct error string dynamically
         await expect(sendMessageCommand.execute(args, contextNoChannel as any)).rejects.toThrow(/No channel exists/);
+    });
+
+    it('allows user as sender via "user" keyword', async () => {
+        const args = {
+            from_agent_id: 'user',
+            to_agent_id: 'agent-2',
+            message: 'Hi from user'
+        };
+
+        vi.mocked(aiService.callAgentAI).mockResolvedValue("Agent reply to user");
+
+        const result = await sendMessageCommand.execute(args, mockContext as any);
+
+        expect(result.status).toBe('delivered');
+        expect(result.response).toBe('Agent reply to user');
+        expect(mockContext.workspace.setMessages).toHaveBeenCalled();
     });
 });

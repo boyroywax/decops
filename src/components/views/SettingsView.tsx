@@ -1,19 +1,20 @@
 import { useState, useRef } from "react";
 import { Download, Upload, AlertTriangle, Database } from "lucide-react";
-import type { Agent, Channel, Group, Message, Network, Bridge } from "../../types";
+import type { Agent, Channel, Group, Message, Network, Bridge } from "@/types";
+import "../../styles/components/settings.css";
 
 interface SettingsViewProps {
     agents: Agent[];
     channels: Channel[];
     groups: Group[];
     messages: Message[];
-    ecosystems: Network[];
+    networks: Network[];
     bridges: Bridge[];
     setAgents: (val: Agent[]) => void;
     setChannels: (val: Channel[]) => void;
     setGroups: (val: Group[]) => void;
     setMessages: (val: Message[]) => void;
-    setEcosystems?: (val: Network[]) => void; // Optional if not all props passed yet
+    setNetworks?: (val: Network[]) => void; // Optional if not all props passed yet
     setBridges?: (val: Bridge[]) => void;
 }
 
@@ -22,13 +23,13 @@ export function SettingsView({
     channels,
     groups,
     messages,
-    ecosystems,
+    networks,
     bridges,
     setAgents,
     setChannels,
     setGroups,
     setMessages,
-    setEcosystems,
+    setNetworks,
     setBridges,
 }: SettingsViewProps) {
     const [importStatus, setImportStatus] = useState<string>("");
@@ -54,19 +55,9 @@ export function SettingsView({
             version: "1.0",
             type: "workspace",
             exportedAt: new Date().toISOString(),
-            data: { agents, channels, groups, messages },
+            data: { agents, channels, groups, messages, networks, bridges },
         };
         downloadJSON(data, `decops-workspace-${new Date().getTime()}.json`);
-    };
-
-    const handleExportEcosystem = () => {
-        const data = {
-            version: "1.0",
-            type: "ecosystem",
-            exportedAt: new Date().toISOString(),
-            data: { ecosystems, bridges },
-        };
-        downloadJSON(data, `decops-ecosystem-${new Date().getTime()}.json`);
     };
 
     const handleFullBackup = () => {
@@ -75,8 +66,8 @@ export function SettingsView({
             type: "full-backup",
             exportedAt: new Date().toISOString(),
             data: {
-                workspace: { agents, channels, groups, messages },
-                ecosystem: { ecosystems, bridges },
+                agents, channels, groups, messages,
+                networks, bridges,
             },
         };
         downloadJSON(data, `decops-full-backup-${new Date().getTime()}.json`);
@@ -116,16 +107,17 @@ export function SettingsView({
 
         // Handle full backup or individual types
         if (json.type === "full-backup") {
-            if (json.data.workspace) {
-                setAgents(json.data.workspace.agents || []);
-                setChannels(json.data.workspace.channels || []);
-                setGroups(json.data.workspace.groups || []);
-                setMessages(json.data.workspace.messages || []);
-                count++;
-            }
-            if (json.data.ecosystem && setEcosystems && setBridges) {
-                setEcosystems(json.data.ecosystem.ecosystems || []);
-                setBridges(json.data.ecosystem.bridges || []);
+            // Support both old nested format and new flat format
+            const ws = json.data.workspace || json.data;
+            const eco = json.data.ecosystem || json.data;
+            setAgents(ws.agents || []);
+            setChannels(ws.channels || []);
+            setGroups(ws.groups || []);
+            setMessages(ws.messages || []);
+            count++;
+            if (setNetworks && setBridges) {
+                setNetworks(eco.networks || eco.ecosystems || []);
+                setBridges(eco.bridges || []);
                 count++;
             }
         } else if (json.type === "workspace") {
@@ -133,9 +125,16 @@ export function SettingsView({
             setChannels(json.data.channels || []);
             setGroups(json.data.groups || []);
             setMessages(json.data.messages || []);
+            if (setNetworks && (json.data.networks || json.data.ecosystems)) {
+                setNetworks(json.data.networks || json.data.ecosystems || []);
+            }
+            if (setBridges && json.data.bridges) {
+                setBridges(json.data.bridges || []);
+            }
             count++;
-        } else if (json.type === "ecosystem" && setEcosystems && setBridges) {
-            setEcosystems(json.data.ecosystems || []);
+        } else if (json.type === "ecosystem" && setNetworks && setBridges) {
+            // Legacy ecosystem-only imports
+            setNetworks(json.data.networks || json.data.ecosystems || []);
             setBridges(json.data.bridges || []);
             count++;
         } else {
@@ -160,22 +159,21 @@ export function SettingsView({
     };
 
     return (
-        <div style={{ maxWidth: "800px" }}>
-            <h2 className="settings-header" style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ color: "#ef4444", display: "flex", alignItems: "center" }}><Database size={20} /></span> Data Management
+        <div className="settings">
+            <h2 className="settings-header">
+                <span className="settings-header__icon"><Database size={20} /></span> Data Management
             </h2>
 
-            <div style={{ display: "grid", gap: 24 }}>
+            <div className="settings__grid">
                 {/* Export Section */}
                 <section className="settings-section">
-                    <h3 className="section-title" style={{ color: "var(--color-warning)" }}>
+                    <h3 className="settings-section__title" style={{ color: "var(--color-warning)" }}>
                         <span className="btn-icon"><Download size={18} color="#fbbf24" /></span> Export Data
                     </h3>
                     <p className="section-desc">
-                        Download your current workspace or full ecosystem state as a JSON
-                        file.
+                        Download your workspace ecosystem as a JSON file.
                     </p>
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <div className="settings__btn-row">
                         <button
                             onClick={handleExportWorkspace}
                             className="btn btn-surface"
@@ -183,15 +181,8 @@ export function SettingsView({
                             Export Workspace
                         </button>
                         <button
-                            onClick={handleExportEcosystem}
-                            className="btn btn-surface"
-                        >
-                            Export Ecosystem
-                        </button>
-                        <button
                             onClick={handleFullBackup}
                             className="btn btn-primary"
-                            style={{ color: "#000" }}
                         >
                             Full Backup (.json)
                         </button>
@@ -200,14 +191,14 @@ export function SettingsView({
 
                 {/* Import Section */}
                 <section className="settings-section">
-                    <h3 className="section-title" style={{ color: "var(--color-info)" }}>
+                    <h3 className="settings-section__title" style={{ color: "var(--color-info)" }}>
                         <span className="btn-icon"><Upload size={18} color="#38bdf8" /></span> Import Data
                     </h3>
                     <p className="section-desc">
                         Restore a previous state from a JSON file. This will overwrite
                         current data.
                     </p>
-                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                    <div className="settings__import-row">
                         <button
                             onClick={handleImportClick}
                             className="btn btn-secondary"
@@ -223,11 +214,7 @@ export function SettingsView({
                         />
                         {importStatus && (
                             <span
-                                style={{
-                                    fontSize: 12,
-                                    fontFamily: "var(--font-mono)",
-                                    color: importStatus.startsWith("Error") ? "var(--color-danger)" : "var(--color-accent)",
-                                }}
+                                className={`settings__import-status ${importStatus.startsWith("Error") ? "settings__import-status--error" : "settings__import-status--success"}`}
                             >
                                 {importStatus}
                             </span>
@@ -236,18 +223,12 @@ export function SettingsView({
                 </section>
 
                 {/* Danger Zone */}
-                <section className="settings-section" style={{ borderColor: "rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.05)" }}>
-                    <h3 className="section-title" style={{ color: "var(--color-danger)" }}>
+                <section className="settings-section settings-section--danger">
+                    <h3 className="settings-section__title" style={{ color: "var(--color-danger)" }}>
                         <span className="btn-icon"><AlertTriangle size={18} color="#ef4444" /></span> Danger Zone
                     </h3>
-                    <div
-                        style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                        }}
-                    >
-                        <p className="section-desc" style={{ margin: 0, color: "rgba(239,68,68,0.8)" }}>
+                    <div className="settings__danger-row">
+                        <p className="section-desc section-desc--danger">
                             Clear all data from LocalStorage and reset application to default
                             state.
                         </p>

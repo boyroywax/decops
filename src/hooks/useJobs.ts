@@ -1,6 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import type { Job, JobStatus, JobArtifact, JobRequest } from "../types";
+import type { Job, JobStatus, JobArtifact, JobRequest, JobEvent } from "@/types";
+
+/** Push a lifecycle event onto a job's timeline (immutable). */
+function pushEvent(existing: JobEvent[] | undefined, event: Omit<JobEvent, "timestamp">): JobEvent[] {
+    return [...(existing || []), { ...event, timestamp: Date.now() }];
+}
 
 export function useJobs() {
     const [jobs, setJobs] = useLocalStorage<Job[]>("decops_jobs", []);
@@ -8,22 +13,41 @@ export function useJobs() {
     const [standaloneArtifacts, setStandaloneArtifacts] = useLocalStorage<JobArtifact[]>("decops_artifacts", []);
 
     const addJob = useCallback((jobData: JobRequest) => {
+        const now = Date.now();
         const newJob: Job = {
-            id: `job-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: `job-${now}-${Math.random().toString(36).substr(2, 9)}`,
             status: "queued",
             artifacts: [],
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
+            createdAt: now,
+            updatedAt: now,
+            timeline: [{ timestamp: now, kind: "created", label: `Job created` }],
             ...jobData,
         };
         setJobs((prev) => [newJob, ...prev]);
-
+        return newJob;
     }, []);
 
     const updateJobStatus = useCallback((id: string, status: JobStatus, result?: string) => {
         setJobs((prev) => prev.map((job) => {
             if (job.id === id) {
-                return { ...job, status, result, updatedAt: Date.now() };
+                const now = Date.now();
+                const kind = status as JobEvent["kind"]; // "completed"|"failed"|"started" etc.
+                const duration = (status === "completed" || status === "failed") && job.startedAt
+                    ? now - job.startedAt : undefined;
+                return {
+                    ...job,
+                    status,
+                    result,
+                    updatedAt: now,
+                    ...(status === "running" ? { startedAt: job.startedAt || now } : {}),
+                    ...(status === "completed" || status === "failed" ? { completedAt: now } : {}),
+                    timeline: pushEvent(job.timeline, {
+                        kind,
+                        label: `Job ${status}`,
+                        detail: result?.slice(0, 200),
+                        duration,
+                    }),
+                };
             }
             return job;
         }));
@@ -39,11 +63,12 @@ export function useJobs() {
     }, []);
 
     const addArtifact = useCallback((jobId: string, artifact: JobArtifact) => {
+        const stamped = { ...artifact, createdAt: artifact.createdAt || Date.now(), source: artifact.source || "job" as const };
         setJobs((prev) => prev.map((job) => {
             if (job.id === jobId) {
                 return {
                     ...job,
-                    artifacts: [...job.artifacts, artifact],
+                    artifacts: [...job.artifacts, stamped],
                     updatedAt: Date.now()
                 };
             }
@@ -52,7 +77,16 @@ export function useJobs() {
     }, []);
 
     const importArtifact = useCallback((artifact: JobArtifact) => {
-        setStandaloneArtifacts(prev => [artifact, ...prev]);
+        const stamped = { ...artifact, createdAt: artifact.createdAt || Date.now(), source: artifact.source || "import" as const };
+        setStandaloneArtifacts(prev => [stamped, ...prev]);
+    }, []);
+
+    const updateArtifact = useCallback((id: string, updates: Partial<JobArtifact>) => {
+        setStandaloneArtifacts(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+        setJobs(prev => prev.map(job => ({
+            ...job,
+            artifacts: job.artifacts.map(a => a.id === id ? { ...a, ...updates } : a)
+        })));
     }, []);
 
     const removeJob = useCallback((id: string) => {
@@ -76,9 +110,7 @@ export function useJobs() {
         ...standaloneArtifacts,
         ...jobs.flatMap(j => j.artifacts)
     ].sort((a, b) => {
-        const tsA = parseInt(a.id.split('-')[1] || '0');
-        const tsB = parseInt(b.id.split('-')[1] || '0');
-        return tsB - tsA;
+        return (b.createdAt || 0) - (a.createdAt || 0);
     });
 
     const [isPaused, setIsPaused] = useState(false);
@@ -89,8 +121,47 @@ export function useJobs() {
 
     const stopJob = useCallback((id: string) => {
         setJobs(prev => prev.map(job => {
-            if (job.id === id && job.status === "running") {
-                return { ...job, status: "failed", result: "Stopped by user", updatedAt: Date.now() };
+            if (job.id === id && (job.status === "running" || job.status === "awaiting-input")) {
+                const now = Date.now();
+                return {
+                    ...job,
+                    status: "failed",
+                    result: "Stopped by user",
+                    pendingPrompt: undefined,
+                    updatedAt: now,
+                    completedAt: now,
+                    timeline: pushEvent(job.timeline, {
+                        kind: "stopped",
+                        label: "Stopped by user",
+                    }),
+                };
+            }
+            return job;
+        }));
+    }, []);
+
+    /** Resolve a pending prompt input — fills the input value and re-queues the job */
+    const resolvePromptInput = useCallback((jobId: string, inputName: string, value: string) => {
+        setJobs(prev => prev.map(job => {
+            if (job.id === jobId && job.status === "awaiting-input" && job.pendingPrompt?.inputName === inputName) {
+                // Update the input's entityId with the user-provided value
+                const updatedInputs = (job.inputs || job.request?.inputDefaults || []).map((inp: any) =>
+                    inp.name === inputName ? { ...inp, entityId: value } : inp
+                );
+                const now = Date.now();
+                return {
+                    ...job,
+                    status: "queued" as JobStatus,
+                    inputs: updatedInputs,
+                    inputDefaults: updatedInputs,
+                    pendingPrompt: undefined,
+                    updatedAt: now,
+                    timeline: pushEvent(job.timeline, {
+                        kind: "input-received",
+                        label: `User provided input: ${inputName}`,
+                        detail: value.slice(0, 200),
+                    }),
+                };
             }
             return job;
         }));
@@ -142,11 +213,16 @@ export function useJobs() {
         clearJobs,
         importArtifact,
         removeArtifact,
+        updateArtifact,
         allArtifacts,
         isPaused,
         toggleQueuePause,
         stopJob,
+        resolvePromptInput,
         updateJob,
-        reorderQueue
+        reorderQueue,
+        setJobs,
+        setStandaloneArtifacts,
+        standaloneArtifacts
     };
 }

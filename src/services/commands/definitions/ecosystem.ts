@@ -1,123 +1,420 @@
 
-import type { CommandDefinition, CommandContext } from "../types";
+import type { CommandDefinition, CommandContext } from "@/services/commands/types";
+import type { RoleId } from "@/types";
+import { generateNetworkDID } from "@/utils/identity";
+import { generateMeshConfig } from "@/services/ai";
+import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, GROUP_COLORS, NETWORK_COLORS } from "@/constants";
+import { generateDID, generateKeyPair, generateGroupDID } from "@/utils/identity";
+import { createAieosEntity } from "@/utils/aieos";
+import { slugifyStorageKey } from "@/utils/storageKey";
 
-export const saveEcosystemCommand: CommandDefinition = {
-    id: "save_ecosystem",
-    description: "Save the current agent, channel, and group configuration as a named ecosystem.",
-    tags: ["ecosystem", "save"],
-    rbac: ["orchestrator", "curator"],
+export const createNetworkCommand: CommandDefinition = {
+    id: "create_network",
+    description: "Create a new network in the workspace, optionally populated via the AI Architect.",
+    tags: ["ecosystem", "network", "create"],
+    rbac: ["orchestrator", "builder"],
+    usesAI: true,
     args: {
         name: {
             name: "name",
             type: "string",
-            description: "Name for the saved ecosystem",
+            description: "Name for the new network",
+            required: true
+        },
+        description: {
+            name: "description",
+            type: "string",
+            description: "Optional description",
+            required: false,
+            defaultValue: ""
+        },
+        architectPrompt: {
+            name: "architectPrompt",
+            type: "string",
+            description: "If provided, use the AI Architect to generate the network contents",
+            required: false,
+            defaultValue: ""
+        },
+        items: {
+            name: "items",
+            type: "array",
+            description: "Batch mode: array of {name, description?} specs. Overrides individual args (architectPrompt not supported in batch).",
+            required: false,
         }
     },
-    output: "JSON object of the saved network configuration.",
+    output: "The created network object.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" }, network: { type: "object" } } },
     execute: async (args, context: CommandContext) => {
-        // We'll simulate the saveCurrentNetwork logic by setting the save name then triggering saving if possible,
-        // or by manually calling save if we can access the full state.
-        // The implementation in useEcosystem relies on internal state (activeAgents, etc.) at the moment of save.
-        // Ideally we should pass the current state to the command context to be saved.
-        // Since `saveCurrentNetwork` in `useEcosystem` uses its closure state, calling it directly might save
-        // whatever `useEcosystem` sees. However, `CommandContext.ecosystem.saveCurrentNetwork` is bound to that hook instance.
-        // But `useEcosystem`'s `saveCurrentNetwork` checks `ecoSaveName` state validy.
-        // We might need to Refactor `useEcosystem` to accept a name arg in `saveCurrentNetwork(name?: string)`.
+        // Batch mode: create multiple bare networks (architectPrompt not supported)
+        if (args.items) {
+            const specs = Array.isArray(args.items) ? args.items : [args.items];
+            const existingNetworks = context.ecosystem.networks || [];
+            const created: any[] = [];
 
-        // For now, let's assume we can't easily change the hook signature without refactoring it.
-        // A workaround: We can just manually implement the saving logic here since we have `setEcosystems` and the data.
+            for (let i = 0; i < specs.length; i++) {
+                const spec = specs[i];
+                const netId = crypto.randomUUID();
+                const cIdx = (existingNetworks.length + i) % (NETWORK_COLORS?.length || 6);
+                const clr = NETWORK_COLORS?.[cIdx] || "#00e5a0";
+
+                const net = {
+                    id: netId,
+                    name: spec.name,
+                    description: spec.description || "",
+                    did: generateNetworkDID(),
+                    color: clr,
+                    agents: [] as any[], channels: [] as any[], groups: [] as any[], messages: [] as any[],
+                    createdAt: new Date().toISOString(),
+                };
+
+                created.push(net);
+                context.storage.lastNetworkId = netId;
+                context.storage[`network_${spec.name}`] = netId;
+                context.storage[`network_${slugifyStorageKey(spec.name)}`] = netId;
+            }
+
+            context.ecosystem.setNetworks((prev: any[]) => [...prev, ...created]);
+            context.storage._networks = [...(context.storage._networks || []), ...created];
+            context.workspace.addLog(`Created ${created.length} network(s): ${created.map((n: any) => n.name).join(", ")}`);
+
+            // Auto-activate the last created network
+            if (created.length > 0 && context.ecosystem.setActiveNetworkId) {
+                context.ecosystem.setActiveNetworkId(created[created.length - 1].id);
+            }
+
+            return { success: true, results: created.map((n: any) => ({ networkId: n.id, name: n.name })) };
+        }
+
+        // Single mode
+        const networkId = crypto.randomUUID();
+        const existingNetworks = context.ecosystem.networks || [];
+        const colorIdx = existingNetworks.length % (NETWORK_COLORS?.length || 6);
+        const color = NETWORK_COLORS?.[colorIdx] || "#00e5a0";
+
+        let agents: any[] = [];
+        let channels: any[] = [];
+        let groups: any[] = [];
+        let messages: any[] = [];
+
+        // If architectPrompt is provided, generate the network contents via AI
+        if (args.architectPrompt) {
+            context.workspace.addLog(`Architect generating network "${args.name}"...`);
+            try {
+                const config = await generateMeshConfig(args.architectPrompt);
+
+                // Create agents
+                for (const a of (config.agents || [])) {
+                    if (!a || !a.name) continue;
+                    const validRole = (ROLES.find((r: any) => r.id === a.role) ? a.role : "researcher") as RoleId;
+                    agents.push({
+                        id: crypto.randomUUID(), name: a.name, role: validRole,
+                        prompt: a.prompt || "", did: generateDID(), keys: generateKeyPair(),
+                        createdAt: new Date().toISOString(), status: "active",
+                        networkId,
+                        aieos: createAieosEntity(a.name, validRole, a.prompt || ""),
+                    });
+                }
+
+                // Create channels
+                for (const c of (config.channels || [])) {
+                    if (c.from == null || c.to == null) continue;
+                    const fromAgent = agents[c.from];
+                    const toAgent = agents[c.to];
+                    if (!fromAgent || !toAgent) continue;
+                    const validType = CHANNEL_TYPES.find((t: any) => t.id === c.type) ? c.type : "data";
+                    channels.push({
+                        id: crypto.randomUUID(), from: fromAgent.id, to: toAgent.id,
+                        type: validType, offset: Math.random() * 120, createdAt: new Date().toISOString(),
+                        networkId,
+                    });
+                }
+
+                // Create groups
+                for (const g of (config.groups || [])) {
+                    if (!g || !g.name) continue;
+                    const memberIds = (g.members || []).map((idx: number) => agents[idx]?.id).filter(Boolean);
+                    if (memberIds.length < 2) continue;
+                    const validGov = GOVERNANCE_MODELS.find((m: any) => m.id === g.governance) ? g.governance : "majority";
+                    groups.push({
+                        id: crypto.randomUUID(), name: g.name, governance: validGov,
+                        members: memberIds, threshold: g.threshold || 2,
+                        did: generateGroupDID(), color: GROUP_COLORS[groups.length % GROUP_COLORS.length],
+                        createdAt: new Date().toISOString(),
+                        networkId,
+                    });
+                }
+
+                context.workspace.addLog(`Architect generated ${agents.length} agents, ${channels.length} channels, ${groups.length} groups.`);
+                // Also add architect-generated entities to workspace so they're live
+                if (agents.length > 0) context.workspace.setAgents((prev: any[]) => [...prev, ...agents]);
+                if (channels.length > 0) context.workspace.setChannels((prev: any[]) => [...prev, ...channels]);
+                if (groups.length > 0) context.workspace.setGroups((prev: any[]) => [...prev, ...groups]);
+            } catch (e: any) {
+                context.workspace.addLog(`Architect failed: ${e.message}. Creating empty network.`);
+            }
+        }
 
         const net = {
-            id: crypto.randomUUID(),
+            id: networkId,
             name: args.name,
-            did: `did:decops:net:${crypto.randomUUID()}`,
-            color: "#00e5a0", // Default color
-            agents: [...context.workspace.agents],
-            channels: [...context.workspace.channels],
-            groups: [...context.workspace.groups],
-            messages: [...context.workspace.messages],
-            createdAt: new Date().toISOString()
+            description: args.description || "",
+            did: generateNetworkDID(),
+            color,
+            agents,
+            channels,
+            groups,
+            messages,
+            createdAt: new Date().toISOString(),
         };
 
-        context.ecosystem.setEcosystems((prev: any[]) => [...prev, net]);
-        context.workspace.addLog(`Ecosystem "${args.name}" saved.`);
+        context.ecosystem.setNetworks((prev: any[]) => [...prev, net]);
+        context.workspace.addLog(`Network "${args.name}" created in ecosystem.`);
+
+        // Auto-activate the newly created network so subsequent entity creation inherits it
+        if (context.ecosystem.setActiveNetworkId) {
+            context.ecosystem.setActiveNetworkId(networkId);
+        }
+
+        // Write to shared storage for downstream steps
+        context.storage.lastNetworkId = networkId;
+        context.storage[`network_${args.name}`] = networkId;
+        context.storage[`network_${slugifyStorageKey(args.name)}`] = networkId;
+
+        // Accumulate entities so downstream steps can look them up
+        // (React state may be stale within the same job execution cycle)
+        context.storage._networks = [...(context.storage._networks || []), net];
+        if (agents.length > 0) {
+            context.storage._agents = [...(context.storage._agents || []), ...agents];
+            // Also set per-agent storage keys for name→id resolution
+            for (const a of agents) {
+                context.storage[`agent_${a.name}`] = a.id;
+                context.storage[`agent_${slugifyStorageKey(a.name)}`] = a.id;
+            }
+        }
+        if (channels.length > 0) {
+            context.storage._channels = [...(context.storage._channels || []), ...channels];
+        }
+
         return { success: true, network: net };
     }
 };
 
-export const loadEcosystemCommand: CommandDefinition = {
-    id: "load_ecosystem",
-    description: "Load an ecosystem configuration into the active workspace.",
-    tags: ["ecosystem", "load"],
-    rbac: ["orchestrator", "curator"],
+export const listNetworksCommand: CommandDefinition = {
+    id: "list_networks",
+    description: "List all networks in the workspace ecosystem.",
+    tags: ["ecosystem", "network", "query"],
+    rbac: ["researcher", "builder", "curator", "orchestrator"],
+    args: {},
+    output: "List of all networks in the ecosystem.",
+    outputSchema: { type: "object", properties: { networks: { type: "array", items: { type: "object" } } } },
+    execute: async (args, context: CommandContext) => {
+        const list = context.ecosystem.networks.map((n: any) => ({
+            id: n.id,
+            name: n.name,
+            description: n.description || "",
+            color: n.color,
+            agentCount: n.agents?.length || 0,
+            channelCount: n.channels?.length || 0,
+            groupCount: n.groups?.length || 0,
+            createdAt: n.createdAt,
+        }));
+
+        context.storage.networks = list;
+        return { networks: list };
+    }
+};
+
+export const updateNetworkCommand: CommandDefinition = {
+    id: "update_network",
+    description: "Update properties of an existing network in the workspace (name, description, color).",
+    tags: ["ecosystem", "network", "update"],
+    rbac: ["orchestrator", "builder"],
     args: {
         id: {
             name: "id",
-            type: "string",
-            description: "ID of the ecosystem to load",
+            type: "network",
+            description: "ID of the network to update",
             required: true
+        },
+        name: {
+            name: "name",
+            type: "string",
+            description: "New name for the network",
+            required: false
+        },
+        description: {
+            name: "description",
+            type: "string",
+            description: "New description for the network",
+            required: false
+        },
+        color: {
+            name: "color",
+            type: "string",
+            description: "New color hex value for the network (e.g. #ff6600)",
+            required: false
+        },
+        items: {
+            name: "items",
+            type: "array",
+            description: "Batch mode: array of {id, name?, description?, color?} specs. Overrides individual args.",
+            required: false,
         }
     },
-    output: "Confirmation of load operation.",
-    outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
+    output: "The updated network object.",
+    outputSchema: { type: "object", properties: { success: { type: "boolean" }, network: { type: "object" } } },
     execute: async (args, context: CommandContext) => {
-        const net = context.ecosystem.ecosystems.find((n: any) => n.id === args.id);
-        if (!net) throw new Error("Ecosystem not found");
+        // Batch mode
+        if (args.items) {
+            const specs = Array.isArray(args.items) ? args.items : [args.items];
+            const results: any[] = [];
 
-        const { setAgents, setChannels, setGroups, setMessages, addLog } = context.workspace;
+            context.ecosystem.setNetworks((prev: any[]) => {
+                const updated = [...prev];
+                for (const spec of specs) {
+                    const idx = updated.findIndex((n: any) => n.id === spec.id);
+                    if (idx === -1) throw new Error(`Network ${spec.id} not found`);
+                    const changes: Record<string, any> = {};
+                    if (spec.name !== undefined && spec.name !== "") changes.name = spec.name;
+                    if (spec.description !== undefined) changes.description = spec.description;
+                    if (spec.color !== undefined && spec.color !== "") changes.color = spec.color;
+                    updated[idx] = { ...updated[idx], ...changes };
+                    results.push(updated[idx]);
+                }
+                return updated;
+            });
 
-        setAgents([...net.agents]);
-        setChannels([...net.channels]);
-        setGroups([...net.groups]);
-        setMessages([...net.messages]);
+            context.workspace.addLog(`Updated ${results.length} network(s)`);
+            return { success: true, results: results.map((n: any) => ({ networkId: n.id, name: n.name })) };
+        }
 
-        addLog(`Loaded network "${net.name}" into workspace`);
-        return { success: true };
+        // Single mode
+        const id = args.id;
+        const existing = context.ecosystem.networks.find((n: any) => n.id === id);
+        if (!existing) throw new Error("Network not found in ecosystem");
+
+        const updates: Record<string, any> = {};
+        if (args.name !== undefined && args.name !== "") updates.name = args.name;
+        if (args.description !== undefined) updates.description = args.description;
+        if (args.color !== undefined && args.color !== "") updates.color = args.color;
+
+        if (Object.keys(updates).length === 0) {
+            throw new Error("No update fields provided. Specify at least one of: name, description, color.");
+        }
+
+        let updatedNet: any = null;
+        context.ecosystem.setNetworks((prev: any[]) =>
+            prev.map((n: any) => {
+                if (n.id === id) {
+                    updatedNet = { ...n, ...updates };
+                    return updatedNet;
+                }
+                return n;
+            })
+        );
+
+        context.workspace.addLog(`Network "${updatedNet?.name || id}" updated: ${Object.keys(updates).join(", ")}`);
+        context.storage.lastNetworkId = id;
+        return { success: true, network: updatedNet || { ...existing, ...updates } };
     }
 };
 
-export const listEcosystemsCommand: CommandDefinition = {
-    id: "list_ecosystems",
-    description: "List all saved ecosystems.",
-    tags: ["ecosystem", "query"],
-    rbac: ["researcher", "builder", "curator", "orchestrator"],
-    args: {},
-    output: "List of all saved ecosystems.",
-    outputSchema: { type: "object", properties: { ecosystems: { type: "array", items: { type: "object" } } } },
-    execute: async (args, context: CommandContext) => {
-        const list = context.ecosystem.ecosystems.map((e: any) => ({
-            id: e.id,
-            name: e.name,
-            agentCount: e.agents.length
-        }));
-        return { ecosystems: list };
-    }
-};
-
-export const deleteEcosystemCommand: CommandDefinition = {
-    id: "delete_ecosystem",
-    description: "Delete a saved ecosystem.",
-    tags: ["ecosystem", "delete"],
+export const destroyNetworkCommand: CommandDefinition = {
+    id: "destroy_network",
+    description: "Destroy a network, removing it from the workspace along with its bridges. Use cascade to also remove agents, channels, and groups belonging to the network.",
+    tags: ["ecosystem", "network", "destroy", "delete"],
     rbac: ["orchestrator"],
     args: {
         id: {
             name: "id",
-            type: "string",
-            description: "ID of the ecosystem to delete",
+            type: "network",
+            description: "ID of the network to destroy",
             required: true
+        },
+        cascade: {
+            name: "cascade",
+            type: "boolean",
+            description: "Also remove workspace agents, channels, and groups belonging to this network (default: false)",
+            required: false,
+            defaultValue: false
+        },
+        ids: {
+            name: "ids",
+            type: "array",
+            description: "Batch mode: array of network IDs to destroy. Overrides single id.",
+            required: false,
         }
     },
-    output: "Confirmation of deletion.",
-    outputSchema: { type: "object", properties: { success: { type: "boolean" } } },
+    output: "Summary of what was destroyed.",
+    outputSchema: { type: "object", properties: { success: { type: "boolean" }, removed: { type: "object" } } },
     execute: async (args, context: CommandContext) => {
-        const { setEcosystems, setBridges } = context.ecosystem;
-        const id = args.id;
+        const targetIds = args.ids
+            ? (Array.isArray(args.ids) ? args.ids : [args.ids])
+            : [args.id];
 
-        setEcosystems((prev: any[]) => prev.filter((n: any) => n.id !== id));
-        setBridges((prev: any[]) => prev.filter((b: any) => b.fromNetworkId !== id && b.toNetworkId !== id));
+        const { setNetworks, setBridges, networks } = context.ecosystem;
+        const totalRemoved: Record<string, number> = { networks: 0, bridges: 0 };
 
-        context.workspace.addLog("Network dissolved from ecosystem");
-        return { success: true };
+        for (const id of targetIds) {
+            const net = networks.find((n: any) => n.id === id);
+            if (!net) throw new Error(`Network ${id} not found in ecosystem`);
+            totalRemoved.networks++;
+        }
+
+        // Remove all targeted networks
+        setNetworks((prev: any[]) => prev.filter((n: any) => !targetIds.includes(n.id)));
+
+        // Remove bridges referencing any targeted network
+        setBridges((prev: any[]) => {
+            const before = prev.length;
+            const after = prev.filter((b: any) => !targetIds.includes(b.fromNetworkId) && !targetIds.includes(b.toNetworkId));
+            totalRemoved.bridges = before - after.length;
+            return after;
+        });
+
+        // Cascade: remove workspace-level entities tied to these networks
+        if (args.cascade) {
+            const { setAgents, setChannels, setGroups, setMessages, agents, channels, groups } = context.workspace;
+
+            // Compute the set of agent IDs that belong to the destroyed networks
+            // so we can also cascade channels/messages that reference these
+            // agents directly (covers older entities that lack networkId).
+            const cascadedAgentIds = new Set(
+                agents.filter((a: any) => targetIds.includes(a.networkId)).map((a: any) => a.id)
+            );
+
+            const agentsBefore = agents.length;
+            setAgents((prev: any[]) => prev.filter((a: any) => !targetIds.includes(a.networkId)));
+            totalRemoved.agents = agentsBefore - agents.filter((a: any) => !targetIds.includes(a.networkId)).length;
+
+            const channelsBefore = channels.length;
+            const channelSurvivor = (c: any) =>
+                !targetIds.includes(c.networkId)
+                && !cascadedAgentIds.has(c.from)
+                && !cascadedAgentIds.has(c.to);
+            setChannels((prev: any[]) => prev.filter(channelSurvivor));
+            totalRemoved.channels = channelsBefore - channels.filter(channelSurvivor).length;
+
+            const groupsBefore = groups.length;
+            setGroups((prev: any[]) => prev.filter((g: any) => !targetIds.includes(g.networkId)));
+            totalRemoved.groups = groupsBefore - groups.filter((g: any) => !targetIds.includes(g.networkId)).length;
+
+            // Remove messages whose sender/recipient was cascaded
+            if (setMessages && cascadedAgentIds.size > 0) {
+                setMessages((prev: any[]) => prev.filter((m: any) =>
+                    !cascadedAgentIds.has(m.fromId) && !cascadedAgentIds.has(m.toId)
+                ));
+            }
+        }
+
+        const summary = Object.entries(totalRemoved)
+            .filter(([, v]) => v > 0)
+            .map(([k, v]) => `${v} ${k}`)
+            .join(", ");
+
+        context.workspace.addLog(`Networks destroyed: ${summary}`);
+        return { success: true, removed: totalRemoved };
     }
 };
+
+

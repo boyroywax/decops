@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { repairJSON } from '../../utils/json';
+import { repairJSON } from '@/utils/json';
 
 describe('repairJSON', () => {
     it('parses valid JSON directly', () => {

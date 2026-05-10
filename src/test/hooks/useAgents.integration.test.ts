@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useAgents } from '../../hooks/useAgents';
+import { useAgents } from '@/hooks/useAgents';
 
 // Mock useLocalStorage
 vi.mock('../../hooks/useLocalStorage', () => ({

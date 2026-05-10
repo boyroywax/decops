@@ -1,6 +1,6 @@
 import { createContext, useContext, ReactNode } from "react";
-import { useJobs } from "../hooks/useJobs";
-import type { Job, JobStatus, JobArtifact, JobRequest } from "../types";
+import { useJobs } from "@/hooks/useJobs";
+import type { Job, JobStatus, JobArtifact, JobRequest } from "@/types";
 
 // Return type of useJobs hook
 type UseJobsReturn = ReturnType<typeof useJobs>;

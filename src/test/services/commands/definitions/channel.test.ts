@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createChannelCommand } from '../../../../services/commands/definitions/channel';
+import { createChannelCommand } from '@/services/commands/definitions/channel';
 
 describe('createChannelCommand', () => {
     const mockAgents = [
@@ -13,7 +13,8 @@ describe('createChannelCommand', () => {
             channels: [],
             setChannels: vi.fn(),
             addLog: vi.fn(),
-        }
+        },
+        storage: {} as Record<string, any>,
     };
 
     it('creates a new channel', async () => {

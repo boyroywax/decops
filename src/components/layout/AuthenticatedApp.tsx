@@ -1,27 +1,59 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Compass } from "lucide-react";
-import { GradientIcon } from "../shared/GradientIcon";
-import type { ViewId } from "../../types";
-import { useNotebook } from "../../hooks/useNotebook";
-import { useWorkspaceContext } from "../../context/WorkspaceContext";
-import { useArchitect } from "../../hooks/useArchitect";
-import { useEcosystem } from "../../hooks/useEcosystem";
+import { GradientIcon } from "@/components/shared/GradientIcon";
+import type { ViewId, NavContext, JobDefinition } from "@/types";
+import { useNotebook } from "@/hooks/useNotebook";
+import { useWorkspaceContext } from "@/context/WorkspaceContext";
+import { useArchitect } from "@/toolkits/architect";
+import { useEcosystem } from "@/hooks/useEcosystem";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
-import { Footer } from "./Footer";
-import { useAuth } from "../../context/AuthContext";
-import { useJobsContext } from "../../context/JobsContext";
-import { useJobCatalog } from "../../hooks/useJobCatalog";
+import { Footer, type PanelMode } from "./Footer";
+import { ChatPanel } from "./ChatPanel";
+import { useAuth } from "@/context/AuthContext";
+import { useJobsContext } from "@/context/JobsContext";
+import { useJobCatalog } from "@/hooks/useJobCatalog";
 import { ViewSwitcher } from "./ViewSwitcher";
-import { useJobExecutor } from "../../hooks/useJobExecutor";
+import { StudioView } from "@/toolkits/studio";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { useJobExecutor } from "@/hooks/useJobExecutor";
 
-export function AuthenticatedApp() {
-  const [view, setViewRaw] = useState<ViewId>("architect");
-  const { entries: notebookEntries, addEntry: addNotebookEntry, addLog, clearNotebook, exportNotebook } = useNotebook();
+import { useAutomations } from "@/context/AutomationsContext";
+import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
+import { useRouteSync } from "@/hooks/useRouteSync";
+import { ProfileModal } from "./ProfileModal";
+import { ArchitectPopup } from "@/toolkits/architect";
+import { ActivityModal } from "./ActivityModal";
+import { useTheme } from "@/context/ThemeContext";
+import "../../styles/components/authenticated-app.css";
+import "../../styles/components/global.css";
 
-  // Wrap setView to track navigation in Notebook
+
+
+interface AuthenticatedAppProps {
+  notebook: ReturnType<typeof useNotebook>;
+}
+
+export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
+  const [view, setViewRaw] = useState<ViewId>("networks");
+  const [navContext, setNavContext] = useState<NavContext>({});
+  const { entries: notebookEntries, addEntry: addNotebookEntry, addLog, clearNotebook, exportNotebook } = notebook;
+
+  // Sync URL ↔ view/navContext
+  useRouteSync(view, navContext, setViewRaw, setNavContext);
+
+  // Modal / popup state
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showArchitectPopup, setShowArchitectPopup] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
+
+  // Wrap setView to track navigation in Notebook — intercept profile, architect, activity
   const setView = useCallback((v: ViewId) => {
+    if (v === "profile") { setShowProfileModal(true); return; }
+    if (v === "architect") { setShowArchitectPopup(true); return; }
+    if (v === "activity") { setShowActivityModal(true); return; }
     setViewRaw(v);
+    setNavContext({}); // Clear drill-down context on sidebar navigation
     addNotebookEntry({
       category: "navigation",
       icon: <GradientIcon icon={Compass} size={16} gradient={["#38bdf8", "#818cf8"]} />,
@@ -31,16 +63,158 @@ export function AuthenticatedApp() {
     });
   }, [addNotebookEntry]);
 
+  // Hierarchical navigation: navigate to a view with drill-down context
+  const navigateTo = useCallback((v: ViewId, ctx: NavContext) => {
+    if (v === "profile") { setShowProfileModal(true); return; }
+    if (v === "architect") { setShowArchitectPopup(true); return; }
+    if (v === "activity") { setShowActivityModal(true); return; }
+    setViewRaw(v);
+    setNavContext(ctx);
+    const parts: string[] = [v];
+    if (ctx.networkId) parts.push("network");
+    if (ctx.groupId) parts.push("group");
+    if (ctx.agentId) parts.push("agent");
+    addNotebookEntry({
+      category: "navigation",
+      icon: <GradientIcon icon={Compass} size={16} gradient={["#38bdf8", "#818cf8"]} />,
+      title: `Drilled into ${parts.join(" › ")}`,
+      description: `Navigated to ${v} detail view.`,
+      tags: ["navigation", v, "drill-down"],
+    });
+  }, [addNotebookEntry]);
+
   const { user, logout } = useAuth();
   const {
     jobs, addJob, updateJobStatus, addArtifact, removeJob, clearJobs,
-    allArtifacts, importArtifact, removeArtifact,
-    isPaused, toggleQueuePause, stopJob, reorderQueue
+    allArtifacts, importArtifact, removeArtifact, updateArtifact,
+    isPaused, toggleQueuePause, stopJob, reorderQueue, updateJob,
+    setJobs, setStandaloneArtifacts
   } = useJobsContext();
 
   const { savedJobs, saveJob, deleteJob } = useJobCatalog();
   const workspace = useWorkspaceContext();
-  const architect = useArchitect(addLog, addJob);
+  const architect = useArchitect(addLog, addJob, jobs);
+
+  /** Convert a JobDefinition into a JobRequest and submit it.
+   *  Returns the newly queued Job so callers (e.g. AI tool) can track it. */
+  const runJobDef = useCallback((jobDef: JobDefinition) => {
+    return addJob({
+      type: jobDef.name,
+      request: { description: jobDef.description },
+      steps: jobDef.steps,
+      mode: jobDef.mode,
+      ...(jobDef.storageDefaults ? { storageDefaults: jobDef.storageDefaults } : {}),
+      ...(jobDef.deliverables ? { deliverables: jobDef.deliverables } : {}),
+      ...(jobDef.inputDefaults && jobDef.inputDefaults.length > 0 ? { inputDefaults: jobDef.inputDefaults } : {}),
+      ...(jobDef.parallelGroups && jobDef.parallelGroups.length > 0 ? { parallelGroups: jobDef.parallelGroups } : {}),
+    });
+  }, [addJob]);
+  const automations = useAutomations();
+
+  // Workspace Management Logic
+  const {
+    workspaces, activeWorkspaceId, setActiveWorkspaceId, createWorkspace, saveWorkspace, loadWorkspace, deleteWorkspace, duplicateWorkspace, updateStats
+  } = useWorkspaceManager();
+
+  const handleSwitchWorkspace = async (id: string) => {
+    if (id === activeWorkspaceId) return;
+
+    // Save Current
+    if (activeWorkspaceId) {
+      const currentData = workspace.exportWorkspace();
+      const currentMeta = workspaces.find(w => w.id === activeWorkspaceId);
+      if (currentMeta) {
+        // Filter out transition jobs to prevent loops on reload
+        const jobsToSave = jobs.filter(j => j.type !== 'switch_workspace' && j.type !== 'create_workspace');
+
+        saveWorkspace({
+          metadata: currentMeta,
+          ...currentData,
+          ecosystem: ecosystem.ecosystem,
+          activeNetworkId: ecosystem.activeNetworkId || undefined,
+          userId: user?.id,
+          // Legacy fields kept for backward compat
+          networks: ecosystem.networks || [],
+          bridges: ecosystem.bridges || [],
+          jobs: jobsToSave,
+          artifacts: allArtifacts,
+          automations: automations.automations || [],
+          automationRuns: automations.runs
+        });
+      }
+    }
+
+    // Load New
+    const newWorkspace = loadWorkspace(id);
+    if (newWorkspace) {
+      workspace.clearWorkspace();
+      clearJobs();
+      if (automations.setAutomations) automations.setAutomations([]);
+      if (automations.setRuns) automations.setRuns([]);
+
+      // Restore ecosystem — prefer first-class ecosystem, fall back to legacy arrays
+      if (newWorkspace.ecosystem && ecosystem.setEcosystem) {
+        ecosystem.setEcosystem(newWorkspace.ecosystem);
+      } else {
+        if (ecosystem.setNetworks) ecosystem.setNetworks(newWorkspace.networks || []);
+        if (ecosystem.setBridges) ecosystem.setBridges(newWorkspace.bridges || []);
+      }
+
+      // Restore active network
+      if (ecosystem.setActiveNetworkId) {
+        ecosystem.setActiveNetworkId(newWorkspace.activeNetworkId || null);
+      }
+
+      workspace.importWorkspace(newWorkspace);
+      if (newWorkspace.jobs && setJobs) setJobs(newWorkspace.jobs);
+      if (newWorkspace.artifacts && setStandaloneArtifacts) setStandaloneArtifacts(newWorkspace.artifacts);
+      if (newWorkspace.automations && automations.setAutomations) automations.setAutomations(newWorkspace.automations);
+      if (newWorkspace.automationRuns && automations.setRuns) automations.setRuns(newWorkspace.automationRuns);
+
+      setActiveWorkspaceId(id);
+    }
+  };
+
+  const handleCreateWorkspace = async (name: string, description?: string) => {
+    // Save current workspace state before creating new one
+    if (activeWorkspaceId) {
+      const currentData = workspace.exportWorkspace();
+      const currentMeta = workspaces.find(w => w.id === activeWorkspaceId);
+      if (currentMeta) {
+        const jobsToSave = jobs.filter(j => j.type !== 'switch_workspace' && j.type !== 'create_workspace');
+
+        saveWorkspace({
+          metadata: currentMeta,
+          ...currentData,
+          ecosystem: ecosystem.ecosystem,
+          activeNetworkId: ecosystem.activeNetworkId || undefined,
+          userId: user?.id,
+          networks: ecosystem.networks || [],
+          bridges: ecosystem.bridges || [],
+          jobs: jobsToSave,
+          artifacts: allArtifacts,
+          automations: automations.automations || [],
+          automationRuns: automations.runs
+        });
+      }
+    }
+
+    // Create new workspace without switching — user stays in current workspace
+    const newWs = createWorkspace(name, description);
+    return newWs.metadata.id;
+  };
+
+  const workspaceManager = useMemo(() => ({
+    list: () => workspaces,
+    create: handleCreateWorkspace,
+    switch: handleSwitchWorkspace,
+    delete: async (id: string) => deleteWorkspace(id),
+    duplicate: async (sourceId: string, name?: string) => {
+      const id = duplicateWorkspace(sourceId, name);
+      return id;
+    },
+    currentId: activeWorkspaceId
+  }), [workspaces, activeWorkspaceId, handleCreateWorkspace, handleSwitchWorkspace, duplicateWorkspace]);
 
   const ecosystem = useEcosystem({
     addLog,
@@ -55,33 +229,100 @@ export function AuthenticatedApp() {
     setView,
   }, addJob);
 
+  // Keep workspace card stats in sync with live data
+  useEffect(() => {
+    if (activeWorkspaceId) {
+      updateStats(activeWorkspaceId, {
+        agentCount: workspace.agents.length,
+        channelCount: workspace.channels.length,
+        groupCount: workspace.groups.length,
+        networkCount: ecosystem.networks?.length || 0,
+      });
+    }
+  }, [activeWorkspaceId, workspace.agents.length, workspace.channels.length, workspace.groups.length, ecosystem.networks?.length]);
+
   // Use the new hook for job execution
   useJobExecutor({
     jobs,
     addJob,
     updateJobStatus,
+    updateJob,
     addArtifact,
     removeJob,
     clearJobs,
     allArtifacts,
     importArtifact,
     removeArtifact,
+    updateArtifact,
     isPaused,
     toggleQueuePause,
     savedJobs,
     saveJob,
     deleteJob,
+    setJobs,
+    setStandaloneArtifacts,
     workspace,
     user,
     architect,
     ecosystem,
     addLog,
-    addNotebookEntry
+    addNotebookEntry,
+    automations,
+    workspaceManager
   });
 
   // Responsive state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Lifted footer panel state (so we can render ChatPanel in different positions)
+  const [footerPanel, setFooterPanel] = useState<PanelMode>("none");
+  const { chatPosition: rawChatPosition } = useTheme();
+  // Force bottom chat on mobile — side panels don't work on small screens
+  const chatPosition = isMobile ? "bottom" as const : rawChatPosition;
+
+  // Chat panel sizing
+  const DEFAULT_CHAT_SIZE = chatPosition === "bottom" ? 420 : 380;
+  const [chatSize, setChatSize] = useState(DEFAULT_CHAT_SIZE);
+  const [chatExpanded, setChatExpanded] = useState(false);
+  const chatSavedRef = useRef(DEFAULT_CHAT_SIZE);
+  const [sideChatVisible, setSideChatVisible] = useState(true);
+  const toggleSideChat = useCallback(() => setSideChatVisible(prev => !prev), []);
+
+  const handleChatSetSize = useCallback((s: number) => {
+    setChatSize(s);
+    setChatExpanded(false);
+  }, []);
+
+  const handleChatToggleExpand = useCallback(() => {
+    setChatExpanded(prev => {
+      if (prev) {
+        setChatSize(chatSavedRef.current);
+        return false;
+      } else {
+        chatSavedRef.current = chatSize;
+        setChatSize(chatPosition === "bottom"
+          ? (isMobile ? Math.floor(window.innerHeight * 0.8) : window.innerHeight - 93)
+          : window.innerWidth - 320
+        );
+        return true;
+      }
+    });
+  }, [chatSize, chatPosition, isMobile]);
+
+  // Auto-open Actions when entering Studio mode
+  useEffect(() => {
+    if (view === "jobs" && footerPanel === "none") {
+      setFooterPanel("jobs");
+    }
+  }, [view === "jobs"]);
+
+  // Close footer drawer when entering Editor view
+  useEffect(() => {
+    if (view === "editor" && footerPanel !== "none") {
+      setFooterPanel("none");
+    }
+  }, [view]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -107,233 +348,191 @@ export function AuthenticatedApp() {
     prevEntriesLengthRef.current = notebookEntries.length;
   }, [notebookEntries.length]);
 
+  // Ctrl+K / Cmd+K keybinding for Architect popup
+  // Cmd+S / Ctrl+S for Studio, Cmd+L / Ctrl+L for Chat
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setShowArchitectPopup(prev => !prev);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "j") {
+        e.preventDefault();
+        setView("jobs");
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === ".") {
+        e.preventDefault();
+        setView("channels");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const chatWorkspaceContext = useMemo(() => ({
+    agents: workspace.agents, channels: workspace.channels, groups: workspace.groups,
+    messages: workspace.messages, networks: ecosystem.networks, bridges: ecosystem.bridges,
+    addJob, jobs,
+  }), [workspace.agents, workspace.channels, workspace.groups, workspace.messages, ecosystem.networks, ecosystem.bridges, addJob, jobs]);
+
+  const isSideChat = chatPosition === "left" || chatPosition === "right";
+
+  const shouldHideChat = isSideChat ? !sideChatVisible : footerPanel !== "chat";
+
+  const chatPanelNode = (
+    <div style={shouldHideChat ? { display: "none" } : undefined}>
+      <ChatPanel
+        context={chatWorkspaceContext}
+        ecosystem={ecosystem}
+        onClose={() => { if (isSideChat) setSideChatVisible(false); else setFooterPanel("none"); }}
+        addLog={addLog}
+        height={chatSize}
+        setHeight={handleChatSetSize}
+        isExpanded={chatExpanded}
+        onToggleExpand={handleChatToggleExpand}
+        position={chatPosition}
+        view={view}
+      />
+    </div>
+  );
+
   return (
-    <div style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", background: "#0a0a0f", color: "#e4e4e7", height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div className="app-shell">
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
 
-      <Header user={user} logout={logout} setView={setView} />
+      <Header user={user} logout={logout} setView={setView} onProfileClick={() => setShowProfileModal(true)} activityPulse={activityPulse} onActivityClick={() => setShowActivityModal(true)} isMobile={isMobile} />
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative", flexDirection: isMobile ? "column" : "row" }}>
-        <div style={{
-          position: "relative",
-          zIndex: 20,
-          height: isMobile ? "auto" : "100%",
-          width: isMobile ? "100%" : "auto",
-        }}>
-          <Sidebar
-            view={view}
-            setView={setView}
-            ecosystems={ecosystem.ecosystems}
-            messages={workspace.messages}
-            collapsed={sidebarCollapsed}
-            setCollapsed={setSidebarCollapsed}
-            isMobile={isMobile}
-          />
+        <div className={`app-content ${isMobile ? "app-content--mobile" : ""}`}>
+          <div className={`app-sidebar-wrapper ${isMobile ? "app-sidebar-wrapper--mobile" : ""}`}>
+            <Sidebar
+              view={view}
+              setView={setView}
+              networks={ecosystem.networks}
+              messages={workspace.messages}
+              bridgeMessages={ecosystem.bridgeMessages}
+              agents={workspace.agents}
+              channels={workspace.channels}
+              groups={workspace.groups}
+              collapsed={sidebarCollapsed}
+              setCollapsed={setSidebarCollapsed}
+              isMobile={isMobile}
+              ecosystemName={ecosystem.ecosystem?.name}
+              totalUnread={workspace.totalUnread}
+            />
+          </div>
+
+          {/* Chat panel: left position (after sidebar) */}
+          {isSideChat && chatPosition === "left" && chatPanelNode}
+
+          <main className={`app-main ${view === "jobs" ? "app-main--studio" : ""}`}>
+            {/* Studio is always mounted to preserve state across navigations */}
+            <div style={{ display: view === "jobs" ? "contents" : "none" }}>
+              <ErrorBoundary>
+                <StudioView
+                  savedJobs={savedJobs}
+                  onSaveJob={saveJob}
+                  onDeleteJob={deleteJob}
+                  onRunJob={runJobDef}
+                />
+              </ErrorBoundary>
+            </div>
+            {view !== "jobs" && (
+              <ViewSwitcher
+              view={view}
+              setView={setView}
+              navContext={navContext}
+              navigateTo={navigateTo}
+              workspace={workspace}
+              architect={architect}
+              ecosystem={ecosystem}
+              allArtifacts={allArtifacts}
+              importArtifact={importArtifact}
+              removeArtifact={removeArtifact}
+              updateArtifact={updateArtifact}
+              notebookEntries={notebookEntries}
+              clearNotebook={clearNotebook}
+              exportNotebook={exportNotebook}
+              addNotebookEntry={addNotebookEntry}
+              addJob={addJob}
+              savedJobs={savedJobs}
+              onSaveJob={saveJob}
+              onDeleteJob={deleteJob}
+            />
+            )}
+          </main>
+
+          {/* Chat panel: right position */}
+          {isSideChat && chatPosition === "right" && chatPanelNode}
         </div>
 
-        <main style={{ flex: 1, padding: 24, overflow: "auto" }}>
-          <ViewSwitcher
-            view={view}
-            setView={setView}
-            workspace={workspace}
-            architect={architect}
-            ecosystem={ecosystem}
-            allArtifacts={allArtifacts}
-            importArtifact={importArtifact}
-            removeArtifact={removeArtifact}
-            notebookEntries={notebookEntries}
-            clearNotebook={clearNotebook}
-            exportNotebook={exportNotebook}
-            addNotebookEntry={addNotebookEntry}
-          />
-        </main>
-      </div>
+        {/* Chat panel: bottom position (below content, above footer) */}
+        {!isSideChat && chatPanelNode}
 
-      <Footer
-        agents={workspace.agents}
-        channels={workspace.channels}
-        groups={workspace.groups}
-        messages={workspace.messages}
-        ecosystems={ecosystem.ecosystems}
-        bridges={ecosystem.bridges}
-        addLog={addLog}
-        setView={setView}
-        jobs={jobs}
-        addJob={addJob}
-        isPaused={isPaused}
-        toggleQueuePause={toggleQueuePause}
-        stopJob={stopJob}
-        reorderQueue={reorderQueue}
-        removeJob={removeJob}
-        clearJobs={clearJobs}
-        activityPulse={activityPulse}
-        isMobile={isMobile}
-        savedJobs={savedJobs}
-        saveJob={saveJob}
-        deleteJob={deleteJob}
+        <Footer
+          agents={workspace.agents}
+          channels={workspace.channels}
+          groups={workspace.groups}
+          messages={workspace.messages}
 
-      />
+          networks={ecosystem.networks}
+          bridges={ecosystem.bridges}
+          ecosystem={ecosystem}
+          addLog={addLog}
+          setView={setView}
+          jobs={jobs}
+          addJob={addJob}
+          allArtifacts={allArtifacts}
+          importArtifact={importArtifact}
+          removeArtifact={removeArtifact}
+          updateArtifact={updateArtifact}
+          isPaused={isPaused}
+          toggleQueuePause={toggleQueuePause}
+          stopJob={stopJob}
+          reorderQueue={reorderQueue}
+          removeJob={removeJob}
+          clearJobs={clearJobs}
+          activityPulse={activityPulse}
+          isMobile={isMobile}
+          savedJobs={savedJobs}
+          saveJob={saveJob}
+          deleteJob={deleteJob}
+          view={view}
+          panel={footerPanel}
+          setPanel={setFooterPanel}
+          chatPosition={chatPosition}
+          sideChatVisible={sideChatVisible}
+          toggleSideChat={toggleSideChat}
+        />
 
-      <style>{`
-        :root {
-          /* ─── Core Palette ─── */
-          --bg-primary: #0a0a0f;
-          --bg-elevated: rgba(0,0,0,0.3);
-          --bg-surface: rgba(255,255,255,0.02);
-          --bg-surface-hover: rgba(255,255,255,0.04);
-          --bg-input: rgba(0,0,0,0.4);
+        {/* Profile Modal (overlay) */}
+        <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
 
-          --border-subtle: rgba(255,255,255,0.05);
-          --border-default: rgba(255,255,255,0.06);
-          --border-medium: rgba(255,255,255,0.08);
+        {/* Activity Modal (overlay) */}
+        <ActivityModal
+          isOpen={showActivityModal}
+          onClose={() => setShowActivityModal(false)}
+          entries={notebookEntries}
+          clearNotebook={clearNotebook}
+          exportNotebook={exportNotebook}
+          addEntry={addNotebookEntry}
+        />
 
-          --text-primary: #e4e4e7;
-          --text-secondary: #d4d4d8;
-          --text-muted: #a1a1aa;
-          --text-subtle: #71717a;
-          --text-ghost: #52525b;
-
-          --color-accent: #00e5a0;
-          --color-warning: #fbbf24;
-          --color-danger: #ef4444;
-          --color-info: #38bdf8;
-          --color-channel: #a78bfa;
-          --color-group: #f472b6;
-
-          --font-mono: 'DM Mono', 'JetBrains Mono', monospace;
-          --font-display: 'Space Grotesk', sans-serif;
-
-          --radius-sm: 3px;
-          --radius-md: 4px;
-          --radius-lg: 6px;
-          --radius-xl: 8px;
-          --radius-2xl: 10px;
-        }
-        
-        html, body { margin: 0; padding: 0; height: 100%; background: #0a0a0f; color: #e4e4e7; overflow: hidden; }
-        #root { height: 100%; display: flex; flex-direction: column; }
-
-        .settings-container { max-width: 800px; margin: 0 auto; }
-        .settings-header { font-family: var(--font-display); font-size: 18px; font-weight: 600; margin-bottom: 24px; color: var(--text-primary); letter-spacing: -0.01em; }
-        
-        .settings-section { 
-          background: var(--bg-surface); 
-          padding: 24px; 
-          border-radius: var(--radius-2xl); 
-          border: 1px solid var(--border-subtle);
-          margin-bottom: 24px;
-        }
-
-        .section-title {
-          font-family: var(--font-display);
-          font-size: 14px;
-          font-weight: 600;
-          margin-bottom: 8px;
-          display: flex; 
-          align-items: center; 
-          gap: 8px;
-        }
-
-        .section-desc { font-size: 12px; color: var(--text-subtle); margin-bottom: 20px; line-height: 1.5; font-family: var(--font-mono); }
-
-        .btn {
-          font-family: var(--font-mono); font-size: 11px; padding: 8px 16px;
-          border-radius: var(--radius-lg); cursor: pointer; transition: all 0.15s;
-          border: 1px solid transparent;
-          display: inline-flex; align-items: center; gap: 6px;
-        }
-        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn:active { transform: translateY(0); }
-
-        .btn-primary { background: var(--color-accent); color: var(--bg-primary); font-weight: 500; }
-        .btn-surface { background: #27272a; border: 1px solid #3f3f46; color: var(--text-primary); } /* Fallback for existing */
-        .btn-secondary { background: rgba(255,255,255,0.04); border: 1px solid var(--border-medium); color: var(--text-primary); }
-        .btn-danger { background: rgba(239,68,68,0.1); color: var(--color-danger); border-color: rgba(239,68,68,0.2); }
-        .btn-danger-solid { background: var(--color-danger); color: white; border: none; font-weight: 600; }
-
-        .btn-icon { font-size: 14px; }
-
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
-
-        /* Chat markdown styles */
-        .chat-md p { margin: 0 0 8px 0; }
-        .chat-md p:last-child { margin-bottom: 0; }
-        .chat-md h1, .chat-md h2, .chat-md h3, .chat-md h4 {
-          font-family: 'Space Grotesk', sans-serif;
-          margin: 12px 0 6px 0;
-          color: #f4f4f5;
-        }
-        .chat-md h1 { font-size: 16px; }
-        .chat-md h2 { font-size: 14px; }
-        .chat-md h3 { font-size: 13px; color: #a1a1aa; }
-        .chat-md h4 { font-size: 12px; color: #71717a; }
-        .chat-md pre {
-          background: rgba(0,0,0,0.5);
-          border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 6px;
-          padding: 10px 12px;
-          overflow-x: auto;
-          margin: 6px 0;
-          font-size: 11px;
-          line-height: 1.5;
-        }
-        .chat-md code {
-          font-family: 'DM Mono', 'JetBrains Mono', monospace;
-          font-size: 11px;
-        }
-        .chat-md :not(pre) > code {
-          background: rgba(0,229,160,0.08);
-          color: #00e5a0;
-          padding: 1px 5px;
-          border-radius: 3px;
-          font-size: 11px;
-        }
-        .chat-md ul, .chat-md ol {
-          margin: 4px 0 8px 0;
-          padding-left: 20px;
-        }
-        .chat-md li { margin-bottom: 3px; }
-        .chat-md li::marker { color: #52525b; }
-        .chat-md blockquote {
-          border-left: 2px solid rgba(0,229,160,0.3);
-          margin: 6px 0;
-          padding: 4px 12px;
-          color: #a1a1aa;
-          background: rgba(0,229,160,0.03);
-          border-radius: 0 4px 4px 0;
-        }
-        .chat-md a { color: #38bdf8; text-decoration: none; }
-        .chat-md a:hover { text-decoration: underline; }
-        .chat-md strong { color: #f4f4f5; font-weight: 600; }
-        .chat-md em { color: #a1a1aa; }
-        .chat-md hr {
-          border: none;
-          border-top: 1px solid rgba(255,255,255,0.06);
-          margin: 10px 0;
-        }
-        .chat-md table {
-          border-collapse: collapse;
-          width: 100%;
-          margin: 6px 0;
-          font-size: 11px;
-        }
-        .chat-md th, .chat-md td {
-          border: 1px solid rgba(255,255,255,0.08);
-          padding: 4px 8px;
-          text-align: left;
-        }
-        .chat-md th {
-          background: rgba(255,255,255,0.04);
-          color: #a1a1aa;
-          font-weight: 600;
-        }
-
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
-        select option { background: #18181b; color: #e4e4e7; }
-      `}</style>
+        {/* Architect Popup (Ctrl+K) */}
+        <ArchitectPopup
+          isOpen={showArchitectPopup}
+          onClose={() => setShowArchitectPopup(false)}
+          archPrompt={architect.archPrompt}
+          setArchPrompt={architect.setArchPrompt}
+          archGenerating={architect.archGenerating}
+          archPreview={architect.archPreview}
+          archError={architect.archError}
+          archPhase={architect.archPhase}
+          deployProgress={architect.deployProgress}
+          generateNetwork={architect.generateNetwork}
+          deployNetwork={architect.deployNetwork}
+          resetArchitect={architect.resetArchitect}
+          setView={setView}
+        />
     </div>
   );
 }

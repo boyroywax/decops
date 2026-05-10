@@ -1,0 +1,324 @@
+/* ═══════════════════════════════════════════════════════
+   Architect Bot Panel — Network Design Sub-Agent UI
+   ═══════════════════════════════════════════════════════ */
+
+.architect-bot {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 8px;
+    background: var(--bg-surface, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
+}
+
+.architect-bot__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.architect-bot__header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.architect-bot__title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary, #e4e4e7);
+}
+
+.architect-bot__subtitle {
+    font-size: 10px;
+    color: var(--text-secondary, #a1a1aa);
+    line-height: 1.2;
+}
+
+.architect-bot__status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.architect-bot__desc {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-secondary, #a1a1aa);
+}
+
+/* ── Actions ── */
+
+.architect-bot__actions {
+    display: flex;
+    gap: 8px;
+}
+
+.architect-bot__action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary, #a1a1aa);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.architect-bot__action-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary, #e4e4e7);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.architect-bot__action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.architect-bot__action-btn--primary {
+    background: rgba(56, 189, 248, 0.12);
+    border-color: rgba(56, 189, 248, 0.25);
+    color: #7dd3fc;
+}
+
+.architect-bot__action-btn--primary:hover:not(:disabled) {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.4);
+    color: #bae6fd;
+}
+
+/* ── Ecosystem Stats ── */
+
+.architect-bot__stats-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.architect-bot__stats-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.06));
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary, #a1a1aa);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    width: 100%;
+    text-align: left;
+}
+
+.architect-bot__stats-toggle:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-primary, #e4e4e7);
+}
+
+.architect-bot__stats-toggle svg:last-child {
+    margin-left: auto;
+}
+
+.architect-bot__stats-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.architect-bot__stats-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+.architect-bot__stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 4px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.architect-bot__stat-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #e4e4e7);
+}
+
+.architect-bot__stat-label {
+    font-size: 9px;
+    color: var(--text-faint, #71717a);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.architect-bot__active-net {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-secondary, #a1a1aa);
+    padding: 4px 0 0;
+}
+
+.architect-bot__active-net strong {
+    color: #38bdf8;
+}
+
+/* ── Issues ── */
+
+.architect-bot__issues {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.architect-bot__issue {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    padding: 5px 8px;
+    border-radius: 4px;
+}
+
+.architect-bot__issue--warning {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.06);
+}
+
+.architect-bot__issue--error {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.06);
+}
+
+.architect-bot__issues-ok {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #22c55e;
+    padding: 5px 8px;
+    border-radius: 4px;
+    background: rgba(34, 197, 94, 0.06);
+}
+
+/* ── Configuration ── */
+
+.architect-bot__config {
+    display: flex;
+    flex-direction: column;
+}
+
+.architect-bot__config-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.06));
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary, #a1a1aa);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    width: 100%;
+    text-align: left;
+}
+
+.architect-bot__config-toggle:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-primary, #e4e4e7);
+}
+
+.architect-bot__config-toggle svg:last-child {
+    margin-left: auto;
+}
+
+.architect-bot__config-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 8px;
+    margin-top: 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.architect-bot__config-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-secondary, #a1a1aa);
+    cursor: pointer;
+}
+
+.architect-bot__config-item input[type="checkbox"] {
+    accent-color: #38bdf8;
+    width: 13px;
+    height: 13px;
+}
+
+/* ── Capabilities ── */
+
+.architect-bot__capabilities {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.architect-bot__section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-faint, #71717a);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.architect-bot__cap-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.architect-bot__cap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-secondary, #a1a1aa);
+    padding: 3px 0;
+}
+
+.architect-bot__cap svg {
+    color: #38bdf8;
+    flex-shrink: 0;
+}

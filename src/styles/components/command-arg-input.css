@@ -1,0 +1,59 @@
+/**
+ * CommandArgInput Component Styles
+ * Form inputs for command argument types (boolean, select, text)
+ */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * BOOLEAN INPUT
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.command-arg__boolean {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.command-arg__label {
+  font-size: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SELECT INPUT
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.command-arg__select {
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--text-void);
+  background: #18181b;
+  color: white;
+  width: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * TEXT / NUMBER INPUT
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.command-arg__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.command-arg__input {
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--text-void);
+  background: #18181b;
+  color: white;
+  width: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * HINT TEXT
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.command-arg__hint {
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+}
