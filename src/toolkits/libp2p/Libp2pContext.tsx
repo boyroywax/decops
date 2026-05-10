@@ -1,53 +1,66 @@
 /**
- * Libp2pContext — React provider that mirrors the libp2p service state.
+ * Libp2pContext — React provider that mirrors the libp2p manager state.
+ *
+ * Exposes the list of nodes, the active node's snapshot, and helpers
+ * for switching/adding/removing nodes. Action helpers are kept for
+ * convenience (e.g. small components that don't go through the job
+ * creator), but in practice the main view dispatches through addJob.
  */
 
 import {
-    createContext, useContext, useEffect, useState, useCallback,
+    createContext, useContext, useEffect, useMemo, useState,
     type ReactNode,
 } from "react";
 import {
     libp2pService,
     type Libp2pSnapshot,
-    type Libp2pStartOptions,
+    type ManagerSnapshot,
 } from "./service";
 
 interface Libp2pContextType {
+    /** Snapshot of the active node, or a synthetic empty snapshot if none. */
     snapshot: Libp2pSnapshot;
-    start: (opts?: Libp2pStartOptions) => Promise<void>;
-    stop: () => Promise<void>;
-    dial: (target: string) => Promise<{ remotePeer: string }>;
-    hangUp: (peerId: string) => Promise<void>;
-    ping: (peerId: string) => Promise<number>;
-    subscribeTopic: (topic: string) => Promise<void>;
-    unsubscribeTopic: (topic: string) => Promise<void>;
-    publish: (topic: string, message: string) => Promise<void>;
-    clearPeers: () => void;
+    /** All node snapshots in order. */
+    nodes: Libp2pSnapshot[];
+    /** Local id of the active node (null when no nodes). */
+    activeId: string | null;
+    setActive: (id: string) => void;
+    addNode: (label?: string) => string;
+    removeNode: (id: string) => Promise<void>;
 }
+
+const EMPTY_SNAPSHOT: Libp2pSnapshot = {
+    nodeId: "",
+    label: "",
+    status: "stopped",
+    peerId: null,
+    listenAddrs: [],
+    multiaddrs: [],
+    peers: [],
+    topics: [],
+    hasPersistedIdentity: false,
+    pubsubMessageCount: 0,
+    pubsubMessages: [],
+};
 
 const Libp2pContext = createContext<Libp2pContextType | null>(null);
 
 export function Libp2pProvider({ children }: { children: ReactNode }) {
-    const [snapshot, setSnapshot] = useState<Libp2pSnapshot>(() => libp2pService.snapshot());
+    const [state, setState] = useState<ManagerSnapshot>(() => libp2pService.snapshot());
 
-    useEffect(() => {
-        return libp2pService.subscribe(setSnapshot);
-    }, []);
+    useEffect(() => libp2pService.subscribe(setState), []);
 
-    const start = useCallback((opts?: Libp2pStartOptions) => libp2pService.start(opts), []);
-    const stop = useCallback(() => libp2pService.stop(), []);
-    const dial = useCallback((target: string) => libp2pService.dial(target), []);
-    const hangUp = useCallback((peerId: string) => libp2pService.hangUp(peerId), []);
-    const ping = useCallback((peerId: string) => libp2pService.ping(peerId), []);
-    const subscribeTopic = useCallback((t: string) => libp2pService.subscribeTopic(t), []);
-    const unsubscribeTopic = useCallback((t: string) => libp2pService.unsubscribeTopic(t), []);
-    const publish = useCallback((t: string, m: string) => libp2pService.publish(t, m), []);
-    const clearPeers = useCallback(() => libp2pService.clearPeers(), []);
-
-    const value: Libp2pContextType = {
-        snapshot, start, stop, dial, hangUp, ping,
-        subscribeTopic, unsubscribeTopic, publish, clearPeers,
-    };
+    const value = useMemo<Libp2pContextType>(() => {
+        const active = state.nodes.find((n) => n.nodeId === state.activeId) ?? null;
+        return {
+            snapshot: active ?? EMPTY_SNAPSHOT,
+            nodes: state.nodes,
+            activeId: state.activeId,
+            setActive: (id) => libp2pService.setActive(id),
+            addNode: (label) => libp2pService.addNode(label),
+            removeNode: (id) => libp2pService.removeNode(id),
+        };
+    }, [state]);
 
     return <Libp2pContext.Provider value={value}>{children}</Libp2pContext.Provider>;
 }

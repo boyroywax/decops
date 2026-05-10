@@ -4,7 +4,7 @@ import { GradientIcon } from "@/components/shared/GradientIcon";
 import type { ViewId, NavContext, JobDefinition } from "@/types";
 import { useNotebook } from "@/hooks/useNotebook";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
-import { useArchitect } from "@/toolkits/architect";
+import { useArchitect, ArchitectProvider, ArchitectBanner, ArchitectWelcome } from "@/toolkits/architect";
 import { useEcosystem } from "@/hooks/useEcosystem";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
@@ -26,6 +26,9 @@ import { ArchitectPopup } from "@/toolkits/architect";
 import { ActivityModal } from "./ActivityModal";
 import { useTheme } from "@/context/ThemeContext";
 import { CommandContextProvider } from "@/context/CommandContextProvider";
+import { useChatAgentsStore } from "@/services/chat/agents";
+import { Sparkles, Clapperboard, Edit3 } from "lucide-react";
+import { SCENARIO_PRESETS } from "@/constants";
 import "../../styles/components/authenticated-app.css";
 import "../../styles/components/global.css";
 
@@ -51,7 +54,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   // Wrap setView to track navigation in Notebook — intercept profile, architect, activity
   const setView = useCallback((v: ViewId) => {
     if (v === "profile") { setShowProfileModal(true); return; }
-    if (v === "architect") { setShowArchitectPopup(true); return; }
+    if (v === "architect") { activateArchitectChatAgent(); return; }
     if (v === "activity") { setShowActivityModal(true); return; }
     setViewRaw(v);
     setNavContext({}); // Clear drill-down context on sidebar navigation
@@ -67,7 +70,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   // Hierarchical navigation: navigate to a view with drill-down context
   const navigateTo = useCallback((v: ViewId, ctx: NavContext) => {
     if (v === "profile") { setShowProfileModal(true); return; }
-    if (v === "architect") { setShowArchitectPopup(true); return; }
+    if (v === "architect") { activateArchitectChatAgent(); return; }
     if (v === "activity") { setShowActivityModal(true); return; }
     setViewRaw(v);
     setNavContext(ctx);
@@ -349,13 +352,179 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     prevEntriesLengthRef.current = notebookEntries.length;
   }, [notebookEntries.length]);
 
-  // Ctrl+K / Cmd+K keybinding for Architect popup
-  // Cmd+S / Ctrl+S for Studio, Cmd+L / Ctrl+L for Chat
+  // ── Chat-agent integration ─────────────────────────────────────────
+  // The chat panel is the unified AI interaction surface. Activating an agent
+  // (Architect, libp2p, …) flips the chat panel open + focuses input + hands
+  // the user's next prompt to the agent's onSubmit handler.
+  // NOTE: we deliberately do NOT subscribe to the whole chat-agents store —
+  // that would re-render AuthenticatedApp on every agent register/unregister
+  // and feed an infinite loop. Pull actions via `.getState()` instead.
+
+  const openChatPanel = useCallback(() => {
+    if (chatPosition === "left" || chatPosition === "right") {
+      setSideChatVisible(true);
+    } else {
+      setFooterPanel("chat");
+    }
+  }, [chatPosition]);
+
+  const activateArchitectChatAgent = useCallback(() => {
+    useChatAgentsStore.getState().open("architect");
+    // Bring the Network Manager into focus on the center panel — Architect
+    // generates networks, so the user lands on the surface where they'll
+    // appear. Clears any drill-down context.
+    setViewRaw("networks");
+    setNavContext({});
+    // Close the bottom drawer if the chat lives on a side panel — it's not
+    // needed while Architect is engaged. (When chat is bottom-anchored the
+    // footer is repurposed as the chat panel below.)
+    if (chatPosition === "left" || chatPosition === "right") {
+      setFooterPanel("none");
+    }
+    openChatPanel();
+  }, [openChatPanel, chatPosition]);
+
+  // Any caller that bumps the open-tick (Cmd+K, libp2p Bot button, …) opens
+  // the chat panel. We only react to the increasing tick so we don't fight
+  // the user explicitly closing the panel.
+  const openTick = useChatAgentsStore((s) => s.openTick);
+  useEffect(() => {
+    if (openTick > 0) openChatPanel();
+  }, [openTick, openChatPanel]);
+
+  // Architect chat agent registration. The registered onSubmit reads the
+  // architect object via a ref so it always sees the latest closures without
+  // re-registering on every render (which would otherwise loop the store
+  // subscribers).
+  const architectRef = useRef(architect);
+  useEffect(() => { architectRef.current = architect; }, [architect]);
+
+  useEffect(() => {
+    const dispose = useChatAgentsStore.getState().register({
+      id: "architect",
+      name: "Architect",
+      description: "Describe a network and the Architect will generate a deployable mesh blueprint.",
+      icon: Sparkles,
+      gradient: ["#fbbf24", "#fcd34d"],
+      banner: ArchitectBanner,
+      welcome: ArchitectWelcome,
+      preferredSideWidth: 1000,
+      freshConversation: true,
+      placeholder: "Describe a network or multi-agent ecosystem to build…",
+      quickActions: SCENARIO_PRESETS.slice(0, 5).map((s) => ({
+        label: s.label,
+        prompt: s.desc,
+      })),
+      onSubmit: async (text, ctx) => {
+        architectRef.current.generateNetwork(text);
+        // Keep the chat's loading indicator (three dots) visible until the
+        // architect job finishes by awaiting the phase transition. The job
+        // resolves asynchronously through useArchitect's job watcher, so we
+        // poll the latest snapshot via the ref.
+        await new Promise<void>((resolve) => {
+          const start = Date.now();
+          const tick = () => {
+            const a = architectRef.current;
+            if (!a.archGenerating) return resolve();
+            if (a.archError) return resolve();
+            if (Date.now() - start > 90_000) return resolve(); // safety timeout
+            setTimeout(tick, 200);
+          };
+          tick();
+        });
+        const a = architectRef.current;
+        if (a.archError) {
+          ctx.appendAssistantMessage?.(`Architect error: ${a.archError}`);
+        } else if (a.archPreview) {
+          const n = a.archPreview;
+          const networkCount = n.networks?.length ?? 0;
+          ctx.appendAssistantMessage?.(
+            `Blueprint ready — ${n.agents.length} agents · ${n.channels.length} channels${networkCount ? ` · ${networkCount} network${networkCount === 1 ? "" : "s"}` : ""}. Review and deploy below.`,
+          );
+        }
+        return true;
+      },
+    });
+    return dispose;
+  }, []);
+
+  // Surface the existing ArchitectPopup automatically once the phase moves
+  // past "input" so the chat-driven prompt produces a popup with preview/deploy.
+  // When the Architect chat agent is active, we instead render an inline panel
+  // inside the chat (see ChatPanel → ArchitectInlinePanel), so the modal stays closed.
+  const architectAgentActive = useChatAgentsStore((s) => s.activeAgentId === "architect");
+  useEffect(() => {
+    if (architect.archPhase !== "input" && !architectAgentActive) setShowArchitectPopup(true);
+  }, [architect.archPhase, architectAgentActive]);
+
+  // Editor + Studio chat agents. These are passive registrations that let
+  // the chat panel render the right banner / input icon when the user is
+  // working in those toolkit views. Their onSubmit returns false so input
+  // falls through to the existing studio/editor chat paths.
+  useEffect(() => {
+    const store = useChatAgentsStore.getState();
+    const disposeEditor = store.register({
+      id: "editor",
+      name: "Editor",
+      description: "Routing prompts to the editor — ask the AI to edit, refactor or explain your file.",
+      icon: Edit3,
+      gradient: ["#60a5fa", "#a78bfa"],
+      placeholder: "Ask the AI to help edit your file…",
+    });
+    const disposeStudio = store.register({
+      id: "studio",
+      name: "Studio",
+      description: "Routing prompts to Studio — describe canvas changes, layouts, and analytics.",
+      icon: Clapperboard,
+      gradient: ["#f472b6", "#fb7185"],
+      placeholder: "Ask the AI to build on the Studio canvas…",
+    });
+    return () => { disposeEditor(); disposeStudio(); };
+  }, []);
+
+  // When the libp2p chat agent becomes active (from anywhere — sidebar entry,
+  // Bot button, mention selection, …) drive the layout into the libp2p surface:
+  // switch to the libp2p view and collapse the bottom drawer so the libp2p
+  // Network Manager has full focus alongside the side chat panel. Mirrors the
+  // architect activation flow — only one bot mode is engaged at a time, and
+  // engaging libp2p takes precedence over whatever was previously active.
+  const libp2pAgentActive = useChatAgentsStore((s) => s.activeAgentId === "libp2p");
+  useEffect(() => {
+    if (!libp2pAgentActive) return;
+    setViewRaw("libp2p");
+    setNavContext({});
+    if (chatPosition === "left" || chatPosition === "right") {
+      setFooterPanel("none");
+    }
+    openChatPanel();
+  }, [libp2pAgentActive, chatPosition, openChatPanel]);
+
+  // Auto-activate the agent that matches the current view. We only flip if
+  // the active agent is currently null or another view-bound agent — we
+  // never override Architect or libp2p (user-driven agents).
+  const VIEW_BOUND_AGENTS: Record<string, string | null> = {
+    editor: "editor",
+    jobs: "studio",
+  };
+  useEffect(() => {
+    const store = useChatAgentsStore.getState();
+    const desired = VIEW_BOUND_AGENTS[view as string] ?? null;
+    const current = store.activeAgentId;
+    const currentIsViewBound = current && Object.values(VIEW_BOUND_AGENTS).includes(current);
+    if (desired && current !== desired && (!current || currentIsViewBound)) {
+      store.setActive(desired);
+    } else if (!desired && currentIsViewBound) {
+      store.setActive(null);
+    }
+  }, [view]);
+
+  // Ctrl+K / Cmd+K — activate Architect agent in the chat panel
+  // Cmd+J for Studio (jobs view), Cmd+. for Channels.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
-        setShowArchitectPopup(prev => !prev);
+        activateArchitectChatAgent();
       }
       if ((e.ctrlKey || e.metaKey) && e.key === "j") {
         e.preventDefault();
@@ -368,7 +537,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [activateArchitectChatAgent, setView]);
 
   const chatWorkspaceContext = useMemo(() => ({
     agents: workspace.agents, channels: workspace.channels, groups: workspace.groups,
@@ -393,11 +562,13 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
         onToggleExpand={handleChatToggleExpand}
         position={chatPosition}
         view={view}
+        setView={setView}
       />
     </div>
   );
 
   return (
+    <ArchitectProvider value={architect}>
     <CommandContextProvider ecosystem={ecosystem} architect={architect} addLog={addLog}>
     <div className="app-shell">
       <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -537,5 +708,6 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
         />
     </div>
     </CommandContextProvider>
+    </ArchitectProvider>
   );
 }

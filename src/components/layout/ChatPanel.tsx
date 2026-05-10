@@ -10,6 +10,7 @@ import type { Conversation } from "@/components/chat/types";
 import { useCommandContext } from "@/hooks/useCommandContext";
 import { useJobsContext } from "@/context/JobsContext";
 import { useArchitect } from "@/toolkits/architect";
+import { useArchitectContext } from "@/toolkits/architect";
 import { useEcosystem } from "@/hooks/useEcosystem"; // Bridge UI — needed for command context ecosystem prop
 import { useAuth } from "@/context/AuthContext";
 import { registry as commandRegistry } from "@/services/commands/registry";
@@ -23,6 +24,9 @@ import type { ViewId, JobStep } from "@/types";
 import { useConversations } from "@/hooks/useConversations";
 import { useChatResize } from "@/hooks/useChatResize";
 import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
+import { useActiveChatAgent, useChatAgentsStore } from "@/services/chat/agents";
+import { ChatAgentBanner } from "@/components/chat/ChatAgentBanner";
+import { ArchitectInlinePanel } from "@/toolkits/architect";
 import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {
@@ -36,9 +40,10 @@ interface ChatPanelProps {
     onToggleExpand: () => void;
     position?: ChatPosition;
     view?: ViewId;
+    setView?: (v: ViewId) => void;
 }
 
-export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeight, isExpanded, onToggleExpand, position = "bottom", view }: ChatPanelProps) {
+export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeight, isExpanded, onToggleExpand, position = "bottom", view, setView }: ChatPanelProps) {
     const { activeWorkspaceId } = useWorkspaceManager();
     const {
         conversations, setConversations,
@@ -48,6 +53,9 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         endRef, inputRef, initialScrollDone,
         updateConversation, createNewChat, switchTo, deleteConvo,
     } = useConversations(activeWorkspaceId);
+
+    const activeAgent = useActiveChatAgent();
+    const focusTick = useChatAgentsStore((s) => s.focusTick);
 
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -79,6 +87,34 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         }
     }, [showConvos, activeId]);
 
+    // External focus requests (Cmd+K, libp2p Bot button, …) bump focusTick.
+    useEffect(() => {
+        if (focusTick > 0) {
+            // Defer to next paint so the chat panel has a chance to mount.
+            const t = setTimeout(() => inputRef.current?.focus(), 30);
+            return () => clearTimeout(t);
+        }
+    }, [focusTick]);
+
+    // Fresh-conversation agents (Architect, …) start a brand-new conversation
+    // on activation so their welcome panel speaks first on an empty stage.
+    // Inline agents (Editor, Studio, libp2p) leave the active conversation
+    // alone. Tracked via a ref so we only react on the activeAgent transition
+    // and only when the current convo has visible history.
+    const prevAgentIdRef = useRef<string | null>(null);
+    useEffect(() => {
+        const prev = prevAgentIdRef.current;
+        const curr = activeAgent?.id ?? null;
+        prevAgentIdRef.current = curr;
+        if (curr && curr !== prev && activeAgent?.freshConversation) {
+            // Only spin up a new conversation if the active one has content
+            // (avoid stacking empty placeholders if the user toggles agents).
+            if (!active || (active.messages?.length ?? 0) > 0) {
+                createNewChat();
+            }
+        }
+    }, [activeAgent?.id, activeAgent?.freshConversation, active, createNewChat]);
+
     // Re-focus input after the assistant finishes responding so the
     // operator can keep typing without re-clicking the textbox.
     useEffect(() => {
@@ -91,6 +127,11 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const { user } = useAuth();
     const jobs = useJobsContext();
     const architect = useArchitect(addLog || (() => {}), jobs.addJob, jobs.jobs);
+    // Architect state from the app-level provider — this is the instance that
+    // the chat agent's onSubmit drives. `architect` above is a parallel local
+    // instance used only for command-context wiring; reading it would render
+    // a stale preview.
+    const sharedArchitect = useArchitectContext();
 
     // Toolkit extension APIs — pulled early so useCommandContext can inject them
     const { api: studioApi } = useStudioContext();
@@ -209,6 +250,37 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         const updatedMsgs = [...currentMessages, userMsg];
         updateConversation(currentId, updatedMsgs);
         setLoading(true);
+
+        // Active chat agent routing (Architect, libp2p, …) — first chance to handle the input.
+        // Non-slash, non-@mention messages are offered to the active agent's onSubmit.
+        if (activeAgent?.onSubmit && !text.startsWith("/") && !/^@\w/.test(text)) {
+            try {
+                const handled = await activeAgent.onSubmit(text, {
+                    conversationId: currentId,
+                    appendAssistantMessage: (content: string) => {
+                        // Use the functional setter so we always read the latest
+                        // conversation messages (including the user message we
+                        // just inserted) — the captured `conversations` closure
+                        // is stale and would otherwise overwrite & drop messages.
+                        setConversations(prev => prev.map(c =>
+                            c.id === currentId
+                                ? { ...c, messages: [...c.messages, { role: "assistant" as const, content }], updatedAt: Date.now() }
+                                : c
+                        ));
+                    },
+                });
+                if (handled) {
+                    addLog?.(`Chat[${activeAgent.id}]: "${text.slice(0, 40)}${text.length > 40 ? "…" : ""}"`);
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
+                const errMsg = [...updatedMsgs, { role: "assistant" as const, content: `${activeAgent.name} error: ${err instanceof Error ? err.message : String(err)}` }];
+                updateConversation(currentId, errMsg);
+                setLoading(false);
+                return;
+            }
+        }
 
         try {
             // CLI INTERCEPTION — commands go through arg prompt → job queue
@@ -382,7 +454,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         } finally {
             setLoading(false);
         }
-    }, [input, loading, activeId, conversations, context, addLog, updateConversation, commandContext, queueCommandAsJob, workspaceCtx]);
+    }, [input, loading, activeId, conversations, context, addLog, updateConversation, commandContext, queueCommandAsJob, workspaceCtx, activeAgent]);
 
     // Handle prompt modal submission
     const handlePromptSubmit = useCallback((commandId: string, args: Record<string, any>) => {
@@ -400,6 +472,20 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     }, [pendingCommand, updateConversation]);
 
     const { isResizing, isSide, startResizing } = useChatResize(position, height, setHeight);
+
+    // When the active agent prefers a wider side panel (Architect blueprint
+    // cards, etc.) we override the user's saved size while it's active.
+    // Clamped to 50vw min, agent.preferredSideWidth max, viewport ceiling.
+    const effectivePanelSize = useMemo(() => {
+        if (isSide && activeAgent?.preferredSideWidth) {
+            const target = Math.min(
+                activeAgent.preferredSideWidth,
+                Math.max(window.innerWidth * 0.5, 900),
+            );
+            return Math.min(target, window.innerWidth - 320);
+        }
+        return height;
+    }, [isSide, activeAgent?.preferredSideWidth, height]);
 
     const modelId = getChatModel();
     const llm = useLLM();
@@ -436,8 +522,8 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
 
     return (
         <div
-            className={`chat-panel${isResizing ? " chat-panel--resizing" : ""}${isSide ? ` chat-panel--${position}` : ""}`}
-            style={isSide ? { width: height, flexShrink: 0 } : { height }}
+            className={`chat-panel${isResizing ? " chat-panel--resizing" : ""}${isSide ? ` chat-panel--${position}` : ""}${activeAgent ? ` chat-panel--agent chat-panel--agent-${activeAgent.id}` : ""}`}
+            style={isSide ? { width: effectivePanelSize, flexShrink: 0 } : { height: effectivePanelSize }}
         >
             {/* Resize Handle */}
             <div onMouseDown={startResizing} className={`chat-panel__resize-handle${isSide ? " chat-panel__resize-handle--side" : ""}`}>
@@ -519,13 +605,51 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
             ) : (
                 /* Chat messages */
                 <div className="chat-panel__messages">
-                    {messages.length === 0 && !loading && (
+                    <ChatAgentBanner />
+                    {activeAgent?.welcome && !loading && (
+                        (() => {
+                            const Welcome = activeAgent.welcome!;
+                            return (
+                                <div className="chat-panel__agent-welcome chat-panel__agent-welcome--inline">
+                                    <Welcome
+                                        onPrompt={(t: string) => {
+                                            setInput(t);
+                                            setTimeout(() => inputRef.current?.focus(), 0);
+                                        }}
+                                    />
+                                </div>
+                            );
+                        })()
+                    )}
+                    {messages.length === 0 && !loading && !activeAgent?.welcome && (
                         <div className="chat-panel__chat-empty">
                             <GradientIcon icon={MessageCircle} size={24} gradient={["#00e5a0", "#38bdf8"]} />
-                            <div className="chat-panel__chat-empty-title">Workspace AI Assistant</div>
-                            <div className="chat-panel__chat-empty-desc">
-                                Ask about your agents, channels, groups, topology — or request workspace actions.
+                            <div className="chat-panel__chat-empty-title">
+                                {activeAgent ? activeAgent.name : "Workspace AI Assistant"}
                             </div>
+                            <div className="chat-panel__chat-empty-desc">
+                                {activeAgent?.description ?? "Ask about your agents, channels, groups, topology — or request workspace actions."}
+                            </div>
+                            {activeAgent?.quickActions && activeAgent.quickActions.length > 0 && (
+                                <div className="chat-agent-quickactions">
+                                    {activeAgent.quickActions.map((qa, i) => (
+                                        <button
+                                            key={i}
+                                            type="button"
+                                            className="chat-agent-quickactions__chip"
+                                            onClick={() => {
+                                                if (qa.run) qa.run();
+                                                else if (qa.prompt) {
+                                                    setInput(qa.prompt);
+                                                    setTimeout(() => inputRef.current?.focus(), 0);
+                                                }
+                                            }}
+                                        >
+                                            {qa.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                     {messages.map((m, i) => (
@@ -566,6 +690,16 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             </div>
                         </div>
                     )}
+                    {activeAgent?.id === "architect" && sharedArchitect && sharedArchitect.archPhase !== "input" && (
+                        <ArchitectInlinePanel
+                            archPreview={sharedArchitect.archPreview}
+                            archPhase={sharedArchitect.archPhase}
+                            deployProgress={sharedArchitect.deployProgress}
+                            deployNetwork={sharedArchitect.deployNetwork}
+                            resetArchitect={sharedArchitect.resetArchitect}
+                            setView={setView ?? (() => {})}
+                        />
+                    )}
                     <div ref={endRef} />
                 </div>
             )}
@@ -592,7 +726,28 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             ))}
                         </div>
                     )}
-                    {studioAvailable && (
+                    <div
+                        className={`chat-panel__input-bar${activeAgent ? " chat-panel__input-bar--agent" : studioActive ? " chat-panel__input-bar--studio" : editorActive ? " chat-panel__input-bar--editor" : ""}`}
+                        style={activeAgent ? {
+                            ["--agent-gradient-start" as any]: activeAgent.gradient?.[0] ?? "#38bdf8",
+                            ["--agent-gradient-end" as any]: activeAgent.gradient?.[1] ?? "#a78bfa",
+                        } : undefined}
+                    >
+                    {activeAgent?.icon && (
+                        <button
+                            type="button"
+                            className="chat-panel__agent-input-badge"
+                            onClick={() => useChatAgentsStore.getState().setActive(null)}
+                            title={`${activeAgent.name} is handling your prompts — click to exit agent mode`}
+                        >
+                            <GradientIcon
+                                icon={activeAgent.icon as any}
+                                size={13}
+                                gradient={activeAgent.gradient ?? ["#38bdf8", "#a78bfa"]}
+                            />
+                        </button>
+                    )}
+                    {studioAvailable && !activeAgent && (
                         <button
                             className={`chat-panel__studio-input-badge${!studioMode ? " chat-panel__studio-input-badge--off" : ""}`}
                             onClick={() => setStudioMode(prev => !prev)}
@@ -601,7 +756,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             <Clapperboard size={13} />
                         </button>
                     )}
-                    {editorAvailable && !studioAvailable && (
+                    {editorAvailable && !studioAvailable && !activeAgent && (
                         <button
                             className={`chat-panel__editor-input-badge${!editorMode ? " chat-panel__editor-input-badge--off" : ""}`}
                             onClick={() => setEditorMode(prev => !prev)}
@@ -631,7 +786,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             }
                             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
                         }}
-                        placeholder={studioActive ? "Ask the AI to build on the Studio canvas..." : editorActive ? "Ask the AI to help edit your file..." : "Ask about your workspace — type @ to mention agents..."}
+                        placeholder={activeAgent?.placeholder ?? (studioActive ? "Ask the AI to build on the Studio canvas..." : editorActive ? "Ask the AI to help edit your file..." : "Ask about your workspace — type @ to mention agents...")}
                         disabled={loading && !streamingText}
                         className={`chat-panel__input${studioActive ? " chat-panel__input--studio" : editorActive ? " chat-panel__input--editor" : ""}`}
                     />
@@ -648,6 +803,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             className={`chat-panel__send-btn${isReady ? " chat-panel__send-btn--ready" : ""}`}
                         ><Send size={14} /></button>
                     )}
+                    </div>
                 </div>
             )}
 

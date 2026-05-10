@@ -4,7 +4,7 @@
 
 import { registerToolkitProvider, registerToolkitView } from "@/services/toolkits/uiRegistry";
 import { Libp2pProvider } from "./Libp2pContext";
-import { Libp2pView } from "./Libp2pView";
+import { Libp2pView } from "./components/Libp2pView";
 
 registerToolkitProvider({
     toolkitId: "libp2p",

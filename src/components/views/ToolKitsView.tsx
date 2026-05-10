@@ -14,6 +14,7 @@ import {
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { StudioBotPanel } from "@/toolkits/studio";
 import { ArchitectBotPanel } from "@/toolkits/architect";
+import { Libp2pBotPanel } from "@/toolkits/libp2p";
 import "../../styles/components/toolkits.css";
 
 /** Map toolkit icon names → Lucide components */
@@ -327,6 +328,8 @@ export function ToolKitsView({ navigateTo }: ToolKitsViewProps) {
                       {tk.id === "studio" && <StudioBotPanel />}
                       {/* Architect Bot — network design panel */}
                       {tk.id === "ecosystem" && <ArchitectBotPanel navigateTo={navigateTo} />}
+                      {/* libp2p Bot — peer-to-peer networking panel */}
+                      {tk.id === "libp2p" && <Libp2pBotPanel />}
                     </div>
                   )}
 

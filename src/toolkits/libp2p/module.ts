@@ -30,6 +30,23 @@ export const libp2pModule: ToolkitModule = {
     commands: libp2pCommands,
     tools: [],
 
+    agents: [
+        {
+            id: "libp2p-bot",
+            name: "libp2p Bot",
+            description:
+                "Specialized AI sub-agent for peer-to-peer networking — handles node lifecycle, peer dialing, pubsub, and identity management.",
+            capabilities: [
+                "Node start/stop with custom services",
+                "Peer dial / ping / hangup",
+                "Pubsub subscribe & publish",
+                "Identity generation & vault",
+                "Contact book management",
+            ],
+            status: "active",
+        },
+    ],
+
     configuration: {
         fields: [
             {
@@ -122,12 +139,13 @@ export const libp2pModule: ToolkitModule = {
                     "`/webrtc` address negotiated over the signalling stream provided by the relay.",
                     "",
                     "## Commands",
-                    "- `libp2p_start` — start the node",
-                    "- `libp2p_stop` — stop the node",
-                    "- `libp2p_dial` — dial a peer",
+                    "- `libp2p_start` / `libp2p_stop` — start/stop a node",
+                    "- `libp2p_add_node` / `libp2p_remove_node` / `libp2p_set_active_node` / `libp2p_rename_node` — manage multiple nodes",
+                    "- `libp2p_dial` / `libp2p_hangup` — open or close a connection",
                     "- `libp2p_ping` — measure latency",
-                    "- `libp2p_list_peers` — list known peers",
-                    "- `libp2p_pubsub_subscribe` / `libp2p_pubsub_publish` — gossipsub messaging",
+                    "- `libp2p_list_peers` / `libp2p_clear_peers` — inspect or reset the peer book",
+                    "- `libp2p_pubsub_subscribe` / `libp2p_pubsub_unsubscribe` / `libp2p_pubsub_publish` — gossipsub messaging",
+                    "- `libp2p_generate_identity` / `libp2p_import_identity` / `libp2p_export_identity` / `libp2p_clear_identity` — manage the node's Ed25519 keypair",
                 ].join("\n"),
             },
         ],

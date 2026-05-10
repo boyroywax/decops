@@ -9,6 +9,7 @@ import './index.css'
 // Side-effect import: registers Studio Bot's chat delegation with the core AI service.
 // This must run before any chat interactions so the delegation is available.
 import '@/toolkits/studio/studioBot'
+import '@/toolkits/libp2p/libp2pBot'
 
 // Side-effect imports: register toolkit UI contributions (providers, views, globals)
 // with the runtime UI registry before the app renders.

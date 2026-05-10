@@ -240,7 +240,9 @@ export function Sidebar({ view, setView, networks, messages, bridgeMessages, age
         title={collapsed && !isMobile ? LIBP2P_ITEM.label : undefined}
         className={`sidebar-nav-item sidebar-nav-item--libp2p ${view === LIBP2P_ITEM.id ? 'active' : ''}`}
         data-accent="info"
-        style={view === LIBP2P_ITEM.id ? { color: LIBP2P_ITEM.accent } : undefined}
+        style={{ display: "none" }}
+        hidden
+        aria-hidden="true"
       >
         {view === LIBP2P_ITEM.id
           ? <GradientIcon icon={LIBP2P_ITEM.icon} size={14} gradient={LIBP2P_ITEM.gradient} />

@@ -756,3 +756,57 @@
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Architect chat-banner (rendered inside chat panel when Architect agent active) ── */
+/* Visual pattern mirrors `.libp2p-chat-banner` — 4-col grid of compact stat tiles. */
+.architect-chat-banner {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.architect-chat-banner__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(253, 230, 138, 0.18);
+  border-radius: 5px;
+  color: rgba(255, 255, 255, 0.78);
+}
+.architect-chat-banner__stat svg {
+  color: #fde68a;
+}
+.architect-chat-banner__value {
+  font-family: var(--font-mono, "DM Mono", monospace);
+  font-size: 13px;
+  color: #fff;
+  line-height: 1;
+}
+.architect-chat-banner__total {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+.architect-chat-banner__label {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+}
+.architect-chat-banner__error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.32);
+  border-radius: 4px;
+}
+.architect-chat-banner__spin {
+  animation: architect-banner-spin 1s linear infinite;
+}
+@keyframes architect-banner-spin { to { transform: rotate(360deg); } }

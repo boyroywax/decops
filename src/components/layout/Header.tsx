@@ -26,7 +26,7 @@ export function Header({ user, logout, setView, onProfileClick, activityPulse, o
           <Hexagon size={18} color="#0a0a0f" strokeWidth={2.5} />
         </div>
         <div>
-          <div className="header-title">{isMobile ? "MESH" : "MESH WORKSPACE"}</div>
+          <div className="header-title">{isMobile ? "POCKET" : "POCKET WORKSPACE"}</div>
           <div className="header-subtitle">DECENTRALIZED AGENT COLLABORATION</div>
         </div>
       </div>

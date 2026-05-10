@@ -512,16 +512,54 @@
   padding: 8px 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.04);
   display: flex;
-  gap: var(--space-md);
+  flex-direction: column;
+  gap: var(--space-sm);
   flex-shrink: 0;
+}
+
+/* Integrated input bar — single border wraps badge + input + send */
+.chat-panel__input-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-xl);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.chat-panel__input-bar:focus-within {
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.chat-panel__input-bar--studio {
+  border-color: rgba(168, 85, 247, 0.3);
+}
+.chat-panel__input-bar--studio:focus-within {
+  border-color: rgba(168, 85, 247, 0.5);
+  box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.15);
+}
+.chat-panel__input-bar--editor {
+  border-color: rgba(56, 189, 248, 0.3);
+}
+.chat-panel__input-bar--editor:focus-within {
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.15);
+}
+.chat-panel__input-bar--agent {
+  border-color: color-mix(in srgb, var(--agent-gradient-end, #a78bfa) 35%, transparent);
+}
+.chat-panel__input-bar--agent:focus-within {
+  border-color: color-mix(in srgb, var(--agent-gradient-end, #a78bfa) 60%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--agent-gradient-end, #a78bfa) 18%, transparent);
 }
 
 .chat-panel__input {
   flex: 1;
-  background: var(--bg-input);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-xl);
-  padding: 8px 12px;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 6px 6px;
   color: var(--text-primary);
   font-size: var(--text-md);
   font-family: inherit;
@@ -529,15 +567,19 @@
 }
 
 .chat-panel__send-btn {
-  border-radius: var(--radius-xl);
-  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-lg);
+  padding: 6px 10px;
   font-size: var(--text-md);
   font-family: inherit;
   transition: all var(--transition-fast);
   cursor: default;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-default);
+  border: 1px solid transparent;
   color: var(--text-invisible);
+  flex-shrink: 0;
 }
 
 .chat-panel__send-btn--ready {
@@ -632,4 +674,333 @@
   color: var(--text-secondary);
   margin-left: auto;
   font-size: var(--text-xs);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * CHAT AGENT BANNER (sticky agent identity + custom banner content)
+ * Active when a chat agent (Architect, libp2p, …) is in focus.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.chat-agent-banner {
+  --agent-gradient-start: #38bdf8;
+  --agent-gradient-end: #a78bfa;
+  position: sticky;
+  top: -12px;
+  z-index: 5;
+  /* Themed background — a clear, vibrant horizontal gradient using the
+     active agent's signature colors over an opaque base. Keeps text legible
+     while making the banner read as a strong identity strip. */
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--agent-gradient-start) 38%, #0f1720) 0%,
+      color-mix(in srgb, var(--agent-gradient-end) 32%, #0f1720) 55%,
+      #0f1720 100%),
+    var(--bg-panel, #0f1720);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--agent-gradient-end) 55%, transparent);
+  box-shadow:
+    0 8px 20px -14px color-mix(in srgb, var(--agent-gradient-end) 70%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--agent-gradient-start) 35%, transparent);
+  margin: -12px -14px 12px -14px;
+  padding: 12px 14px 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+/* Soft accent rail along the bottom — a thin gradient line that reads as the
+   agent's signature stripe. */
+.chat-agent-banner::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg,
+    var(--agent-gradient-start) 0%,
+    var(--agent-gradient-end) 100%);
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.chat-agent-banner__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-agent-banner__identity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-agent-banner__name {
+  font-family: var(--font-mono, "DM Mono", monospace);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffffff;
+  font-weight: 600;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.chat-agent-banner__desc {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.78);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-agent-banner__exit {
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--agent-gradient-end) 30%, rgba(255, 255, 255, 0.08));
+  border-radius: 4px;
+  padding: 2px 4px;
+  color: color-mix(in srgb, var(--agent-gradient-end) 30%, #9ca3af);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.chat-agent-banner__exit:hover {
+  color: #fff;
+  border-color: color-mix(in srgb, var(--agent-gradient-end) 60%, transparent);
+  background: color-mix(in srgb, var(--agent-gradient-end) 15%, transparent);
+}
+
+.chat-agent-banner__body {
+  display: block;
+}
+
+/* Quick-action chips (suggested prompts) shown on the empty-state. */
+.chat-agent-quickactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+.chat-agent-quickactions__chip {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 11px;
+  color: var(--text-secondary, #9ca3af);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.chat-agent-quickactions__chip:hover {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: var(--text-primary, #e4e4e7);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * AGENT INPUT BADGE — pill rendered immediately left of the input that shows
+ * which AI agent (Architect, libp2p, Editor, Studio, …) the prompts are
+ * currently routed to. Click to clear active agent.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+.chat-panel__agent-input-badge {
+  --agent-gradient-start: #38bdf8;
+  --agent-gradient-end: #a78bfa;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 6px;
+  margin-right: 4px;
+  border-radius: 6px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--agent-gradient-start) 18%, transparent),
+    color-mix(in srgb, var(--agent-gradient-end) 18%, transparent));
+  border: 1px solid color-mix(in srgb, var(--agent-gradient-end) 40%, transparent);
+  cursor: pointer;
+  transition: filter 0.15s, border-color 0.15s;
+}
+.chat-panel__agent-input-badge:hover {
+  filter: brightness(1.2);
+  border-color: color-mix(in srgb, var(--agent-gradient-end) 65%, transparent);
+}
+
+/* When a chat agent is active, give the side panel a subtle accent rail
+   tinted with the agent's signature gradient. */
+.chat-panel--agent.chat-panel--right {
+  border-left: 1px solid
+    color-mix(in srgb, var(--agent-gradient-end, #a78bfa) 30%, rgba(255, 255, 255, 0.06));
+}
+.chat-panel--agent.chat-panel--left {
+  border-right: 1px solid
+    color-mix(in srgb, var(--agent-gradient-end, #a78bfa) 30%, rgba(255, 255, 255, 0.06));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * AGENT WELCOME PANEL — replaces the generic empty state when an agent is
+ * active and the conversation has no messages. The agent component itself
+ * provides the content (intro + sample cards).
+ * ═══════════════════════════════════════════════════════════════════════════ */
+.chat-panel__agent-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px 16px;
+}
+/* When messages also exist, render the welcome as a header block above
+   the conversation with a subtle divider so it reads as a "homepage". */
+.chat-panel__agent-welcome--inline {
+  padding-bottom: 12px;
+  margin-bottom: 8px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+}
+
+/* Architect-specific welcome (intro hero + sample-network card grid). */
+.architect-welcome {
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.architect-welcome__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 8px 12px 4px;
+}
+.architect-welcome__hero-title {
+  font-family: var(--font-display, "Space Grotesk", sans-serif);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #fbbf24 0%, #fcd34d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.architect-welcome__hero-desc {
+  font-size: 12px;
+  line-height: 1.55;
+  max-width: 620px;
+  color: var(--text-secondary, #9ca3af);
+}
+.architect-welcome__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+.architect-welcome__card {
+  --card-accent: #38bdf8;
+  text-align: left;
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.025) 0%,
+    rgba(255, 255, 255, 0.01) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+}
+.architect-welcome__card:hover {
+  border-color: color-mix(in srgb, var(--card-accent) 55%, transparent);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--card-accent) 8%, transparent) 0%,
+    rgba(255, 255, 255, 0.01) 100%);
+  transform: translateY(-1px);
+}
+.architect-welcome__card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.architect-welcome__card-label {
+  font-family: var(--font-mono, "DM Mono", monospace);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-primary, #e4e4e7);
+}
+.architect-welcome__card-desc {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary, #9ca3af);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SOLAR BANNER — Architect agent
+ * Layers a soft sunrise corona on top of the generic themed banner so the
+ * Architect surface reads as a distinct creative-mode workspace while still
+ * picking up the agent's gradient (amber → orange) from CSS variables.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Sunrise corona — a soft luminous arc anchored at top-left of the banner.
+   The base background still comes from .chat-agent-banner using the agent's
+   gradient vars (#fbbf24 → #fcd34d), so we only enhance it here. */
+.chat-panel--agent-architect .chat-agent-banner::before {
+  content: "";
+  position: absolute;
+  top: -110px;
+  left: -60px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(closest-side,
+    rgba(252, 211, 77, 0.55) 0%,
+    rgba(251, 191, 36, 0.22) 40%,
+    rgba(251, 191, 36, 0) 70%);
+  filter: blur(2px);
+  pointer-events: none;
+  animation: solar-pulse 6s ease-in-out infinite;
+}
+
+@keyframes solar-pulse {
+  0%, 100% { opacity: 0.9; transform: scale(1); }
+  50%      { opacity: 1.0; transform: scale(1.06); }
+}
+
+/* Identity row tinted to match the solar palette. */
+.chat-panel--agent-architect .chat-agent-banner__name {
+  color: #fde68a;
+  text-shadow: 0 0 12px rgba(251, 191, 36, 0.35);
+}
+.chat-panel--agent-architect .chat-agent-banner__desc {
+  color: rgba(253, 230, 138, 0.78);
+}
+.chat-panel--agent-architect .chat-agent-banner__exit {
+  border-color: rgba(251, 191, 36, 0.35);
+  color: rgba(253, 230, 138, 0.85);
+}
+.chat-panel--agent-architect .chat-agent-banner__exit:hover {
+  border-color: rgba(251, 191, 36, 0.7);
+  color: #fff7ed;
+  background: rgba(251, 191, 36, 0.10);
+}
+
+/* Inner architect-banner body content (phase hints) inherits the warm tone. */
+.chat-panel--agent-architect .architect-banner__hint {
+  color: rgba(253, 230, 138, 0.92);
+}
+.chat-panel--agent-architect .architect-banner__hint strong {
+  color: #fef3c7;
+}
+.chat-panel--agent-architect .architect-banner__error {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.10);
+  border: 1px solid rgba(239, 68, 68, 0.30);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
