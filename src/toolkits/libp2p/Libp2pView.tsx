@@ -1,9 +1,10 @@
 /**
  * Libp2pView — main UI surface for the libp2p toolkit.
  *
- * Allows the user to start/stop a browser libp2p node, view their
- * peer id and listen addresses, dial peers by multiaddr, ping
- * connected peers, and exchange pubsub messages.
+ * All actions (start/stop/dial/ping/hangup/pubsub) are dispatched through
+ * the job creator so they land in the job queue, get a timeline entry,
+ * and surface in the notebook just like every other toolkit command.
+ * The view subscribes to the libp2pService snapshot for live state.
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -13,6 +14,8 @@ import {
 } from "lucide-react";
 import { useLibp2p } from "./Libp2pContext";
 import { DEFAULT_BOOTSTRAP } from "./service";
+import { useJobsContext } from "@/context/JobsContext";
+import type { JobRequest } from "@/types";
 import "./libp2p.css";
 
 interface Libp2pViewProps {
@@ -20,21 +23,25 @@ interface Libp2pViewProps {
 }
 
 export function Libp2pView(_props: Libp2pViewProps) {
-    const {
-        snapshot, start, stop, dial, hangUp, ping,
-        subscribeTopic, unsubscribeTopic, publish, clearPeers,
-    } = useLibp2p();
+    const { snapshot } = useLibp2p();
+    const { addJob, jobs } = useJobsContext();
 
     const [dialTarget, setDialTarget] = useState("");
     const [topic, setTopic] = useState("");
     const [pubMessage, setPubMessage] = useState("");
-    const [busy, setBusy] = useState(false);
     const [log, setLog] = useState<{ ts: number; msg: string; level: "info" | "error" }[]>([]);
 
     const addLog = (msg: string, level: "info" | "error" = "info") =>
         setLog((l) => [{ ts: Date.now(), msg, level }, ...l].slice(0, 100));
 
     const isRunning = snapshot.status === "running";
+
+    /** Submit a libp2p command as a job. */
+    const dispatch = (type: string, request: Record<string, any> = {}, label?: string) => {
+        const job = addJob({ type, request } as JobRequest);
+        addLog(`Queued ${label ?? type}${job?.id ? ` (job ${job.id.slice(4, 12)}…)` : ""}`);
+        return job;
+    };
 
     const peers = useMemo(() => {
         return [...snapshot.peers].sort((a, b) =>
@@ -45,93 +52,75 @@ export function Libp2pView(_props: Libp2pViewProps) {
 
     const connectedCount = peers.filter((p) => p.connected).length;
 
+    /** True while a libp2p job is queued or running. Disables action buttons. */
+    const busy = useMemo(() => {
+        return jobs.some((j: any) =>
+            typeof j.type === "string" &&
+            j.type.startsWith("libp2p_") &&
+            (j.status === "queued" || j.status === "running"),
+        );
+    }, [jobs]);
+
+    // Surface job results into the local activity log.
+    useEffect(() => {
+        const recent = jobs
+            .filter((j: any) =>
+                typeof j.type === "string" &&
+                j.type.startsWith("libp2p_") &&
+                (j.status === "completed" || j.status === "failed") &&
+                j.completedAt && j.completedAt > Date.now() - 10_000,
+            )
+            .slice(0, 5);
+        for (const j of recent) {
+            const key = `__libp2p_logged_${j.id}`;
+            if ((window as any)[key]) continue;
+            (window as any)[key] = true;
+            if (j.status === "completed") {
+                addLog(`${j.type} completed${j.result ? `: ${String(j.result).slice(0, 80)}` : ""}`);
+            } else {
+                addLog(`${j.type} failed: ${j.result ?? "unknown error"}`, "error");
+            }
+        }
+    }, [jobs]);
+
     useEffect(() => {
         if (snapshot.error) addLog(snapshot.error, "error");
     }, [snapshot.error]);
 
-    const handleStart = async () => {
-        setBusy(true);
-        try {
-            await start();
-            addLog("libp2p node started");
-        } catch (err) {
-            addLog(`Start failed: ${err instanceof Error ? err.message : String(err)}`, "error");
-        } finally {
-            setBusy(false);
-        }
-    };
+    const handleStart = () => dispatch("libp2p_start", {}, "start node");
+    const handleStop = () => dispatch("libp2p_stop", {}, "stop node");
 
-    const handleStop = async () => {
-        setBusy(true);
-        try {
-            await stop();
-            addLog("libp2p node stopped");
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    const handleDial = async () => {
+    const handleDial = () => {
         if (!dialTarget.trim()) return;
-        setBusy(true);
-        try {
-            const { remotePeer } = await dial(dialTarget.trim());
-            addLog(`Dialed ${remotePeer.slice(0, 16)}…`);
-            setDialTarget("");
-        } catch (err) {
-            addLog(`Dial failed: ${err instanceof Error ? err.message : String(err)}`, "error");
-        } finally {
-            setBusy(false);
-        }
+        dispatch("libp2p_dial", { target: dialTarget.trim() }, `dial ${dialTarget.trim().slice(0, 24)}…`);
+        setDialTarget("");
     };
 
-    const handlePing = async (peerId: string) => {
-        try {
-            const ms = await ping(peerId);
-            addLog(`Ping ${peerId.slice(0, 16)}… → ${ms} ms`);
-        } catch (err) {
-            addLog(`Ping failed: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
-    };
+    const handlePing = (peerId: string) =>
+        dispatch("libp2p_ping", { peerId }, `ping ${peerId.slice(0, 12)}…`);
 
-    const handleHangUp = async (peerId: string) => {
-        try {
-            await hangUp(peerId);
-            addLog(`Disconnected ${peerId.slice(0, 16)}…`);
-        } catch (err) {
-            addLog(`Hangup failed: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
-    };
+    const handleHangUp = (peerId: string) =>
+        dispatch("libp2p_hangup", { peerId }, `hangup ${peerId.slice(0, 12)}…`);
 
-    const handleSubscribe = async () => {
+    const handleSubscribe = () => {
         if (!topic.trim()) return;
-        try {
-            await subscribeTopic(topic.trim());
-            addLog(`Subscribed to ${topic.trim()}`);
-        } catch (err) {
-            addLog(`Subscribe failed: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
+        dispatch("libp2p_pubsub_subscribe", { topic: topic.trim() }, `subscribe ${topic.trim()}`);
     };
 
-    const handleUnsubscribe = async (t: string) => {
-        try {
-            await unsubscribeTopic(t);
-            addLog(`Unsubscribed ${t}`);
-        } catch (err) {
-            addLog(`Unsubscribe failed: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
-    };
+    const handleUnsubscribe = (t: string) =>
+        dispatch("libp2p_pubsub_unsubscribe", { topic: t }, `unsubscribe ${t}`);
 
-    const handlePublish = async () => {
+    const handlePublish = () => {
         if (!topic.trim() || !pubMessage.trim()) return;
-        try {
-            await publish(topic.trim(), pubMessage);
-            addLog(`Published to ${topic.trim()}`);
-            setPubMessage("");
-        } catch (err) {
-            addLog(`Publish failed: ${err instanceof Error ? err.message : String(err)}`, "error");
-        }
+        dispatch(
+            "libp2p_pubsub_publish",
+            { topic: topic.trim(), message: pubMessage },
+            `publish → ${topic.trim()}`,
+        );
+        setPubMessage("");
     };
+
+    const handleClearPeers = () => dispatch("libp2p_clear_peers", {}, "clear peer book");
 
     const copy = (text: string) => {
         try { navigator.clipboard?.writeText(text); } catch { /* noop */ }
@@ -256,8 +245,8 @@ export function Libp2pView(_props: Libp2pViewProps) {
                     <button
                         className="libp2p-icon-btn libp2p-icon-btn--right"
                         title="Clear peer book"
-                        onClick={clearPeers}
-                        disabled={peers.length === 0}
+                        onClick={handleClearPeers}
+                        disabled={peers.length === 0 || busy}
                     >
                         <Trash2 size={12} />
                     </button>

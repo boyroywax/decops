@@ -18,10 +18,13 @@ export {
     libp2pStartCommand,
     libp2pStopCommand,
     libp2pDialCommand,
+    libp2pHangupCommand,
     libp2pPingCommand,
     libp2pListPeersCommand,
     libp2pPubsubSubscribeCommand,
+    libp2pPubsubUnsubscribeCommand,
     libp2pPubsubPublishCommand,
+    libp2pClearPeersCommand,
 } from "./commands";
 
 export { libp2pModule } from "./module";

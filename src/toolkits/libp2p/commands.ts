@@ -184,12 +184,74 @@ export const libp2pPubsubPublishCommand: CommandDefinition = {
     },
 };
 
+// ── libp2p_hangup ──
+
+export const libp2pHangupCommand: CommandDefinition = {
+    id: "libp2p_hangup",
+    description: "Close the open connection to a remote peer.",
+    tags: ["libp2p", "network", "p2p"],
+    rbac: ["orchestrator", "builder"],
+    args: {
+        peerId: {
+            name: "peerId",
+            type: "string",
+            description: "Remote peer id to disconnect from.",
+            required: true,
+        },
+    },
+    output: "JSON confirming the hangup.",
+    execute: async (args, context) => {
+        const { peerId } = args;
+        if (!peerId || typeof peerId !== "string") throw new Error("peerId is required");
+        await libp2pService.hangUp(peerId);
+        context.workspace.addLog(`libp2p disconnected ${peerId.slice(0, 16)}…`);
+        return { peerId, disconnected: true };
+    },
+};
+
+// ── libp2p_pubsub_unsubscribe ──
+
+export const libp2pPubsubUnsubscribeCommand: CommandDefinition = {
+    id: "libp2p_pubsub_unsubscribe",
+    description: "Unsubscribe from a gossipsub topic.",
+    tags: ["libp2p", "pubsub"],
+    rbac: ["orchestrator", "builder"],
+    args: {
+        topic: { name: "topic", type: "string", description: "Topic name.", required: true },
+    },
+    output: "JSON confirming the unsubscribe.",
+    execute: async (args) => {
+        const { topic } = args;
+        if (!topic || typeof topic !== "string") throw new Error("topic is required");
+        await libp2pService.unsubscribeTopic(topic);
+        return { topic, subscribed: false };
+    },
+};
+
+// ── libp2p_clear_peers ──
+
+export const libp2pClearPeersCommand: CommandDefinition = {
+    id: "libp2p_clear_peers",
+    description: "Clear the local peer book (does not affect open connections).",
+    tags: ["libp2p", "network"],
+    rbac: ["orchestrator", "builder"],
+    args: {},
+    output: "JSON confirming the peer book was cleared.",
+    execute: async () => {
+        libp2pService.clearPeers();
+        return { cleared: true };
+    },
+};
+
 export const libp2pCommands: CommandDefinition[] = [
     libp2pStartCommand,
     libp2pStopCommand,
     libp2pDialCommand,
+    libp2pHangupCommand,
     libp2pPingCommand,
     libp2pListPeersCommand,
     libp2pPubsubSubscribeCommand,
+    libp2pPubsubUnsubscribeCommand,
     libp2pPubsubPublishCommand,
+    libp2pClearPeersCommand,
 ];
