@@ -169,22 +169,16 @@ export function PreviewContent({ preview, deployNetwork, resetArchitect }: Previ
           </>
         )}
 
-        {/* Example Messages */}
-        {preview.exampleMessages && preview.exampleMessages.length > 0 && (
+        {/* Heartbeat note — replaces former Example Messages preview */}
+        {preview.agents && preview.agents.length > 0 && (
           <>
-            <div className="architect-review__section-label">Example Messages</div>
-            {preview.exampleMessages.map((em, i) => {
-              const ch = preview.channels[em.channelIdx];
-              const from = ch ? preview.agents[ch.from] : null;
-              const to = ch ? preview.agents[ch.to] : null;
-              if (!from || !to) return null;
-              return (
-                <div key={i} className="architect-review__message-card">
-                  <div className="architect-review__message-route">{from.name} → {to.name}</div>
-                  <div className="architect-review__message-text">{em.message}</div>
-                </div>
-              );
-            })}
+            <div className="architect-review__section-label">Post-Deploy Heartbeat</div>
+            <div className="architect-review__message-card">
+              <div className="architect-review__message-route">You → all agents</div>
+              <div className="architect-review__message-text">
+                A heartbeat ping will be sent from you to each of the {preview.agents.length} agent(s) after setup completes to confirm they are online.
+              </div>
+            </div>
           </>
         )}
       </div>

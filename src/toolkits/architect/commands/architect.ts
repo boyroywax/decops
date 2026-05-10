@@ -248,7 +248,25 @@ export const deployNetworkCommand: CommandDefinition = {
                 });
             }
 
-            // 5. Print topology at the end
+            // 5. Heartbeat check — ping every agent in this network from the
+            //    current user to confirm setup completed and elicit a response.
+            const HEARTBEAT_MESSAGE = "Heartbeat check — setup complete. Please respond with your current status and confirm you are online.";
+            for (const i of netAgentIndices) {
+                const a = config.agents[i];
+                if (!a?.name) continue;
+                steps.push({
+                    id: `${prefix}-step-${stepIdx++}`,
+                    commandId: "send_message",
+                    name: `Heartbeat → ${a.name} [${net.name}]`,
+                    args: {
+                        from_agent_id: "user",
+                        to_agent_id: `$storage.agent_${slugifyStorageKey(a.name)}`,
+                        message: HEARTBEAT_MESSAGE,
+                    },
+                });
+            }
+
+            // 6. Print topology at the end
             steps.push({
                 id: `${prefix}-step-${stepIdx++}`,
                 commandId: "print_topology",
@@ -396,19 +414,20 @@ export const deployNetworkCommand: CommandDefinition = {
             });
         }
 
-        // Example messages
-        for (const em of config.exampleMessages || []) {
-            if (em.channelIdx == null || !em.message) continue;
-            const ch = (config.channels || [])[em.channelIdx];
-            if (!ch) continue;
-            const fromName = config.agents[ch.from]?.name;
-            const toName = config.agents[ch.to]?.name;
-            if (!fromName || !toName) continue;
+        // Heartbeat check — ping every deployed agent from the current user
+        // to confirm setup completed and elicit an initial AI response.
+        const HEARTBEAT_MESSAGE = "Heartbeat check — setup complete. Please respond with your current status and confirm you are online.";
+        for (const a of config.agents || []) {
+            if (!a?.name) continue;
             steps.push({
                 id: `step-${stepIdx++}`,
                 commandId: "send_message",
-                name: `Message: ${fromName} → ${toName}`,
-                args: { from_agent_id: `$storage.agent_${slugifyStorageKey(fromName)}`, to_agent_id: `$storage.agent_${slugifyStorageKey(toName)}`, message: em.message },
+                name: `Heartbeat → ${a.name}`,
+                args: {
+                    from_agent_id: "user",
+                    to_agent_id: `$storage.agent_${slugifyStorageKey(a.name)}`,
+                    message: HEARTBEAT_MESSAGE,
+                },
             });
         }
 

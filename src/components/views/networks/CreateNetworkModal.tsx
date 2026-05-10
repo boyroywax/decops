@@ -28,7 +28,7 @@ export function CreateNetworkModal({
       });
     } else if (createName.trim()) {
       addJob({
-        type: "create_empty_network",
+        type: "create_network",
         request: {
           name: createName.trim(),
           description: createDesc.trim(),

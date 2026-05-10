@@ -154,21 +154,15 @@ export function ArchitectPreview({ archPreview, deployNetwork, resetArchitect }:
                     </>
                 )}
 
-                {archPreview.exampleMessages && archPreview.exampleMessages.length > 0 && (
+                {archPreview.agents && archPreview.agents.length > 0 && (
                     <>
-                        <SectionTitle text="Example Messages (will trigger AI responses)" />
-                        {archPreview.exampleMessages.map((em, i) => {
-                            const ch = archPreview.channels[em.channelIdx];
-                            const from = ch ? archPreview.agents[ch.from] : null;
-                            const to = ch ? archPreview.agents[ch.to] : null;
-                            if (!from || !to) return null;
-                            return (
-                                <div key={i} style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 6, padding: "10px 12px", marginBottom: 8 }}>
-                                    <div style={{ fontSize: 9, color: "#52525b", marginBottom: 4 }}>{from.name} → {to.name}</div>
-                                    <div style={{ fontSize: 11, color: "#d4d4d8", lineHeight: 1.5 }}>{em.message}</div>
-                                </div>
-                            );
-                        })}
+                        <SectionTitle text="Post-Deploy Heartbeat" />
+                        <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.04)", borderRadius: 6, padding: "10px 12px", marginBottom: 8 }}>
+                            <div style={{ fontSize: 9, color: "#52525b", marginBottom: 4 }}>You → all agents</div>
+                            <div style={{ fontSize: 11, color: "#d4d4d8", lineHeight: 1.5 }}>
+                                A heartbeat ping will be sent from you to each of the {archPreview.agents.length} agent(s) after setup completes to confirm they are online.
+                            </div>
+                        </div>
                     </>
                 )}
             </div>
