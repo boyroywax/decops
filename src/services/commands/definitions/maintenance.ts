@@ -43,42 +43,74 @@ export const resetWorkspaceCommand: CommandDefinition = {
 
 export const bulkDeleteCommand: CommandDefinition = {
     id: "bulk_delete",
-    description: "Deletes multiple items of a specific type by ID.",
+    description: "Deletes multiple items of a specific type by ID or name. Pass `all: true` to delete every item of the given type. Deleting `networks` cascades to their agents, channels, groups, and bridges.",
     tags: ["maintenance", "modification"],
     rbac: ["orchestrator"],
     args: {
-        type: { name: "type", type: "string", description: "agents | channels | groups | messages", required: true },
-        ids: { name: "ids", type: "array", description: "List of IDs to delete", required: true }
+        type: { name: "type", type: "string", description: "agents | channels | groups | messages | networks | bridges", required: true },
+        ids: { name: "ids", type: "array", description: "List of IDs (or names) to delete. Ignored if `all` is true.", required: false },
+        all: { name: "all", type: "boolean", description: "Delete every item of the given type", required: false, defaultValue: false }
     },
     output: "Confirmation",
     execute: async (args, context) => {
-        const { type, ids } = args;
-        const idSet = new Set(ids as string[]);
+        const { type, ids, all } = args;
         const { setAgents, setChannels, setGroups, setMessages, addLog, agents, channels, groups, messages } = context.workspace;
+        const ecosystem = (context as any).ecosystem || {};
+        const networks: any[] = ecosystem.networks || [];
+        const bridges: any[] = ecosystem.bridges || [];
+        const setNetworks = ecosystem.setNetworks;
+        const setBridges = ecosystem.setBridges;
 
-        if (idSet.size === 0) {
-            throw new Error("No IDs provided for bulk delete");
-        }
+        // Pick collection by type
+        let collection: any[];
+        if (type === "agents") collection = agents;
+        else if (type === "channels") collection = channels;
+        else if (type === "groups") collection = groups;
+        else if (type === "messages") collection = messages;
+        else if (type === "networks") collection = networks;
+        else if (type === "bridges") collection = bridges;
+        else throw new Error(`Unknown type: ${type}`);
 
-        // Validate IDs exist and compute actual matches
+        // Resolve target IDs
         let existingIds: Set<string>;
-        if (type === "agents") {
-            existingIds = new Set(agents.filter((a: any) => idSet.has(a.id)).map((a: any) => a.id));
-        } else if (type === "channels") {
-            existingIds = new Set(channels.filter((c: any) => idSet.has(c.id)).map((c: any) => c.id));
-        } else if (type === "groups") {
-            existingIds = new Set(groups.filter((g: any) => idSet.has(g.id)).map((g: any) => g.id));
-        } else if (type === "messages") {
-            existingIds = new Set(messages.filter((m: any) => idSet.has(m.id)).map((m: any) => m.id));
+        let missingIds: string[] = [];
+
+        if (all === true) {
+            existingIds = new Set(collection.map((item: any) => item.id));
         } else {
-            throw new Error(`Unknown type: ${type}`);
+            const rawIds = (ids as string[] | undefined) || [];
+            const idSet = new Set(rawIds);
+            if (idSet.size === 0) {
+                throw new Error("No IDs provided for bulk delete (pass `all: true` to delete every item)");
+            }
+
+            // Match by id OR name (case-insensitive) so AI can pass names too
+            const lowerSet = new Set(rawIds.map(s => String(s).toLowerCase()));
+            existingIds = new Set(
+                collection
+                    .filter((item: any) => idSet.has(item.id)
+                        || (item.name && lowerSet.has(String(item.name).toLowerCase())))
+                    .map((item: any) => item.id)
+            );
+
+            // Track which inputs didn't resolve
+            const matchedKeys = new Set<string>();
+            for (const item of collection) {
+                if (idSet.has(item.id)) matchedKeys.add(item.id);
+                if (item.name && lowerSet.has(String(item.name).toLowerCase())) {
+                    // find original-cased key from rawIds
+                    const orig = rawIds.find(r => String(r).toLowerCase() === String(item.name).toLowerCase());
+                    if (orig) matchedKeys.add(orig);
+                }
+            }
+            missingIds = rawIds.filter(k => !matchedKeys.has(k));
         }
 
-        const missingIds = Array.from(idSet).filter(id => !existingIds.has(id));
         const matchedCount = existingIds.size;
 
         if (matchedCount === 0) {
-            throw new Error(`None of the ${idSet.size} provided ${type} IDs were found`);
+            const total = (ids as string[] | undefined)?.length ?? 0;
+            throw new Error(`None of the ${total} provided ${type} IDs were found`);
         }
 
         // Perform the deletions using only validated IDs
@@ -95,6 +127,30 @@ export const bulkDeleteCommand: CommandDefinition = {
             setGroups((prev: any[]) => prev.filter((g: any) => !existingIds.has(g.id)));
         } else if (type === "messages") {
             setMessages((prev: any[]) => prev.filter((m: any) => !existingIds.has(m.id)));
+        } else if (type === "networks") {
+            if (!setNetworks) throw new Error("Ecosystem context unavailable: cannot delete networks");
+            // Compute agents being cascaded so we can also clean orphan channels/messages
+            const cascadedAgentIds = new Set(
+                agents.filter((a: any) => existingIds.has(a.networkId)).map((a: any) => a.id)
+            );
+            setNetworks((prev: any[]) => prev.filter((n: any) => !existingIds.has(n.id)));
+            if (setBridges) {
+                setBridges((prev: any[]) => prev.filter((b: any) =>
+                    !existingIds.has(b.fromNetworkId) && !existingIds.has(b.toNetworkId)));
+            }
+            setAgents((prev: any[]) => prev.filter((a: any) => !existingIds.has(a.networkId)));
+            setChannels((prev: any[]) => prev.filter((c: any) =>
+                !existingIds.has(c.networkId)
+                && !cascadedAgentIds.has(c.from)
+                && !cascadedAgentIds.has(c.to)));
+            setGroups((prev: any[]) => prev.filter((g: any) => !existingIds.has(g.networkId)));
+            if (cascadedAgentIds.size > 0) {
+                setMessages((prev: any[]) => prev.filter((m: any) =>
+                    !cascadedAgentIds.has(m.fromId) && !cascadedAgentIds.has(m.toId)));
+            }
+        } else if (type === "bridges") {
+            if (!setBridges) throw new Error("Ecosystem context unavailable: cannot delete bridges");
+            setBridges((prev: any[]) => prev.filter((b: any) => !existingIds.has(b.id)));
         }
 
         // Build result message

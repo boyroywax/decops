@@ -1,5 +1,6 @@
 
 import type { CommandDefinition, CommandContext } from "@/services/commands/types";
+import { useEcosystemStore, useWorkspaceStore } from "@/stores";
 
 export const createBridgeCommand: CommandDefinition = {
     id: "create_bridge",
@@ -21,12 +22,88 @@ export const createBridgeCommand: CommandDefinition = {
             ? (Array.isArray(args.items) ? args.items : [args.items])
             : [{ from_network: args.from_network, to_network: args.to_network, from_agent: args.from_agent, to_agent: args.to_agent, type: args.type }];
 
+        // Build lookup helpers: accept either an ID or a name (case-insensitive).
+        // Read from the live Zustand stores so we always see the latest state
+        // (avoids closure-staleness when this job runs after sibling parallel
+        // jobs that created the networks/agents we need to resolve).
+        const buildResolvers = () => {
+            const liveAgents = useWorkspaceStore.getState().agents;
+            const liveNetworks = useEcosystemStore.getState().ecosystem.networks;
+            const allAgents = [
+                ...liveAgents,
+                ...context.workspace.agents,
+                ...((context.storage as any)._agents || [])
+            ];
+            const allNetworks = [
+                ...liveNetworks,
+                ...context.ecosystem.networks,
+                ...((context.storage as any)._networks || [])
+            ];
+            return {
+                resolveAgent: (key: string): string | null => {
+                    if (!key) return null;
+                    const byId = allAgents.find((a: any) => a.id === key);
+                    if (byId) return byId.id;
+                    const byName = allAgents.find((a: any) => a.name && String(a.name).toLowerCase() === String(key).toLowerCase());
+                    return byName?.id || null;
+                },
+                resolveNetwork: (key: string): string | null => {
+                    if (!key) return null;
+                    const byId = allNetworks.find((n: any) => n.id === key);
+                    if (byId) return byId.id;
+                    const byName = allNetworks.find((n: any) => n.name && String(n.name).toLowerCase() === String(key).toLowerCase());
+                    return byName?.id || null;
+                }
+            };
+        };
+
+        // Resolve a single spec, retrying briefly to allow concurrent network/
+        // agent creation jobs (in parallel architect deploys) to finish.
+        const resolveSpecWithRetry = async (spec: any): Promise<{ fromNetId: string|null; toNetId: string|null; fromAgentId: string|null; toAgentId: string|null }> => {
+            const maxAttempts = 30; // ~15s total
+            const delayMs = 500;
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                const { resolveAgent, resolveNetwork } = buildResolvers();
+                const fromNetId = resolveNetwork(spec.from_network);
+                const toNetId = resolveNetwork(spec.to_network);
+                const fromAgentId = resolveAgent(spec.from_agent);
+                const toAgentId = resolveAgent(spec.to_agent);
+                if (fromNetId && toNetId && fromAgentId && toAgentId) {
+                    return { fromNetId, toNetId, fromAgentId, toAgentId };
+                }
+                if (attempt < maxAttempts - 1) {
+                    await new Promise(r => setTimeout(r, delayMs));
+                }
+            }
+            const { resolveAgent, resolveNetwork } = buildResolvers();
+            return {
+                fromNetId: resolveNetwork(spec.from_network),
+                toNetId: resolveNetwork(spec.to_network),
+                fromAgentId: resolveAgent(spec.from_agent),
+                toAgentId: resolveAgent(spec.to_agent),
+            };
+        };
+
         const created: any[] = [];
 
         for (const spec of specs) {
+            const { fromNetId, toNetId, fromAgentId, toAgentId } = await resolveSpecWithRetry(spec);
+
+            if (!fromNetId || !toNetId || !fromAgentId || !toAgentId) {
+                const missing: string[] = [];
+                if (!fromNetId) missing.push(`from_network "${spec.from_network}"`);
+                if (!toNetId) missing.push(`to_network "${spec.to_network}"`);
+                if (!fromAgentId) missing.push(`from_agent "${spec.from_agent}"`);
+                if (!toAgentId) missing.push(`to_agent "${spec.to_agent}"`);
+                const msg = `Cannot create bridge — could not resolve: ${missing.join(", ")}`;
+                if (specs.length === 1) throw new Error(msg);
+                context.workspace.addLog(`[create_bridge] ${msg} — skipping`);
+                continue;
+            }
+
             const exists = context.ecosystem.bridges.some((b: any) =>
-                (b.fromAgentId === spec.from_agent && b.toAgentId === spec.to_agent) ||
-                (b.fromAgentId === spec.to_agent && b.toAgentId === spec.from_agent)
+                (b.fromAgentId === fromAgentId && b.toAgentId === toAgentId) ||
+                (b.fromAgentId === toAgentId && b.toAgentId === fromAgentId)
             );
             if (exists) {
                 if (specs.length === 1) throw new Error("Bridge already exists.");
@@ -35,10 +112,10 @@ export const createBridgeCommand: CommandDefinition = {
 
             const bridge = {
                 id: crypto.randomUUID(),
-                fromNetworkId: spec.from_network,
-                toNetworkId: spec.to_network,
-                fromAgentId: spec.from_agent,
-                toAgentId: spec.to_agent,
+                fromNetworkId: fromNetId,
+                toNetworkId: toNetId,
+                fromAgentId: fromAgentId,
+                toAgentId: toAgentId,
                 type: spec.type || "data",
                 offset: Math.random() * 100,
                 createdAt: new Date().toISOString()

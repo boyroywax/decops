@@ -37,7 +37,7 @@ describe('useEcosystem', () => {
 
         expect(mockAddJob).toHaveBeenCalledWith(expect.objectContaining({
             type: 'destroy_network',
-            request: { id: 'net-1' }
+            request: { id: 'net-1', cascade: true }
         }));
     });
 

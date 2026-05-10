@@ -1,5 +1,6 @@
 import { CommandDefinition } from "@/services/commands/types";
 import { Channel } from "@/types";
+import { isUnresolvedRef } from "@/utils/storageKey";
 
 export const createChannelCommand: CommandDefinition = {
     id: "create_channel",
@@ -89,6 +90,7 @@ export const createChannelCommand: CommandDefinition = {
                 continue;
             }
 
+            const specNetworkId = isUnresolvedRef(spec.networkId) ? undefined : spec.networkId;
             const newChannel: Channel = {
                 id: crypto.randomUUID(),
                 from: fromAgent.id,
@@ -96,7 +98,7 @@ export const createChannelCommand: CommandDefinition = {
                 type: spec.type || "data",
                 offset: Math.random() * 100,
                 createdAt: new Date().toISOString(),
-                networkId: spec.networkId || context.ecosystem?.activeNetworkId || fromAgent.networkId || (context.ecosystem?.networks?.length === 1 ? context.ecosystem.networks[0].id : undefined),
+                networkId: specNetworkId || context.ecosystem?.activeNetworkId || fromAgent.networkId || (context.ecosystem?.networks?.length === 1 ? context.ecosystem.networks[0].id : undefined),
             };
 
             created.push(newChannel);

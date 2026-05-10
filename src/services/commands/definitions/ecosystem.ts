@@ -6,6 +6,7 @@ import { generateMeshConfig } from "@/services/ai";
 import { ROLES, CHANNEL_TYPES, GOVERNANCE_MODELS, GROUP_COLORS, NETWORK_COLORS } from "@/constants";
 import { generateDID, generateKeyPair, generateGroupDID } from "@/utils/identity";
 import { createAieosEntity } from "@/utils/aieos";
+import { slugifyStorageKey } from "@/utils/storageKey";
 
 export const createNetworkCommand: CommandDefinition = {
     id: "create_network",
@@ -69,6 +70,7 @@ export const createNetworkCommand: CommandDefinition = {
                 created.push(net);
                 context.storage.lastNetworkId = netId;
                 context.storage[`network_${spec.name}`] = netId;
+                context.storage[`network_${slugifyStorageKey(spec.name)}`] = netId;
             }
 
             context.ecosystem.setNetworks((prev: any[]) => [...prev, ...created]);
@@ -176,6 +178,7 @@ export const createNetworkCommand: CommandDefinition = {
         // Write to shared storage for downstream steps
         context.storage.lastNetworkId = networkId;
         context.storage[`network_${args.name}`] = networkId;
+        context.storage[`network_${slugifyStorageKey(args.name)}`] = networkId;
 
         // Accumulate entities so downstream steps can look them up
         // (React state may be stale within the same job execution cycle)
@@ -183,7 +186,10 @@ export const createNetworkCommand: CommandDefinition = {
         if (agents.length > 0) {
             context.storage._agents = [...(context.storage._agents || []), ...agents];
             // Also set per-agent storage keys for name→id resolution
-            for (const a of agents) context.storage[`agent_${a.name}`] = a.id;
+            for (const a of agents) {
+                context.storage[`agent_${a.name}`] = a.id;
+                context.storage[`agent_${slugifyStorageKey(a.name)}`] = a.id;
+            }
         }
         if (channels.length > 0) {
             context.storage._channels = [...(context.storage._channels || []), ...channels];
@@ -368,19 +374,37 @@ export const destroyNetworkCommand: CommandDefinition = {
 
         // Cascade: remove workspace-level entities tied to these networks
         if (args.cascade) {
-            const { setAgents, setChannels, setGroups, agents, channels, groups } = context.workspace;
+            const { setAgents, setChannels, setGroups, setMessages, agents, channels, groups } = context.workspace;
+
+            // Compute the set of agent IDs that belong to the destroyed networks
+            // so we can also cascade channels/messages that reference these
+            // agents directly (covers older entities that lack networkId).
+            const cascadedAgentIds = new Set(
+                agents.filter((a: any) => targetIds.includes(a.networkId)).map((a: any) => a.id)
+            );
 
             const agentsBefore = agents.length;
             setAgents((prev: any[]) => prev.filter((a: any) => !targetIds.includes(a.networkId)));
             totalRemoved.agents = agentsBefore - agents.filter((a: any) => !targetIds.includes(a.networkId)).length;
 
             const channelsBefore = channels.length;
-            setChannels((prev: any[]) => prev.filter((c: any) => !targetIds.includes(c.networkId)));
-            totalRemoved.channels = channelsBefore - channels.filter((c: any) => !targetIds.includes(c.networkId)).length;
+            const channelSurvivor = (c: any) =>
+                !targetIds.includes(c.networkId)
+                && !cascadedAgentIds.has(c.from)
+                && !cascadedAgentIds.has(c.to);
+            setChannels((prev: any[]) => prev.filter(channelSurvivor));
+            totalRemoved.channels = channelsBefore - channels.filter(channelSurvivor).length;
 
             const groupsBefore = groups.length;
             setGroups((prev: any[]) => prev.filter((g: any) => !targetIds.includes(g.networkId)));
             totalRemoved.groups = groupsBefore - groups.filter((g: any) => !targetIds.includes(g.networkId)).length;
+
+            // Remove messages whose sender/recipient was cascaded
+            if (setMessages && cascadedAgentIds.size > 0) {
+                setMessages((prev: any[]) => prev.filter((m: any) =>
+                    !cascadedAgentIds.has(m.fromId) && !cascadedAgentIds.has(m.toId)
+                ));
+            }
         }
 
         const summary = Object.entries(totalRemoved)

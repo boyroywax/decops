@@ -78,9 +78,11 @@ export function useEcosystem({
 
   const dissolveNetwork = (id: string) => {
     if (addJob) {
+      // Cascade-by-default for UI-driven dissolves: also remove the
+      // network's agents, channels, and groups so they aren't orphaned.
       addJob({
         type: "destroy_network",
-        request: { id }
+        request: { id, cascade: true }
       });
     }
   };

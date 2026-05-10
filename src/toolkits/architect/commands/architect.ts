@@ -1,6 +1,7 @@
 
 import type { CommandDefinition, CommandContext } from "@/services/commands/types";
 import { generateMeshConfig } from "@/services/ai";
+import { slugifyStorageKey } from "@/utils/storageKey";
 
 export const promptArchitectCommand: CommandDefinition = {
     id: "prompt_architect",
@@ -123,6 +124,39 @@ export const deployNetworkCommand: CommandDefinition = {
         // Determine deployment mode
         const effectiveMode = args.mode || (configNetworks.length > 1 ? "parallel" : "serial");
 
+        // ── Auto-generate bridges when multiple networks lack any connecting bridges ──
+        // Architect contract: every network must connect to the rest of the mesh.
+        // If the AI returned multiple networks but no bridges, create a chain of
+        // bridges between each consecutive pair (using each network's first agent).
+        if (configNetworks.length > 1 && (!config.bridges || config.bridges.length === 0)) {
+            const autoBridges: any[] = [];
+            const firstAgentIdxOfNetwork = (netIdx: number): number | undefined => {
+                const net = configNetworks[netIdx];
+                if (net?.agents && net.agents.length > 0) return net.agents[0];
+                // Fall back to scanning the agent-to-network index
+                for (let i = 0; i < agentToNetworkIdx.length; i++) {
+                    if (agentToNetworkIdx[i] === netIdx) return i;
+                }
+                return undefined;
+            };
+            for (let i = 0; i < configNetworks.length - 1; i++) {
+                const fromAgent = firstAgentIdxOfNetwork(i);
+                const toAgent = firstAgentIdxOfNetwork(i + 1);
+                if (fromAgent == null || toAgent == null) continue;
+                autoBridges.push({
+                    fromNetwork: i,
+                    toNetwork: i + 1,
+                    fromAgent,
+                    toAgent,
+                    type: "data",
+                });
+            }
+            if (autoBridges.length > 0) {
+                config.bridges = autoBridges;
+                addLog(`Architect auto-generated ${autoBridges.length} bridge(s) to connect ${configNetworks.length} networks`);
+            }
+        }
+
         // ── Helper: build per-network pipeline steps ──
         const buildNetworkPipeline = (net: any, netIdx: number, prefix: string) => {
             const steps: any[] = [];
@@ -147,7 +181,7 @@ export const deployNetworkCommand: CommandDefinition = {
                     name: a.name,
                     role: a.role || "researcher",
                     prompt: a.prompt || "",
-                    networkId: `$storage.network_${net.name}`,
+                    networkId: `$storage.network_${slugifyStorageKey(net.name)}`,
                 });
             }
 
@@ -173,7 +207,12 @@ export const deployNetworkCommand: CommandDefinition = {
                 const fromName = config.agents[c.from]?.name;
                 const toName = config.agents[c.to]?.name;
                 if (!fromName || !toName) continue;
-                channelSpecs.push({ from: fromName, to: toName, type: c.type || "data" });
+                channelSpecs.push({
+                    from: fromName,
+                    to: toName,
+                    type: c.type || "data",
+                    networkId: `$storage.network_${slugifyStorageKey(net.name)}`,
+                });
             }
             if (channelSpecs.length > 0) {
                 steps.push({
@@ -197,7 +236,7 @@ export const deployNetworkCommand: CommandDefinition = {
                     name: g.name,
                     members: memberNames,
                     governance: g.governance || "majority",
-                    networkId: `$storage.network_${net.name}`,
+                    networkId: `$storage.network_${slugifyStorageKey(net.name)}`,
                 });
             }
             if (groupSpecs.length > 0) {
@@ -227,13 +266,13 @@ export const deployNetworkCommand: CommandDefinition = {
         // ── Build storage defaults for a network ──
         const buildStorageDefaults = (net: any, netIdx: number) => {
             const defaults: Record<string, any> = {};
-            defaults[`network_${net.name}`] = null;
+            defaults[`network_${slugifyStorageKey(net.name)}`] = null;
             for (let i = 0; i < config.agents.length; i++) {
                 const a = config.agents[i];
                 if (!a?.name) continue;
                 const belongsToNet = a.network ?? agentToNetworkIdx[i] ?? 0;
                 if (belongsToNet !== netIdx) continue;
-                defaults[`agent_${a.name}`] = null;
+                defaults[`agent_${slugifyStorageKey(a.name)}`] = null;
             }
             return defaults;
         };
@@ -265,7 +304,9 @@ export const deployNetworkCommand: CommandDefinition = {
                 addLog(`[A/B] Queued job for "${net.name}": ${steps.length} steps → ${job.id.slice(0, 12)}`);
             }
 
-            // If there are cross-network bridges, queue a finalization job
+            // If there are cross-network bridges, queue a finalization job that
+            // resolves agents/networks by NAME (since each parallel job has its
+            // own storage scope; bridges run after all networks are created).
             const bridgeSpecs: any[] = [];
             for (const b of config.bridges || []) {
                 if (b.fromNetwork == null || b.toNetwork == null || b.fromAgent == null || b.toAgent == null) continue;
@@ -276,16 +317,32 @@ export const deployNetworkCommand: CommandDefinition = {
                 if (!fromAgentName || !toAgentName || !fromNetworkName || !toNetworkName) continue;
                 if (fromNetworkName === toNetworkName) continue;
                 bridgeSpecs.push({
-                    from_network: `$storage.network_${fromNetworkName}`,
-                    to_network: `$storage.network_${toNetworkName}`,
-                    from_agent: `$storage.agent_${fromAgentName}`,
-                    to_agent: `$storage.agent_${toAgentName}`,
+                    from_network: fromNetworkName,
+                    to_network: toNetworkName,
+                    from_agent: fromAgentName,
+                    to_agent: toAgentName,
                     type: b.type || "data",
                 });
             }
 
             if (bridgeSpecs.length > 0) {
-                addLog(`[A/B] ${bridgeSpecs.length} cross-network bridge(s) require manual setup after parallel deploys`);
+                const bridgeJobPayload: any = {
+                    type: `bridges: ${bridgeSpecs.length} cross-network`,
+                    request: { bridges: bridgeSpecs },
+                    steps: [{
+                        id: "step-0",
+                        commandId: "create_bridge",
+                        name: `Create ${bridgeSpecs.length} Bridge(s)`,
+                        args: bridgeSpecs.length === 1 ? { ...bridgeSpecs[0] } : { items: bridgeSpecs },
+                    }],
+                    mode: "serial",
+                    deliverables: [],
+                    storageDefaults: {},
+                    inputDefaults: [],
+                };
+                const bridgeJob = context.jobs.addJob(bridgeJobPayload);
+                queuedJobs.push({ jobId: bridgeJob.id, network: "(bridges)", stepCount: 1 });
+                addLog(`[A/B] Queued bridges job: ${bridgeSpecs.length} cross-network bridge(s) → ${bridgeJob.id.slice(0, 12)}`);
             }
 
             const totalSteps = queuedJobs.reduce((s: number, j: any) => s + j.stepCount, 0);
@@ -323,10 +380,10 @@ export const deployNetworkCommand: CommandDefinition = {
             if (!fromAgentName || !toAgentName || !fromNetworkName || !toNetworkName) continue;
             if (fromNetworkName === toNetworkName) continue;
             bridgeSpecs.push({
-                from_network: `$storage.network_${fromNetworkName}`,
-                to_network: `$storage.network_${toNetworkName}`,
-                from_agent: `$storage.agent_${fromAgentName}`,
-                to_agent: `$storage.agent_${toAgentName}`,
+                from_network: `$storage.network_${slugifyStorageKey(fromNetworkName)}`,
+                to_network: `$storage.network_${slugifyStorageKey(toNetworkName)}`,
+                from_agent: `$storage.agent_${slugifyStorageKey(fromAgentName)}`,
+                to_agent: `$storage.agent_${slugifyStorageKey(toAgentName)}`,
                 type: b.type || "data",
             });
         }
@@ -351,7 +408,7 @@ export const deployNetworkCommand: CommandDefinition = {
                 id: `step-${stepIdx++}`,
                 commandId: "send_message",
                 name: `Message: ${fromName} → ${toName}`,
-                args: { from_agent_id: `$storage.agent_${fromName}`, to_agent_id: `$storage.agent_${toName}`, message: em.message },
+                args: { from_agent_id: `$storage.agent_${slugifyStorageKey(fromName)}`, to_agent_id: `$storage.agent_${slugifyStorageKey(toName)}`, message: em.message },
             });
         }
 
@@ -370,10 +427,10 @@ export const deployNetworkCommand: CommandDefinition = {
         // Build storage defaults
         const childStorageDefaults: Record<string, any> = {};
         for (const net of configNetworks) {
-            if (net?.name) childStorageDefaults[`network_${net.name}`] = null;
+            if (net?.name) childStorageDefaults[`network_${slugifyStorageKey(net.name)}`] = null;
         }
         for (const a of config.agents) {
-            if (a?.name) childStorageDefaults[`agent_${a.name}`] = null;
+            if (a?.name) childStorageDefaults[`agent_${slugifyStorageKey(a.name)}`] = null;
         }
 
         const networkNames = configNetworks.map((n: any) => n.name).join(", ");

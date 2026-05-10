@@ -41,21 +41,26 @@ export const sendMessageCommand: CommandDefinition = {
         const { from_agent_id, to_agent_id, message } = args;
         const { agents, channels, setMessages, addLog } = context.workspace;
 
+        // Combine workspace state with entities created earlier in the same job
+        // (React state may be stale within a single job execution cycle)
+        const allAgents = [...agents, ...(context.storage._agents || [])];
+        const allChannels = [...channels, ...(context.storage._channels || [])];
+
         // 1. Resolve sender — 'user' keyword maps to the current user's DID
         const isUserSender = from_agent_id === 'user';
         const userDid = context.auth?.user?.did;
         const fromAgent = isUserSender
             ? { id: userDid || 'user', name: context.auth?.user?.profile?.name || 'User', prompt: '' }
-            : agents.find(a => a.id === from_agent_id);
+            : allAgents.find(a => a.id === from_agent_id || a.name === from_agent_id);
 
-        // 2. Resolve recipient by ID
-        const toAgent = agents.find(a => a.id === to_agent_id);
+        // 2. Resolve recipient by ID or name
+        const toAgent = allAgents.find(a => a.id === to_agent_id || a.name === to_agent_id);
 
         if (!fromAgent) throw new Error(`Sender agent '${from_agent_id}' not found`);
         if (!toAgent) throw new Error(`Recipient agent '${to_agent_id}' not found`);
 
         // 3. Find or validate channel (skip channel requirement when user is the sender)
-        let channel = channels.find(c =>
+        let channel = allChannels.find(c =>
             (c.from === fromAgent.id && c.to === toAgent.id) ||
             (c.from === toAgent.id && c.to === fromAgent.id)
         );

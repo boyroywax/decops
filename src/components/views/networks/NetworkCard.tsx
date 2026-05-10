@@ -134,68 +134,79 @@ export function NetworkCard({
         </div>
 
         {/* Actions */}
-        <div style={{ display: "flex", gap: 6 }}>
-          <button
-            onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
-              color: "#71717a",
-              padding: "6px 10px",
-              borderRadius: 6,
-              fontFamily: "inherit",
-              fontSize: 10,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 3,
-            }}
-          >
-            {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-            Details
-          </button>
-          {onNavigate && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onNavigate("networks", { networkId: net.id }); }}
-              style={{
-                background: `${net.color}10`,
-                border: `1px solid ${net.color}20`,
-                color: net.color,
-                padding: "6px 10px",
-                borderRadius: 6,
-                fontFamily: "inherit",
-                fontSize: 10,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 3,
-              }}
-            >
-              <ArrowRight size={11} />
-              Open
-            </button>
-          )}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {del.isPending(net.id) ? (
-            <DeleteConfirmInline entityName="Network" entityLabel={net.name} warning="All agents, channels, and groups will be dissolved." onConfirm={() => del.confirm(() => dissolveNetwork(net.id))} onCancel={del.cancel} compact />
+            <div style={{ flex: 1, minWidth: 0 }} onClick={(e) => e.stopPropagation()}>
+              <DeleteConfirmInline
+                entityName="Network"
+                entityLabel={net.name}
+                warning="All agents, channels, and groups will be dissolved."
+                onConfirm={() => del.confirm(() => dissolveNetwork(net.id))}
+                onCancel={del.cancel}
+                compact
+              />
+            </div>
           ) : (
-            <button
-              onClick={(e) => { e.stopPropagation(); del.requestDelete(net.id); }}
-              style={{
-                background: "rgba(239,68,68,0.06)",
-                border: "1px solid rgba(239,68,68,0.12)",
-                color: "#71717a",
-                padding: "6px 10px",
-                borderRadius: 6,
-                fontFamily: "inherit",
-                fontSize: 10,
-                cursor: "pointer",
-                marginLeft: "auto",
-                display: "flex",
-                alignItems: "center",
-              }}
-            >
-              <Trash2 size={11} />
-            </button>
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleExpand(); }}
+                style={{
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  color: "#71717a",
+                  padding: "6px 10px",
+                  borderRadius: 6,
+                  fontFamily: "inherit",
+                  fontSize: 10,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 3,
+                }}
+              >
+                {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                Details
+              </button>
+              {onNavigate && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onNavigate("networks", { networkId: net.id }); }}
+                  style={{
+                    background: `${net.color}10`,
+                    border: `1px solid ${net.color}20`,
+                    color: net.color,
+                    padding: "6px 10px",
+                    borderRadius: 6,
+                    fontFamily: "inherit",
+                    fontSize: 10,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                  }}
+                >
+                  <ArrowRight size={11} />
+                  Open
+                </button>
+              )}
+              <button
+                onClick={(e) => { e.stopPropagation(); del.requestDelete(net.id); }}
+                style={{
+                  background: "rgba(239,68,68,0.06)",
+                  border: "1px solid rgba(239,68,68,0.12)",
+                  color: "#71717a",
+                  padding: "6px 10px",
+                  borderRadius: 6,
+                  fontFamily: "inherit",
+                  fontSize: 10,
+                  cursor: "pointer",
+                  marginLeft: "auto",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                <Trash2 size={11} />
+              </button>
+            </>
           )}
         </div>
       </div>

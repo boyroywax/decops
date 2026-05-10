@@ -3,6 +3,7 @@ import { CommandDefinition } from "@/services/commands/types";
 import { generateDID, generateKeyPair } from "@/utils/identity";
 import { createAieosEntity } from "@/utils/aieos";
 import { ROLES } from "@/constants";
+import { slugifyStorageKey, isUnresolvedRef } from "@/utils/storageKey";
 
 export const createAgentCommand: CommandDefinition = {
     id: "create_agent",
@@ -76,7 +77,11 @@ export const createAgentCommand: CommandDefinition = {
 
         const created: any[] = [];
         for (const spec of specs) {
-            const { name, role, prompt, title, networkId } = spec;
+            const { name, role, prompt, title } = spec;
+            // Drop unresolved $storage.* refs so we fall back to activeNetworkId
+            // instead of persisting a literal placeholder string.
+            const rawNetworkId = spec.networkId;
+            const networkId = isUnresolvedRef(rawNetworkId) ? undefined : rawNetworkId;
 
             await new Promise(resolve => setTimeout(resolve, 300));
 
@@ -100,6 +105,7 @@ export const createAgentCommand: CommandDefinition = {
             context.storage.lastAgentId = newAgent.id;
             context.storage.lastAgentName = newAgent.name;
             context.storage[`agent_${name}`] = newAgent.id;
+            context.storage[`agent_${slugifyStorageKey(name)}`] = newAgent.id;
         }
 
         workspace.setAgents((prev: any[]) => [...prev, ...created]);

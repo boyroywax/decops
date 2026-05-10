@@ -4,23 +4,31 @@ import type { Conversation, ParsedAction } from "./types";
 const STORAGE_KEY = "decops_chat_conversations";
 const ACTIVE_KEY = "decops_chat_active_id";
 
-export function loadConversations(): Conversation[] {
+/** Per-workspace storage key suffix. Falls back to global keys when no workspace is active. */
+function convosKey(workspaceId?: string | null): string {
+    return workspaceId ? `${STORAGE_KEY}:${workspaceId}` : STORAGE_KEY;
+}
+function activeKey(workspaceId?: string | null): string {
+    return workspaceId ? `${ACTIVE_KEY}:${workspaceId}` : ACTIVE_KEY;
+}
+
+export function loadConversations(workspaceId?: string | null): Conversation[] {
     try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        return JSON.parse(localStorage.getItem(convosKey(workspaceId)) || "[]");
     } catch { return []; }
 }
 
-export function saveConversations(convos: Conversation[]) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(convos));
+export function saveConversations(convos: Conversation[], workspaceId?: string | null) {
+    localStorage.setItem(convosKey(workspaceId), JSON.stringify(convos));
 }
 
-export function loadActiveId(): string | null {
-    return localStorage.getItem(ACTIVE_KEY);
+export function loadActiveId(workspaceId?: string | null): string | null {
+    return localStorage.getItem(activeKey(workspaceId));
 }
 
-export function saveActiveId(id: string | null) {
-    if (id) localStorage.setItem(ACTIVE_KEY, id);
-    else localStorage.removeItem(ACTIVE_KEY);
+export function saveActiveId(id: string | null, workspaceId?: string | null) {
+    if (id) localStorage.setItem(activeKey(workspaceId), id);
+    else localStorage.removeItem(activeKey(workspaceId));
 }
 
 export function makeId(): string {

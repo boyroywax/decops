@@ -119,12 +119,17 @@
     background: rgba(239, 68, 68, 0.06);
     border: 1px solid rgba(239, 68, 68, 0.15);
     animation: deleteConfirm-fadeIn 0.15s ease;
+    min-width: 0;
+    flex-wrap: wrap;
 }
 
 .delete-confirm--compact .delete-confirm__body {
     flex-direction: row;
     align-items: center;
     gap: var(--space-sm);
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
 }
 
 .delete-confirm--compact .delete-confirm__icon {
@@ -137,6 +142,9 @@
     font-weight: var(--font-medium);
     color: var(--text-primary);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .delete-confirm--compact .delete-confirm__actions {

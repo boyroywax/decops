@@ -22,6 +22,7 @@ import type { ChatPosition } from "@/context/ThemeContext";
 import type { ViewId, JobStep } from "@/types";
 import { useConversations } from "@/hooks/useConversations";
 import { useChatResize } from "@/hooks/useChatResize";
+import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
 import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {
@@ -38,6 +39,7 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeight, isExpanded, onToggleExpand, position = "bottom", view }: ChatPanelProps) {
+    const { activeWorkspaceId } = useWorkspaceManager();
     const {
         conversations, setConversations,
         activeId, setActiveId,
@@ -45,7 +47,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         active, messages,
         endRef, inputRef, initialScrollDone,
         updateConversation, createNewChat, switchTo, deleteConvo,
-    } = useConversations();
+    } = useConversations(activeWorkspaceId);
 
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
