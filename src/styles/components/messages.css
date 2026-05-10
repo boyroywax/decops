@@ -10,7 +10,8 @@
 .messages-layout {
   display: flex;
   gap: var(--space-xl);
-  height: calc(100vh - 120px);
+  height: 100%;
+  min-height: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
