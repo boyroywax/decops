@@ -289,7 +289,12 @@ export function Libp2pView(_props: Libp2pViewProps) {
                                         <button
                                             className="libp2p-icon-btn"
                                             title="Dial"
-                                            onClick={() => setDialTarget(p.id)}
+                                            onClick={() => dispatch(
+                                                "libp2p_dial",
+                                                { target: p.id },
+                                                `dial ${p.id.slice(0, 12)}…`,
+                                            )}
+                                            disabled={busy}
                                         >
                                             <Link2 size={12} />
                                         </button>
