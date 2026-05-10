@@ -5,6 +5,11 @@
  */
 
 import type { ToolkitModule } from "../types";
+import {
+  fetchUrlCommand,
+  extractLinksCommand,
+  crawlSiteCommand,
+} from "@/services/commands/definitions/web-crawler";
 
 export const webCrawlerModule: ToolkitModule = {
   manifest: {
@@ -25,7 +30,7 @@ export const webCrawlerModule: ToolkitModule = {
     createdAt: "2025-01-01T00:00:00Z",
     updatedAt: "2025-01-01T00:00:00Z",
   },
-  commands: [],
+  commands: [fetchUrlCommand, extractLinksCommand, crawlSiteCommand],
   tools: [
     {
       id: "fetch_url",
