@@ -1,18 +1,46 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import type { Agent } from "@/types";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import type { Agent, Message } from "@/types";
 import { chatWithAgent } from "@/services/ai";
 import type { ChatMessage } from "@/services/ai";
 import { ROLES } from "@/constants";
 import { MessageSquare, Send, ChevronDown, ChevronUp } from "lucide-react";
 import { MarkdownContent } from "@/components/shared/MarkdownContent";
+import { useWorkspaceStore } from "@/stores";
+import { useAuth } from "@/context/AuthContext";
 import "../../styles/components/agent-chat.css";
 
 interface AgentChatProps {
   agent: Agent;
 }
 
+/**
+ * Synthetic channel id used for direct user↔agent chats. These messages live
+ * in the workspace `messages` array (so they survive workspace persistence
+ * and appear in the Messages section's "All Messages" feed) but don't
+ * belong to any real Channel entity.
+ */
+const directChannelId = (agentId: string) => `direct:${agentId}`;
+
 export function AgentChat({ agent }: AgentChatProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const { user } = useAuth();
+  const messagesAll = useWorkspaceStore((s) => s.messages);
+  const addMessage = useWorkspaceStore((s) => s.addMessage);
+  const setMessages = useWorkspaceStore((s) => s.setMessages);
+
+  const channelId = directChannelId(agent.id);
+  const userId = user?.did || "user";
+
+  // Hydrate chat history from persisted workspace messages
+  const history = useMemo<ChatMessage[]>(() => {
+    const out: ChatMessage[] = [];
+    for (const m of messagesAll) {
+      if (m.channelId !== channelId) continue;
+      out.push({ role: "user", content: m.content });
+      if (m.response) out.push({ role: "assistant", content: m.response });
+    }
+    return out;
+  }, [messagesAll, channelId]);
+
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -23,15 +51,14 @@ export function AgentChat({ agent }: AgentChatProps) {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, loading]);
+  }, [history.length, loading]);
 
   useEffect(() => {
     if (!collapsed) inputRef.current?.focus();
   }, [collapsed]);
 
-  // Reset chat when agent changes
+  // Reset input when agent changes
   useEffect(() => {
-    setMessages([]);
     setInput("");
     setLoading(false);
   }, [agent.id]);
@@ -40,22 +67,46 @@ export function AgentChat({ agent }: AgentChatProps) {
     const text = input.trim();
     if (!text || loading) return;
 
-    const userMsg: ChatMessage = { role: "user", content: text };
-    const updatedHistory = [...messages, userMsg];
-    setMessages(updatedHistory);
+    const msgId = crypto.randomUUID();
+    const ts = Date.now();
+
+    // Optimistically persist the user's message with no response yet
+    const pending: Message = {
+      id: msgId,
+      channelId,
+      fromId: userId,
+      toId: agent.id,
+      content: text,
+      response: null,
+      status: "sending",
+      ts,
+    };
+    addMessage(pending);
     setInput("");
     setLoading(true);
 
+    // Snapshot the history that the model should see (excludes this in-flight turn)
+    const historyForModel = history;
+
     try {
-      const response = await chatWithAgent(agent, text, messages);
-      const assistantMsg: ChatMessage = { role: "assistant", content: response };
-      setMessages(prev => [...prev, assistantMsg]);
+      const response = await chatWithAgent(agent, text, historyForModel);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msgId ? { ...m, response, status: "delivered" } : m
+        )
+      );
     } catch {
-      setMessages(prev => [...prev, { role: "assistant", content: "[Error: Failed to get response]" }]);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msgId
+            ? { ...m, response: "[Error: Failed to get response]", status: "delivered" }
+            : m
+        )
+      );
     } finally {
       setLoading(false);
     }
-  }, [input, loading, messages, agent]);
+  }, [input, loading, history, agent, channelId, userId, addMessage, setMessages]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -85,7 +136,7 @@ export function AgentChat({ agent }: AgentChatProps) {
       {!collapsed && (
         <>
           <div className="agent-chat__messages">
-            {messages.length === 0 && !loading && (
+            {history.length === 0 && !loading && (
               <div className="agent-chat__empty">
                 <MessageSquare size={20} />
                 <div>Send a message to start chatting with {agent.name}</div>
@@ -94,7 +145,7 @@ export function AgentChat({ agent }: AgentChatProps) {
                 </div>
               </div>
             )}
-            {messages.map((msg, i) => (
+            {history.map((msg, i) => (
               <div
                 key={i}
                 className={`agent-chat__message agent-chat__message--${msg.role === "user" ? "user" : "agent"}`}
