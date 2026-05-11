@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3, Eye, Send, Square } from "lucide-react";
+import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3, Eye, Send, Square, Check, Bot } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "@/services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "@/services/ai";
@@ -62,6 +62,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallDisplay[]>([]);
     const [studioMode, setStudioMode] = useState(true);
     const [editorMode, setEditorMode] = useState(true);
+    const [botMenuOpen, setBotMenuOpen] = useState(false);
     const [pendingCommand, setPendingCommand] = useState<{ command: CommandDefinition; initialArgs: Record<string, any>; convoId: string; msgs: ChatMessage[] } | null>(null);
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionIndex, setMentionIndex] = useState(0);
@@ -847,38 +848,161 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             ["--agent-gradient-end" as any]: activeAgent.gradient?.[1] ?? "#a78bfa",
                         } : undefined}
                     >
-                    {activeAgent?.icon && (
+                    <div className="chat-panel__bot-menu-wrapper" style={{ position: 'relative' }}>
                         <button
                             type="button"
-                            className="chat-panel__agent-input-badge"
-                            onClick={() => useChatAgentsStore.getState().setActive(null)}
-                            title={`${activeAgent.name} is handling your prompts — click to exit agent mode`}
+                            className={activeAgent ? "chat-panel__agent-input-badge" : studioActive ? "chat-panel__studio-input-badge" : editorActive ? "chat-panel__editor-input-badge" : "chat-panel__agent-input-badge"}
+                            style={(!activeAgent && !studioActive && !editorActive) ? {
+                                background: 'transparent',
+                                border: '1px solid var(--border-color)',
+                                opacity: 0.7, padding: '5px 6px',
+                                transition: 'all 0.15s'
+                            } : undefined}
+                            onClick={() => setBotMenuOpen(prev => !prev)}
+                            onBlur={(e) => {
+                                if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) {
+                                    setBotMenuOpen(false);
+                                }
+                            }}
+                            title="Switch Bot Theme"
                         >
-                            <GradientIcon
-                                icon={activeAgent.icon as any}
-                                size={13}
-                                gradient={activeAgent.gradient ?? ["#38bdf8", "#a78bfa"]}
-                            />
+                            {activeAgent?.icon ? (
+                                <GradientIcon
+                                    icon={activeAgent.icon as any}
+                                    size={13}
+                                    gradient={activeAgent.gradient ?? ["#38bdf8", "#a78bfa"]}
+                                />
+                            ) : studioActive ? (
+                                <Clapperboard size={13} />
+                            ) : editorActive ? (
+                                <Edit3 size={13} />
+                            ) : (
+                                <Bot size={13} style={{ color: 'var(--text-muted)' }} />
+                            )}
                         </button>
-                    )}
-                    {studioAvailable && !activeAgent && (
-                        <button
-                            className={`chat-panel__studio-input-badge${!studioMode ? " chat-panel__studio-input-badge--off" : ""}`}
-                            onClick={() => setStudioMode(prev => !prev)}
-                            title={studioMode ? "Studio mode active — click to disable (⌘J)" : "Studio mode disabled — click to enable (⌘J)"}
-                        >
-                            <Clapperboard size={13} />
-                        </button>
-                    )}
-                    {editorAvailable && !studioAvailable && !activeAgent && (
-                        <button
-                            className={`chat-panel__editor-input-badge${!editorMode ? " chat-panel__editor-input-badge--off" : ""}`}
-                            onClick={() => setEditorMode(prev => !prev)}
-                            title={editorMode ? "Editor mode active — click to disable" : "Editor mode disabled — click to enable"}
-                        >
-                            <Edit3 size={13} />
-                        </button>
-                    )}
+                        
+                        {botMenuOpen && (
+                            <div 
+                                className="chat-panel__bot-menu-dropdown" 
+                                style={{ 
+                                    position: 'absolute', 
+                                    bottom: 'calc(100% + 8px)', 
+                                    left: 0, 
+                                    background: 'var(--bg-panel)',
+                                    border: '1px solid var(--border-color)',
+                                    borderRadius: 'var(--radius-md)',
+                                    padding: '4px',
+                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '2px',
+                                    zIndex: 100,
+                                    width: '160px'
+                                }}
+                            >
+                                <div style={{ fontSize: '10px', fontWeight: 600, padding: '4px 8px', color: 'var(--text-muted)', userSelect: 'none' }}>
+                                    BOT THEMES
+                                </div>
+                                
+                                {Object.values(useChatAgentsStore.getState().agents).map(agent => (
+                                    <button
+                                        key={agent.id}
+                                        type="button"
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px',
+                                            background: activeAgent?.id === agent.id ? 'var(--bg-hover)' : 'transparent',
+                                            border: 'none', borderRadius: 'var(--radius-sm)', color: 'var(--text-normal)',
+                                            cursor: 'pointer', textAlign: 'left', fontSize: '12px'
+                                        }}
+                                        onClick={() => {
+                                            useChatAgentsStore.getState().setActive(agent.id);
+                                            setStudioMode(false);
+                                            setEditorMode(false);
+                                            setBotMenuOpen(false);
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = activeAgent?.id === agent.id ? 'var(--bg-hover)' : 'transparent'}
+                                    >
+                                        <GradientIcon icon={agent.icon as any} size={14} gradient={agent.gradient ?? ["#38bdf8", "#a78bfa"]} />
+                                        <span style={{flex: 1}}>{agent.name}</span>
+                                        {activeAgent?.id === agent.id && <Check size={12} />}
+                                    </button>
+                                ))}
+                                
+                                {studioAvailable && (
+                                    <button
+                                        type="button"
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px',
+                                            background: (!activeAgent && studioActive) ? 'var(--bg-hover)' : 'transparent',
+                                            border: 'none', borderRadius: 'var(--radius-sm)', color: 'var(--text-normal)',
+                                            cursor: 'pointer', textAlign: 'left', fontSize: '12px'
+                                        }}
+                                        onClick={() => {
+                                            useChatAgentsStore.getState().setActive(null);
+                                            setStudioMode(true);
+                                            setEditorMode(false);
+                                            setBotMenuOpen(false);
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = (!activeAgent && studioActive) ? 'var(--bg-hover)' : 'transparent'}
+                                    >
+                                        <Clapperboard size={14} color="#a855f7" />
+                                        <span style={{flex: 1}}>Studio</span>
+                                        {(!activeAgent && studioActive) && <Check size={12} />}
+                                    </button>
+                                )}
+                                
+                                {editorAvailable && (
+                                    <button
+                                        type="button"
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px',
+                                            background: (!activeAgent && editorActive && !studioActive) ? 'var(--bg-hover)' : 'transparent',
+                                            border: 'none', borderRadius: 'var(--radius-sm)', color: 'var(--text-normal)',
+                                            cursor: 'pointer', textAlign: 'left', fontSize: '12px'
+                                        }}
+                                        onClick={() => {
+                                            useChatAgentsStore.getState().setActive(null);
+                                            setStudioMode(false);
+                                            setEditorMode(true);
+                                            setBotMenuOpen(false);
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = (!activeAgent && editorActive && !studioActive) ? 'var(--bg-hover)' : 'transparent'}
+                                    >
+                                        <Edit3 size={14} color="#3b82f6" />
+                                        <span style={{flex: 1}}>Editor</span>
+                                        {(!activeAgent && editorActive && !studioActive) && <Check size={12} />}
+                                    </button>
+                                )}
+                                
+                                <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }} />
+                                
+                                <button
+                                    type="button"
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px',
+                                        background: (!activeAgent && !studioActive && !editorActive) ? 'var(--bg-hover)' : 'transparent',
+                                        border: 'none', borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)',
+                                        cursor: 'pointer', textAlign: 'left', fontSize: '12px'
+                                    }}
+                                    onClick={() => {
+                                        useChatAgentsStore.getState().setActive(null);
+                                        setStudioMode(false);
+                                        setEditorMode(false);
+                                        setBotMenuOpen(false);
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = (!activeAgent && !studioActive && !editorActive) ? 'var(--bg-hover)' : 'transparent'}
+                                >
+                                    <Square size={14} />
+                                    <span style={{flex: 1}}>Disable Theme</span>
+                                    {(!activeAgent && !studioActive && !editorActive) && <Check size={12} />}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <input
                         ref={inputRef}
                         value={input}
