@@ -521,8 +521,9 @@
 .chat-panel__input-bar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 4px 4px 6px;
+  gap: 8px;
+  padding: 0px 4px 0px 0px;
+  overflow: hidden;
   background: var(--bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-xl);

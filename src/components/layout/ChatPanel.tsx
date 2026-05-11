@@ -848,16 +848,10 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             ["--agent-gradient-end" as any]: activeAgent.gradient?.[1] ?? "#a78bfa",
                         } : undefined}
                     >
-                    <div className="chat-panel__bot-menu-wrapper" style={{ position: 'relative' }}>
+                    <div className="chat-panel__bot-menu-wrapper" style={{ position: 'relative', display: 'flex', alignSelf: 'stretch' }}>
                         <button
                             type="button"
-                            className={activeAgent ? "chat-panel__agent-input-badge" : studioActive ? "chat-panel__studio-input-badge" : editorActive ? "chat-panel__editor-input-badge" : "chat-panel__agent-input-badge"}
-                            style={(!activeAgent && !studioActive && !editorActive) ? {
-                                background: 'transparent',
-                                border: '1px solid var(--border-color)',
-                                opacity: 0.7, padding: '5px 6px',
-                                transition: 'all 0.15s'
-                            } : undefined}
+                            className={activeAgent ? "chat-panel__agent-input-badge" : studioActive ? "chat-panel__studio-input-badge" : editorActive ? "chat-panel__editor-input-badge" : "chat-panel__default-input-badge"}
                             onClick={() => setBotMenuOpen(prev => !prev)}
                             onBlur={(e) => {
                                 if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) {
