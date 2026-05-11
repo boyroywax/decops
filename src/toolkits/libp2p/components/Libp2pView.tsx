@@ -162,6 +162,14 @@ export function Libp2pView(_props: Libp2pViewProps) {
             gradient: ["#38bdf8", "#a78bfa"],
             banner: Libp2pChatBanner,
             placeholder: "Tell the libp2p bot what to do (start a node, dial a peer, subscribe…)",
+            toolkitIds: ["libp2p", "infrastructure", "jobs"],
+            workspace: {
+                // libp2p Bot needs the Node Manager front and center; collapse
+                // the bottom drawer when chat is on a side panel so the node
+                // list + chat share the screen.
+                view: "libp2p",
+                sideChatFooterPanel: "none",
+            },
             quickActions: [
                 { label: "Start node", prompt: "Start the active node with default services" },
                 { label: "List peers", prompt: "List connected peers" },
@@ -171,20 +179,84 @@ export function Libp2pView(_props: Libp2pViewProps) {
             onSubmit: async (text, ctxIn) => {
                 const ctx = cmdCtxRef.current;
                 if (!ctx) return false;
-                const response = await handleLibp2pBotRequest(
-                    {
-                        id: `libp2p-bot-chat-${Date.now()}`,
-                        instruction: text,
-                        source: "user",
-                        timestamp: Date.now(),
-                    },
-                    ctx,
-                );
-                const opsBlock = response.operations.length > 0
-                    ? `\n\nOperations: ${response.operations.map((o) => o.command + (o.status === "failed" ? " ⚠️" : "")).join(", ")}`
-                    : "";
-                const errBlock = response.error ? `\n\nError: ${response.error}` : "";
-                ctxIn.appendAssistantMessage?.(`${response.summary}${opsBlock}${errBlock}`);
+                // Open a streaming message so the user sees progress while the
+                // libp2p bot plans + executes operations (it is not a true SSE
+                // stream, but we surface each operation as it completes for
+                // the same live-typing feel).
+                const stream = ctxIn.streamAssistantMessage?.();
+                let lastOpsCount = 0;
+                let header = "";
+                const renderOps = (opsList: { command: string; status: string }[]): string =>
+                    opsList.length === 0
+                        ? ""
+                        : `\n\nOperations:\n${opsList
+                              .map((o) => `• \`${o.command}\`${o.status === "failed" ? " ⚠️" : o.status === "executing" ? " …" : ""}`)
+                              .join("\n")}`;
+                if (stream) {
+                    header = "Planning libp2p operations…";
+                    stream.set(header);
+                }
+
+                // Poll a snapshot of operations during the request so we can
+                // surface progress incrementally. handleLibp2pBotRequest is a
+                // single awaitable, so we run it in parallel with a ticker.
+                let done = false;
+                const tickerStop = stream
+                    ? setInterval(() => {
+                          if (done) return;
+                          // The bot keeps its operation list internally; we
+                          // can't peek at it without a refactor, so the ticker
+                          // just animates a cursor on the header until the
+                          // operations land in the final response.
+                          const dots = ".".repeat(((Date.now() / 400) | 0) % 4);
+                          stream.set(`${header}${dots}`);
+                      }, 250)
+                    : null;
+
+                try {
+                    const response = await handleLibp2pBotRequest(
+                        {
+                            id: `libp2p-bot-chat-${Date.now()}`,
+                            instruction: text,
+                            source: "user",
+                            timestamp: Date.now(),
+                        },
+                        ctx,
+                    );
+                    done = true;
+                    if (tickerStop) clearInterval(tickerStop);
+
+                    const opsBlock = renderOps(
+                        response.operations.map((o) => ({ command: o.command, status: o.status })),
+                    );
+                    lastOpsCount = response.operations.length;
+                    const errBlock = response.error ? `\n\nError: ${response.error}` : "";
+                    const final = `${response.summary}${opsBlock}${errBlock}`;
+
+                    if (stream) {
+                        // Replace header with the final summary, then stream
+                        // the body in word-sized chunks so it reads like a
+                        // typed response.
+                        stream.set("");
+                        const tokens = final.match(/\S+\s*|\n+/g) ?? [final];
+                        for (const tok of tokens) {
+                            stream.append(tok);
+                            await new Promise((r) => setTimeout(r, 12));
+                        }
+                        stream.done(final);
+                    } else {
+                        ctxIn.appendAssistantMessage?.(final);
+                    }
+                } catch (err) {
+                    done = true;
+                    if (tickerStop) clearInterval(tickerStop);
+                    const msg = err instanceof Error ? err.message : String(err);
+                    if (stream) stream.error(msg);
+                    else ctxIn.appendAssistantMessage?.(`libp2p Bot error: ${msg}`);
+                }
+                // Reference lastOpsCount so it's intentionally retained for
+                // possible future progress logging without TS unused warning.
+                void lastOpsCount;
                 return true;
             },
         });

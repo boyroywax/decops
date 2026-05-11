@@ -5,11 +5,11 @@ import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "@/services/ai";
 import { useLLM } from "@/context/LLMContext";
 import MessageBubble from "@/components/chat/MessageBubble";
+import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
 import { makeId } from "@/components/chat/utils";
 import type { Conversation } from "@/components/chat/types";
 import { useCommandContext } from "@/hooks/useCommandContext";
 import { useJobsContext } from "@/context/JobsContext";
-import { useArchitect } from "@/toolkits/architect";
 import { useArchitectContext } from "@/toolkits/architect";
 import { useEcosystem } from "@/hooks/useEcosystem"; // Bridge UI — needed for command context ecosystem prop
 import { useAuth } from "@/context/AuthContext";
@@ -26,7 +26,6 @@ import { useChatResize } from "@/hooks/useChatResize";
 import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
 import { useActiveChatAgent, useChatAgentsStore } from "@/services/chat/agents";
 import { ChatAgentBanner } from "@/components/chat/ChatAgentBanner";
-import { ArchitectInlinePanel } from "@/toolkits/architect";
 import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {
@@ -67,6 +66,10 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionIndex, setMentionIndex] = useState(0);
     const abortRef = useRef<AbortController | null>(null);
+    const architectMessageRef = useRef<{ conversationId: string | null; messageId: string | null }>({
+        conversationId: null,
+        messageId: null,
+    });
 
     /** Cancel an in-progress streaming chat */
     const stopStreaming = useCallback(() => {
@@ -126,12 +129,19 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     // Build Commmand Context for CLI
     const { user } = useAuth();
     const jobs = useJobsContext();
-    const architect = useArchitect(addLog || (() => {}), jobs.addJob, jobs.jobs);
-    // Architect state from the app-level provider — this is the instance that
-    // the chat agent's onSubmit drives. `architect` above is a parallel local
-    // instance used only for command-context wiring; reading it would render
-    // a stale preview.
     const sharedArchitect = useArchitectContext();
+    const architect = sharedArchitect ?? {
+        archPrompt: "",
+        setArchPrompt: () => { },
+        archGenerating: false,
+        archPreview: null,
+        archError: null,
+        archPhase: "input" as const,
+        deployProgress: { step: "", count: 0, total: 0 },
+        generateNetwork: () => { },
+        deployNetwork: () => { },
+        resetArchitect: () => { },
+    };
 
     // Toolkit extension APIs — pulled early so useCommandContext can inject them
     const { api: studioApi } = useStudioContext();
@@ -190,6 +200,88 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         addLog: addLog || (() => { }) as (msg: string) => void,
         extensions: { studio: studioApi ?? undefined, editor: editorApi ?? undefined },
     });
+
+    useEffect(() => {
+        const trackedConversationId = architectMessageRef.current.conversationId;
+        const trackedMessageId = architectMessageRef.current.messageId;
+        const phase = sharedArchitect?.archPhase ?? "input";
+        const architectActive = activeAgent?.id === "architect";
+
+        // Finalize the tracked live card whenever Architect goes idle OR the
+        // user has switched to another agent. In both cases we leave any
+        // existing card in place as static history but stop mutating it,
+        // and stop inserting new cards into whatever conversation is now
+        // active. This keeps Architect's behavior fully scoped to its own
+        // mode rather than leaking into libp2p / Studio / Editor chats.
+        if (phase === "input" || !architectActive) {
+            if (trackedConversationId && trackedMessageId) {
+                setConversations(prev => prev.map(c => {
+                    if (c.id !== trackedConversationId) return c;
+                    return {
+                        ...c,
+                        messages: c.messages.map(m =>
+                            m.id === trackedMessageId && m.architectCard
+                                ? { ...m, architectCard: { ...m.architectCard, live: false } }
+                                : m,
+                        ),
+                        updatedAt: Date.now(),
+                    };
+                }));
+                architectMessageRef.current = { conversationId: null, messageId: null };
+            }
+            return;
+        }
+
+        if (!sharedArchitect) return;
+
+        const conversationId = trackedConversationId ?? activeId;
+        if (!conversationId) return;
+
+        const messageId = trackedMessageId ?? `architect-${makeId()}`;
+        const architectCard = {
+            prompt: sharedArchitect.archPrompt,
+            phase: sharedArchitect.archPhase,
+            preview: sharedArchitect.archPreview,
+            deployProgress: sharedArchitect.deployProgress,
+            live: true,
+        };
+
+        setConversations(prev => prev.map(c => {
+            if (c.id !== conversationId) return c;
+
+            const existingIndex = c.messages.findIndex(m => m.id === messageId);
+            const nextMessages = existingIndex >= 0
+                ? c.messages.map(m =>
+                    m.id === messageId
+                        ? { ...m, role: "assistant" as const, content: "", architectCard }
+                        : m,
+                )
+                : [
+                    ...c.messages.map(m =>
+                        m.architectCard?.live
+                            ? { ...m, architectCard: { ...m.architectCard, live: false } }
+                            : m,
+                    ),
+                    { id: messageId, role: "assistant" as const, content: "", architectCard },
+                ];
+
+            return {
+                ...c,
+                messages: nextMessages,
+                updatedAt: Date.now(),
+            };
+        }));
+
+        architectMessageRef.current = { conversationId, messageId };
+    }, [
+        activeId,
+        activeAgent?.id,
+        sharedArchitect?.archPhase,
+        sharedArchitect?.archPrompt,
+        sharedArchitect?.archPreview,
+        sharedArchitect?.deployProgress,
+        setConversations,
+    ]);
 
     /** Queue a command as a proper job instead of executing directly */
     const queueCommandAsJob = useCallback((
@@ -267,6 +359,40 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                                 ? { ...c, messages: [...c.messages, { role: "assistant" as const, content }], updatedAt: Date.now() }
                                 : c
                         ));
+                    },
+                    streamAssistantMessage: () => {
+                        // Bridge an agent's incremental output into the same
+                        // streaming UI the workspace chat uses (live tokens
+                        // render via `streamingText` / `streamingToolCalls`).
+                        let buffer = "";
+                        let closed = false;
+                        setStreamingText("");
+                        setStreamingToolCalls([]);
+                        const commit = (final: string) => {
+                            if (closed) return;
+                            closed = true;
+                            setStreamingText(null);
+                            setStreamingToolCalls([]);
+                            setConversations(prev => prev.map(c =>
+                                c.id === currentId
+                                    ? { ...c, messages: [...c.messages, { role: "assistant" as const, content: final }], updatedAt: Date.now() }
+                                    : c
+                            ));
+                        };
+                        return {
+                            append: (token: string) => {
+                                if (closed) return;
+                                buffer += token;
+                                setStreamingText(prev => (prev ?? "") + token);
+                            },
+                            set: (next: string) => {
+                                if (closed) return;
+                                buffer = next;
+                                setStreamingText(next);
+                            },
+                            done: (final?: string) => commit(final ?? buffer),
+                            error: (msg: string) => commit(`${activeAgent.name} error: ${msg}`),
+                        };
                     },
                 });
                 if (handled) {
@@ -428,6 +554,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
 
                 const { text: response, toolCalls } = await streamChatWithWorkspace(
                     messageToSend, currentMessages, context, streamCallbacks, commandContext,
+                    activeAgent?.toolkitIds,
                 );
 
                 abortRef.current = null;
@@ -654,7 +781,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                     )}
                     {messages.map((m, i) => (
                         <div key={i}>
-                            <MessageBubble msg={m} context={context} />
+                            <MessageBubble msg={m} context={context} setView={setView} />
                             {editorActive && editorApi && m.role === "assistant" && m.content.includes("```") && (
                                 <button
                                     className="chat-panel__apply-editor-btn"
@@ -678,27 +805,14 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                                 jobIds: streamingToolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!),
                             }}
                             context={context}
+                            setView={setView}
                             isStreaming
                         />
                     )}
                     {loading && streamingText === null && (
                         <div className="chat-panel__loading">
-                            <div className="chat-panel__loading-bubble">
-                                <span style={{ animation: "pulse 1.5s ease-in-out infinite" }}>●</span>
-                                <span style={{ animation: "pulse 1.5s ease-in-out 0.3s infinite" }}> ●</span>
-                                <span style={{ animation: "pulse 1.5s ease-in-out 0.6s infinite" }}> ●</span>
-                            </div>
+                            <ThinkingIndicator phase="thinking" />
                         </div>
-                    )}
-                    {activeAgent?.id === "architect" && sharedArchitect && sharedArchitect.archPhase !== "input" && (
-                        <ArchitectInlinePanel
-                            archPreview={sharedArchitect.archPreview}
-                            archPhase={sharedArchitect.archPhase}
-                            deployProgress={sharedArchitect.deployProgress}
-                            deployNetwork={sharedArchitect.deployNetwork}
-                            resetArchitect={sharedArchitect.resetArchitect}
-                            setView={setView ?? (() => {})}
-                        />
                     )}
                     <div ref={endRef} />
                 </div>

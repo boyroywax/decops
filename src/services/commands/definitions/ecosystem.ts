@@ -321,7 +321,7 @@ export const updateNetworkCommand: CommandDefinition = {
 
 export const destroyNetworkCommand: CommandDefinition = {
     id: "destroy_network",
-    description: "Destroy a network, removing it from the workspace along with its bridges. Use cascade to also remove agents, channels, and groups belonging to the network.",
+    description: "Destroy one or more networks, removing them from the workspace along with their bridges. To delete a single network pass `id`. To delete several (or all) networks in one call pass `ids` with the array of network IDs — first call list_networks to enumerate them, then pass every ID in `ids`. Use `cascade: true` to also remove agents, channels, and groups belonging to the network(s).",
     tags: ["ecosystem", "network", "destroy", "delete"],
     rbac: ["orchestrator"],
     args: {

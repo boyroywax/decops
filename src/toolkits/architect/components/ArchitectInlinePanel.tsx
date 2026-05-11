@@ -13,6 +13,7 @@ interface ArchitectInlinePanelProps {
   resetArchitect: () => void;
   generateNetwork?: (desc: string) => void;
   setView: (v: ViewId) => void;
+  showActions?: boolean;
 }
 
 /**
@@ -23,12 +24,12 @@ interface ArchitectInlinePanelProps {
  */
 export function ArchitectInlinePanel({
   archPrompt, archPreview, archPhase, deployProgress,
-  deployNetwork, resetArchitect, generateNetwork, setView,
+  deployNetwork, resetArchitect, generateNetwork, setView, showActions = true,
 }: ArchitectInlinePanelProps) {
   if (archPhase === "input") return null;
 
   const handleNavigate = (v: ViewId) => setView(v);
-  const canRegenerate = archPhase === "preview" && !!archPrompt && !!generateNetwork;
+  const canRegenerate = showActions && archPhase === "preview" && !!archPrompt && !!generateNetwork;
 
   return (
     <div className="architect-inline">
@@ -40,26 +41,28 @@ export function ArchitectInlinePanel({
             {archPhase === "preview" ? "Blueprint" : archPhase === "deploying" ? "Deploying…" : "Complete"}
           </span>
         </div>
-        <div className="architect-inline__actions">
-          {canRegenerate && (
-            <button
-              onClick={() => generateNetwork!(archPrompt!)}
-              className="architect-popup__new-btn"
-              title="Regenerate with the same prompt"
-            >
-              <RefreshCw size={11} /> Regenerate
-            </button>
-          )}
-          {(archPhase === "preview" || archPhase === "done") && (
-            <button onClick={resetArchitect} className="architect-popup__new-btn">
-              New Design
-            </button>
-          )}
-        </div>
+        {showActions && (
+          <div className="architect-inline__actions">
+            {canRegenerate && (
+              <button
+                onClick={() => generateNetwork!(archPrompt!)}
+                className="architect-popup__new-btn"
+                title="Regenerate with the same prompt"
+              >
+                <RefreshCw size={11} /> Regenerate
+              </button>
+            )}
+            {(archPhase === "preview" || archPhase === "done") && (
+              <button onClick={resetArchitect} className="architect-popup__new-btn">
+                New Design
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {archPhase === "preview" && archPreview && (
-        <PreviewContent preview={archPreview} deployNetwork={deployNetwork} resetArchitect={resetArchitect} />
+        <PreviewContent preview={archPreview} deployNetwork={deployNetwork} resetArchitect={resetArchitect} showActions={showActions} />
       )}
 
       {archPhase === "deploying" && (
@@ -80,7 +83,7 @@ export function ArchitectInlinePanel({
       )}
 
       {archPhase === "done" && (
-        <DoneContent onNavigate={handleNavigate} resetArchitect={resetArchitect} />
+        <DoneContent onNavigate={handleNavigate} resetArchitect={resetArchitect} showActions={showActions} />
       )}
     </div>
   );

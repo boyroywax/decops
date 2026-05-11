@@ -8,6 +8,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Bot, X, Send, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { useCommandCtx } from "@/context/CommandContextProvider";
 import { handleLibp2pBotRequest } from "../libp2pBot";
@@ -205,8 +206,7 @@ export function Libp2pBotModal({ open, onClose }: Libp2pBotModalProps) {
                             ))}
                             {running && (
                                 <div className="libp2p-bot-modal__msg libp2p-bot-modal__msg--bot libp2p-bot-modal__msg--loading">
-                                    <Loader2 size={12} className="libp2p-bot-modal__spinner" />
-                                    Thinking and running tools…
+                                    <ThinkingIndicator phase="thinking" />
                                 </div>
                             )}
                         </div>

@@ -26,12 +26,9 @@ import { DEFAULT_LIBP2P_BOT_CONFIG } from "./types/libp2pBot";
 import { getSelectedModel } from "@/services/ai/models";
 import {
     getModelProvider,
-    buildProviderRequest,
-    parseProviderResponse,
-    parseToolUseBlocks,
-    buildToolResultMessages,
 } from "@/services/ai/providers";
-import { getAllTools, executeToolCall } from "@/services/commands/tools";
+import { runChatTurn } from "@/services/ai/runner";
+import { getAllTools } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
 import { registerChatDelegation } from "@/services/ai/delegation";
 
@@ -191,86 +188,53 @@ export async function handleLibp2pBotRequest(
         const systemPrompt = buildLibp2pBotSystemPrompt(snap);
         const tools = (provider === "anthropic" || provider === "openai") ? getLibp2pTools() : [];
 
-        const apiMessages: any[] = [
-            { role: "user", content: request.instruction },
-        ];
-
         botStatus = "executing";
-        let finalText = "";
 
-        for (let round = 0; round < botConfig.maxRounds; round++) {
-            const req = buildProviderRequest(
+        const result = await runChatTurn(
+            {
                 model,
                 systemPrompt,
-                apiMessages,
-                4096,
-                tools.length > 0 ? tools : undefined,
-            );
-            const response = await fetch(req.url, {
-                method: "POST",
-                headers: req.headers,
-                body: JSON.stringify(req.body),
-            });
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
-            }
-            const data = await response.json();
-            const toolUseBlocks = parseToolUseBlocks(model, data);
-
-            if (toolUseBlocks.length === 0) {
-                finalText = parseProviderResponse(model, data);
-                break;
-            }
-
-            const rawAssistant = provider === "openai"
-                ? data.choices?.[0]?.message?.tool_calls
-                : data.content;
-
-            const toolResults: { id: string; content: string; isError?: boolean }[] = [];
-            for (const block of toolUseBlocks) {
-                const opIndex = operations.length;
-                operations.push({
-                    command: block.name,
-                    args: block.input || {},
-                    description: `Execute ${block.name}`,
-                    order: opIndex,
-                    status: "executing",
-                });
-
-                // Identity protection guard
-                if (botConfig.protectIdentities && block.name === "libp2p_export_identity"
-                    && request.source !== "user") {
-                    operations[opIndex].status = "failed";
-                    operations[opIndex].error = "Refused: identity export blocked by protectIdentities";
-                    toolResults.push({
-                        id: block.id,
-                        content: JSON.stringify({ error: "identity export refused (protectIdentities=true)" }),
-                        isError: true,
+                messages: [{ role: "user", content: request.instruction }],
+                tools: tools.length > 0 ? tools : undefined,
+                commandContext,
+                maxRounds: botConfig.maxRounds,
+            },
+            {
+                onToolCallStart: (name, input) => {
+                    operations.push({
+                        command: name,
+                        args: input,
+                        description: `Execute ${name}`,
+                        order: operations.length,
+                        status: "executing",
                     });
-                    continue;
-                }
-
-                const result = await executeToolCall(
-                    block.id,
-                    block.name,
-                    block.input || {},
-                    commandContext,
-                );
-
-                operations[opIndex].status = result.error ? "failed" : "completed";
-                operations[opIndex].result = result.result;
-                operations[opIndex].error = result.error;
-
-                const content = result.error
-                    ? JSON.stringify({ error: result.error })
-                    : JSON.stringify(result.result ?? { success: true });
-                toolResults.push({ id: block.id, content, isError: !!result.error });
-            }
-
-            const resultMsgs = buildToolResultMessages(model, rawAssistant, toolResults);
-            apiMessages.push(...resultMsgs);
-        }
+                },
+                onToolCallComplete: (display) => {
+                    // Find the most recent matching executing op and finalize.
+                    for (let i = operations.length - 1; i >= 0; i--) {
+                        if (operations[i].command === display.name && operations[i].status === "executing") {
+                            operations[i].status = display.error ? "failed" : "completed";
+                            operations[i].result = display.result;
+                            operations[i].error = display.error;
+                            break;
+                        }
+                    }
+                },
+                interceptToolCall: (name) => {
+                    // Identity protection guard
+                    if (botConfig.protectIdentities && name === "libp2p_export_identity"
+                        && request.source !== "user") {
+                        return {
+                            content: JSON.stringify({ error: "identity export refused (protectIdentities=true)" }),
+                            isError: true,
+                            error: "Refused: identity export blocked by protectIdentities",
+                        };
+                    }
+                    return null;
+                },
+            },
+        );
+        const finalText = result.text;
 
         // Post-execution review — surface a couple of suggestions.
         botStatus = "reviewing";

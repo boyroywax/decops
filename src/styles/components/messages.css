@@ -354,25 +354,13 @@
  * THINKING INDICATOR
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-.msg-thinking {
+/* Shim: keeps the shared <ThinkingIndicator> aligned with message bubbles. */
+.msg-thinking-shim {
   padding-left: 56px;
-  font-size: var(--text-base);
-  color: var(--color-warning);
+  margin-top: 4px;
 }
-
-.msg-thinking--bridge {
+.msg-thinking-shim--bridge {
   padding-left: 38px;
-  font-size: var(--text-base);
-  color: var(--color-info);
-}
-
-.msg-thinking__dot {
-  animation: pulse 1.5s infinite;
-}
-
-.msg-thinking--broadcast {
-  font-size: var(--text-base);
-  color: var(--color-warning);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

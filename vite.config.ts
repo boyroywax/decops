@@ -92,6 +92,9 @@ export default defineConfig({
         cors: true,
         watch: {
             usePolling: true
-        }
+        },
+        allowedHosts: [
+            "5173--main--com-pcktlbs--pocketminers.coder.pocketlabs.dev"
+        ]
     }
 })

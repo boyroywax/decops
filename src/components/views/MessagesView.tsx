@@ -5,6 +5,7 @@ import type { Agent, Channel, Group, Message, Network, Bridge, BridgeMessage, Jo
 import { MessageSquare, ArrowLeftRight, Hexagon, X, Link2, Globe, FileText, FileJson, FileCode, Image, FileSpreadsheet, File, Eye, EyeOff } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { MarkdownContent } from "@/components/shared/MarkdownContent";
+import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
 import { ROLES, CHANNEL_TYPES } from "@/constants";
 import { SectionTitle, BulkCheckbox, BulkActionBar } from "@/components/shared/ui";
 import { useBulkSelect } from "@/hooks/useBulkSelect";
@@ -320,7 +321,7 @@ export function MessagesView({
                           {renderArtifactChips(m.content)}
                         </div>
                       </div>
-                      {m.status === "sending" && <div className="msg-thinking"><span className="msg-thinking__dot">●</span> {receiver?.name} is thinking...</div>}
+                      {m.status === "sending" && <ThinkingIndicator name={receiver?.name} phase="thinking" className="msg-thinking-shim" />}
                       {m.response && (
                         <div className="msg-row--reply">
                           <div className="msg-avatar" style={{ background: (rRole?.color || "#555") + "20", border: `1px solid ${rRole?.color || "#555"}30` }}>{rRole?.icon}</div>
@@ -427,7 +428,7 @@ export function MessagesView({
                         {renderArtifactChips(m.content)}
                       </div>
                     </div>
-                    {m.status === "sending" && <div className="msg-thinking"><span className="msg-thinking__dot">●</span> {receiver?.name} is thinking...</div>}
+                    {m.status === "sending" && <ThinkingIndicator name={receiver?.name} phase="thinking" className="msg-thinking-shim" />}
                     {m.response && (
                       <div className="msg-row--reply">
                         <div className="msg-avatar" style={{ background: (rRole?.color || "#555") + "20", border: `1px solid ${rRole?.color || "#555"}30` }}>{rRole?.icon}</div>
@@ -466,7 +467,7 @@ export function MessagesView({
                         <div className="msg-sender" style={{ color: rRole?.color }}>{receiver?.name}</div>
                         {m.response && <MarkdownContent content={m.response} className="msg-bubble--broadcast" style={{ background: (rRole?.color || "#555") + "08", border: `1px solid ${(rRole?.color || "#555")}15` }} />}
                         {m.response && renderArtifactChips(m.response)}
-                        {m.status === "sending" && <div className="msg-thinking--broadcast">● thinking...</div>}
+                        {m.status === "sending" && <ThinkingIndicator variant="broadcast" compact />}
                       </div>
                     </div>
                   );
@@ -494,7 +495,7 @@ export function MessagesView({
                           {renderArtifactChips(m.content)}
                         </div>
                       </div>
-                      {m.status === "sending" && <div className="msg-thinking--bridge"><span className="msg-thinking__dot">●</span> {selBridgeTo.name} is thinking…</div>}
+                      {m.status === "sending" && <ThinkingIndicator variant="bridge" name={selBridgeTo.name} phase="thinking" className="msg-thinking-shim msg-thinking-shim--bridge" />}
                       {m.response && (
                         <div className="msg-row--reply">
                           <div className="msg-avatar" style={{ background: (rRole?.color || "#555") + "20", border: `1px solid ${rRole?.color || "#555"}30` }}>{rRole?.icon}</div>

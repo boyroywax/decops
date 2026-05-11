@@ -5,12 +5,15 @@ import ActionCard from "./ActionCard";
 import { JobProgressCard } from "./JobProgressCard";
 import { MarkdownContent } from "@/components/shared/MarkdownContent";
 import { useJobsContext } from "@/context/JobsContext";
+import { useArchitectContext, ArchitectInlinePanel } from "@/toolkits/architect";
+import type { ViewId } from "@/types";
 import { CheckCircle, AlertTriangle, Wrench, Loader, FileText } from "lucide-react";
 import "../../styles/components/message-bubble.css";
 
 interface MessageBubbleProps {
     msg: ChatMessage;
     context: WorkspaceContext;
+    setView?: (v: ViewId) => void;
     isStreaming?: boolean;
 }
 
@@ -84,14 +87,28 @@ function ToolCallCard({ tc }: { tc: ToolCallDisplay }) {
     );
 }
 
-export default function MessageBubble({ msg, context, isStreaming }: MessageBubbleProps) {
+export default function MessageBubble({ msg, context, setView, isStreaming }: MessageBubbleProps) {
     const isUser = msg.role === "user";
     const { cleanText, actions } = parseActions(msg.content);
+    const architect = useArchitectContext();
+    const canUseLiveArchitect = !!msg.architectCard?.live && !!architect;
 
     return (
         <div className={`mb-row ${isUser ? "mb-row--user" : "mb-row--assistant"}`}>
             <div className={`mb-bubble ${isUser ? "mb-bubble--user" : "mb-bubble--assistant"}${isStreaming ? " mb-bubble--streaming" : ""}`}>
-                {isUser
+                {msg.architectCard ? (
+                    <ArchitectInlinePanel
+                        archPrompt={canUseLiveArchitect ? architect.archPrompt : msg.architectCard.prompt}
+                        archPreview={msg.architectCard.preview}
+                        archPhase={msg.architectCard.phase}
+                        deployProgress={msg.architectCard.deployProgress}
+                        deployNetwork={canUseLiveArchitect ? architect.deployNetwork : (() => { })}
+                        resetArchitect={canUseLiveArchitect ? architect.resetArchitect : (() => { })}
+                        generateNetwork={canUseLiveArchitect ? architect.generateNetwork : undefined}
+                        setView={setView ?? (() => { })}
+                        showActions={canUseLiveArchitect}
+                    />
+                ) : isUser
                     ? <span style={{ whiteSpace: "pre-wrap" }}>{cleanText}</span>
                     : cleanText
                         ? <MarkdownContent content={cleanText} />

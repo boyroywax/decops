@@ -16,7 +16,38 @@
 
 import type { ComponentType } from "react";
 import type { LucideIcon } from "lucide-react";
+import type { ViewId } from "@/types";
 import { create } from "zustand";
+
+/**
+ * Declarative description of how the workspace should be arranged when this
+ * chat agent is active. Each toolkit (libp2p, architect, studio, editor)
+ * ships its own `AgentWorkspaceConfig`; `AuthenticatedApp` applies it via a
+ * single effect when the active agent changes, replacing the per-toolkit
+ * ad-hoc `useEffect` blocks that previously fought each other over view +
+ * footer-drawer state.
+ *
+ * The config is intentionally minimal — only the cross-cutting layout bits.
+ * Toolkit-specific UI (banners, welcome panels, quick actions) stays on the
+ * `ChatAgent` itself.
+ */
+export interface AgentWorkspaceConfig {
+    /** Switch the main view when this agent activates. Omit to leave the
+     *  current view untouched (used by agents that work across any view). */
+    view?: ViewId;
+    /** Clear drill-down navigation context on activation. Default true. */
+    clearNavContext?: boolean;
+    /** Footer drawer state to apply WHEN the chat is anchored to a side
+     *  panel. Ignored for bottom-anchored chat (which repurposes the
+     *  footer as the chat itself). Use:
+     *    • "none"  — collapse the drawer (libp2p, architect, editor)
+     *    • "jobs"  — open the Actions/Jobs drawer (studio)
+     *    • "chat"  — pin the chat drawer (rarely useful for side chat)
+     *  Omit to leave the drawer untouched. */
+    sideChatFooterPanel?: "none" | "jobs" | "chat";
+    /** Open + focus the chat panel after applying the rest. Default true. */
+    openChat?: boolean;
+}
 
 export interface ChatAgentQuickAction {
     label: string;
@@ -26,11 +57,30 @@ export interface ChatAgentQuickAction {
     run?: () => void;
 }
 
+export interface ChatAgentStream {
+    /** Append a token (or arbitrary string) to the streaming assistant message. */
+    append: (token: string) => void;
+    /** Replace the streamed text entirely (e.g. to overwrite a placeholder). */
+    set: (text: string) => void;
+    /** Finalize the stream and persist the message. If `text` is supplied it
+     *  replaces whatever was streamed; otherwise the accumulated text is used. */
+    done: (text?: string) => void;
+    /** Abort the stream and surface an error as the assistant message. */
+    error: (message: string) => void;
+}
+
 export interface ChatAgentSubmitContext {
     /** The active conversation id (may be undefined on first message). */
     conversationId?: string;
     /** Append a message to the active conversation (utility from chat panel). */
     appendAssistantMessage?: (content: string) => void;
+    /**
+     * Open a streaming assistant message that the agent can write to
+     * incrementally. The chat panel renders tokens live in the same UI as
+     * the workspace stream. The handler MUST call `done()` or `error()`
+     * exactly once or the chat will stay in the loading state.
+     */
+    streamAssistantMessage?: () => ChatAgentStream;
 }
 
 export interface ChatAgent {
@@ -73,6 +123,20 @@ export interface ChatAgent {
      * its default workspace chat path); return false/undefined to fall through.
      */
     onSubmit?: (text: string, ctx: ChatAgentSubmitContext) => boolean | Promise<boolean>;
+    /**
+     * Optional allowlist of toolkit IDs the workspace chat should expose to
+     * the model when this chat agent is active. When omitted (or empty) the
+     * default Anthropic-capped tool list is used. Use this to keep the
+     * model focused on a single domain (e.g. Architect only sees the
+     * ecosystem + agent-management toolkits).
+     */
+    toolkitIds?: string[];
+    /**
+     * Declarative workspace layout to apply when this agent activates.
+     * One source of truth for "what should the UI look like when libp2p /
+     * architect / studio / editor is in focus". See {@link AgentWorkspaceConfig}.
+     */
+    workspace?: AgentWorkspaceConfig;
 }
 
 interface ChatAgentsState {

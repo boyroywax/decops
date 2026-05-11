@@ -22,15 +22,35 @@ import { useAutomations } from "@/context/AutomationsContext";
 import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
 import { useRouteSync } from "@/hooks/useRouteSync";
 import { ProfileModal } from "./ProfileModal";
-import { ArchitectPopup } from "@/toolkits/architect";
 import { ActivityModal } from "./ActivityModal";
 import { useTheme } from "@/context/ThemeContext";
 import { CommandContextProvider } from "@/context/CommandContextProvider";
 import { useChatAgentsStore } from "@/services/chat/agents";
+import type { ChatAgentSubmitContext } from "@/services/chat/agents";
 import { Sparkles, Clapperboard, Edit3 } from "lucide-react";
 import { SCENARIO_PRESETS } from "@/constants";
 import "../../styles/components/authenticated-app.css";
 import "../../styles/components/global.css";
+
+/**
+ * Stream a short canned reply word-by-word into the active chat agent's
+ * stream UI so the user sees the same live-typing feel as the workspace
+ * stream. Falls back to a single appendAssistantMessage when the host
+ * panel doesn't support streaming.
+ */
+async function streamCannedReply(ctx: ChatAgentSubmitContext, text: string): Promise<void> {
+  if (!ctx.streamAssistantMessage) {
+    ctx.appendAssistantMessage?.(text);
+    return;
+  }
+  const stream = ctx.streamAssistantMessage();
+  const tokens = text.match(/\S+\s*/g) ?? [text];
+  for (const token of tokens) {
+    stream.append(token);
+    await new Promise((r) => setTimeout(r, 18));
+  }
+  stream.done(text);
+}
 
 
 
@@ -48,7 +68,6 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
 
   // Modal / popup state
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showArchitectPopup, setShowArchitectPopup] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
 
   // Wrap setView to track navigation in Notebook — intercept profile, architect, activity
@@ -314,19 +333,10 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     });
   }, [chatSize, chatPosition, isMobile]);
 
-  // Auto-open Actions when entering Studio mode
-  useEffect(() => {
-    if (view === "jobs" && footerPanel === "none") {
-      setFooterPanel("jobs");
-    }
-  }, [view === "jobs"]);
-
-  // Close footer drawer when entering Editor view
-  useEffect(() => {
-    if (view === "editor" && footerPanel !== "none") {
-      setFooterPanel("none");
-    }
-  }, [view]);
+  // Auto-open Actions when entering Studio mode and auto-close footer when
+  // entering Editor mode are now driven by each agent's `workspace` config
+  // (see the universal workspace applier effect below). View-bound agents
+  // (studio for `jobs`, editor for `editor`) supply the layout intent.
 
   useEffect(() => {
     const handleResize = () => {
@@ -369,20 +379,11 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   }, [chatPosition]);
 
   const activateArchitectChatAgent = useCallback(() => {
+    // Architect's `workspace` config (view: "networks", sideChatFooterPanel:
+    // "none", openChat: true) is applied by the universal workspace applier
+    // effect below — `open("architect")` is all we need here.
     useChatAgentsStore.getState().open("architect");
-    // Bring the Network Manager into focus on the center panel — Architect
-    // generates networks, so the user lands on the surface where they'll
-    // appear. Clears any drill-down context.
-    setViewRaw("networks");
-    setNavContext({});
-    // Close the bottom drawer if the chat lives on a side panel — it's not
-    // needed while Architect is engaged. (When chat is bottom-anchored the
-    // footer is repurposed as the chat panel below.)
-    if (chatPosition === "left" || chatPosition === "right") {
-      setFooterPanel("none");
-    }
-    openChatPanel();
-  }, [openChatPanel, chatPosition]);
+  }, []);
 
   // Any caller that bumps the open-tick (Cmd+K, libp2p Bot button, …) opens
   // the chat panel. We only react to the increasing tick so we don't fight
@@ -410,52 +411,81 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
       welcome: ArchitectWelcome,
       preferredSideWidth: 1000,
       freshConversation: true,
+      // Scope tools to the design / network domain so the model stays
+      // focused and the request stays well under Anthropic's 128-tool cap.
+      toolkitIds: [
+        "ecosystem",
+        "agent-management",
+        "infrastructure",
+        "workspace-mgmt",
+        "autonomy",
+        "jobs",
+        "artifacts",
+      ],
       placeholder: "Describe a network or multi-agent ecosystem to build…",
+      workspace: {
+        // Architect generates networks — land the user on the Network
+        // Manager so newly-built networks appear in view. Side-chat layout
+        // collapses the bottom drawer; bottom-anchored chat keeps the
+        // footer (it IS the chat).
+        view: "networks",
+        sideChatFooterPanel: "none",
+      },
       quickActions: SCENARIO_PRESETS.slice(0, 5).map((s) => ({
         label: s.label,
         prompt: s.desc,
       })),
       onSubmit: async (text, ctx) => {
-        architectRef.current.generateNetwork(text);
-        // Keep the chat's loading indicator (three dots) visible until the
-        // architect job finishes by awaiting the phase transition. The job
-        // resolves asynchronously through useArchitect's job watcher, so we
-        // poll the latest snapshot via the ref.
+        const a = architectRef.current;
+        const phase = a.archPhase;
+        const trimmed = text.trim();
+        // Intent: user explicitly asks for a new design / blueprint.
+        const wantsGen =
+          /\b(build|create|generate|design|make|spin\s*up|new\s+(network|design|blueprint|ecosystem)|another\s+(network|design|blueprint|ecosystem)|build\s+another|start\s+over)\b/i.test(
+            trimmed,
+          );
+
+        // Mid-flight: a blueprint is on screen awaiting deploy/discard, or is deploying.
+        if (phase === "preview" || phase === "deploying") {
+          const reply =
+            phase === "deploying"
+              ? "Your ecosystem is deploying right now — I'll be ready for the next design once it finishes."
+              : "Your blueprint is ready below. Deploy or discard it before I draft another one.";
+          await streamCannedReply(ctx, reply);
+          return true;
+        }
+
+        // After deployment: only regenerate if the user clearly wants a new design.
+        if (phase === "done" && !wantsGen) {
+          const reply =
+            /\b(thanks?|thank you|thx|ty|cheers|nice|great|awesome|cool|perfect)\b/i.test(trimmed)
+              ? "You're welcome! Tell me when you'd like to build another network and I'll draft a fresh blueprint."
+              : "Your last ecosystem is deployed. Say something like \"build a new network for…\" and I'll generate another blueprint.";
+          await streamCannedReply(ctx, reply);
+          return true;
+        }
+
+        // Otherwise (phase === "input", or "done" with explicit generation intent): generate.
+        a.generateNetwork(trimmed);
         await new Promise<void>((resolve) => {
           const start = Date.now();
           const tick = () => {
-            const a = architectRef.current;
-            if (!a.archGenerating) return resolve();
-            if (a.archError) return resolve();
-            if (Date.now() - start > 90_000) return resolve(); // safety timeout
+            const cur = architectRef.current;
+            if (!cur.archGenerating) return resolve();
+            if (cur.archError) return resolve();
+            if (Date.now() - start > 90_000) return resolve();
             setTimeout(tick, 200);
           };
           tick();
         });
-        const a = architectRef.current;
-        if (a.archError) {
-          ctx.appendAssistantMessage?.(`Architect error: ${a.archError}`);
-        } else if (a.archPreview) {
-          const n = a.archPreview;
-          const networkCount = n.networks?.length ?? 0;
-          ctx.appendAssistantMessage?.(
-            `Blueprint ready — ${n.agents.length} agents · ${n.channels.length} channels${networkCount ? ` · ${networkCount} network${networkCount === 1 ? "" : "s"}` : ""}. Review and deploy below.`,
-          );
+        if (architectRef.current.archError) {
+          ctx.appendAssistantMessage?.(`Architect error: ${architectRef.current.archError}`);
         }
         return true;
       },
     });
     return dispose;
   }, []);
-
-  // Surface the existing ArchitectPopup automatically once the phase moves
-  // past "input" so the chat-driven prompt produces a popup with preview/deploy.
-  // When the Architect chat agent is active, we instead render an inline panel
-  // inside the chat (see ChatPanel → ArchitectInlinePanel), so the modal stays closed.
-  const architectAgentActive = useChatAgentsStore((s) => s.activeAgentId === "architect");
-  useEffect(() => {
-    if (architect.archPhase !== "input" && !architectAgentActive) setShowArchitectPopup(true);
-  }, [architect.archPhase, architectAgentActive]);
 
   // Editor + Studio chat agents. These are passive registrations that let
   // the chat panel render the right banner / input icon when the user is
@@ -470,6 +500,14 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
       icon: Edit3,
       gradient: ["#60a5fa", "#a78bfa"],
       placeholder: "Ask the AI to help edit your file…",
+      toolkitIds: ["artifacts", "workspace-mgmt"],
+      workspace: {
+        // Editor takes the full screen — collapse the bottom drawer when
+        // chat is on a side panel. The Editor view is reached via the
+        // sidebar; the agent itself is view-bound so we don't force it.
+        view: "editor",
+        sideChatFooterPanel: "none",
+      },
     });
     const disposeStudio = store.register({
       id: "studio",
@@ -478,42 +516,75 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
       icon: Clapperboard,
       gradient: ["#f472b6", "#fb7185"],
       placeholder: "Ask the AI to build on the Studio canvas…",
+      toolkitIds: ["studio", "jobs", "artifacts", "agent-management"],
+      workspace: {
+        // Studio drives Job canvases — land on the Jobs view and auto-open
+        // the Actions drawer so the user sees the running job artifacts.
+        view: "jobs",
+        sideChatFooterPanel: "jobs",
+      },
     });
     return () => { disposeEditor(); disposeStudio(); };
   }, []);
 
-  // When the libp2p chat agent becomes active (from anywhere — sidebar entry,
-  // Bot button, mention selection, …) drive the layout into the libp2p surface:
-  // switch to the libp2p view and collapse the bottom drawer so the libp2p
-  // Network Manager has full focus alongside the side chat panel. Mirrors the
-  // architect activation flow — only one bot mode is engaged at a time, and
-  // engaging libp2p takes precedence over whatever was previously active.
-  const libp2pAgentActive = useChatAgentsStore((s) => s.activeAgentId === "libp2p");
+  // ─── Universal workspace applier ────────────────────────────────────
+  // When the active chat agent changes, apply its declarative
+  // `workspace` config (view, footer-drawer, chat visibility). One effect,
+  // one source of truth — replaces the per-toolkit useEffect blocks that
+  // used to fight each other over layout state.
+  const activeAgentId = useChatAgentsStore((s) => s.activeAgentId);
   useEffect(() => {
-    if (!libp2pAgentActive) return;
-    setViewRaw("libp2p");
-    setNavContext({});
-    if (chatPosition === "left" || chatPosition === "right") {
-      setFooterPanel("none");
-    }
-    openChatPanel();
-  }, [libp2pAgentActive, chatPosition, openChatPanel]);
+    if (!activeAgentId) return;
+    const agent = useChatAgentsStore.getState().agents[activeAgentId];
+    const config = agent?.workspace;
+    if (!config) return;
 
-  // Auto-activate the agent that matches the current view. We only flip if
-  // the active agent is currently null or another view-bound agent — we
-  // never override Architect or libp2p (user-driven agents).
-  const VIEW_BOUND_AGENTS: Record<string, string | null> = {
+    if (config.view) setViewRaw(config.view);
+    if (config.clearNavContext !== false) setNavContext({});
+
+    // Footer drawer is only manipulated for side-anchored chat layouts;
+    // bottom-anchored chat re-uses the footer as the chat surface itself,
+    // so changing it there would close the chat.
+    if (config.sideChatFooterPanel && (chatPosition === "left" || chatPosition === "right")) {
+      setFooterPanel(config.sideChatFooterPanel);
+    }
+
+    if (config.openChat !== false) openChatPanel();
+  }, [activeAgentId, chatPosition, openChatPanel]);
+
+  // View → agent binding. Two asymmetric responsibilities:
+  //   • Auto-activate truly view-bound agents (Editor, Studio) when their
+  //     view becomes active.
+  //   • Release ANY active agent whose declared `workspace.view` no longer
+  //     matches the current view. This keeps non-view-bound agents like
+  //     Architect from sticking around after the user navigates away —
+  //     their banner, cards and theme all clear automatically.
+  // We do NOT auto-activate non-view-bound agents on view enter, because
+  // their home view may be the default landing page (Architect → networks).
+  const VIEW_BOUND_AGENTS: Record<string, string> = {
     editor: "editor",
     jobs: "studio",
   };
   useEffect(() => {
     const store = useChatAgentsStore.getState();
-    const desired = VIEW_BOUND_AGENTS[view as string] ?? null;
-    const current = store.activeAgentId;
-    const currentIsViewBound = current && Object.values(VIEW_BOUND_AGENTS).includes(current);
-    if (desired && current !== desired && (!current || currentIsViewBound)) {
+    const desired = VIEW_BOUND_AGENTS[view as string];
+    const currentId = store.activeAgentId;
+    const current = currentId ? store.agents[currentId] : null;
+    const currentIsViewBound = currentId
+      ? Object.values(VIEW_BOUND_AGENTS).includes(currentId)
+      : false;
+
+    if (desired && currentId !== desired && (!currentId || currentIsViewBound)) {
       store.setActive(desired);
-    } else if (!desired && currentIsViewBound) {
+      return;
+    }
+    if (!desired && currentIsViewBound) {
+      store.setActive(null);
+      return;
+    }
+    // Release non-view-bound agents (e.g. Architect) when the user
+    // navigates away from their declared home view.
+    if (current?.workspace?.view && current.workspace.view !== view) {
       store.setActive(null);
     }
   }, [view]);
@@ -688,23 +759,6 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
           clearNotebook={clearNotebook}
           exportNotebook={exportNotebook}
           addEntry={addNotebookEntry}
-        />
-
-        {/* Architect Popup (Ctrl+K) */}
-        <ArchitectPopup
-          isOpen={showArchitectPopup}
-          onClose={() => setShowArchitectPopup(false)}
-          archPrompt={architect.archPrompt}
-          setArchPrompt={architect.setArchPrompt}
-          archGenerating={architect.archGenerating}
-          archPreview={architect.archPreview}
-          archError={architect.archError}
-          archPhase={architect.archPhase}
-          deployProgress={architect.deployProgress}
-          generateNetwork={architect.generateNetwork}
-          deployNetwork={architect.deployNetwork}
-          resetArchitect={architect.resetArchitect}
-          setView={setView}
         />
     </div>
     </CommandContextProvider>

@@ -161,6 +161,54 @@ const EXCLUDED_COMMANDS = new Set([
   "reset_workspace",   // Danger: full workspace wipe
 ]);
 
+// Anthropic's tools API caps the array at 128 entries. We must keep the
+// exposed surface under that ceiling or every chat call rejects with
+// `Invalid 'tools': array too long`.
+const MAX_ANTHROPIC_TOOLS = 128;
+
+/**
+ * Sort + slice a tool list so it fits inside Anthropic's 128-tool ceiling.
+ *
+ * Priority (kept first):
+ *  1. Lower-cardinality / orchestration commands (toolkit + meta).
+ *  2. Ecosystem / network / agent / channel / group / message commands.
+ *  3. Everything else, by alphabetical id (deterministic).
+ *
+ * If we still overflow, we drop from the tail and emit a single warning.
+ */
+function capForAnthropic(cmds: CommandDefinition[]): CommandDefinition[] {
+  if (cmds.length <= MAX_ANTHROPIC_TOOLS) return cmds;
+
+  const priorityTag = (c: CommandDefinition): number => {
+    const tags = c.tags || [];
+    if (tags.includes("toolkit") || tags.includes("meta")) return 0;
+    if (
+      tags.includes("ecosystem") ||
+      tags.includes("network") ||
+      tags.includes("agent") ||
+      tags.includes("channel") ||
+      tags.includes("group") ||
+      tags.includes("message")
+    ) return 1;
+    return 2;
+  };
+
+  const sorted = [...cmds].sort((a, b) => {
+    const pa = priorityTag(a);
+    const pb = priorityTag(b);
+    if (pa !== pb) return pa - pb;
+    return a.id.localeCompare(b.id);
+  });
+
+  const kept = sorted.slice(0, MAX_ANTHROPIC_TOOLS);
+  const dropped = sorted.slice(MAX_ANTHROPIC_TOOLS).map((c) => c.id);
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[tools] ${cmds.length} commands exceeds Anthropic's ${MAX_ANTHROPIC_TOOLS}-tool limit; dropping ${dropped.length}: ${dropped.join(", ")}`,
+  );
+  return kept;
+}
+
 // ── Conversion ─────────────────────────────────────
 
 /** Convert a single CommandDefinition to an Anthropic tool schema */
@@ -196,19 +244,56 @@ export function commandToTool(cmd: CommandDefinition): AnthropicTool {
 
 /** Convert all registered commands to Anthropic tool schemas */
 export function getAllTools(): AnthropicTool[] {
-  return registry
+  const cmds = registry
     .getAll()
-    .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id) && !cmd.hidden)
-    .map(commandToTool);
+    .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id) && !cmd.hidden);
+  return capForAnthropic(cmds).map(commandToTool);
 }
 
 /** Get tools filtered by tags (e.g. only "agent" + "query" tools) */
 export function getToolsByTags(tags: string[]): AnthropicTool[] {
-  return registry
+  const cmds = registry
     .getAll()
     .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id) && !cmd.hidden)
-    .filter(cmd => tags.some(t => cmd.tags.includes(t)))
-    .map(commandToTool);
+    .filter(cmd => tags.some(t => cmd.tags.includes(t)));
+  return capForAnthropic(cmds).map(commandToTool);
+}
+
+/**
+ * Get tools restricted to the union of the given toolkit IDs' commands,
+ * plus a small set of always-available meta commands. Used by the workspace
+ * chat to scope the AI's tool surface to whatever the active chat agent
+ * declares it needs (keeps the request well under Anthropic's 128 cap and
+ * keeps the model focused on relevant tools).
+ *
+ * If `toolkitIds` is empty/undefined, falls back to `getAllTools()`.
+ */
+export function getToolsByToolkitIds(toolkitIds: string[] | undefined): AnthropicTool[] {
+  if (!toolkitIds || toolkitIds.length === 0) return getAllTools();
+
+  const allowed = new Set<string>();
+  for (const id of toolkitIds) {
+    const tk = TOOLKITS.find(t => t.id === id);
+    if (tk) for (const cmdId of tk.commands) allowed.add(cmdId);
+  }
+
+  // Always allow toolkit-management meta commands so the model can ask the
+  // operator to enable a missing toolkit instead of failing silently.
+  const META_COMMANDS = new Set([
+    "enable_toolkit",
+    "disable_toolkit",
+    "list_agent_toolkits",
+    "set_agent_toolkits",
+  ]);
+
+  const cmds = registry
+    .getAll()
+    .filter(cmd =>
+      !EXCLUDED_COMMANDS.has(cmd.id) &&
+      !cmd.hidden &&
+      (allowed.has(cmd.id) || META_COMMANDS.has(cmd.id)),
+    );
+  return capForAnthropic(cmds).map(commandToTool);
 }
 
 /**
@@ -251,14 +336,14 @@ export function getToolsForAgent(agent: Agent): AnthropicTool[] {
     "set_agent_toolkits",
   ]);
 
-  return registry
+  const cmds = registry
     .getAll()
     .filter(cmd =>
       !EXCLUDED_COMMANDS.has(cmd.id) &&
       !cmd.hidden &&
       (allowedCommands.has(cmd.id) || META_COMMANDS.has(cmd.id)),
-    )
-    .map(commandToTool);
+    );
+  return capForAnthropic(cmds).map(commandToTool);
 }
 
 /**
