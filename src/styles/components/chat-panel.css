@@ -692,10 +692,10 @@
      while making the banner read as a strong identity strip. */
   background:
     linear-gradient(135deg,
-      color-mix(in srgb, var(--agent-gradient-start) 38%, #0f1720) 0%,
-      color-mix(in srgb, var(--agent-gradient-end) 32%, #0f1720) 55%,
-      #0f1720 100%),
-    var(--bg-panel, #0f1720);
+      color-mix(in srgb, var(--agent-gradient-start) 38%, var(--bg-modal, #0f1720)) 0%,
+      color-mix(in srgb, var(--agent-gradient-end) 32%, var(--bg-modal, #0f1720)) 55%,
+      var(--bg-modal, #0f1720) 100%),
+    var(--bg-panel, var(--bg-modal, #0f1720));
   border-bottom: 1px solid
     color-mix(in srgb, var(--agent-gradient-end) 55%, transparent);
   box-shadow:
@@ -744,14 +744,14 @@
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #ffffff;
+  color: var(--text-primary, #ffffff);
   font-weight: 600;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  text-shadow: none;
 }
 
 .chat-agent-banner__desc {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--text-secondary, rgba(255, 255, 255, 0.78));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -759,7 +759,7 @@
 
 .chat-agent-banner__exit {
   background: transparent;
-  border: 1px solid color-mix(in srgb, var(--agent-gradient-end) 30%, rgba(255, 255, 255, 0.08));
+  border: 1px solid color-mix(in srgb, var(--agent-gradient-end) 30%, var(--border-default, rgba(255, 255, 255, 0.08)));
   border-radius: 4px;
   padding: 2px 4px;
   color: color-mix(in srgb, var(--agent-gradient-end) 30%, #9ca3af);
@@ -771,7 +771,7 @@
 }
 
 .chat-agent-banner__exit:hover {
-  color: #fff;
+  color: var(--text-primary, #fff);
   border-color: color-mix(in srgb, var(--agent-gradient-end) 60%, transparent);
   background: color-mix(in srgb, var(--agent-gradient-end) 15%, transparent);
 }
@@ -907,7 +907,7 @@
   background: linear-gradient(180deg,
     rgba(255, 255, 255, 0.025) 0%,
     rgba(255, 255, 255, 0.01) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
   border-radius: 8px;
   padding: 12px;
   cursor: pointer;

@@ -46,8 +46,8 @@
     text-transform: uppercase;
     padding: 2px 8px;
     border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+    background: var(--rgba-white-04, rgba(255, 255, 255, 0.04));
     letter-spacing: 0.06em;
 }
 
@@ -101,7 +101,7 @@
     padding: 6px 12px;
     border-radius: 4px;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--rgba-white-04, rgba(255, 255, 255, 0.04));
     color: #e2e8f0;
     font-family: inherit;
     font-size: 12px;
@@ -179,7 +179,7 @@
 
 .libp2p-panel {
     border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--rgba-white-02, rgba(255, 255, 255, 0.02));
     border-radius: 6px;
     padding: 12px;
     display: flex;
@@ -319,7 +319,7 @@
     gap: 8px;
     padding: 4px 6px;
     border-radius: 3px;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--rgba-white-02, rgba(255, 255, 255, 0.02));
     border: 1px solid transparent;
 }
 
@@ -391,7 +391,7 @@
     gap: 4px;
     padding: 0 12px;
     border-bottom: 1px solid #1e293b;
-    background: #0b1220;
+    background: var(--bg-surface, #0b1220);
 }
 
 .libp2p-tab {
@@ -402,7 +402,7 @@
     border: 1px solid transparent;
     border-bottom: none;
     border-radius: 6px 6px 0 0;
-    background: #0f172a;
+    background: var(--bg-surface, #0f172a);
     color: #94a3b8;
     cursor: pointer;
     font-size: 12px;
@@ -518,15 +518,15 @@
     align-items: flex-start;
     gap: 8px;
     padding: 8px 10px;
-    border: 1px solid #1f2937;
+    border: 1px solid var(--border-default, #1f2937);
     border-radius: 6px;
-    background: #0b1220;
+    background: var(--bg-surface, #0b1220);
     cursor: pointer;
 }
 
 .libp2p-radio:has(input:checked) {
-    border-color: #475569;
-    background: #111827;
+    border-color: var(--border-active, #475569);
+    background: var(--bg-active, #111827);
 }
 
 .libp2p-radio input[type="radio"] {
@@ -548,7 +548,7 @@
 
 .libp2p-btn--ghost:hover:not(:disabled) {
     color: #e2e8f0;
-    border-color: #475569;
+    border-color: var(--border-active, #475569);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -834,7 +834,7 @@
     gap: 12px;
     padding: 12px 16px;
     border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--rgba-white-02, rgba(255, 255, 255, 0.02));
 }
 
 .libp2p-modal-tabs {
@@ -855,7 +855,7 @@
     cursor: pointer;
 }
 .libp2p-modal-tab:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--rgba-white-06, rgba(255, 255, 255, 0.06));
 }
 .libp2p-modal-tab--active {
     background: rgba(99, 102, 241, 0.18);
@@ -896,7 +896,7 @@
     padding: 10px 12px;
     border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--rgba-white-02, rgba(255, 255, 255, 0.02));
 }
 
 .libp2p-collection-main {
@@ -1236,7 +1236,7 @@
     padding: 8px 10px;
     border: 1px dashed var(--border, rgba(255, 255, 255, 0.12));
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.015);
+    background: var(--rgba-white-015, rgba(255, 255, 255, 0.015));
 }
 .libp2p-bootstrap-contact-list {
     list-style: none;
@@ -1255,7 +1255,7 @@
     padding: 6px 8px;
     border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
     border-radius: 4px;
-    background: rgba(255, 255, 255, 0.025);
+    background: var(--rgba-white-025, rgba(255, 255, 255, 0.025));
 }
 .libp2p-bootstrap-contact-info {
     display: flex;
@@ -1285,8 +1285,8 @@
   align-items: flex-start;
   gap: 2px;
   padding: 6px 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-surface, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-default, var(--rgba-white-06, rgba(255, 255, 255, 0.06)));
   border-radius: 5px;
   color: var(--text-secondary, #9ca3af);
 }
