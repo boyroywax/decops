@@ -876,46 +876,20 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                         </button>
                         
                         {botMenuOpen && (
-                            <div 
-                                className="chat-panel__bot-menu-dropdown" 
-                                style={{ 
-                                    position: 'absolute', 
-                                    bottom: 'calc(100% + 8px)', 
-                                    left: 0, 
-                                    background: 'var(--bg-panel)',
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: 'var(--radius-md)',
-                                    padding: '4px',
-                                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '2px',
-                                    zIndex: 100,
-                                    width: '160px'
-                                }}
-                            >
-                                <div style={{ fontSize: '10px', fontWeight: 600, padding: '4px 8px', color: 'var(--text-muted)', userSelect: 'none' }}>
-                                    BOT THEMES
-                                </div>
+                            <div className="chat-panel__bot-menu-dropdown">
+                                <div className="chat-panel__bot-menu-title">BOT THEMES</div>
                                 
                                 {Object.values(useChatAgentsStore.getState().agents).map(agent => (
                                     <button
                                         key={agent.id}
                                         type="button"
-                                        style={{
-                                            display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px',
-                                            background: activeAgent?.id === agent.id ? 'var(--bg-hover)' : 'transparent',
-                                            border: 'none', borderRadius: 'var(--radius-sm)', color: 'var(--text-normal)',
-                                            cursor: 'pointer', textAlign: 'left', fontSize: '12px'
-                                        }}
+                                        className={`chat-panel__bot-menu-item${activeAgent?.id === agent.id ? " chat-panel__bot-menu-item--active" : ""}`}
                                         onClick={() => {
                                             useChatAgentsStore.getState().setActive(agent.id);
                                             setStudioMode(false);
                                             setEditorMode(false);
                                             setBotMenuOpen(false);
                                         }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = activeAgent?.id === agent.id ? 'var(--bg-hover)' : 'transparent'}
                                     >
                                         <GradientIcon icon={agent.icon as any} size={14} gradient={agent.gradient ?? ["#38bdf8", "#a78bfa"]} />
                                         <span style={{flex: 1}}>{agent.name}</span>
@@ -926,20 +900,13 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                                 {studioAvailable && (
                                     <button
                                         type="button"
-                                        style={{
-                                            display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px',
-                                            background: (!activeAgent && studioActive) ? 'var(--bg-hover)' : 'transparent',
-                                            border: 'none', borderRadius: 'var(--radius-sm)', color: 'var(--text-normal)',
-                                            cursor: 'pointer', textAlign: 'left', fontSize: '12px'
-                                        }}
+                                        className={`chat-panel__bot-menu-item${(!activeAgent && studioActive) ? " chat-panel__bot-menu-item--active" : ""}`}
                                         onClick={() => {
                                             useChatAgentsStore.getState().setActive(null);
                                             setStudioMode(true);
                                             setEditorMode(false);
                                             setBotMenuOpen(false);
                                         }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = (!activeAgent && studioActive) ? 'var(--bg-hover)' : 'transparent'}
                                     >
                                         <Clapperboard size={14} color="#a855f7" />
                                         <span style={{flex: 1}}>Studio</span>
@@ -950,20 +917,13 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                                 {editorAvailable && (
                                     <button
                                         type="button"
-                                        style={{
-                                            display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px',
-                                            background: (!activeAgent && editorActive && !studioActive) ? 'var(--bg-hover)' : 'transparent',
-                                            border: 'none', borderRadius: 'var(--radius-sm)', color: 'var(--text-normal)',
-                                            cursor: 'pointer', textAlign: 'left', fontSize: '12px'
-                                        }}
+                                        className={`chat-panel__bot-menu-item${(!activeAgent && editorActive && !studioActive) ? " chat-panel__bot-menu-item--active" : ""}`}
                                         onClick={() => {
                                             useChatAgentsStore.getState().setActive(null);
                                             setStudioMode(false);
                                             setEditorMode(true);
                                             setBotMenuOpen(false);
                                         }}
-                                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.background = (!activeAgent && editorActive && !studioActive) ? 'var(--bg-hover)' : 'transparent'}
                                     >
                                         <Edit3 size={14} color="#3b82f6" />
                                         <span style={{flex: 1}}>Editor</span>
@@ -971,27 +931,20 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                                     </button>
                                 )}
                                 
-                                <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }} />
+                                <div className="chat-panel__bot-menu-divider" />
                                 
                                 <button
                                     type="button"
-                                    style={{
-                                        display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 8px',
-                                        background: (!activeAgent && !studioActive && !editorActive) ? 'var(--bg-hover)' : 'transparent',
-                                        border: 'none', borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)',
-                                        cursor: 'pointer', textAlign: 'left', fontSize: '12px'
-                                    }}
+                                    className={`chat-panel__bot-menu-item${(!activeAgent && !studioActive && !editorActive) ? " chat-panel__bot-menu-item--active" : ""}`}
                                     onClick={() => {
                                         useChatAgentsStore.getState().setActive(null);
                                         setStudioMode(false);
                                         setEditorMode(false);
                                         setBotMenuOpen(false);
                                     }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-hover)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = (!activeAgent && !studioActive && !editorActive) ? 'var(--bg-hover)' : 'transparent'}
                                 >
-                                    <Square size={14} />
-                                    <span style={{flex: 1}}>Disable Theme</span>
+                                    <Square size={14} className={(!activeAgent && !studioActive && !editorActive) ? "" : "chat-panel__bot-menu-item--disabled"} />
+                                    <span style={{flex: 1}} className={(!activeAgent && !studioActive && !editorActive) ? "" : "chat-panel__bot-menu-item--disabled"}>Disabled Theme</span>
                                     {(!activeAgent && !studioActive && !editorActive) && <Check size={12} />}
                                 </button>
                             </div>
