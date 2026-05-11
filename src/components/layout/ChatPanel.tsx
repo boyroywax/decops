@@ -54,6 +54,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     } = useConversations(activeWorkspaceId);
 
     const activeAgent = useActiveChatAgent();
+    const availableAgents = useChatAgentsStore(s => s.agents);
     const focusTick = useChatAgentsStore((s) => s.focusTick);
 
     const [input, setInput] = useState("");
@@ -875,7 +876,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             <div className="chat-panel__bot-menu-dropdown">
                                 <div className="chat-panel__bot-menu-title">BOT THEMES</div>
                                 
-                                {Object.values(useChatAgentsStore(s => s.agents)).map(agent => (
+                                {Object.values(availableAgents).map(agent => (
                                     <button
                                         key={agent.id}
                                         type="button"
