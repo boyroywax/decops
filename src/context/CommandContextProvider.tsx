@@ -13,6 +13,12 @@ import { useJobsContext } from "@/context/JobsContext";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import { useCommandContext } from "@/hooks/useCommandContext";
 import type { CommandContext } from "@/services/commands/types";
+import { useRegisterLibp2pChatAgent } from "@/toolkits/libp2p/useRegisterLibp2pChatAgent";
+
+function GlobalRegistrar() {
+    useRegisterLibp2pChatAgent();
+    return null;
+}
 
 const Ctx = createContext<CommandContext | null>(null);
 
@@ -42,7 +48,7 @@ export function CommandContextProvider({
         extensions,
     });
 
-    return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+    return <Ctx.Provider value={value}><GlobalRegistrar />{children}</Ctx.Provider>;
 }
 
 /**

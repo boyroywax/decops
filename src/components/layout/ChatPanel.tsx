@@ -606,11 +606,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     // Clamped to 50vw min, agent.preferredSideWidth max, viewport ceiling.
     const effectivePanelSize = useMemo(() => {
         if (isSide && activeAgent?.preferredSideWidth) {
-            const target = Math.min(
-                activeAgent.preferredSideWidth,
-                Math.max(window.innerWidth * 0.5, 900),
-            );
-            return Math.min(target, window.innerWidth - 320);
+            return window.innerWidth / 3;
         }
         return height;
     }, [isSide, activeAgent?.preferredSideWidth, height]);
@@ -879,7 +875,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             <div className="chat-panel__bot-menu-dropdown">
                                 <div className="chat-panel__bot-menu-title">BOT THEMES</div>
                                 
-                                {Object.values(useChatAgentsStore.getState().agents).map(agent => (
+                                {Object.values(useChatAgentsStore(s => s.agents)).map(agent => (
                                     <button
                                         key={agent.id}
                                         type="button"
