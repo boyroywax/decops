@@ -523,7 +523,6 @@
   align-items: center;
   gap: 8px;
   padding: 0px 4px 0px 0px;
-  overflow: hidden;
   background: var(--bg-input);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-xl);
@@ -1066,7 +1065,7 @@
 }
 
 .chat-panel__default-input-badge {
-  border-radius: 0;
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
   border: none;
   margin: 0;
   padding: 0 12px;
@@ -1089,7 +1088,7 @@
 .chat-panel__agent-input-badge,
 .chat-panel__studio-input-badge,
 .chat-panel__editor-input-badge {
-  border-radius: 0;
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
   border: none;
   margin: 0;
   padding: 0 12px;
