@@ -709,7 +709,9 @@ export function useJobExecutor({
             } // end for batch
         };
 
-        const interval = setInterval(processJobs, 1000); // Check every second (simple polling)
+        // Run immediately on state changes to bypass 1000ms latency
+        processJobs();
+        const interval = setInterval(processJobs, 1000); // Check every second (simple polling for stalled states)
         return () => clearInterval(interval);
     }, [
         jobs, updateJobStatus, workspace, addLog, user, addArtifact, ecosystem, architect,

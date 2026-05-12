@@ -94,7 +94,8 @@ export default defineConfig({
             usePolling: true
         },
         allowedHosts: [
-            "5173--main--com-pcktlbs--pocketminers.coder.pocketlabs.dev"
+            "5173--main--com-pcktlbs--pocketminers.coder.pocketlabs.dev",
+            "4173--main--com-pcktlbs--pocketminers.coder.pocketlabs.dev"
         ]
     }
 })

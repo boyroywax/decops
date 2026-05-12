@@ -411,15 +411,15 @@
 }
 
 .libp2p-tab:hover {
-    background: #131c33;
-    color: #e2e8f0;
+    background: var(--bg-surface-hover, #131c33);
+    color: var(--text-primary, #e2e8f0);
 }
 
 .libp2p-tab--active {
-    background: #131c33;
-    color: #f1f5f9;
-    border-color: #1e293b;
-    border-bottom-color: #131c33;
+    background: var(--bg-elevated, #131c33);
+    color: var(--text-primary, #f1f5f9);
+    border-color: var(--border-medium, #1e293b);
+    border-bottom-color: var(--bg-elevated, #131c33);
     margin-bottom: -1px;
 }
 
@@ -525,8 +525,8 @@
 }
 
 .libp2p-radio:has(input:checked) {
-    border-color: var(--border-active, #475569);
-    background: var(--bg-active, #111827);
+    border-color: var(--border-medium, #475569);
+    background: var(--bg-input, #111827);
 }
 
 .libp2p-radio input[type="radio"] {
@@ -542,13 +542,13 @@
 
 .libp2p-btn--ghost {
     background: transparent;
-    border-color: #334155;
-    color: #94a3b8;
+    border-color: var(--border-medium, #334155);
+    color: var(--text-secondary, #94a3b8);
 }
 
 .libp2p-btn--ghost:hover:not(:disabled) {
-    color: #e2e8f0;
-    border-color: var(--border-active, #475569);
+    color: var(--text-primary, #e2e8f0);
+    border-color: var(--border-medium, #475569);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

@@ -313,10 +313,6 @@ registerChatDelegation({
     id: "libp2p-bot",
     check: shouldDelegateToLibp2pBot,
     enhance: (systemPrompt) =>
-        systemPrompt +
-        "\n\n[LIBP2P BOT ACTIVE] This request involves the libp2p networking toolkit. " +
-        "Use only the libp2p_* tools. Confirm the active node's status before peer or pubsub actions. " +
-        "Be conservative with feature toggles — only disable services/transports the user explicitly asked to disable. " +
-        "Treat exported private keys as credentials; never echo them back in summaries.",
+        systemPrompt + "\n\n" + buildLibp2pBotSystemPrompt(libp2pService.snapshot()),
     maxRounds: 12,
 });

@@ -83,8 +83,6 @@ export const createAgentCommand: CommandDefinition = {
             const rawNetworkId = spec.networkId;
             const networkId = isUnresolvedRef(rawNetworkId) ? undefined : rawNetworkId;
 
-            await new Promise(resolve => setTimeout(resolve, 300));
-
             const newAgent = {
                 id: crypto.randomUUID(),
                 name,
@@ -145,10 +143,6 @@ export const pingAgentCommand: CommandDefinition = {
         if (!agent) {
             throw new Error(`Agent ${agentId} not found`);
         }
-
-        // Simulate network latency and response
-        const latency = Math.floor(Math.random() * 200) + 50; // 50-250ms
-        await new Promise(resolve => setTimeout(resolve, latency));
 
         // Simulate occasional failure (5% chance)
         const isHealthy = Math.random() > 0.05;
