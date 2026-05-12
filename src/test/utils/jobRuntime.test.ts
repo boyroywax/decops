@@ -12,7 +12,7 @@ import {
     type RefContext,
     type HandlerRefContext,
 } from '@/utils/jobRuntime';
-import type { StepHandler } from '@/types/jobs';
+import type { StepHandler, JobStep } from '@/types/jobs';
 import type { CommandContext } from '@/services/commands/types';
 
 /* ─── resolveRefs ─────────────────────────────────────────────────── */
@@ -149,12 +149,12 @@ describe('evaluateCondition', () => {
     const ctx = {} as CommandContext;
 
     it('returns true for truthy condition', () => {
-        const steps = [{ id: 's1', status: 'completed' }];
+        const steps = [{ id: 's1', status: 'completed' }] as unknown as JobStep[];
         expect(evaluateCondition('steps.s1.status === "completed"', ctx, steps)).toBe(true);
     });
 
     it('returns false for falsy condition', () => {
-        const steps = [{ id: 's1', status: 'failed' }];
+        const steps = [{ id: 's1', status: 'failed' }] as unknown as JobStep[];
         expect(evaluateCondition('steps.s1.status === "completed"', ctx, steps)).toBe(false);
     });
 
@@ -163,7 +163,7 @@ describe('evaluateCondition', () => {
     });
 
     it('resolves by step name', () => {
-        const steps = [{ id: 's1', name: 'fetch', status: 'completed' }];
+        const steps = [{ id: 's1', name: 'fetch', status: 'completed' }] as unknown as JobStep[];
         expect(evaluateCondition('steps.fetch.status === "completed"', ctx, steps)).toBe(true);
     });
 });
@@ -179,12 +179,12 @@ describe('getStepContext', () => {
     } as unknown as CommandContext;
 
     it('returns base context when no modelId', () => {
-        const result = getStepContext({ id: 's1' }, baseContext);
+        const result = getStepContext({ id: 's1' } as unknown as JobStep, baseContext);
         expect(result).toBe(baseContext);
     });
 
     it('overrides model resolution when modelId is set', () => {
-        const result = getStepContext({ id: 's1', modelId: 'custom-model' }, baseContext);
+        const result = getStepContext({ id: 's1', modelId: 'custom-model' } as unknown as JobStep, baseContext);
         expect(result.system.getModelForCommand('any')).toBe('custom-model');
         expect(result.system.getModelForAgent('any')).toBe('custom-model');
     });
