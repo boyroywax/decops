@@ -13,10 +13,10 @@ import { useJobsContext } from "@/context/JobsContext";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import { useCommandContext } from "@/hooks/useCommandContext";
 import type { CommandContext } from "@/services/commands/types";
-import { useRegisterLibp2pChatAgent } from "@/toolkits/libp2p/useRegisterLibp2pChatAgent";
+import { useToolkitChatAgents } from "@/toolkits";
 
 function GlobalRegistrar() {
-    useRegisterLibp2pChatAgent();
+    useToolkitChatAgents();
     return null;
 }
 

@@ -6,16 +6,10 @@ import { initializeToolkits } from './services/toolkits'
 import { builtinModules } from './services/toolkits/builtins'
 import './index.css'
 
-// Side-effect import: registers Studio Bot's chat delegation with the core AI service.
-// This must run before any chat interactions so the delegation is available.
-import '@/toolkits/studio/studioBot'
-import '@/toolkits/libp2p/libp2pBot'
-
-// Side-effect imports: register toolkit UI contributions (providers, views, globals)
-// with the runtime UI registry before the app renders.
-import '@/toolkits/studio/register'
-import '@/toolkits/editor/register'
-import '@/toolkits/libp2p/register'
+// Side-effect import: registers every toolkit's bot chat-delegation and
+// UI contributions in a single deterministic boot step. Adding a new
+// toolkit is a single-line change inside `@/toolkits/index.ts`.
+import '@/toolkits'
 
 initializeToolkits(builtinModules);
 
