@@ -59,10 +59,17 @@ export const createBridgeCommand: CommandDefinition = {
 
         // Resolve a single spec, retrying briefly to allow concurrent network/
         // agent creation jobs (in parallel architect deploys) to finish.
+        //
+        // Uses exponential backoff (50 ms → 100 → 200 → 400 → 800 → 1000 cap)
+        // with a 5 s total budget. Previous strategy of 30 × 500 ms = 15 s
+        // fixed wait blocked the chat round unnecessarily when the dependent
+        // jobs had already failed.
         const resolveSpecWithRetry = async (spec: any): Promise<{ fromNetId: string|null; toNetId: string|null; fromAgentId: string|null; toAgentId: string|null }> => {
-            const maxAttempts = 30; // ~15s total
-            const delayMs = 500;
-            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            const totalBudgetMs = 5_000;
+            const maxDelayMs = 1_000;
+            const startedAt = Date.now();
+            let delayMs = 50;
+            for (;;) {
                 const { resolveAgent, resolveNetwork } = buildResolvers();
                 const fromNetId = resolveNetwork(spec.from_network);
                 const toNetId = resolveNetwork(spec.to_network);
@@ -71,9 +78,10 @@ export const createBridgeCommand: CommandDefinition = {
                 if (fromNetId && toNetId && fromAgentId && toAgentId) {
                     return { fromNetId, toNetId, fromAgentId, toAgentId };
                 }
-                if (attempt < maxAttempts - 1) {
-                    await new Promise(r => setTimeout(r, delayMs));
-                }
+                const elapsed = Date.now() - startedAt;
+                if (elapsed + delayMs >= totalBudgetMs) break;
+                await new Promise(r => setTimeout(r, delayMs));
+                delayMs = Math.min(delayMs * 2, maxDelayMs);
             }
             const { resolveAgent, resolveNetwork } = buildResolvers();
             return {
