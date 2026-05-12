@@ -123,3 +123,123 @@ describe("reserveBatch (atomic select + reserve)", () => {
         expect(inFlight.size).toBe(0);
     });
 });
+
+/**
+ * Slot-release lifecycle tests — mirror the fire-and-forget IIFE pattern in
+ * useJobExecutor.tsx where each job runs inside `try { … } finally { delete }`.
+ *
+ * These tests verify the **invariant guarantee** that a reserved slot is
+ * released regardless of how the async task exits (normal completion, early
+ * return, thrown error). Without this guarantee the executor would leak
+ * slots and eventually deadlock with 0 available concurrency.
+ */
+describe("slot-release lifecycle (mirrors useJobExecutor fire-and-forget IIFE)", () => {
+    /** Helper that mirrors the IIFE pattern in useJobExecutor.tsx. */
+    async function runWithSlot(
+        inFlight: Set<string>,
+        jobId: string,
+        task: () => Promise<void>,
+    ): Promise<void> {
+        try {
+            await task();
+        } catch {
+            // swallowed for test — executor reports via updateJobStatus
+        } finally {
+            inFlight.delete(jobId);
+        }
+    }
+
+    it("releases slot on normal completion", async () => {
+        const inFlight = new Set<string>();
+        const jobs = [makeJob("a")];
+        const [job] = reserveBatch(jobs, { inFlight, maxConcurrent: 4 });
+        expect(inFlight.has(job.id)).toBe(true);
+
+        await runWithSlot(inFlight, job.id, async () => {
+            await Promise.resolve();
+        });
+
+        expect(inFlight.has(job.id)).toBe(false);
+        expect(inFlight.size).toBe(0);
+    });
+
+    it("releases slot on early return (e.g. awaiting-input, dry-run)", async () => {
+        const inFlight = new Set<string>();
+        const [job] = reserveBatch([makeJob("a")], { inFlight, maxConcurrent: 4 });
+
+        await runWithSlot(inFlight, job.id, async () => {
+            // Simulate the awaiting-input / dry-run early-return path
+            return;
+        });
+
+        expect(inFlight.has(job.id)).toBe(false);
+    });
+
+    it("releases slot on thrown error", async () => {
+        const inFlight = new Set<string>();
+        const [job] = reserveBatch([makeJob("a")], { inFlight, maxConcurrent: 4 });
+
+        await runWithSlot(inFlight, job.id, async () => {
+            throw new Error("boom");
+        });
+
+        expect(inFlight.has(job.id)).toBe(false);
+    });
+
+    it("releases slot on async rejection deep in the task", async () => {
+        const inFlight = new Set<string>();
+        const [job] = reserveBatch([makeJob("a")], { inFlight, maxConcurrent: 4 });
+
+        await runWithSlot(inFlight, job.id, async () => {
+            await Promise.resolve();
+            await Promise.reject(new Error("step failed"));
+        });
+
+        expect(inFlight.has(job.id)).toBe(false);
+    });
+
+    it("respects MAX even when many jobs complete out of order", async () => {
+        const MAX = 4;
+        const inFlight = new Set<string>();
+        const queue = Array.from({ length: 12 }, (_, i) => makeJob(`j${i}`));
+        let observedMax = 0;
+
+        // Reserve initial batch and start fire-and-forget tasks
+        const startBatch = (jobs: QueuedJobLike[]) => {
+            const batch = reserveBatch(jobs, { inFlight, maxConcurrent: MAX });
+            observedMax = Math.max(observedMax, inFlight.size);
+            return Promise.all(
+                batch.map((j, idx) =>
+                    runWithSlot(inFlight, j.id, async () => {
+                        // Stagger completion times to force out-of-order finish
+                        await new Promise((r) => setTimeout(r, (idx % 3) + 1));
+                        if (idx === 1) throw new Error("simulated failure");
+                    }),
+                ),
+            );
+        };
+
+        // Drain the queue in waves — every wave must respect MAX
+        let pending = [...queue];
+        while (pending.length > 0) {
+            const slice = pending.slice(0, MAX);
+            pending = pending.slice(slice.length);
+            await startBatch(slice);
+        }
+
+        expect(observedMax).toBeLessThanOrEqual(MAX);
+        expect(inFlight.size).toBe(0); // all slots released
+    });
+
+    it("does not leak slot if outer task is cancelled by throwing synchronously inside try", async () => {
+        const inFlight = new Set<string>();
+        const [job] = reserveBatch([makeJob("a")], { inFlight, maxConcurrent: 4 });
+
+        await runWithSlot(inFlight, job.id, async () => {
+            // Synchronous throw inside the async fn — still caught
+            throw new Error("sync throw");
+        });
+
+        expect(inFlight.has(job.id)).toBe(false);
+    });
+});

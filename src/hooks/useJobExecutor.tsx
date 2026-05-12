@@ -181,7 +181,7 @@ export function useJobExecutor({
                         const promptSource = unresolvedPrompt.source;
                         const promptText = promptSource?.kind === "prompt" ? promptSource.promptText : undefined;
                         if (updateJob) updateJob(queuedJob.id, {
-                            status: "awaiting-input" as any,
+                            status: "awaiting-input",
                             pendingPrompt: {
                                 inputName: unresolvedPrompt.name,
                                 promptText: promptText || `Enter value for "${unresolvedPrompt.name}"`,
@@ -199,8 +199,7 @@ export function useJobExecutor({
                             detail: promptText,
                         });
                         addLog(`Job "${queuedJob.type}" is waiting for user input: ${unresolvedPrompt.name}`);
-                        processingRef.current.delete(queuedJob.id);
-                        return; // Exit — job will resume when user provides input
+                        return; // Exit — finally block releases the slot. Job will resume when user provides input.
                     }
 
                     // Track deliverables produced during execution
@@ -372,8 +371,7 @@ export function useJobExecutor({
                         });
 
                         // Don't trigger tool job resolution for dry runs
-                        processingRef.current.delete(queuedJob.id);
-                        return; // Skip actual execution
+                        return; // Skip actual execution — finally block releases the slot.
                     }
 
                     if (queuedJob.steps && queuedJob.steps.length > 0) {
