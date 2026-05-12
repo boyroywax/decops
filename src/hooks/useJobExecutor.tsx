@@ -15,6 +15,10 @@ import {
     assembleDeliverables, DELIVERABLE_STORAGE_PREFIX,
     type RefContext, type HandlerRefContext,
 } from "@/utils/jobRuntime";
+import { reserveBatch } from "./jobScheduler";
+
+/** Max number of jobs running concurrently. Exposed for tests. */
+export const MAX_CONCURRENT_JOBS = 4;
 
 // Define strict types for the complex objects we're passing in
 // Ideally these should be exported from their respective hooks, but for now we'll define the shape or use 'any' for the complex rendering hooks if strict types aren't available easily.
@@ -90,27 +94,20 @@ export function useJobExecutor({
     workspaceManager // [NEW]
 }: JobExecutorProps) {
     const processingRef = useRef<Set<string>>(new Set());
-    const MAX_CONCURRENT_JOBS = 4;
     const { api: studioApi } = useStudioContext();
 
     useEffect(() => {
         const processJobs = async () => {
-            if (isPaused) return;
-
-            // Find all queued jobs that aren't already being processed
-            const queuedJobs = jobs.filter(
-                (j: any) => j.status === "queued" && !processingRef.current.has(j.id)
-            );
-            if (queuedJobs.length === 0) return;
-
-            // Limit concurrent execution
-            const slotsAvailable = MAX_CONCURRENT_JOBS - processingRef.current.size;
-            if (slotsAvailable <= 0) return;
-
-            const batch = queuedJobs.slice(0, slotsAvailable);
+            // Atomically reserve a batch — guarantees concurrency invariant
+            // even when processJobs is invoked repeatedly within the same tick.
+            const batch = reserveBatch(jobs, {
+                inFlight: processingRef.current,
+                maxConcurrent: MAX_CONCURRENT_JOBS,
+                paused: isPaused,
+            });
+            if (batch.length === 0) return;
 
             for (const queuedJob of batch) {
-                processingRef.current.add(queuedJob.id);
                 // Fire-and-forget: each job runs independently
                 (async () => {
                 try {
