@@ -10,6 +10,7 @@
 
 import type { Libp2p } from "libp2p";
 import type { Multiaddr } from "@multiformats/multiaddr";
+import { logError } from "@/services/logging";
 
 /** Loose alias — the concrete PrivateKey shape is opaque to consumers. */
 type PrivateKey = unknown;
@@ -559,7 +560,7 @@ class Libp2pNode {
             return;
         }
         this.setStatus("stopping");
-        try { await this.node.stop(); } catch { /* ignore */ }
+        try { await this.node.stop(); } catch (err) { logError("libp2p.node.stop", err, { nodeId: this.id }, { warn: true }); }
         this.node = null;
         for (const p of this.peers.values()) p.connected = false;
         this.pubsubMessageCount = 0;
@@ -730,7 +731,7 @@ class Libp2pManager {
                 nextSeq: this.nextSeq,
                 nodes,
             });
-        } catch { /* ignore */ }
+        } catch (err) { logError("libp2p.manager.persist", err, undefined, { warn: true }); }
     }
 
     /** Add a fresh node entry and make it active. Returns its local id. */
@@ -749,7 +750,7 @@ class Libp2pManager {
     async removeNode(id: string): Promise<void> {
         const node = this.nodes.get(id);
         if (!node) return;
-        try { await node.stop(); } catch { /* ignore */ }
+        try { await node.stop(); } catch (err) { logError("libp2p.manager.removeNode.stop", err, { nodeId: id }, { warn: true }); }
         this.nodes.delete(id);
         this.order = this.order.filter((x) => x !== id);
         if (this.activeId === id) {

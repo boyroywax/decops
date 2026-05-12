@@ -12,6 +12,9 @@
 export { LogAggregator, getLogAggregator, resetLogAggregator } from "./aggregator";
 export type { LogSubscriber, LogQuery } from "./aggregator";
 
+export { logError } from "./logError";
+export type { LogErrorOptions } from "./logError";
+
 export {
   type LogBackend,
   ConsoleBackend,
