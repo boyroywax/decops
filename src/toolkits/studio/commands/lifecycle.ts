@@ -92,9 +92,10 @@ export const studioRunJobCommand: CommandDefinition = {
         if (result.runtimeJobId) {
             try {
                 const childResult = await watchChildJob(result.runtimeJobId);
+                const timedOut = !!(childResult && typeof childResult === "object" && "_childTimeout" in childResult && (childResult as { _childTimeout?: boolean })._childTimeout);
                 return {
                     ...result,
-                    completed: !childResult?._childTimeout,
+                    completed: !timedOut,
                     jobResult: childResult,
                 };
             } catch (err: any) {
@@ -317,7 +318,8 @@ export const studioCreateJobCommand: CommandDefinition = {
             if (runResult && !("error" in runResult) && runResult.runtimeJobId) {
                 try {
                     const childResult = await watchChildJob(runResult.runtimeJobId);
-                    result.ranCompleted = !childResult?._childTimeout;
+                    const timedOut = !!(childResult && typeof childResult === "object" && "_childTimeout" in childResult && (childResult as { _childTimeout?: boolean })._childTimeout);
+                    result.ranCompleted = !timedOut;
                     result.jobResult = childResult;
                 } catch (err: any) {
                     result.ranCompleted = false;

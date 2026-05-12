@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { runChatTurn, type ChatRunResult } from "@/services/ai/runner";
 import type { CommandContext } from "@/services/commands/types";
+import type { AnthropicTool } from "@/services/commands/tools";
 
 /**
  * runner.ts mocking strategy:
@@ -65,6 +66,15 @@ function makeCtx(): CommandContext {
     // Runner only touches commandContext when dispatching tool calls, and
     // the tool dispatcher is fully mocked here.
     return {} as unknown as CommandContext;
+}
+
+/** Build a minimal valid Anthropic tool schema for tests. */
+function tool(name: string): AnthropicTool {
+    return {
+        name,
+        description: "test",
+        input_schema: { type: "object", properties: {}, required: [] },
+    };
 }
 
 beforeEach(() => {
@@ -140,7 +150,7 @@ describe("runChatTurn: tool-use loop", () => {
             model: "claude-3-opus",
             systemPrompt: "x",
             messages: [{ role: "user", content: "make an agent" }],
-            tools: [{ name: "create_agent", input_schema: {} }],
+            tools: [tool("create_agent")],
             commandContext: makeCtx(),
         });
 
@@ -168,7 +178,7 @@ describe("runChatTurn: tool-use loop", () => {
             model: "claude-3-opus",
             systemPrompt: "x",
             messages: [],
-            tools: [{ name: "x" }],
+            tools: [tool("x")],
             // commandContext intentionally omitted
         });
 
@@ -193,7 +203,7 @@ describe("runChatTurn: tool-use loop", () => {
                 model: "claude-3-opus",
                 systemPrompt: "x",
                 messages: [],
-                tools: [{ name: "blocked_op" }],
+                tools: [tool("blocked_op")],
                 commandContext: makeCtx(),
             },
             {
@@ -232,7 +242,7 @@ describe("runChatTurn: tool-use loop", () => {
             model: "claude-3-opus",
             systemPrompt: "x",
             messages: [],
-            tools: [{ name: "loop_tool" }],
+            tools: [tool("loop_tool")],
             commandContext: makeCtx(),
             maxRounds: 3,
         });
@@ -349,7 +359,7 @@ describe("runChatTurn: callbacks", () => {
                 model: "claude-3-opus",
                 systemPrompt: "x",
                 messages: [],
-                tools: [{ name: "op" }],
+                tools: [tool("op")],
                 commandContext: makeCtx(),
             },
             {

@@ -153,15 +153,12 @@ export function useJobExecutor({
                         tags: ["job", queuedJob.type],
                     });
 
-                    // Initialize shared storage from job's storageDefaults.
-                    // Legacy job records sometimes carried these on the Job itself, so
-                    // we keep a typed-as-loose fallback for backward compatibility.
-                    const legacyJob = queuedJob as unknown as { storageDefaults?: Record<string, unknown>; inputDefaults?: EntityInput[] };
-                    const jobStorage: Record<string, any> = { ...(queuedJob.request?.storageDefaults || legacyJob.storageDefaults || {}) };
+                    // Initialize shared storage from the request's storageDefaults
+                    const jobStorage: Record<string, any> = { ...(queuedJob.request?.storageDefaults || {}) };
 
-                    // Initialize entity input map from job's inputDefaults
+                    // Initialize entity input map from the request's inputDefaults
                     const inputMap: Record<string, string> = {};
-                    const inputDefaults: EntityInput[] = (queuedJob.request?.inputDefaults || legacyJob.inputDefaults || queuedJob.inputs || []) as EntityInput[];
+                    const inputDefaults: EntityInput[] = (queuedJob.request?.inputDefaults || queuedJob.inputs || []) as EntityInput[];
                     for (const inp of inputDefaults) {
                         if (inp.name && inp.entityId) inputMap[inp.name] = inp.entityId;
                     }

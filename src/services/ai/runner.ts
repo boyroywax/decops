@@ -31,6 +31,7 @@
 
 import type { CommandContext } from "@/services/commands/types";
 import { executeToolCall } from "@/services/commands/tools";
+import type { AnthropicTool } from "@/services/commands/tools";
 import type { ToolCallDisplay } from "./chat";
 import {
   ANTHROPIC_API_URL,
@@ -75,9 +76,9 @@ export interface ChatRunOptions {
   model: string;
   systemPrompt: string;
   /** Pre-built message array (provider-agnostic — Anthropic shape). */
-  messages: any[];
+  messages: ChatTurnMessage[];
   /** Anthropic-style tool schemas. Empty/undefined means "no tools". */
-  tools?: any[];
+  tools?: AnthropicTool[];
   /** Command context. Required if `tools` is non-empty. */
   commandContext?: CommandContext;
   /** Default 8. Lower for cheap agents (chatWithAgent uses 6). */
@@ -88,6 +89,22 @@ export interface ChatRunOptions {
    *  it. Non-Anthropic providers always run single-shot regardless. */
   stream?: boolean;
 }
+
+/**
+ * A message in the chat turn. Anthropic-shaped: content can be a plain
+ * string (simple text) or an array of typed content blocks (tool calls,
+ * tool results, structured text). Provider adapters translate this into
+ * the format their backend expects.
+ */
+export type ChatTurnMessage = {
+  role: "user" | "assistant";
+  content: string | ChatContentBlock[];
+};
+
+export type ChatContentBlock =
+  | { type: "text"; text: string }
+  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
+  | { type: "tool_result"; tool_use_id: string; content: string; is_error?: boolean };
 
 export interface ChatRunResult {
   text: string;

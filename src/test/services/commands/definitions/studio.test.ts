@@ -34,7 +34,7 @@ describe('Studio Commands', () => {
             removeTrigger: vi.fn(),
         };
 
-        context = { studio: mockStudio } as unknown as CommandContext;
+        context = { extensions: { studio: mockStudio } } as unknown as CommandContext;
     });
 
     // ── studioGetStateCommand ──────────────────────────────
@@ -53,7 +53,7 @@ describe('Studio Commands', () => {
         });
 
         it('returns error when studio not available', async () => {
-            const noStudioCtx = { studio: undefined } as unknown as CommandContext;
+            const noStudioCtx = { extensions: {} } as unknown as CommandContext;
             const result = await studioGetStateCommand.execute({}, noStudioCtx);
             expect(result).toHaveProperty('error');
         });
@@ -78,7 +78,7 @@ describe('Studio Commands', () => {
         });
 
         it('returns error when studio not available', async () => {
-            const noStudioCtx = { studio: undefined } as unknown as CommandContext;
+            const noStudioCtx = { extensions: {} } as unknown as CommandContext;
             const result = await studioSetJobMetaCommand.execute({ name: 'x' }, noStudioCtx);
             expect(result).toHaveProperty('error');
         });
@@ -93,7 +93,7 @@ describe('Studio Commands', () => {
         });
 
         it('returns error when studio not available', async () => {
-            const noStudioCtx = { studio: undefined } as unknown as CommandContext;
+            const noStudioCtx = { extensions: {} } as unknown as CommandContext;
             const result = await studioAddStepCommand.execute({ commandId: 'create_agent' }, noStudioCtx);
             expect(result).toHaveProperty('error');
         });
@@ -119,7 +119,7 @@ describe('Studio Commands', () => {
         });
 
         it('returns error when studio not available', async () => {
-            const noStudioCtx = { studio: undefined } as unknown as CommandContext;
+            const noStudioCtx = { extensions: {} } as unknown as CommandContext;
             const result = await studioAddParallelGroupCommand.execute({}, noStudioCtx);
             expect(result).toHaveProperty('error');
             expect((result as any).error).toContain('Studio is not available');
@@ -193,7 +193,7 @@ describe('Studio Commands', () => {
         });
 
         it('returns error when studio not available', async () => {
-            const noStudioCtx = { studio: undefined } as unknown as CommandContext;
+            const noStudioCtx = { extensions: {} } as unknown as CommandContext;
             const result = await studioAddTriggerCommand.execute(
                 { event: 'artifact:created' },
                 noStudioCtx,
@@ -221,7 +221,7 @@ describe('Studio Commands', () => {
         });
 
         it('returns error when studio not available', async () => {
-            const noStudioCtx = { studio: undefined } as unknown as CommandContext;
+            const noStudioCtx = { extensions: {} } as unknown as CommandContext;
             const result = await studioRemoveTriggerCommand.execute(
                 { triggerId: 'trigger-abc' },
                 noStudioCtx,

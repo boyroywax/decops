@@ -62,7 +62,7 @@ const JOB_RUNNER_TIMEOUT_MS = 180_000; // 3 minute timeout for commands that spa
 const JOB_RUNNER_COMMANDS = new Set(["studio_run_job", "studio_create_job"]);
 
 /** Called by the job executor when a tool-initiated job completes */
-export function resolveToolJob(jobId: string, result: any): boolean {
+export function resolveToolJob(jobId: string, result: unknown): boolean {
   const pending = pendingToolJobs.get(jobId);
   if (pending) {
     pending.resolve(result);
@@ -89,8 +89,8 @@ export function rejectToolJob(jobId: string, error: string): boolean {
  * The job executor already calls resolveToolJob/rejectToolJob for every job,
  * so registering here piggy-backs on that mechanism.
  */
-export function watchChildJob(childJobId: string, timeoutMs = JOB_RUNNER_TIMEOUT_MS): Promise<any> {
-  return new Promise<any>((resolve, reject) => {
+export function watchChildJob(childJobId: string, timeoutMs = JOB_RUNNER_TIMEOUT_MS): Promise<unknown> {
+  return new Promise<unknown>((resolve, reject) => {
     pendingToolJobs.set(childJobId, { resolve, reject });
     setTimeout(() => {
       if (pendingToolJobs.has(childJobId)) {
@@ -376,7 +376,7 @@ export function getCommandIdsForAgent(agent: Agent): Set<string> | null {
 export async function executeToolCall(
   toolUseId: string,
   toolName: string,
-  toolInput: Record<string, any>,
+  toolInput: Record<string, unknown>,
   context: CommandContext,
 ): Promise<ToolCallResult> {
   const start = performance.now();
@@ -409,7 +409,7 @@ export async function executeToolCall(
     }
 
     // Wait for the job executor to complete this job
-    const result = await new Promise<any>((resolve, reject) => {
+    const result = await new Promise<unknown>((resolve, reject) => {
       pendingToolJobs.set(jobId, { resolve, reject });
 
       // Timeout safety — don't block the tool loop forever

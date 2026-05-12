@@ -14,6 +14,7 @@ import { getSelectedModel } from "./models";
 import { getModelProvider } from "./providers";
 import { getChatDelegation } from "./delegation";
 import { runChatTurn } from "./runner";
+import type { ChatTurnMessage } from "./runner";
 
 // Re-export the SSE parser so any external caller importing it from this
 // module continues to work after the move into sse.ts.
@@ -24,7 +25,7 @@ export interface StreamCallbacks {
    *  emit the full response as a single burst at the end of each round. */
   onToken: (token: string) => void;
   /** Called when a tool call starts executing (UI feedback). */
-  onToolCallStart?: (name: string, input: Record<string, any>) => void;
+  onToolCallStart?: (name: string, input: Record<string, unknown>) => void;
   /** Called when a tool call completes. */
   onToolCallComplete?: (display: ToolCallDisplay) => void;
   /** AbortSignal — when fired, the run stops and returns whatever it has. */
@@ -64,7 +65,7 @@ export async function streamChatWithWorkspace(
     ? (toolkitIds && toolkitIds.length > 0 ? getToolsByToolkitIds(toolkitIds) : getAllTools())
     : [];
 
-  const messages: any[] = [
+  const messages: ChatTurnMessage[] = [
     ...history.slice(-20).map((m) => ({ role: m.role, content: m.content })),
     { role: "user" as const, content: userMessage },
   ];
