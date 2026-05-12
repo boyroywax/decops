@@ -120,13 +120,11 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 
 ### 4.2 Latency Fixes Applied — **DONE** (commit `021e048`)
 
-### 4.3 Remaining Polling Fallback — **LOW (OPEN)**
-- `setInterval(processJobs, 1000)` is still a 1 s fallback. Consider removing once state-change-driven invocation is verified for every queueing path.
+### 4.3 Remaining Polling Fallback — **DONE** (commit `af2628e`)
+- 1 s `setInterval(processJobs, 1000)` fallback removed from `useJobExecutor`. State-driven invocation via the effect dep on `jobs` covers every queueing path (`addJob`, `resolvePromptInput`, `updateJob({status:"queued"})`).
 
-### 4.4 Topology Retry Loop — **MEDIUM (OPEN)**
-- **File:** `src/services/commands/definitions/topology.ts` lines 60–80
-- 30 attempts × 500 ms = 15 s worst case inside a tool execution blocks the chat round.
-- **Fix:** exponential backoff with a shorter ceiling (≈5 s) or move the wait into a separate orchestration step the LLM can re-poll.
+### 4.4 Topology Retry Loop — **DONE** (commit `ac3891a`)
+- `resolveSpecWithRetry` now uses exponential backoff (50 → 100 → 200 → 400 → 800 → 1000 cap) with a 5 s total budget instead of 30 × 500 ms = 15 s fixed.
 
 ---
 
@@ -214,16 +212,14 @@ All HIGH-severity gaps are now resolved. Remaining items are MEDIUM/LOW.
 1. [MEDIUM] Integration tests for `useJobExecutor` (parallel/serial modes, output mappings, step handlers); end-to-end tests for `libp2pBot` / `studioBot` (§2.1 remaining).
 2. [MEDIUM] Replace remaining hardcoded colors in studio / editor styles (§6.1).
 3. [MEDIUM] Per-command `timeoutMs` + `spawnsChildJobs` flag; retire `JOB_RUNNER_COMMANDS` allowlist (§9.2 + §9.3).
-4. [MEDIUM] Topology retry loop → exponential backoff with shorter ceiling (§4.4).
 
 ### Phase 7 — Polish
-5. [MEDIUM] Centralized `logError(context, err)` utility; replace remaining silent catches (§5.1).
-6. [MEDIUM] Identity export audit log; confirm editor markdown sanitization (§7.2 + §7.3).
-7. [MEDIUM] Accessibility audit — `aria-label` on icon buttons, focus-trap on modals (§6.2).
-8. [MEDIUM] Add `outputSchema` to all structured-output commands (§9.1).
-9. [LOW] ADRs, bundle-size budget, `ts-prune`, `tsc --strict` in CI (§8 + §10).
-10. [LOW] Remove `setInterval(processJobs, 1000)` fallback once state-driven coverage proven (§4.3).
-11. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on `ecosystem.ts`, `libp2p/service.ts`, `ChatPanel.tsx`, `maintenance.ts` (§3.1 remaining).
+4. [MEDIUM] Centralized `logError(context, err)` utility; replace remaining silent catches (§5.1).
+5. [MEDIUM] Identity export audit log; confirm editor markdown sanitization (§7.2 + §7.3).
+6. [MEDIUM] Accessibility audit — `aria-label` on icon buttons, focus-trap on modals (§6.2).
+7. [MEDIUM] Add `outputSchema` to all structured-output commands (§9.1).
+8. [LOW] ADRs, bundle-size budget, `ts-prune`, `tsc --strict` in CI (§8 + §10).
+9. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on `ecosystem.ts`, `libp2p/service.ts`, `ChatPanel.tsx`, `maintenance.ts` (§3.1 remaining).
 
 ---
 
