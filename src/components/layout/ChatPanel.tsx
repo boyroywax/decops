@@ -86,8 +86,6 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const [loading, setLoading] = useState(false);
     const [streamingText, setStreamingText] = useState<string | null>(null);
     const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallDisplay[]>([]);
-    const [studioMode, setStudioMode] = useState(true);
-    const [editorMode, setEditorMode] = useState(true);
     const [botMenuOpen, setBotMenuOpen] = useState(false);
     const [pendingCommand, setPendingCommand] = useState<{ command: CommandDefinition; initialArgs: Record<string, any>; convoId: string; msgs: ChatMessage[] } | null>(null);
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -647,27 +645,22 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const llm = useLLM();
 
     const studioAvailable = !!studioApi && view === "jobs";
-    const studioActive = studioAvailable && studioMode;
+    const studioActive = activeAgent?.id === "studio";
 
     const editorAvailable = !!editorApi && view === "editor";
-    const editorActive = editorAvailable && editorMode;
+    const editorActive = activeAgent?.id === "editor";
 
-    // Auto-enable studio mode when studio becomes available
-    useEffect(() => {
-        if (studioAvailable) setStudioMode(true);
-    }, [studioAvailable]);
-
-    // Auto-enable editor mode when editor becomes available
-    useEffect(() => {
-        if (editorAvailable) setEditorMode(true);
-    }, [editorAvailable]);
-
+    
+    
     // Cmd+J / Ctrl+J to toggle studio mode
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key === "j") {
                 e.preventDefault();
-                if (studioAvailable) setStudioMode(prev => !prev);
+                if (studioAvailable) {
+                    if (useChatAgentsStore.getState().activeAgentId === "studio") useChatAgentsStore.getState().setActive(null);
+                    else useChatAgentsStore.getState().setActive("studio");
+                }
             }
         };
         window.addEventListener("keydown", handleKeyDown);
@@ -914,8 +907,6 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                                         className={`chat-panel__bot-menu-item${activeAgent?.id === agent.id ? " chat-panel__bot-menu-item--active" : ""}`}
                                         onClick={() => {
                                             useChatAgentsStore.getState().setActive(agent.id);
-                                            setStudioMode(false);
-                                            setEditorMode(false);
                                             setBotMenuOpen(false);
                                         }}
                                     >
@@ -925,57 +916,19 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                                     </button>
                                 ))}
                                 
-                                {studioAvailable && (
-                                    <button
-                                        type="button"
-                                        className={`chat-panel__bot-menu-item${(!activeAgent && studioActive) ? " chat-panel__bot-menu-item--active" : ""}`}
-                                        onClick={() => {
-                                            useChatAgentsStore.getState().setActive(null);
-                                            setStudioMode(true);
-                                            setEditorMode(false);
-                                            setBotMenuOpen(false);
-                                        }}
-                                    >
-                                        <Clapperboard size={14} color="#a855f7" />
-                                        <span style={{flex: 1}}>Studio</span>
-                                        {(!activeAgent && studioActive) && <Check size={12} />}
-                                    </button>
-                                )}
-                                
-                                {editorAvailable && (
-                                    <button
-                                        type="button"
-                                        className={`chat-panel__bot-menu-item${(!activeAgent && editorActive && !studioActive) ? " chat-panel__bot-menu-item--active" : ""}`}
-                                        onClick={() => {
-                                            useChatAgentsStore.getState().setActive(null);
-                                            setStudioMode(false);
-                                            setEditorMode(true);
-                                            setBotMenuOpen(false);
-                                        }}
-                                    >
-                                        <Edit3 size={14} color="#3b82f6" />
-                                        <span style={{flex: 1}}>Editor</span>
-                                        {(!activeAgent && editorActive && !studioActive) && <Check size={12} />}
-                                    </button>
-                                )}
-                                
-
-                                
                                 <div className="chat-panel__bot-menu-divider" />
                                 
                                 <button
                                     type="button"
-                                    className={`chat-panel__bot-menu-item${(!activeAgent && !studioActive && !editorActive) ? " chat-panel__bot-menu-item--active" : ""}`}
+                                    className={`chat-panel__bot-menu-item${(!activeAgent) ? " chat-panel__bot-menu-item--active" : ""}`}
                                     onClick={() => {
                                         useChatAgentsStore.getState().setActive(null);
-                                        setStudioMode(false);
-                                        setEditorMode(false);
                                         setBotMenuOpen(false);
                                     }}
                                 >
-                                    <Square size={14} className={(!activeAgent && !studioActive && !editorActive) ? "" : "chat-panel__bot-menu-item--disabled"} />
-                                    <span style={{flex: 1}} className={(!activeAgent && !studioActive && !editorActive) ? "" : "chat-panel__bot-menu-item--disabled"}>Deactivate</span>
-                                    {(!activeAgent && !studioActive && !editorActive) && <Check size={12} />}
+                                    <Square size={14} className={(!activeAgent) ? "" : "chat-panel__bot-menu-item--disabled"} />
+                                    <span style={{flex: 1}} className={(!activeAgent) ? "" : "chat-panel__bot-menu-item--disabled"}>Deactivate</span>
+                                    {(!activeAgent) && <Check size={12} />}
                                 </button>
 
                                 {activeAgent && layoutOverrides[activeAgent.id] && (
