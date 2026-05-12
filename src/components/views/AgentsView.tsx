@@ -278,7 +278,7 @@ export function AgentsView({
                       <Sparkles size={9} /> {pct}%
                     </span>
                     {(a.toolkits?.length ?? 0) > 0 && (
-                      <span className="agent-flip__badge" style={{ color: "#38bdf8", background: "rgba(56,189,248,0.1)", borderColor: "rgba(56,189,248,0.25)" }}>
+                      <span className="agent-flip__badge" style={{ color: "var(--color-info)", background: "color-mix(in srgb, var(--color-info) 10%, transparent)", borderColor: "color-mix(in srgb, var(--color-info) 25%, transparent)" }}>
                         <Wrench size={9} /> {a.toolkits!.length}
                       </span>
                     )}

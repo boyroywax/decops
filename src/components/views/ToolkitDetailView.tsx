@@ -327,7 +327,7 @@ export function ToolkitDetailView({ toolkitId, agent, updateAgent, navigateTo }:
                           {ag.status && (
                             <span
                               className="toolkit-detail__ai-badge"
-                              style={ag.status === "active" ? { background: "rgba(34,197,94,.12)", color: "#22c55e" } : undefined}
+                              style={ag.status === "active" ? { background: "color-mix(in srgb, var(--color-researcher) 12%, transparent)", color: "var(--color-researcher)" } : undefined}
                             >
                               {ag.status === "active" ? <><CheckCircle2 size={9} /> Active</> : ag.status}
                             </span>

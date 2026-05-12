@@ -27,7 +27,7 @@ export function TopologyPanel({ networks, bridges, activeBridges }: TopologyPane
     <div style={{
       textAlign: "center",
       padding: 60,
-      color: "#3f3f46",
+      color: "var(--text-ghost)",
       border: "1px dashed rgba(56,189,248,0.1)",
       borderRadius: 14,
       height: 300,
@@ -37,10 +37,10 @@ export function TopologyPanel({ networks, bridges, activeBridges }: TopologyPane
     }}>
       <div>
         <Layers size={28} color="#3f3f46" style={{ marginBottom: 8 }} />
-        <div style={{ fontSize: 12, marginBottom: 8, color: "#52525b" }}>
+        <div style={{ fontSize: 12, marginBottom: 8, color: "var(--text-subtle)" }}>
           Topology requires at least 2 networks
         </div>
-        <div style={{ fontSize: 11, color: "#3f3f46" }}>
+        <div style={{ fontSize: 11, color: "var(--text-ghost)" }}>
           Save or create networks to visualize the network topology.
         </div>
       </div>

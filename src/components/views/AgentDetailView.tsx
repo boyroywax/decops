@@ -392,7 +392,7 @@ export function AgentDetailView({
                   background: "rgba(0,0,0,0.3)",
                   border: "1px solid rgba(255,255,255,0.08)",
                   borderRadius: 8,
-                  color: "#e4e4e7",
+                  color: "var(--text-primary)",
                   padding: 12,
                   fontFamily: "inherit",
                   fontSize: 13,
