@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { X, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3, Eye, Send, Square, Check, Bot } from "lucide-react";
+import { X, LayoutTemplate, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3, Eye, Send, Square, Check, Bot } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "@/services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "@/services/ai";
@@ -56,6 +56,31 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const activeAgent = useActiveChatAgent();
     const availableAgents = useChatAgentsStore(s => s.agents);
     const focusTick = useChatAgentsStore((s) => s.focusTick);
+
+    const [layoutOverrides, setLayoutOverrides] = useState<Record<string, number>>(() => {
+        try {
+            return JSON.parse(localStorage.getItem("chat-agent-layouts") || "{}");
+        } catch {
+            return {};
+        }
+    });
+
+    const saveLayoutOverride = useCallback((agentId: string, size: number) => {
+        setLayoutOverrides(prev => {
+            const next = { ...prev, [agentId]: size };
+            localStorage.setItem("chat-agent-layouts", JSON.stringify(next));
+            return next;
+        });
+    }, []);
+
+    const resetLayoutOverride = useCallback((agentId: string) => {
+        setLayoutOverrides(prev => {
+            const next = { ...prev };
+            delete next[agentId];
+            localStorage.setItem("chat-agent-layouts", JSON.stringify(next));
+            return next;
+        });
+    }, []);
 
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
@@ -600,17 +625,23 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         setPendingCommand(null);
     }, [pendingCommand, updateConversation]);
 
-    const { isResizing, isSide, startResizing } = useChatResize(position, height, setHeight);
+    const isSidePanel = position === "left" || position === "right";
+    const applyHeight = useCallback((h: number) => { if (activeAgent?.id && isSidePanel) { saveLayoutOverride(activeAgent.id, h); } setHeight(h); }, [activeAgent?.id, isSidePanel, saveLayoutOverride, setHeight]);
+
+    const { isResizing, isSide, startResizing } = useChatResize(position, height, applyHeight);
 
     // When the active agent prefers a wider side panel (Architect blueprint
     // cards, etc.) we override the user's saved size while it's active.
     // Clamped to 50vw min, agent.preferredSideWidth max, viewport ceiling.
     const effectivePanelSize = useMemo(() => {
         if (isSide && activeAgent?.preferredSideWidth) {
+            if (layoutOverrides[activeAgent.id]) {
+                return layoutOverrides[activeAgent.id];
+            }
             return window.innerWidth / 3;
         }
         return height;
-    }, [isSide, activeAgent?.preferredSideWidth, height]);
+    }, [isSide, activeAgent?.preferredSideWidth, activeAgent?.id, height, layoutOverrides]);
 
     const modelId = getChatModel();
     const llm = useLLM();
@@ -928,6 +959,8 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                                     </button>
                                 )}
                                 
+
+                                
                                 <div className="chat-panel__bot-menu-divider" />
                                 
                                 <button
@@ -941,9 +974,24 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                                     }}
                                 >
                                     <Square size={14} className={(!activeAgent && !studioActive && !editorActive) ? "" : "chat-panel__bot-menu-item--disabled"} />
-                                    <span style={{flex: 1}} className={(!activeAgent && !studioActive && !editorActive) ? "" : "chat-panel__bot-menu-item--disabled"}>Disabled Theme</span>
+                                    <span style={{flex: 1}} className={(!activeAgent && !studioActive && !editorActive) ? "" : "chat-panel__bot-menu-item--disabled"}>Deactivate</span>
                                     {(!activeAgent && !studioActive && !editorActive) && <Check size={12} />}
                                 </button>
+
+                                {activeAgent && layoutOverrides[activeAgent.id] && (
+                                    <button
+                                        type="button"
+                                        className="chat-panel__bot-menu-item"
+                                        onClick={() => {
+                                            resetLayoutOverride(activeAgent.id);
+                                            setBotMenuOpen(false);
+                                        }}
+                                    >
+                                        <LayoutTemplate size={14} style={{ color: 'var(--text-muted)' }} />
+                                        <span style={{flex: 1}}>Default layout</span>
+                                    </button>
+                                )}
+
                             </div>
                         )}
                     </div>
