@@ -106,7 +106,7 @@ export interface AuthContextType extends AuthState {
 
 export type ArchPhase = "input" | "preview" | "deploying" | "done";
 
-export type MessageStatus = "sending" | "delivered" | "no-prompt" | "read";
+export type MessageStatus = "sending" | "delivered" | "no-prompt" | "read" | "failed";
 
 export interface Role {
   id: RoleId;

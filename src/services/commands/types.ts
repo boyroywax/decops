@@ -1,5 +1,12 @@
 
-import type { RoleId, JobRequest, JobDeliverable } from "@/types";
+import type {
+    RoleId, JobRequest, JobDeliverable,
+    Agent, Channel, Group, Message,
+    Network, Bridge, BridgeMessage, Ecosystem,
+    User, JobArtifact,
+} from "@/types";
+import type { Job, JobDefinition } from "@/types/jobs";
+import type { AutomationDefinition, AutomationRun } from "@/services/automations/types";
 
 export type CommandArgType = "string" | "number" | "boolean" | "object" | "array" | "group" | "agent" | "channel" | "network" | "workspace";
 
@@ -8,23 +15,33 @@ export interface CommandArg {
     type: CommandArgType;
     required?: boolean; // Defaults to true
     description: string;
-    defaultValue?: any;
+    defaultValue?: unknown;
     enum?: string[]; // Allowed values — surfaced to AI tool schema
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     validation?: (value: any) => boolean | string; // Returns true if valid, or error message string
     /** When type is "agent", also show a "You (Current User)" option that resolves to "user" */
     includeUserOption?: boolean;
 }
 
+/** A summary record of a saved workspace (returned by workspaceManager.list()). */
+export interface WorkspaceSummary {
+    id: string;
+    name: string;
+    description?: string;
+    createdAt?: number;
+    updatedAt?: number;
+}
+
 export interface CommandContext {
     workspace: {
-        agents: any[];
-        channels: any[];
-        groups: any[];
-        messages: any[];
-        setAgents: React.Dispatch<React.SetStateAction<any[]>>;
-        setChannels: React.Dispatch<React.SetStateAction<any[]>>;
-        setGroups: React.Dispatch<React.SetStateAction<any[]>>;
-        setMessages: React.Dispatch<React.SetStateAction<any[]>>;
+        agents: Agent[];
+        channels: Channel[];
+        groups: Group[];
+        messages: Message[];
+        setAgents: React.Dispatch<React.SetStateAction<Agent[]>>;
+        setChannels: React.Dispatch<React.SetStateAction<Channel[]>>;
+        setGroups: React.Dispatch<React.SetStateAction<Group[]>>;
+        setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
         addLog: (msg: string) => void;
         activeChannel?: string | null;
         setActiveChannel?: React.Dispatch<React.SetStateAction<string | null>>;
@@ -39,37 +56,39 @@ export interface CommandContext {
          * Optional for backward compat with test contexts; production
          * commands that read state mid-execution should prefer them.
          */
-        getAgents?: () => any[];
-        getChannels?: () => any[];
-        getGroups?: () => any[];
-        getMessages?: () => any[];
+        getAgents?: () => Agent[];
+        getChannels?: () => Channel[];
+        getGroups?: () => Group[];
+        getMessages?: () => Message[];
     };
     auth: {
-        user: any;
+        user: User | null;
     };
     jobs: {
-        addArtifact: (jobId: string, artifact: any) => void;
+        addArtifact: (jobId: string, artifact: JobArtifact) => void;
         removeArtifact: (id: string) => void;
-        importArtifact: (artifact: any) => void;
-        updateArtifact: (id: string, updates: Record<string, any>) => void;
-        allArtifacts: any[];
+        importArtifact: (artifact: JobArtifact) => void;
+        updateArtifact: (id: string, updates: Partial<JobArtifact>) => void;
+        allArtifacts: JobArtifact[];
         // Queue Management
-        addJob: (job: JobRequest) => any;
+        addJob: (job: JobRequest) => Job;
         removeJob: (id: string) => void;
         pauseQueue: () => void;
         resumeQueue: () => void;
         isPaused: boolean;
-        getQueue: () => any[];
+        getQueue: () => Job[];
         // Catalog Management
-        getCatalog: () => any[];
-        saveDefinition: (def: any) => void;
+        getCatalog: () => JobDefinition[];
+        saveDefinition: (def: JobDefinition) => void;
         deleteDefinition: (id: string) => void;
         // Persistence
-        setJobs?: (jobs: any[]) => void;
-        setStandaloneArtifacts?: (artifacts: any[]) => void;
+        setJobs?: (jobs: Job[]) => void;
+        setStandaloneArtifacts?: (artifacts: JobArtifact[]) => void;
         clearJobs?: () => void;
     };
-    /** Mutable shared storage for inter-step data passing within jobs/automations */
+    /** Mutable shared storage for inter-step data passing within jobs/automations.
+     *  Values are arbitrary command results so the type is intentionally loose. */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     storage: Record<string, any>;
     /** Produce a deliverable (auto-creates artifact and tags it with the job) */
     addDeliverable: (deliverable: {
@@ -81,18 +100,18 @@ export interface CommandContext {
     }) => void;
     ecosystem: {
         // First-class ecosystem object
-        ecosystem: any; // Ecosystem object
-        setEcosystem: (updater: any) => void;
+        ecosystem: Ecosystem;
+        setEcosystem: (updater: Ecosystem | ((prev: Ecosystem) => Ecosystem)) => void;
         // Active network
         activeNetworkId: string | null;
         setActiveNetworkId: (id: string | null) => void;
         // Derived arrays
-        networks: any[];
-        bridges: any[];
-        bridgeMessages: any[];
-        setNetworks: React.Dispatch<React.SetStateAction<any[]>>;
-        setBridges: React.Dispatch<React.SetStateAction<any[]>>;
-        setBridgeMessages: React.Dispatch<React.SetStateAction<any[]>>;
+        networks: Network[];
+        bridges: Bridge[];
+        bridgeMessages: BridgeMessage[];
+        setNetworks: React.Dispatch<React.SetStateAction<Network[]>>;
+        setBridges: React.Dispatch<React.SetStateAction<Bridge[]>>;
+        setBridgeMessages: React.Dispatch<React.SetStateAction<BridgeMessage[]>>;
         setActiveBridges: React.Dispatch<React.SetStateAction<Set<string>>>;
         createBridge: (from: string, to: string) => void;
         removeBridge: (id: string) => void;
@@ -112,12 +131,12 @@ export interface CommandContext {
     };
     automations: {
         runAutomation: (id: string) => Promise<void>;
-        runs: any[];
-        setAutomations?: (automations: any[]) => void;
-        setRuns?: (runs: any[]) => void;
+        runs: AutomationRun[];
+        setAutomations?: (automations: AutomationDefinition[]) => void;
+        setRuns?: (runs: AutomationRun[]) => void;
     };
     workspaceManager?: {
-        list: () => any[];
+        list: () => WorkspaceSummary[];
         create: (name: string, description?: string) => Promise<string>;
         switch: (id: string) => Promise<void>;
         delete: (id: string) => Promise<void>;
@@ -132,6 +151,14 @@ export interface CommandContext {
     extensions?: Record<string, unknown>;
 }
 
+/**
+ * A command definition. `TArgs` is the shape of the args object passed to
+ * `execute()`. Defaults to `any` for backward compatibility with the large
+ * existing command catalog that accesses args without narrowing — new
+ * commands should narrow it explicitly (e.g.
+ * `CommandDefinition<{ agentId: string }>`).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface CommandDefinition<TArgs = any> {
     id: string;
     description: string;
@@ -139,7 +166,7 @@ export interface CommandDefinition<TArgs = any> {
     rbac: RoleId[]; // Roles allowed to execute this command
     tags: string[];
     output: string; // Description of the output format/content
-    outputSchema?: Record<string, any>; // Optional JSON schema of the output object
+    outputSchema?: Record<string, unknown>; // Optional JSON schema of the output object
     recommendedModel?: string; // Suggested LLM model id (fallback between user override and global default)
     /** Marks this command as using AI — shows AI badge in UI.
      *  `true` or `"ai-text"` = text generation, `"ai-image"` = image generation */
@@ -148,5 +175,6 @@ export interface CommandDefinition<TArgs = any> {
     hidden?: boolean;
     /** Base64 data-URI or URL for a custom icon image */
     icon?: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     execute: (args: TArgs, context: CommandContext) => Promise<any>;
 }

@@ -442,10 +442,10 @@ export function NodeEditor({
                                     <strong>Output:</strong> {cmd.output}
                                 </div>
                             )}
-                            {cmd.outputSchema?.properties && (
+                            {(cmd.outputSchema?.properties as Record<string, unknown> | undefined) && (
                                 <div className="jm-editor__output-schema">
                                     <div className="jm-editor__output-schema-label">Schema keys:</div>
-                                    {Object.entries(cmd.outputSchema.properties as Record<string, any>).map(([key, schema]) => (
+                                    {Object.entries(cmd.outputSchema!.properties as Record<string, any>).map(([key, schema]) => (
                                         <div key={key} className="jm-editor__output-schema-key">
                                             <code>{key}</code>
                                             <span className="jm-editor__output-schema-type">

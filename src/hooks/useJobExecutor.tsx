@@ -13,6 +13,7 @@ import type { UseJobCatalogReturn } from "./useJobCatalog";
 import type { UseNotebookReturn } from "./useNotebook";
 import type { UseEcosystemReturn } from "./useEcosystem";
 import type { UseArchitectReturn } from "@/toolkits/architect/hooks/useArchitect";
+import type { AutomationRun } from "@/services/automations/types";
 import { useStudioContext } from "@/toolkits/studio";
 import {
     resolveRefs, applyInputBindings, applyOutputMappings,
@@ -74,15 +75,9 @@ interface JobExecutorProps {
     /** Automations context — runner/queue management for automation runs. */
     automations?: {
         runAutomation: (id: string) => Promise<void>;
-        runs: unknown[];
+        runs: AutomationRun[];
     };
-    workspaceManager?: {
-        list: () => unknown[];
-        create: (name: string, description?: string) => Promise<string>;
-        switch: (id: string) => Promise<void>;
-        delete: (id: string) => Promise<void>;
-        currentId: string | null;
-    };
+    workspaceManager?: CommandContext['workspaceManager'];
 }
 
 export function useJobExecutor({
@@ -274,7 +269,7 @@ export function useJobExecutor({
                             generateNetwork: architect.generateNetwork,
                             deployNetwork: architect.deployNetwork
                         },
-                        automations: automations || { runAutomation: async () => { }, runs: [] },
+                        automations: automations || { runAutomation: async () => { }, runs: [] as AutomationRun[] },
                         workspaceManager: workspaceManager as CommandContext['workspaceManager'],
                         extensions: { studio: studioApi ?? undefined },
                         storage: jobStorage,

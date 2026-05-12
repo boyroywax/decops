@@ -673,7 +673,8 @@ async function executeProposal(
         deliverables: (spec.deliverables || []).map(d => ({
           key: d.toLowerCase().replace(/\s+/g, "-"),
           name: d,
-          type: "text",
+          label: d,
+          type: "txt" as const,
         })),
         createdAt: Date.now(),
         updatedAt: Date.now(),
