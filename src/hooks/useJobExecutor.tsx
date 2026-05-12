@@ -741,10 +741,14 @@ export function useJobExecutor({
             } // end for batch
         };
 
-        // Run immediately on state changes to bypass 1000ms latency
+        // State-driven invocation: the effect re-runs whenever `jobs` (or any
+        // other dep) changes, so every transition that produces a "queued" job
+        // — addJob(), resolvePromptInput(), updateJob(status: "queued") —
+        // triggers processJobs immediately via immutable setState. The previous
+        // 1 s setInterval fallback was redundant safety; removing it eliminates
+        // wasted work on idle queues and simplifies reasoning about when jobs
+        // start.
         processJobs();
-        const interval = setInterval(processJobs, 1000); // Check every second (simple polling for stalled states)
-        return () => clearInterval(interval);
     }, [
         jobs, updateJobStatus, workspace, addLog, user, addArtifact, ecosystem, architect,
         addJob, removeJob, importArtifact, removeArtifact, allArtifacts,
