@@ -1,6 +1,7 @@
 
 import { CommandDefinition, CommandArgType } from "./types";
 import { dryRunCommand, dryRunJob, type DryRunResult, type DryRunJobResult } from "./dryRun";
+import { assertRBAC } from "./rbac";
 import type { JobStep } from "@/types";
 
 /**
@@ -96,6 +97,12 @@ export class CommandRegistry {
         if (!command) {
             throw new Error(`Command ${id} not found`);
         }
+
+        // ── RBAC enforcement ──
+        // Verify the current actor's role is permitted to invoke this command.
+        // Throws RBACDenied (typed) so UI surfaces can detect and display
+        // a permission-denied message rather than a generic failure.
+        assertRBAC(command, context);
 
         // Validate Arguments
         // When batch mode (items arg) is provided, skip required checks for

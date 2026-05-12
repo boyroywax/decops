@@ -20,7 +20,7 @@ describe('CommandRegistry', () => {
         execute: vi.fn(async (args, context) => {
             return { success: true, args };
         }),
-        rbac: ['builder'],
+        rbac: ['builder', 'orchestrator'],
         tags: ['test'],
         output: 'Test Output'
     };
@@ -72,7 +72,7 @@ describe('CommandRegistry', () => {
                 networkId: { name: 'networkId', type: 'network', required: false, description: 'Network' },
             },
             execute: vi.fn(async (args) => ({ resolved: args })),
-            rbac: ['builder'],
+            rbac: ['builder', 'orchestrator'],
             tags: ['test'],
             output: 'result',
         };
@@ -139,7 +139,7 @@ describe('CommandRegistry', () => {
                     items: { name: 'items', type: 'array', required: true, description: 'Batch items' },
                 },
                 execute: vi.fn(async (args) => ({ items: args.items })),
-                rbac: ['builder'],
+                rbac: ['builder', 'orchestrator'],
                 tags: ['test'],
                 output: 'result',
             };
