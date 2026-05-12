@@ -29,6 +29,20 @@ export interface CommandContext {
         activeChannel?: string | null;
         setActiveChannel?: React.Dispatch<React.SetStateAction<string | null>>;
         setActiveChannels?: React.Dispatch<React.SetStateAction<Set<string>>>;
+        /**
+         * Live-state getters. The `agents`/`channels`/`groups`/`messages`
+         * arrays above are snapshots taken when this CommandContext was
+         * built — they go stale during long-running async `execute()` calls
+         * (multi-step jobs, AI tool loops). The getters always return the
+         * latest React state via a ref maintained by the provider.
+         *
+         * Optional for backward compat with test contexts; production
+         * commands that read state mid-execution should prefer them.
+         */
+        getAgents?: () => any[];
+        getChannels?: () => any[];
+        getGroups?: () => any[];
+        getMessages?: () => any[];
     };
     auth: {
         user: any;

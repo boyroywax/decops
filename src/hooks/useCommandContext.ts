@@ -1,5 +1,5 @@
 
-import { useMemo } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import { CommandContext } from "@/services/commands/types";
 import { type WorkspaceContextType } from "@/context/WorkspaceContext";
 import { type User } from "@/types";
@@ -34,6 +34,19 @@ export function useCommandContext({
 }: UseCommandContextProps): CommandContext {
     const automations = useAutomations();
 
+    // Live-state refs: always reflect the latest workspace arrays so that
+    // long-running async `execute()` calls (multi-step jobs, AI tool loops)
+    // can read fresh state instead of the snapshot frozen into the memoized
+    // CommandContext value.
+    const agentsRef = useRef(workspace.agents);
+    const channelsRef = useRef(workspace.channels);
+    const groupsRef = useRef(workspace.groups);
+    const messagesRef = useRef(workspace.messages);
+    useEffect(() => { agentsRef.current = workspace.agents; }, [workspace.agents]);
+    useEffect(() => { channelsRef.current = workspace.channels; }, [workspace.channels]);
+    useEffect(() => { groupsRef.current = workspace.groups; }, [workspace.groups]);
+    useEffect(() => { messagesRef.current = workspace.messages; }, [workspace.messages]);
+
     const context = useMemo<CommandContext>(() => {
         return {
             workspace: {
@@ -41,7 +54,11 @@ export function useCommandContext({
                 addLog: addLog || (() => { }),
                 activeChannel: workspace.activeChannel,
                 setActiveChannel: workspace.setActiveChannel,
-                setActiveChannels: workspace.setActiveChannels
+                setActiveChannels: workspace.setActiveChannels,
+                getAgents: () => agentsRef.current,
+                getChannels: () => channelsRef.current,
+                getGroups: () => groupsRef.current,
+                getMessages: () => messagesRef.current,
             },
             auth: { user },
             jobs: {

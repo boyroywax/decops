@@ -96,6 +96,18 @@ export function useJobExecutor({
     const processingRef = useRef<Set<string>>(new Set());
     const { api: studioApi } = useStudioContext();
 
+    // Live-state refs: jobs run async, so the workspace arrays captured into
+    // the per-job CommandContext go stale during multi-step execution.
+    // Getters below close over these refs so commands always see fresh state.
+    const agentsRef = useRef(workspace.agents);
+    const channelsRef = useRef(workspace.channels);
+    const groupsRef = useRef(workspace.groups);
+    const messagesRef = useRef(workspace.messages);
+    useEffect(() => { agentsRef.current = workspace.agents; }, [workspace.agents]);
+    useEffect(() => { channelsRef.current = workspace.channels; }, [workspace.channels]);
+    useEffect(() => { groupsRef.current = workspace.groups; }, [workspace.groups]);
+    useEffect(() => { messagesRef.current = workspace.messages; }, [workspace.messages]);
+
     useEffect(() => {
         const processJobs = async () => {
             // Atomically reserve a batch — guarantees concurrency invariant
@@ -185,7 +197,11 @@ export function useJobExecutor({
                             addLog,
                             activeChannel: workspace.activeChannel,
                             setActiveChannel: workspace.setActiveChannel,
-                            setActiveChannels: workspace.setActiveChannels
+                            setActiveChannels: workspace.setActiveChannels,
+                            getAgents: () => agentsRef.current,
+                            getChannels: () => channelsRef.current,
+                            getGroups: () => groupsRef.current,
+                            getMessages: () => messagesRef.current,
                         },
                         auth: { user },
                         jobs: {
