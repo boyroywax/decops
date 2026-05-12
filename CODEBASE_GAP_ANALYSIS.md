@@ -15,8 +15,8 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 | Metric | Original | Current | Δ |
 |---|---|---|---|
 | `: any` / `as any` in `src/hooks` + `src/services` | 294 | **226** | −68 (−23%) |
-| Test files | 34 | **40** | +6 |
-| Total tests passing | n/a | **418/418** | — |
+| Test files | 34 | **41** | +7 |
+| Total tests passing | n/a | **424/424** | — |
 | Silent `catch {}` blocks | 18 | **12** | −6 |
 
 ### Severity Counts (Remaining Open)
@@ -44,6 +44,9 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 - `b411c1b` fix(agent): drop dangling latency field from ping_agent response
 - `32d6288` test(jobs): slot-release lifecycle invariants + executor cleanup [phase 4]
 - `c9b20fc` toolkits: unify registration through @/toolkits entry point [phase 5.1]
+- `af2628e` refactor(jobs): drop 1s setInterval polling fallback [phase 4.3]
+- `ac3891a` refactor(topology): exponential backoff with 5s ceiling [phase 4.4]
+- `49d53b3` feat(logging): centralized logError utility; adopt in libp2p service [§5.1]
 
 ---
 
@@ -131,9 +134,9 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 ## 5. Error Handling Gaps
 
 ### 5.1 Silent `catch` Blocks — **MEDIUM (PARTIALLY ADDRESSED)**
-- **Current count:** **12** (was 18; −6).
-- Several catches were tightened during phase 3.1 to use `e instanceof Error ? e.message : String(e)`.
-- **Remaining fix:** centralized `logError(context, err)` utility that captures context name, stack, and forwards to the workspace log + future telemetry sink.
+- **Centralized `logError(context, err, data?, opts?)` utility shipped** in `src/services/logging/logError.ts` (commit `49d53b3`) — synchronous, never throws, normalises any thrown value, publishes to the global `LogAggregator` on the `errors` channel.
+- Adopted in `src/toolkits/libp2p/service.ts` for `node.stop`, `manager.persist`, and `manager.removeNode.stop` failures that were previously hidden.
+- **Remaining silent catches** in the tree (clipboard writes, `localStorage` quota, JSON parse fallbacks, snapshot serialisation, pubsub-unavailable probes) are intentionally silent — they are idiomatic fallbacks, not error swallows, and should stay that way.
 
 ### 5.2 Stream Error Channel Underused — **LOW (OPEN)**
 - Verify all delegations route through `streamChatWithWorkspace`.
@@ -214,12 +217,11 @@ All HIGH-severity gaps are now resolved. Remaining items are MEDIUM/LOW.
 3. [MEDIUM] Per-command `timeoutMs` + `spawnsChildJobs` flag; retire `JOB_RUNNER_COMMANDS` allowlist (§9.2 + §9.3).
 
 ### Phase 7 — Polish
-4. [MEDIUM] Centralized `logError(context, err)` utility; replace remaining silent catches (§5.1).
-5. [MEDIUM] Identity export audit log; confirm editor markdown sanitization (§7.2 + §7.3).
-6. [MEDIUM] Accessibility audit — `aria-label` on icon buttons, focus-trap on modals (§6.2).
-7. [MEDIUM] Add `outputSchema` to all structured-output commands (§9.1).
-8. [LOW] ADRs, bundle-size budget, `ts-prune`, `tsc --strict` in CI (§8 + §10).
-9. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on `ecosystem.ts`, `libp2p/service.ts`, `ChatPanel.tsx`, `maintenance.ts` (§3.1 remaining).
+4. [MEDIUM] Identity export audit log; confirm editor markdown sanitization (§7.2 + §7.3).
+5. [MEDIUM] Accessibility audit — `aria-label` on icon buttons, focus-trap on modals (§6.2).
+6. [MEDIUM] Add `outputSchema` to all structured-output commands (§9.1).
+7. [LOW] ADRs, bundle-size budget, `ts-prune`, `tsc --strict` in CI (§8 + §10).
+8. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on `ecosystem.ts`, `libp2p/service.ts`, `ChatPanel.tsx`, `maintenance.ts` (§3.1 remaining).
 
 ---
 
