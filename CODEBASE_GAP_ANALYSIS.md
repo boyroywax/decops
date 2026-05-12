@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-The codebase has matured into a multi-toolkit workspace. Most original **HIGH-severity** items have been addressed across phases 1–4 (see *Resolved* sections inline). Remaining urgent work is concentrated in **toolkit registration unification**, **integration tests for `runChatTurn` / `streamChatWithWorkspace`**, and the **medium-severity** theme/error/audit items.
+The codebase has matured into a multi-toolkit workspace. **All original HIGH-severity items are now resolved** across phases 1–5. Remaining work is MEDIUM/LOW — quality polish (more tests, theme cleanup, per-command timeouts, error utility, audit logs, a11y) and CI hygiene.
 
 ### Progress Snapshot
 
@@ -23,7 +23,7 @@ The codebase has matured into a multi-toolkit workspace. Most original **HIGH-se
 
 | Severity | Original | Open |
 |----------|----------|------|
-| High     | 6        | **2** |
+| High     | 6        | **0** |
 | Medium   | 9        | **8** |
 | Low      | 5        | **5** |
 
@@ -43,23 +43,28 @@ The codebase has matured into a multi-toolkit workspace. Most original **HIGH-se
 - `e386ea3` types: Job is now a discriminated union on status [phase 3.2]
 - `b411c1b` fix(agent): drop dangling latency field from ping_agent response
 - `32d6288` test(jobs): slot-release lifecycle invariants + executor cleanup [phase 4]
+- `c9b20fc` toolkits: unify registration through @/toolkits entry point [phase 5.1]
 
 ---
 
 ## 1. Architectural Inconsistencies
 
-### 1.1 Toolkit Registration Patterns Diverge — **HIGH (OPEN)**
-- **Files:** `src/toolkits/architect/register.ts`, `src/toolkits/libp2p/register.ts`, `src/toolkits/studio/register.ts`, `src/toolkits/editor/`, `src/toolkits/image-gen/`
-- **Problem:** Three different registration styles coexist:
-  - Hook-based: `useRegisterLibp2pChatAgent.ts` (re-runs on mount)
-  - Module side-effect: `register.ts` (registered at import time)
-  - Barrel re-exports without explicit registration
-- **Impact:** Hard to reason about lifecycle, double-registration risk, race on HMR.
-- **Fix:** Adopt a single contract — e.g. `defineToolkit({ id, register })` invoked from a central `toolkits/index.ts`. Document in `docs/TOOLKIT_CONTRACT.md`.
+### 1.1 Toolkit Registration Patterns Diverge — **HIGH (RESOLVED)**
+- **Fixed in:** commit `c9b20fc`.
+- New `src/toolkits/index.ts` is the single boot entry point. It imports
+  bot delegations (`studioBot`, `libp2pBot`) and UI `register.ts` modules
+  in deterministic order, and exports `useToolkitChatAgents()` for
+  hook-based chat-agent registration.
+- `main.tsx` now does a single `import "@/toolkits"` instead of six
+  scattered side-effect imports.
+- `CommandContextProvider` uses `useToolkitChatAgents()`; the
+  libp2p-specific `useRegisterLibp2pChatAgent` hook was deleted.
+- Adding a new toolkit is now a one-line change in `@/toolkits/index.ts`,
+  eliminating HMR / double-registration risk.
 
-### 1.2 Bot Bypass of Shared Pipeline — **HIGH (PARTIALLY FIXED)**
-- **Status:** libp2p now flows through the unified pipeline (commit `021e048`).
-- **Remaining:** Audit `studioBot.ts`, `editor` for similar custom dispatchers; ensure all bots register a `ChatDelegation` rather than an `onSubmit`.
+### 1.2 Bot Bypass of Shared Pipeline — **HIGH (RESOLVED)**
+- libp2p flows through `streamChatWithWorkspace` (commit `021e048`).
+- **Audit completed:** `studioBot.ts` registers a `ChatDelegation` (no `onSubmit` bypass); `editor` toolkit ships no chat bot at all (only provider + view). The only remaining `onSubmit` reference in the toolkits is `Libp2pBotModal.tsx`, which is a form-submit handler, not a chat dispatcher. No further bypass paths exist.
 
 ### 1.3 Two Workspace Context Sources — **MEDIUM (RESOLVED)**
 - **Fixed in:** commit `3d1cf47` — `CommandContext.workspace` now exposes `getAgents() / getChannels() / getGroups() / getMessages()` live getters so commands always read fresh state during async multi-step jobs. Snapshot arrays still present for sync read sites.
@@ -203,24 +208,22 @@ The codebase has matured into a multi-toolkit workspace. Most original **HIGH-se
 
 ## Updated Action Plan — Remaining Work
 
-### Phase 5 — Stability tail
-1. [HIGH] Toolkit registration unification — single `defineToolkit()` contract; central `toolkits/index.ts`; remove HMR double-registration risk (§1.1).
-2. [HIGH] Audit `studioBot.ts` / `editor` for `onSubmit` bypass of `streamChatWithWorkspace` (§1.2 remaining).
+All HIGH-severity gaps are now resolved. Remaining items are MEDIUM/LOW.
 
 ### Phase 6 — Quality
-3. [MEDIUM] Integration tests for `useJobExecutor` (parallel/serial modes, output mappings, step handlers); end-to-end tests for `libp2pBot` / `studioBot` (§2.1 remaining).
-4. [MEDIUM] Replace remaining hardcoded colors in studio / editor styles (§6.1).
-5. [MEDIUM] Per-command `timeoutMs` + `spawnsChildJobs` flag; retire `JOB_RUNNER_COMMANDS` allowlist (§9.2 + §9.3).
-6. [MEDIUM] Topology retry loop → exponential backoff with shorter ceiling (§4.4).
+1. [MEDIUM] Integration tests for `useJobExecutor` (parallel/serial modes, output mappings, step handlers); end-to-end tests for `libp2pBot` / `studioBot` (§2.1 remaining).
+2. [MEDIUM] Replace remaining hardcoded colors in studio / editor styles (§6.1).
+3. [MEDIUM] Per-command `timeoutMs` + `spawnsChildJobs` flag; retire `JOB_RUNNER_COMMANDS` allowlist (§9.2 + §9.3).
+4. [MEDIUM] Topology retry loop → exponential backoff with shorter ceiling (§4.4).
 
 ### Phase 7 — Polish
-7. [MEDIUM] Centralized `logError(context, err)` utility; replace remaining silent catches (§5.1).
-8. [MEDIUM] Identity export audit log; confirm editor markdown sanitization (§7.2 + §7.3).
-9. [MEDIUM] Accessibility audit — `aria-label` on icon buttons, focus-trap on modals (§6.2).
-10. [MEDIUM] Add `outputSchema` to all structured-output commands (§9.1).
-11. [LOW] ADRs, bundle-size budget, `ts-prune`, `tsc --strict` in CI (§8 + §10).
-12. [LOW] Remove `setInterval(processJobs, 1000)` fallback once state-driven coverage proven (§4.3).
-13. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on `ecosystem.ts`, `libp2p/service.ts`, `ChatPanel.tsx`, `maintenance.ts` (§3.1 remaining).
+5. [MEDIUM] Centralized `logError(context, err)` utility; replace remaining silent catches (§5.1).
+6. [MEDIUM] Identity export audit log; confirm editor markdown sanitization (§7.2 + §7.3).
+7. [MEDIUM] Accessibility audit — `aria-label` on icon buttons, focus-trap on modals (§6.2).
+8. [MEDIUM] Add `outputSchema` to all structured-output commands (§9.1).
+9. [LOW] ADRs, bundle-size budget, `ts-prune`, `tsc --strict` in CI (§8 + §10).
+10. [LOW] Remove `setInterval(processJobs, 1000)` fallback once state-driven coverage proven (§4.3).
+11. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on `ecosystem.ts`, `libp2p/service.ts`, `ChatPanel.tsx`, `maintenance.ts` (§3.1 remaining).
 
 ---
 
