@@ -155,7 +155,6 @@ export const pingAgentCommand: CommandDefinition = {
             agentId,
             name: agent.name,
             status: "online",
-            latency: `${latency}ms`,
             timestamp: new Date().toISOString()
         };
     }
