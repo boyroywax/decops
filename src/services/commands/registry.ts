@@ -4,6 +4,12 @@ import { dryRunCommand, dryRunJob, type DryRunResult, type DryRunJobResult } fro
 import { assertRBAC } from "./rbac";
 import type { JobStep } from "@/types";
 
+/** Shape of an entity that resolveEntityName looks up — needs id and (optionally) name. */
+interface NamedEntity {
+    id: string;
+    name?: string;
+}
+
 /**
  * Resolve entity name → ID for semantic arg types ("agent", "group", "channel", "network").
  * If the provided value is already a valid entity ID, it passes through unchanged.
@@ -12,46 +18,47 @@ import type { JobStep } from "@/types";
 function resolveEntityName(
     value: string,
     argType: CommandArgType,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     context: any,
 ): string {
     if (!value || typeof value !== "string") return value;
 
     // Determine which collection to search and key for name
-    let entities: any[] | undefined;
+    let entities: NamedEntity[] | undefined;
     switch (argType) {
         case "agent":
-            entities = context?.workspace?.agents;
+            entities = context?.workspace?.agents as NamedEntity[] | undefined;
             // Also check agents nested inside networks (ecosystem)
-            if (entities && !entities.find((e: any) => e.id === value)) {
+            if (entities && !entities.find((e) => e.id === value)) {
                 const match = entities.find(
-                    (e: any) => e.name?.toLowerCase() === value.toLowerCase(),
+                    (e) => e.name?.toLowerCase() === value.toLowerCase(),
                 );
                 if (match) return match.id;
                 // Fall through to check ecosystem network agents
-                const nets: any[] = context?.ecosystem?.networks ?? [];
+                const nets = (context?.ecosystem?.networks ?? []) as Array<{ agents?: NamedEntity[] }>;
                 for (const net of nets) {
-                    const netAgents: any[] = net.agents ?? [];
+                    const netAgents: NamedEntity[] = net.agents ?? [];
                     const netMatch = netAgents.find(
-                        (a: any) => a.id === value || a.name?.toLowerCase() === value.toLowerCase(),
+                        (a) => a.id === value || a.name?.toLowerCase() === value.toLowerCase(),
                     );
                     if (netMatch) return netMatch.id;
                 }
                 // Also search mutable storage._agents (populated during deploy_network)
-                const storageAgents: any[] = context?.storage?._agents ?? [];
+                const storageAgents = (context?.storage?._agents ?? []) as NamedEntity[];
                 const storageMatch = storageAgents.find(
-                    (a: any) => a.id === value || a.name?.toLowerCase() === value.toLowerCase(),
+                    (a) => a.id === value || a.name?.toLowerCase() === value.toLowerCase(),
                 );
                 if (storageMatch) return storageMatch.id;
             }
             break;
         case "group":
-            entities = context?.workspace?.groups;
+            entities = context?.workspace?.groups as NamedEntity[] | undefined;
             break;
         case "channel":
-            entities = context?.workspace?.channels;
+            entities = context?.workspace?.channels as NamedEntity[] | undefined;
             break;
         case "network":
-            entities = context?.ecosystem?.networks;
+            entities = context?.ecosystem?.networks as NamedEntity[] | undefined;
             break;
         default:
             return value;
@@ -60,11 +67,11 @@ function resolveEntityName(
     if (!entities) return value;
 
     // Already a valid ID — pass through
-    if (entities.find((e: any) => e.id === value)) return value;
+    if (entities.find((e) => e.id === value)) return value;
 
     // Try case-insensitive name match
     const match = entities.find(
-        (e: any) => e.name?.toLowerCase() === value.toLowerCase(),
+        (e) => e.name?.toLowerCase() === value.toLowerCase(),
     );
     return match ? match.id : value;
 }
@@ -92,6 +99,7 @@ export class CommandRegistry {
         return Array.from(this.commands.values());
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async execute<T extends Record<string, any> = any>(id: string, args: T, context: any): Promise<any> {
         const command = this.get(id);
         if (!command) {
@@ -171,6 +179,7 @@ export class CommandRegistry {
     }
 
     /** Dry-run a single command: validate everything without executing */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     dryRun(id: string, args: Record<string, any>, context: any): DryRunResult {
         return dryRunCommand(this.get(id), id, args, context);
     }
@@ -179,7 +188,9 @@ export class CommandRegistry {
     dryRunJob(
         steps: JobStep[],
         mode: "serial" | "parallel",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         context: any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         storage: Record<string, any> = {},
         deliverableKeys: string[] = [],
         inputMap: Record<string, string> = {},
