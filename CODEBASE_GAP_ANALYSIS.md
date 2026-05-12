@@ -1,6 +1,6 @@
 # Codebase Gap Analysis — decops
 
-**Date:** 2026-05-12
+**Date:** 2026-05-12 (updated)
 **Branch:** `feat/libp2p-toolkit`
 **Scope:** Full audit of `src/` covering architecture, testing, types, performance, errors, theme, security, docs, jobs, and build.
 
@@ -8,20 +8,47 @@
 
 ## Executive Summary
 
-The codebase has matured into a multi-toolkit workspace, but several systemic gaps remain. The most urgent issues are **concurrency safety in the job executor**, **RBAC enforcement**, **type-safety regression** (~294 `any` usages in `src/hooks` + `src/services`), and **inconsistent toolkit registration patterns**. Testing coverage is partial (34 test files) but key runtime paths (`useJobExecutor`, `runChatTurn`, streaming) remain untested.
+The codebase has matured into a multi-toolkit workspace. Most original **HIGH-severity** items have been addressed across phases 1–4 (see *Resolved* sections inline). Remaining urgent work is concentrated in **toolkit registration unification**, **integration tests for `runChatTurn` / `streamChatWithWorkspace`**, and the **medium-severity** theme/error/audit items.
 
-### Severity Counts
-| Severity | Count |
-|----------|-------|
-| High     | 6     |
-| Medium   | 9     |
-| Low      | 5     |
+### Progress Snapshot
+
+| Metric | Original | Current | Δ |
+|---|---|---|---|
+| `: any` / `as any` in `src/hooks` + `src/services` | 294 | **226** | −68 (−23%) |
+| Test files | 34 | **40** | +6 |
+| Total tests passing | n/a | **418/418** | — |
+| Silent `catch {}` blocks | 18 | **12** | −6 |
+
+### Severity Counts (Remaining Open)
+
+| Severity | Original | Open |
+|----------|----------|------|
+| High     | 6        | **2** |
+| Medium   | 9        | **8** |
+| Low      | 5        | **5** |
+
+### Completed Commits (this initiative)
+
+- `021e048` libp2p,perf,theme: unify chat pipeline, eliminate latency, fix solar/light radio bg
+- `8ecd7d6` jobs: extract atomic slot reservation; add concurrency tests [phase 1.1]
+- `608aa7d` rbac: enforce command RBAC in registry.execute() [phase 1.2]
+- `3d1cf47` commands: expose live workspace getters on CommandContext [phase 1.3]
+- `2eae8db` ai: add coverage for runner/delegation/streaming [phase 2.1]
+- `6e725e5` types: derived hook return types in useJobExecutor [phase 3.1]
+- `3e42bce` types: tighten any to unknown across tools/runner/streaming [phase 3.1]
+- `b3c7715` types: replace any with proper types in CommandContext [phase 3.1]
+- `5102edb` types: jobRuntime any → unknown/proper types [phase 3.1]
+- `95d7fab` types: resolveEntityName → NamedEntity in registry [phase 3.1]
+- `96acff5` types: dryRun.ts + architect.ts any → proper types [phase 3.1]
+- `e386ea3` types: Job is now a discriminated union on status [phase 3.2]
+- `b411c1b` fix(agent): drop dangling latency field from ping_agent response
+- `32d6288` test(jobs): slot-release lifecycle invariants + executor cleanup [phase 4]
 
 ---
 
 ## 1. Architectural Inconsistencies
 
-### 1.1 Toolkit Registration Patterns Diverge — **HIGH**
+### 1.1 Toolkit Registration Patterns Diverge — **HIGH (OPEN)**
 - **Files:** `src/toolkits/architect/register.ts`, `src/toolkits/libp2p/register.ts`, `src/toolkits/studio/register.ts`, `src/toolkits/editor/`, `src/toolkits/image-gen/`
 - **Problem:** Three different registration styles coexist:
   - Hook-based: `useRegisterLibp2pChatAgent.ts` (re-runs on mount)
@@ -31,179 +58,169 @@ The codebase has matured into a multi-toolkit workspace, but several systemic ga
 - **Fix:** Adopt a single contract — e.g. `defineToolkit({ id, register })` invoked from a central `toolkits/index.ts`. Document in `docs/TOOLKIT_CONTRACT.md`.
 
 ### 1.2 Bot Bypass of Shared Pipeline — **HIGH (PARTIALLY FIXED)**
-- **Files:** Recently fixed in `src/toolkits/libp2p/useRegisterLibp2pChatAgent.ts`; still verify `studio`, `editor`.
-- **Problem:** Toolkits historically attached a custom `onSubmit` that bypassed `streamChatWithWorkspace` and its `ThinkingIndicator` UI.
 - **Status:** libp2p now flows through the unified pipeline (commit `021e048`).
 - **Remaining:** Audit `studioBot.ts`, `editor` for similar custom dispatchers; ensure all bots register a `ChatDelegation` rather than an `onSubmit`.
 
-### 1.3 Two Workspace Context Sources — **MEDIUM**
-- **Files:** `src/context/CommandContextProvider.tsx`, `src/context/WorkspaceContext.tsx`
-- **Problem:** Some commands read from `CommandContext.workspace`, others import hooks directly. Stale snapshot risk in `send_message`.
-- **Fix:** Make `CommandContext` the single source of truth for command-time state; expose `getMessages()` getters rather than snapshots.
+### 1.3 Two Workspace Context Sources — **MEDIUM (RESOLVED)**
+- **Fixed in:** commit `3d1cf47` — `CommandContext.workspace` now exposes `getAgents() / getChannels() / getGroups() / getMessages()` live getters so commands always read fresh state during async multi-step jobs. Snapshot arrays still present for sync read sites.
+- **Follow-up (LOW):** migrate remaining sync-snapshot callers (`send_message`, etc.) onto the getters.
 
 ---
 
 ## 2. Testing Gaps
 
-### 2.1 Critical Runtime Paths Untested — **HIGH**
-- **Untested:**
-  - `src/hooks/useJobExecutor.tsx` (the central job orchestrator)
-  - `src/services/ai/runner.ts` (`runChatTurn`)
-  - `src/services/ai/streaming.ts` (`streamChatWithWorkspace`)
-  - `src/services/ai/delegation.ts`
-  - `src/toolkits/libp2p/libp2pBot.ts`, `src/toolkits/studio/studioBot.ts`
-- **Current coverage:** 34 test files concentrated in `src/test/services/commands/*` and `src/test/services/autonomy/*`.
-- **Fix:** Add executor concurrency tests (multiple jobs racing slots), tool-loop tests, delegation routing tests. Target ≥ 60% line coverage on `src/services/ai/` and `src/hooks/useJobExecutor.tsx`.
+### 2.1 Critical Runtime Paths — **HIGH (PARTIALLY RESOLVED)**
+- **Resolved (commit `2eae8db`):** added coverage for `src/services/ai/runner.ts` (`runChatTurn`), `src/services/ai/delegation.ts`, and `src/services/ai/streaming.ts` smoke paths.
+- **Resolved (commit `8ecd7d6` + `32d6288`):** `jobScheduler` atomic-reservation and slot-release lifecycle covered by 17 tests; invariants proven under normal completion, early return, sync throw, async rejection, and out-of-order completion.
+- **Remaining gaps:**
+  - `src/hooks/useJobExecutor.tsx` — pure scheduler is now tested, but the full hook (deliverable assembly, output-mappings, step-handler chaining, parallel/serial modes) lacks integration tests.
+  - `src/toolkits/libp2p/libp2pBot.ts`, `src/toolkits/studio/studioBot.ts` — still untested end-to-end.
+- **Target:** ≥ 60 % line coverage on `src/services/ai/` and `src/hooks/useJobExecutor.tsx`.
 
-### 2.2 No E2E / Integration Tests for Chat UI — **MEDIUM**
-- **Problem:** `ChatPanel.tsx` (~1000 LOC) has no Playwright/Cypress tests covering the submit flow, slash commands, @mentions, or streaming.
-- **Fix:** Add a Playwright smoke suite covering: send message → tool call → streaming token → final commit.
+### 2.2 No E2E / Integration Tests for Chat UI — **MEDIUM (OPEN)**
+- `ChatPanel.tsx` (~1000 LOC) has no Playwright/Cypress tests covering submit flow, slash commands, @mentions, or streaming.
+- **Fix:** Playwright smoke suite — send message → tool call → streaming token → final commit.
 
 ---
 
-## 3. Type Safety Gaps — **HIGH**
+## 3. Type Safety Gaps — **MEDIUM (DOWNGRADED FROM HIGH)**
 
-### 3.1 `any` Proliferation
-- **Count:** 294 occurrences of `: any` / `as any` in `src/hooks` + `src/services`.
-- **Hot spots:**
-  - `src/hooks/useJobExecutor.tsx` — `jobs: any[]`, `addJob: any`, `updateJobStatus: any` props
-  - `src/services/commands/tools.ts` — tool input/result typed as `any`
-  - `src/services/ai/streaming.ts` — `messages: any[]`
-- **Fix:**
-  - Export proper types from `useJobs`, `useNotebook`, etc. and use them in `useJobExecutor`.
-  - Define a generic `ToolResult<T>` and `ToolInput<T extends ToolSchema>`.
-  - Enable `noImplicitAny` (already in `tsconfig.json`?) and gradually fix.
+### 3.1 `any` Proliferation — **PARTIALLY RESOLVED**
+- **Current count:** **226** (was 294; −68, −23 %).
+- **Resolved hot spots:**
+  - `src/hooks/useJobExecutor.tsx` — `jobs`, `addJob`, `updateJobStatus`, etc. now use derived `UseJobsReturn[...]` types (commit `6e725e5`).
+  - `src/services/commands/tools.ts`, `runner.ts`, `streaming.ts` — most `any` → `unknown` with proper narrowing (commit `3e42bce`).
+  - `src/services/commands/registry.ts`, `dryRun.ts`, `jobRuntime.ts` — local helpers, accumulators, and entity lookups tightened (commits `95d7fab`, `5102edb`, `96acff5`).
+  - `src/services/commands/types.ts` — `CommandContext` workspace/ecosystem/jobs/auth now use real types (commit `b3c7715`).
+- **Remaining hot spots (≈226 `any`):**
+  - `CommandDefinition.execute: Promise<any>`, `CommandContext.storage: Record<string, any>`, `CommandArg.validation: (value: any) => …` — kept with `eslint-disable` + rationale because tightening cascades into ~50 command definitions.
+  - `src/services/commands/definitions/ecosystem.ts` (41), `src/toolkits/libp2p/service.ts` (25), `src/components/layout/ChatPanel.tsx` (25), `src/services/commands/definitions/maintenance.ts` (23) — opportunistic cleanup as those areas are touched.
 
-### 3.2 Missing Discriminated Unions for Job States
-- **File:** `src/types/jobs.ts` (or wherever `Job` is defined)
-- **Problem:** `job.status` is a string union, but `result` is `any` for all states.
-- **Fix:** Use discriminated union: `{ status: "completed"; result: T } | { status: "failed"; error: string }`.
+### 3.2 Missing Discriminated Unions for Job States — **RESOLVED**
+- **Fixed in:** commit `e386ea3` — `Job` is now a discriminated union on `status`:
+  - `queued | running` (no terminal data)
+  - `awaiting-input` (carries required `pendingPrompt`)
+  - `completed | failed` (carry required `completedAt`, optional `result`)
+- Terminal-only and prompt-only fields are excluded from non-matching variants so consumers must narrow on `status` before access.
 
 ---
 
 ## 4. Performance & Concurrency Gaps
 
-### 4.1 Job Executor Race Conditions — **HIGH**
-- **File:** `src/hooks/useJobExecutor.tsx`
-- **Problem:** `processingRef.current` (a `Set`) is mutated inside fire-and-forget async IIFEs. Concurrent React effect re-runs can read stale `jobs` snapshots and over-allocate slots.
-- **Fix:**
-  - Wrap slot management in a proper async lock / queue (e.g. `p-limit`).
-  - Move job state into a Zustand store keyed by `id` so reads are atomic.
-  - Add an integration test that queues 20 jobs and asserts `MAX_CONCURRENT_JOBS` is never exceeded.
+### 4.1 Job Executor Race Conditions — **HIGH (RESOLVED)**
+- **Fixed in:** commits `8ecd7d6` and `32d6288`.
+- Atomic `reserveBatch()` selector + reservation in `src/hooks/jobScheduler.ts` guarantees `MAX_CONCURRENT_JOBS` is never exceeded across rapid effect re-runs.
+- `useJobExecutor.tsx` slot-release now relies exclusively on the IIFE's `finally` block (redundant explicit `processingRef.delete()` calls removed).
+- 17 scheduler tests cover normal completion, early return, sync/async errors, out-of-order completion, and the 20-job soak invariant.
 
-### 4.2 Latency Fixes Applied (commit `021e048`) — **DONE**
-- 1000ms polling now triggers immediately on state change.
-- Artificial `setTimeout(300ms)` removed from `create_agent`.
-- 50–250ms simulated network latency removed from `agent_health_check`.
+### 4.2 Latency Fixes Applied — **DONE** (commit `021e048`)
 
-### 4.3 Remaining Polling Fallback — **LOW**
-- The `setInterval(processJobs, 1000)` is still a fallback. Consider removing entirely once state-change-driven invocation is verified for all queueing paths.
+### 4.3 Remaining Polling Fallback — **LOW (OPEN)**
+- `setInterval(processJobs, 1000)` is still a 1 s fallback. Consider removing once state-change-driven invocation is verified for every queueing path.
 
-### 4.4 Topology Retry Loop — **MEDIUM**
+### 4.4 Topology Retry Loop — **MEDIUM (OPEN)**
 - **File:** `src/services/commands/definitions/topology.ts` lines 60–80
-- **Problem:** 30 attempts × 500ms = 15s worst-case wait inside a tool execution; blocks the chat round.
-- **Fix:** Use exponential backoff with a much shorter ceiling (e.g. 5s); or push the wait into a separate orchestration step the LLM can re-poll.
+- 30 attempts × 500 ms = 15 s worst case inside a tool execution blocks the chat round.
+- **Fix:** exponential backoff with a shorter ceiling (≈5 s) or move the wait into a separate orchestration step the LLM can re-poll.
 
 ---
 
 ## 5. Error Handling Gaps
 
-### 5.1 Silent `catch` Blocks — **MEDIUM**
-- ~18 catch blocks that swallow errors without logging or surfacing to the user.
-- **Files:** scattered across `src/components/`, `src/hooks/`, `src/services/`
-- **Fix:** Create a `logError(context, err)` utility that captures the context name, stack, and forwards to the workspace log + a future telemetry sink.
+### 5.1 Silent `catch` Blocks — **MEDIUM (PARTIALLY ADDRESSED)**
+- **Current count:** **12** (was 18; −6).
+- Several catches were tightened during phase 3.1 to use `e instanceof Error ? e.message : String(e)`.
+- **Remaining fix:** centralized `logError(context, err)` utility that captures context name, stack, and forwards to the workspace log + future telemetry sink.
 
-### 5.2 Stream Error Channel Underused — **LOW**
-- Several agent `onSubmit` paths (legacy) called `stream.error(msg)` but didn't update the conversation. Standard pipeline handles this; verify all delegations route through `streamChatWithWorkspace`.
+### 5.2 Stream Error Channel Underused — **LOW (OPEN)**
+- Verify all delegations route through `streamChatWithWorkspace`.
 
 ---
 
 ## 6. Theme / UI Consistency Gaps
 
-### 6.1 Hardcoded Colors — **MEDIUM**
-- **Files:** `src/toolkits/libp2p/styles/libp2p.css` (partially fixed for solar tabs/radio in commit `021e048`); `src/toolkits/studio/styles/`, `src/toolkits/editor/styles/`
-- **Problem:** Many components hard-code `#1e293b`, `#94a3b8`, etc. instead of CSS variables. Solar/light themes inherit dark colors.
-- **Fix:** Replace remaining literals with `var(--bg-surface, …)`, `var(--text-secondary, …)`, etc. Run `grep -rn "background: #" src/toolkits/*/styles` to enumerate remaining instances.
+### 6.1 Hardcoded Colors — **MEDIUM (PARTIALLY FIXED)**
+- libp2p solar tabs/radio normalised in commit `021e048`.
+- **Open:** `src/toolkits/studio/styles/`, `src/toolkits/editor/styles/` still contain literal `#1e293b`, `#94a3b8`, etc.
+- **Fix:** replace remaining literals with `var(--bg-surface, …)`, `var(--text-secondary, …)`. Enumerate via `grep -rn "background: #" src/toolkits/*/styles`.
 
-### 6.2 Accessibility — **MEDIUM**
-- **Problem:** Many icon-only buttons lack `aria-label`. Modals don't trap focus consistently.
-- **Fix:** Add a11y lint rule, audit `IconButton` usage, ensure `Libp2pBotModal`, `JobInputPromptModal` use a shared `Dialog` with focus-trap.
+### 6.2 Accessibility — **MEDIUM (OPEN)**
+- Icon-only buttons often lack `aria-label`; modals don't trap focus.
+- **Fix:** add a11y lint rule, audit `IconButton`, ensure `Libp2pBotModal`, `JobInputPromptModal` use a shared `Dialog` with focus-trap.
 
 ---
 
 ## 7. Security Gaps
 
-### 7.1 RBAC Not Enforced — **HIGH**
-- **File:** `src/services/commands/registry.ts`
-- **Problem:** `CommandDefinition.rbac` arrays exist but `registry.execute()` doesn't validate the caller's role.
-- **Fix:**
-  - Add a `currentUser.role` check before invoking `execute`.
-  - Throw a typed `RBACDenied` error and surface to user.
-  - Test with a non-`builder` user attempting `deploy_network`.
+### 7.1 RBAC Enforcement — **HIGH (RESOLVED)**
+- **Fixed in:** commit `608aa7d`.
+- `assertRBAC()` (in `src/services/commands/rbac.ts`) is invoked at the top of `CommandRegistry.execute()`.
+- Throws typed `RBACDenied` (extends `Error`) carrying `commandId`, `actorRole`, and `allowedRoles` so the UI can detect via `instanceof` and render a permission-denied message.
+- Defaults to `"orchestrator"` when `auth.user.role` is unset (preserves headless / single-user behaviour).
+- Covered by `src/test/services/commands/rbac.test.ts`.
 
-### 7.2 Identity Export Auditing — **MEDIUM**
-- **File:** `src/toolkits/libp2p/libp2pBot.ts` — `interceptToolCall` blocks export when not user-initiated, good, but no audit log is written when an export does proceed.
-- **Fix:** Append every identity export to `workspace.addLog()` with timestamp and node id.
+### 7.2 Identity Export Auditing — **MEDIUM (OPEN)**
+- `interceptToolCall` blocks export when not user-initiated, but no audit log when export proceeds.
+- **Fix:** append every identity export to `workspace.addLog()` with timestamp + node id.
 
-### 7.3 XSS Risk in Editor — **MEDIUM**
-- **File:** `src/toolkits/editor/EditorView.tsx`
-- **Problem:** If preview renders user/LLM markdown, ensure sanitization (DOMPurify or markdown-it-safe).
-- **Fix:** Confirm all rendering uses `react-markdown` with safe defaults, and avoid `dangerouslySetInnerHTML`.
+### 7.3 XSS Risk in Editor — **MEDIUM (OPEN)**
+- Verify all preview rendering in `src/toolkits/editor/EditorView.tsx` uses `react-markdown` with safe defaults; avoid `dangerouslySetInnerHTML`.
 
 ---
 
-## 8. Documentation Gaps — **LOW**
+## 8. Documentation Gaps — **LOW (OPEN)**
 
-- **Missing:** ADRs (Architecture Decision Records) for: toolkit contract, chat-delegation model, job lifecycle, theme tokens.
-- **Missing:** Top-level `docs/ARCHITECTURE.md` mapping `services/` → `hooks/` → `components/`.
-- **Sparse JSDoc:** `src/services/ai/runner.ts`, `src/services/commands/tools.ts`.
-- **Fix:** Add `docs/` index, write 5 short ADRs.
+- Missing ADRs for: toolkit contract, chat-delegation model, job lifecycle, theme tokens.
+- Missing top-level `docs/ARCHITECTURE.md` mapping `services/` → `hooks/` → `components/`.
+- Sparse JSDoc in `src/services/ai/runner.ts`, `src/services/commands/tools.ts`.
 
 ---
 
 ## 9. Job / Command System Gaps
 
-### 9.1 Missing Tool Output Schemas — **MEDIUM**
+### 9.1 Missing Tool Output Schemas — **MEDIUM (OPEN)**
 - Many `CommandDefinition` entries lack `outputSchema`. The LLM cannot reliably chain tools that don't declare what they return.
-- **Fix:** Add minimal `outputSchema` to every tool that returns structured data (target `src/services/commands/definitions/*.ts`).
+- **Fix:** add minimal `outputSchema` to every tool returning structured data (`src/services/commands/definitions/*.ts`).
 
-### 9.2 Command Timeout Inconsistency — **MEDIUM**
-- **File:** `src/services/commands/tools.ts`
-- **Problem:** Tool-job wait uses `TOOL_JOB_TIMEOUT_MS = 30s` / `JOB_RUNNER_TIMEOUT_MS = 180s`. No per-command override; long-running commands like `deploy_network` rely on the runner allowlist.
-- **Fix:** Add an optional `timeoutMs` field on `CommandDefinition`; default to 30s, allow per-tool override.
+### 9.2 Command Timeout Inconsistency — **MEDIUM (OPEN)**
+- Tool-job wait uses `TOOL_JOB_TIMEOUT_MS = 30 s` / `JOB_RUNNER_TIMEOUT_MS = 180 s`. No per-command override.
+- **Fix:** optional `timeoutMs` field on `CommandDefinition`.
 
-### 9.3 `JOB_RUNNER_COMMANDS` Allowlist Is Stale — **LOW**
-- Currently only `["studio_run_job", "studio_create_job"]`. `deploy_network` likely also spawns child jobs and may hit the 30s timeout.
-- **Fix:** Replace allowlist with `command.spawnsChildJobs: true` flag.
-
----
-
-## 10. Dependency / Build Gaps — **LOW**
-
-- **Unused imports** sprinkled across UI files (no `ts-prune` in CI).
-- **No bundle-size budget** — Vite build outputs not size-checked.
-- **No `--strict` enforcement check** in CI.
-- **Fix:** Add `ts-prune`, `size-limit`, and a `tsc --noEmit --strict` step to a GH Actions workflow.
+### 9.3 `JOB_RUNNER_COMMANDS` Allowlist Is Stale — **LOW (OPEN)**
+- Currently only `["studio_run_job", "studio_create_job"]`. `deploy_network` also spawns child jobs and may hit the 30 s default.
+- **Fix:** replace allowlist with `command.spawnsChildJobs: true` flag.
 
 ---
 
-## Prioritized Action Plan
+## 10. Dependency / Build Gaps — **LOW (OPEN)**
 
-### Phase 1 — Stability (1 sprint)
-1. [HIGH] Add concurrency tests for `useJobExecutor.tsx`; fix race on slot allocation.
-2. [HIGH] Enforce RBAC in `registry.execute()`.
-3. [HIGH] Audit remaining bots (studio, editor) for bypass patterns; route everything through `streamChatWithWorkspace`.
+- Unused imports scattered in UI files (no `ts-prune` in CI).
+- No bundle-size budget on Vite outputs.
+- No `tsc --noEmit --strict` enforcement step in CI.
+- **Fix:** add `ts-prune`, `size-limit`, and a `tsc --noEmit --strict` job to GH Actions.
 
-### Phase 2 — Quality (1 sprint)
-4. [HIGH] Type-safety: introduce `Job<T>`, `ToolResult<T>`; eliminate `any` in `useJobExecutor`, `tools.ts`, `streaming.ts`.
-5. [MEDIUM] Add tests for `runChatTurn`, `streamChatWithWorkspace`, delegation routing.
-6. [MEDIUM] Replace hardcoded colors in remaining toolkit CSS with vars.
-7. [MEDIUM] Add per-command `timeoutMs` + `spawnsChildJobs` flag.
+---
 
-### Phase 3 — Polish (½ sprint)
-8. [MEDIUM] Centralized `logError` utility; replace silent catches.
-9. [MEDIUM] Identity export audit log; verify editor sanitization.
-10. [LOW] ADRs, bundle-size budget, `ts-prune` in CI.
+## Updated Action Plan — Remaining Work
+
+### Phase 5 — Stability tail
+1. [HIGH] Toolkit registration unification — single `defineToolkit()` contract; central `toolkits/index.ts`; remove HMR double-registration risk (§1.1).
+2. [HIGH] Audit `studioBot.ts` / `editor` for `onSubmit` bypass of `streamChatWithWorkspace` (§1.2 remaining).
+
+### Phase 6 — Quality
+3. [MEDIUM] Integration tests for `useJobExecutor` (parallel/serial modes, output mappings, step handlers); end-to-end tests for `libp2pBot` / `studioBot` (§2.1 remaining).
+4. [MEDIUM] Replace remaining hardcoded colors in studio / editor styles (§6.1).
+5. [MEDIUM] Per-command `timeoutMs` + `spawnsChildJobs` flag; retire `JOB_RUNNER_COMMANDS` allowlist (§9.2 + §9.3).
+6. [MEDIUM] Topology retry loop → exponential backoff with shorter ceiling (§4.4).
+
+### Phase 7 — Polish
+7. [MEDIUM] Centralized `logError(context, err)` utility; replace remaining silent catches (§5.1).
+8. [MEDIUM] Identity export audit log; confirm editor markdown sanitization (§7.2 + §7.3).
+9. [MEDIUM] Accessibility audit — `aria-label` on icon buttons, focus-trap on modals (§6.2).
+10. [MEDIUM] Add `outputSchema` to all structured-output commands (§9.1).
+11. [LOW] ADRs, bundle-size budget, `ts-prune`, `tsc --strict` in CI (§8 + §10).
+12. [LOW] Remove `setInterval(processJobs, 1000)` fallback once state-driven coverage proven (§4.3).
+13. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on `ecosystem.ts`, `libp2p/service.ts`, `ChatPanel.tsx`, `maintenance.ts` (§3.1 remaining).
 
 ---
 
@@ -211,14 +228,17 @@ The codebase has matured into a multi-toolkit workspace, but several systemic ga
 
 ```bash
 # Count any usages in services/hooks
-grep -rn ": any\|as any" src/hooks src/services | wc -l    # current: 294
+grep -rn ": any\|as any" src/hooks src/services | wc -l    # current: 226 (was 294)
 
 # Find hardcoded colors in toolkits
 grep -rn "background: #\|color: #" src/toolkits/*/styles
 
 # Find silent catches
-grep -rn "catch.*{}\|catch.*{ *}" src
+grep -rn "catch.*{}\|catch.*{ *}" src                       # current: 12 (was 18)
 
 # List tests
-find src/test -name "*.test.*" | wc -l                      # current: 34
+find src/test -name "*.test.*" | wc -l                      # current: 40 (was 34)
+
+# Full type+test verification
+npx tsc --noEmit && npx vitest run                          # 418/418 passing
 ```
