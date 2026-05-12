@@ -7,7 +7,12 @@ import { resolveToolJob, rejectToolJob } from "@/services/commands/tools";
 import { getAgentModel, getCommandModel } from "@/services/ai";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContextType } from "@/context/WorkspaceContext";
-import type { User, JobEvent } from "@/types";
+import type { User, JobEvent, Job, JobArtifact, JobRequest, NotebookEntry, EntityInput } from "@/types";
+import type { UseJobsReturn } from "./useJobs";
+import type { UseJobCatalogReturn } from "./useJobCatalog";
+import type { UseNotebookReturn } from "./useNotebook";
+import type { UseEcosystemReturn } from "./useEcosystem";
+import type { UseArchitectReturn } from "@/toolkits/architect/hooks/useArchitect";
 import { useStudioContext } from "@/toolkits/studio";
 import {
     resolveRefs, applyInputBindings, applyOutputMappings,
@@ -20,44 +25,59 @@ import { reserveBatch } from "./jobScheduler";
 /** Max number of jobs running concurrently. Exposed for tests. */
 export const MAX_CONCURRENT_JOBS = 4;
 
-// Define strict types for the complex objects we're passing in
-// Ideally these should be exported from their respective hooks, but for now we'll define the shape or use 'any' for the complex rendering hooks if strict types aren't available easily.
-// However, we want to maintain type safety.
+// Type aliases derived from the source hooks so this file stays in sync
+// when those return shapes change. Previously every prop was `any`; the
+// derived types catch wiring bugs at compile time and document intent.
+
+/** Job-catalog half of `useJobs` (saved templates, not the live queue). */
+interface SavedJobsApi {
+    savedJobs: UseJobCatalogReturn["savedJobs"];
+    saveJob: UseJobCatalogReturn["saveJob"];
+    deleteJob: UseJobCatalogReturn["deleteJob"];
+}
 
 interface JobExecutorProps {
-    jobs: any[]; // useJobs return type
-    addJob: any;
-    updateJobStatus: any;
-    updateJob?: any; // New prop for detailed updates
-    addArtifact: any;
-    removeJob: any;
-    clearJobs: any;
-    allArtifacts: any;
-    importArtifact: any;
-    removeArtifact: any;
+    // ── Live queue + job state (from useJobs) ──
+    jobs: UseJobsReturn["jobs"];
+    addJob: UseJobsReturn["addJob"];
+    updateJobStatus: UseJobsReturn["updateJobStatus"];
+    updateJob?: UseJobsReturn["updateJob"];
+    addArtifact: UseJobsReturn["addArtifact"];
+    removeJob: UseJobsReturn["removeJob"];
+    clearJobs: UseJobsReturn["clearJobs"];
+    allArtifacts: JobArtifact[];
+    importArtifact: UseJobsReturn["importArtifact"];
+    removeArtifact: UseJobsReturn["removeArtifact"];
     isPaused: boolean;
-    toggleQueuePause: any;
-    updateArtifact: (id: string, updates: Record<string, any>) => void;
+    toggleQueuePause: UseJobsReturn["toggleQueuePause"];
+    updateArtifact: UseJobsReturn["updateArtifact"];
 
-    savedJobs: any[];
-    saveJob: any;
-    deleteJob: any;
+    // ── Saved-job catalog ──
+    savedJobs: SavedJobsApi["savedJobs"];
+    saveJob: SavedJobsApi["saveJob"];
+    deleteJob: SavedJobsApi["deleteJob"];
 
-    setJobs?: any; // [NEW]
-    setStandaloneArtifacts?: any; // [NEW]
+    // ── Persistence (optional setters used by reset / import flows) ──
+    setJobs?: UseJobsReturn["setJobs"];
+    setStandaloneArtifacts?: UseJobsReturn["setStandaloneArtifacts"];
 
     workspace: WorkspaceContextType;
     user: User | null;
 
-    architect: any; // useArchitect return
-    ecosystem: any; // useEcosystem return
+    architect: UseArchitectReturn;
+    ecosystem: UseEcosystemReturn;
 
     addLog: (log: string) => void;
-    addNotebookEntry: (entry: any) => void;
-    addDetail?: any; // metrics or similar
-    automations?: any; // Automations context
+    addNotebookEntry: UseNotebookReturn["addEntry"];
+    /** Optional metrics/details emitter (UI bookkeeping). */
+    addDetail?: (entry: NotebookEntry | Omit<NotebookEntry, "id" | "timestamp">) => void;
+    /** Automations context — runner/queue management for automation runs. */
+    automations?: {
+        runAutomation: (id: string) => Promise<void>;
+        runs: unknown[];
+    };
     workspaceManager?: {
-        list: () => any[];
+        list: () => unknown[];
         create: (name: string, description?: string) => Promise<string>;
         switch: (id: string) => Promise<void>;
         delete: (id: string) => Promise<void>;
@@ -133,12 +153,15 @@ export function useJobExecutor({
                         tags: ["job", queuedJob.type],
                     });
 
-                    // Initialize shared storage from job's storageDefaults
-                    const jobStorage: Record<string, any> = { ...(queuedJob.request?.storageDefaults || queuedJob.storageDefaults || {}) };
+                    // Initialize shared storage from job's storageDefaults.
+                    // Legacy job records sometimes carried these on the Job itself, so
+                    // we keep a typed-as-loose fallback for backward compatibility.
+                    const legacyJob = queuedJob as unknown as { storageDefaults?: Record<string, unknown>; inputDefaults?: EntityInput[] };
+                    const jobStorage: Record<string, any> = { ...(queuedJob.request?.storageDefaults || legacyJob.storageDefaults || {}) };
 
                     // Initialize entity input map from job's inputDefaults
                     const inputMap: Record<string, string> = {};
-                    const inputDefaults = queuedJob.request?.inputDefaults || queuedJob.inputDefaults || queuedJob.inputs || [];
+                    const inputDefaults: EntityInput[] = (queuedJob.request?.inputDefaults || legacyJob.inputDefaults || queuedJob.inputs || []) as EntityInput[];
                     for (const inp of inputDefaults) {
                         if (inp.name && inp.entityId) inputMap[inp.name] = inp.entityId;
                     }
@@ -163,11 +186,13 @@ export function useJobExecutor({
                         (inp: any) => inp.source?.kind === "prompt" && !inp.entityId
                     );
                     if (unresolvedPrompt) {
+                        const promptSource = unresolvedPrompt.source;
+                        const promptText = promptSource?.kind === "prompt" ? promptSource.promptText : undefined;
                         if (updateJob) updateJob(queuedJob.id, {
                             status: "awaiting-input" as any,
                             pendingPrompt: {
                                 inputName: unresolvedPrompt.name,
-                                promptText: unresolvedPrompt.source?.promptText || `Enter value for "${unresolvedPrompt.name}"`,
+                                promptText: promptText || `Enter value for "${unresolvedPrompt.name}"`,
                                 inputType: unresolvedPrompt.type || "text",
                                 options: unresolvedPrompt.options,
                                 min: unresolvedPrompt.min,
@@ -179,7 +204,7 @@ export function useJobExecutor({
                         pushTimelineEvent({
                             kind: "awaiting-input",
                             label: `Waiting for input: ${unresolvedPrompt.name}`,
-                            detail: unresolvedPrompt.source?.promptText,
+                            detail: promptText,
                         });
                         addLog(`Job "${queuedJob.type}" is waiting for user input: ${unresolvedPrompt.name}`);
                         processingRef.current.delete(queuedJob.id);
@@ -290,9 +315,12 @@ export function useJobExecutor({
                         if (queuedJob.steps && queuedJob.steps.length > 0) {
                             // Multi-step job dry-run
                             const deliverableKeys = (queuedJob.deliverables || []).map((d: any) => d.key);
+                            // dryRunJob only supports serial|parallel — 'mixed' jobs use parallel scheduling.
+                            const dryRunMode: 'serial' | 'parallel' =
+                                queuedJob.mode === 'parallel' || queuedJob.mode === 'mixed' ? 'parallel' : 'serial';
                             dryRunReport = registry.dryRunJob(
                                 queuedJob.steps,
-                                queuedJob.mode || 'serial',
+                                dryRunMode,
                                 context,
                                 jobStorage,
                                 deliverableKeys,
@@ -580,8 +608,9 @@ export function useJobExecutor({
                             for (let i = 0; i < steps.length; i++) {
                                 const stepName = steps[i].name || steps[i].commandId || steps[i].id;
                                 // Check condition if exists
-                                if (steps[i].condition) {
-                                    if (!evaluateCondition(steps[i].condition, context, steps)) {
+                                const stepCondition = steps[i].condition;
+                                if (stepCondition) {
+                                    if (!evaluateCondition(stepCondition, context, steps)) {
                                         steps[i] = { ...steps[i], status: 'skipped', result: 'Condition not met' };
                                         syncJobState({ steps: [...steps] });
                                         pushTimelineEvent({ kind: 'step:skipped', label: `${stepName} skipped`, stepId: steps[i].id, detail: 'Condition not met' });

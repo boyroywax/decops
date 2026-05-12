@@ -50,3 +50,6 @@ export function useJobCatalog() {
         getJob
     };
 }
+
+/** Inferred return type of {@link useJobCatalog}. Prefer this over `any`. */
+export type UseJobCatalogReturn = ReturnType<typeof useJobCatalog>;

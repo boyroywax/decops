@@ -70,3 +70,7 @@ export function useNotebook() {
 
     return { entries, addEntry, addLog, clearNotebook, exportNotebook };
 }
+
+/** Inferred return type of {@link useNotebook}. Prefer this over `any`
+ *  when injecting the notebook API into other hooks/components. */
+export type UseNotebookReturn = ReturnType<typeof useNotebook>;

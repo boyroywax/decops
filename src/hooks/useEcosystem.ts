@@ -166,3 +166,6 @@ export function useEcosystem({
     setBridgeMessages, setActiveBridges,
   };
 }
+
+/** Inferred return type of {@link useEcosystem}. Prefer this over `any`. */
+export type UseEcosystemReturn = ReturnType<typeof useEcosystem>;

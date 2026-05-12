@@ -226,3 +226,10 @@ export function useJobs() {
         standaloneArtifacts
     };
 }
+
+/**
+ * Inferred return type of {@link useJobs}. Use this in components/hooks
+ * that accept the jobs object as a prop so we don't propagate `any` —
+ * the shape stays in sync with the implementation automatically.
+ */
+export type UseJobsReturn = ReturnType<typeof useJobs>;
