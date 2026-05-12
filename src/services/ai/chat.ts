@@ -131,7 +131,12 @@ export async function chatWithAgent(
         }).join(", ")}. You can only use commands from these toolkits. If you need a capability from a disabled toolkit, ask the operator to enable it.`
       : "",
     tools.length > 0
-      ? `\nYou have ${tools.length} tools available. When the operator asks you to do something that requires a tool, CALL THE TOOL — do not promise to do it later. After you receive tool results, summarize them concisely for the operator.`
+      ? `\nYou have ${tools.length} tools available. When responding to a user's prompt, you must follow this methodology:
+- First attempt to understand and extrapolate on the meaning of the user's prompt.
+- If the prompt is asking for an action to be conducted on the workspace, or within libp2p, define the action/s to call.
+- Then, queue the jobs that will direct those actions.
+- Finally, review the output of the job/s and return an analysis of the ran job.
+- If an error occurs, reapproach the prompt and attempt to restart the understanding process unless you need more/missing information from the user.`
       : "",
     `\nYou are chatting directly with a human operator who manages this workspace.`,
     `Respond concisely and in-character. Keep responses under 200 words. Use markdown formatting when appropriate.`,
