@@ -573,18 +573,27 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     const currentIsViewBound = currentId
       ? Object.values(VIEW_BOUND_AGENTS).includes(currentId)
       : false;
+    // A non-view-bound agent (e.g. Architect) is "stale" once the user
+    // navigates away from its declared home view — it should be released
+    // so the destination view's bound agent can take over.
+    const currentIsStaleRoamer =
+      !!current && !currentIsViewBound && !!current.workspace?.view && current.workspace.view !== view;
 
-    if (desired && currentId !== desired && (!currentId || currentIsViewBound)) {
+    if (desired && currentId !== desired && (!currentId || currentIsViewBound || currentIsStaleRoamer)) {
+      // Entering a view-bound view: activate its agent, replacing any
+      // existing view-bound agent or stale roaming agent.
       store.setActive(desired);
       return;
     }
     if (!desired && currentIsViewBound) {
+      // Leaving a view-bound view for a non-bound view: release the
+      // view-bound agent so it doesn't linger in unrelated views.
       store.setActive(null);
       return;
     }
     // Release non-view-bound agents (e.g. Architect) when the user
     // navigates away from their declared home view.
-    if (current?.workspace?.view && current.workspace.view !== view) {
+    if (currentIsStaleRoamer) {
       store.setActive(null);
     }
   }, [view]);
