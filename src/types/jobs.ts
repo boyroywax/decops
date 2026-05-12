@@ -174,19 +174,28 @@ export interface JobDefinition {
   updatedAt: number;
 }
 
-export interface Job {
+/** Information shown while a job is paused waiting for user input. */
+export interface JobPendingPrompt {
+  inputName: string;
+  promptText: string;
+  inputType: EntityInput['type'];
+  options?: string[];
+  min?: number;
+  max?: number;
+  step?: number;
+  placeholder?: string;
+}
+
+/** Fields shared by every Job regardless of status. */
+export interface JobBase {
   id: string;
   type: string;
-  status: JobStatus;
   request: Record<string, any>;
-  result?: string;
   artifacts: JobArtifact[];
   createdAt: number;
   updatedAt: number;
   /** When the job actually began executing (epoch ms) — distinct from createdAt */
   startedAt?: number;
-  /** When the job reached a terminal state (epoch ms) */
-  completedAt?: number;
   /** Ordered timeline of lifecycle events for full traceability */
   timeline?: JobEvent[];
   jobDefinitionId?: string;
@@ -199,15 +208,19 @@ export interface Job {
   inputs?: EntityInput[];
   parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>;
   dryRun?: boolean;
-  /** When set, job is paused waiting for user input */
-  pendingPrompt?: {
-    inputName: string;
-    promptText: string;
-    inputType: EntityInput['type'];
-    options?: string[];
-    min?: number;
-    max?: number;
-    step?: number;
-    placeholder?: string;
-  };
 }
+
+/**
+ * A Job is a discriminated union on `status`:
+ *  - "queued" | "running": no terminal data
+ *  - "awaiting-input": carries a `pendingPrompt` describing what user input is required
+ *  - "completed" | "failed": carries `completedAt` (and may carry `result`)
+ *
+ * Terminal-only and prompt-only fields are deliberately absent from non-matching
+ * variants so consumers must narrow on `status` before accessing them.
+ */
+export type Job =
+  | (JobBase & { status: "queued" | "running"; result?: undefined; completedAt?: undefined; pendingPrompt?: undefined })
+  | (JobBase & { status: "awaiting-input"; pendingPrompt: JobPendingPrompt; result?: undefined; completedAt?: undefined })
+  | (JobBase & { status: "completed"; completedAt: number; result?: string; pendingPrompt?: undefined })
+  | (JobBase & { status: "failed"; completedAt: number; result?: string; pendingPrompt?: undefined });

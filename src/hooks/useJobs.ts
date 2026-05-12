@@ -47,7 +47,7 @@ export function useJobs() {
                         detail: result?.slice(0, 200),
                         duration,
                     }),
-                };
+                } as Job;
             }
             return job;
         }));
@@ -56,7 +56,7 @@ export function useJobs() {
     const updateJob = useCallback((id: string, updates: Partial<Job>) => {
         setJobs((prev) => prev.map((job) => {
             if (job.id === id) {
-                return { ...job, ...updates, updatedAt: Date.now() };
+                return { ...job, ...updates, updatedAt: Date.now() } as Job;
             }
             return job;
         }));
@@ -151,7 +151,7 @@ export function useJobs() {
                 const now = Date.now();
                 return {
                     ...job,
-                    status: "queued" as JobStatus,
+                    status: "queued" as const,
                     inputs: updatedInputs,
                     inputDefaults: updatedInputs,
                     pendingPrompt: undefined,
@@ -161,7 +161,7 @@ export function useJobs() {
                         label: `User provided input: ${inputName}`,
                         detail: value.slice(0, 200),
                     }),
-                };
+                } as Job;
             }
             return job;
         }));
