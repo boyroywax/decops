@@ -118,6 +118,7 @@ export const updateAgentPromptCommand: CommandDefinition = {
         items: { name: "items", type: "array", description: "Batch mode: array of {id, prompt} specs. Overrides individual args.", required: false }
     },
     output: "Confirmation",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context: CommandContext) => {
         const specs = args.items
             ? (Array.isArray(args.items) ? args.items : [args.items])
@@ -145,6 +146,7 @@ export const toggleGroupMemberCommand: CommandDefinition = {
         items: { name: "items", type: "array", description: "Batch mode: array of {group_id, agent_id} specs. Overrides individual args.", required: false }
     },
     output: "Confirmation",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context: CommandContext) => {
         const specs = args.items
             ? (Array.isArray(args.items) ? args.items : [args.items])

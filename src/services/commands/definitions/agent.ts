@@ -136,6 +136,7 @@ export const pingAgentCommand: CommandDefinition = {
         }
     },
     output: "Pong response with latency and status.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { agentId } = args;
         const agent = context.workspace.agents.find(a => a.id === agentId);

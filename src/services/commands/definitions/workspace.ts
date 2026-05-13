@@ -20,6 +20,7 @@ export const createWorkspaceCommand: CommandDefinition = {
         }
     },
     output: "The ID of the created workspace",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         if (!context.workspaceManager) throw new Error("Workspace Manager not available");
         const id = await context.workspaceManager.create(args.name, args.description);
@@ -42,6 +43,7 @@ export const switchWorkspaceCommand: CommandDefinition = {
         }
     },
     output: "Confirmation message",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         if (!context.workspaceManager) throw new Error("Workspace Manager not available");
         await context.workspaceManager.switch(args.id);
@@ -63,6 +65,7 @@ export const deleteWorkspaceCommand: CommandDefinition = {
         }
     },
     output: "Confirmation message",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         if (!context.workspaceManager) throw new Error("Workspace Manager not available");
         await context.workspaceManager.delete(args.id);
@@ -91,6 +94,7 @@ export const duplicateWorkspaceCommand: CommandDefinition = {
         }
     },
     output: "The ID of the new workspace",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         if (!context.workspaceManager) throw new Error("Workspace Manager not available");
         // We need to cast or extend the type definition in next steps, for now assume duplicate exists
@@ -120,6 +124,7 @@ export const editWorkspaceCommand: CommandDefinition = {
         }
     },
     output: "Confirmation message",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         if (!args.title && !args.description) throw new Error("Provide at least one of title or description to update");
         if (!context.workspaceManager) throw new Error("Workspace Manager not available");

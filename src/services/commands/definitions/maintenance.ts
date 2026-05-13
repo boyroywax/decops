@@ -7,6 +7,7 @@ export const resetWorkspaceCommand: CommandDefinition = {
     rbac: ["orchestrator"], // High privilege
     args: {},
     output: "Confirmation message",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { setAgents, setChannels, setGroups, setMessages } = context.workspace;
         const addLog = context.workspace.addLog || (() => { });
@@ -52,6 +53,7 @@ export const bulkDeleteCommand: CommandDefinition = {
         all: { name: "all", type: "boolean", description: "Delete every item of the given type", required: false, defaultValue: false }
     },
     output: "Confirmation",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { type, ids, all } = args;
         const { setAgents, setChannels, setGroups, setMessages, addLog, agents, channels, groups, messages } = context.workspace;

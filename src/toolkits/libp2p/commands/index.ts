@@ -92,6 +92,7 @@ export const libp2pStartCommand: CommandDefinition = {
         },
     },
     output: "JSON object with node status, peer id, and listen multiaddrs.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { nodeId, bootstrap, disabledBootstrap, services, discovery, transports, enableWebRTC, enableCircuitRelay, pnetKey } = args;
         await libp2pService.start({
@@ -126,6 +127,7 @@ export const libp2pStopCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: { nodeId: NODE_ID_ARG },
     output: "Confirmation that the node is stopped.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         await libp2pService.stop(args.nodeId);
         const snap = libp2pService.getNode(args.nodeId).snapshot();
@@ -151,6 +153,7 @@ export const libp2pDialCommand: CommandDefinition = {
         },
     },
     output: "JSON object with the connected remote peer id.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { nodeId, target } = args;
         if (!target || typeof target !== "string") throw new Error("target is required");
@@ -177,6 +180,7 @@ export const libp2pPingCommand: CommandDefinition = {
         },
     },
     output: "JSON object with peerId and latencyMs.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         const { nodeId, peerId } = args;
         if (!peerId || typeof peerId !== "string") throw new Error("peerId is required");
@@ -203,6 +207,7 @@ export const libp2pListPeersCommand: CommandDefinition = {
         },
     },
     output: "JSON array of peer descriptors.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         const snap = libp2pService.getNode(args.nodeId).snapshot();
         const peers = args.connectedOnly ? snap.peers.filter((p) => p.connected) : snap.peers;
@@ -222,6 +227,7 @@ export const libp2pPubsubSubscribeCommand: CommandDefinition = {
         topic: { name: "topic", type: "string", description: "Topic name.", required: true },
     },
     output: "JSON confirming the subscription.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         const { nodeId, topic } = args;
         if (!topic || typeof topic !== "string") throw new Error("topic is required");
@@ -243,6 +249,7 @@ export const libp2pPubsubPublishCommand: CommandDefinition = {
         message: { name: "message", type: "string", description: "Message body (UTF-8).", required: true },
     },
     output: "JSON confirming the publish.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         const { nodeId, topic, message } = args;
         if (!topic || typeof topic !== "string") throw new Error("topic is required");
@@ -269,6 +276,7 @@ export const libp2pHangupCommand: CommandDefinition = {
         },
     },
     output: "JSON confirming the hangup.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { nodeId, peerId } = args;
         if (!peerId || typeof peerId !== "string") throw new Error("peerId is required");
@@ -290,6 +298,7 @@ export const libp2pPubsubUnsubscribeCommand: CommandDefinition = {
         topic: { name: "topic", type: "string", description: "Topic name.", required: true },
     },
     output: "JSON confirming the unsubscribe.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         const { nodeId, topic } = args;
         if (!topic || typeof topic !== "string") throw new Error("topic is required");
@@ -307,6 +316,7 @@ export const libp2pClearPeersCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: { nodeId: NODE_ID_ARG },
     output: "JSON confirming the peer book was cleared.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         libp2pService.clearPeers(args.nodeId);
         return { cleared: true };
@@ -329,6 +339,7 @@ export const libp2pAddNodeCommand: CommandDefinition = {
         },
     },
     output: "JSON with the new node's local id and label.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const id = libp2pService.addNode(args.label);
         context.workspace.addLog(`libp2p node added (${id})`);
@@ -348,6 +359,7 @@ export const libp2pRemoveNodeCommand: CommandDefinition = {
         nodeId: { ...NODE_ID_ARG, required: true, description: "Local node id to remove." },
     },
     output: "JSON confirming the removal.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         if (!args.nodeId) throw new Error("nodeId is required");
         await libp2pService.removeNode(args.nodeId);
@@ -367,6 +379,7 @@ export const libp2pSetActiveNodeCommand: CommandDefinition = {
         nodeId: { ...NODE_ID_ARG, required: true, description: "Local node id to make active." },
     },
     output: "JSON with the new active node id.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         if (!args.nodeId) throw new Error("nodeId is required");
         libp2pService.setActive(args.nodeId);
@@ -386,6 +399,7 @@ export const libp2pRenameNodeCommand: CommandDefinition = {
         label: { name: "label", type: "string", description: "New label.", required: true },
     },
     output: "JSON confirming the rename.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         if (!args.label || typeof args.label !== "string") throw new Error("label is required");
         const id = args.nodeId ?? libp2pService.getActiveId();
@@ -404,6 +418,7 @@ export const libp2pGenerateIdentityCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: { nodeId: NODE_ID_ARG },
     output: "JSON with the resulting peer id hint.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const result = await libp2pService.generateIdentity(args.nodeId);
         context.workspace.addLog(`libp2p generated identity ${result.peerIdHint.slice(0, 16)}…`);
@@ -428,6 +443,7 @@ export const libp2pImportIdentityCommand: CommandDefinition = {
         },
     },
     output: "JSON with the resulting peer id hint.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         if (!args.privateKey || typeof args.privateKey !== "string") {
             throw new Error("privateKey is required");
@@ -447,6 +463,7 @@ export const libp2pExportIdentityCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: { nodeId: NODE_ID_ARG },
     output: "JSON with peerId and base64 privateKey.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const result = await libp2pService.exportIdentity(args.nodeId);
         context.workspace.addLog(`libp2p exported identity ${result.peerId.slice(0, 16)}…`);
@@ -472,6 +489,7 @@ export const libp2pClearIdentityCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: { nodeId: NODE_ID_ARG },
     output: "JSON confirming the identity was cleared.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         libp2pService.clearIdentity(args.nodeId);
         return { cleared: true };
@@ -493,6 +511,7 @@ export const libp2pContactAddCommand: CommandDefinition = {
         tags: { name: "tags", type: "array", description: "Optional tags.", required: false },
     },
     output: "JSON with the new contact id.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         if (!args.peerId || typeof args.peerId !== "string") throw new Error("peerId is required");
         const c = useLibp2pCollections.getState().addContact({
@@ -513,6 +532,7 @@ export const libp2pContactRemoveCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: { id: { name: "id", type: "string", description: "Contact id.", required: true } },
     output: "JSON confirming the removal.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         if (!args.id || typeof args.id !== "string") throw new Error("id is required");
         useLibp2pCollections.getState().removeContact(args.id);
@@ -527,6 +547,7 @@ export const libp2pContactListCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder", "researcher", "validator"],
     args: {},
     output: "JSON array of contacts.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async () => {
         const contacts = useLibp2pCollections.getState().contacts;
         return { count: contacts.length, contacts };
@@ -543,6 +564,7 @@ export const libp2pContactDialCommand: CommandDefinition = {
         contactId: { name: "contactId", type: "string", description: "Contact id.", required: true },
     },
     output: "JSON with the connected remote peer id.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         if (!args.contactId || typeof args.contactId !== "string") throw new Error("contactId is required");
         const c = getContact(args.contactId);
@@ -568,6 +590,7 @@ export const libp2pVaultStoreCommand: CommandDefinition = {
         notes: { name: "notes", type: "string", description: "Optional notes (plaintext).", required: false },
     },
     output: "JSON with the new vault entry id and peer id.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         if (!args.label || !args.peerId || !args.privateKey || !args.passphrase) {
             throw new Error("label, peerId, privateKey and passphrase are required");
@@ -592,6 +615,7 @@ export const libp2pVaultRemoveCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: { id: { name: "id", type: "string", description: "Vault entry id.", required: true } },
     output: "JSON confirming the removal.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         if (!args.id || typeof args.id !== "string") throw new Error("id is required");
         useLibp2pCollections.getState().removeVaultEntry(args.id);
@@ -606,6 +630,7 @@ export const libp2pVaultListCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder", "researcher", "validator"],
     args: {},
     output: "JSON array of vault entries (metadata only).",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async () => {
         const vault = useLibp2pCollections.getState().vault.map((v) => ({
             id: v.id,
@@ -629,6 +654,7 @@ export const libp2pVaultLoadCommand: CommandDefinition = {
         passphrase: { name: "passphrase", type: "string", description: "Passphrase that protects the entry.", required: true },
     },
     output: "JSON with the loaded peer id.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         if (!args.vaultId || !args.passphrase) throw new Error("vaultId and passphrase are required");
         const entry = getVaultEntry(args.vaultId);
@@ -651,6 +677,7 @@ export const libp2pVaultExportCurrentCommand: CommandDefinition = {
         notes: { name: "notes", type: "string", description: "Optional notes.", required: false },
     },
     output: "JSON with the new vault entry id and peer id.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         if (!args.label || !args.passphrase) throw new Error("label and passphrase are required");
         const exported = await libp2pService.exportIdentity(args.nodeId);
@@ -681,6 +708,7 @@ export const libp2pPnetGenerateCommand: CommandDefinition = {
         notes: { name: "notes", type: "string", description: "Optional notes.", required: false },
     },
     output: "JSON with the new network entry id and fingerprint.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         if (!args.label || !args.passphrase) throw new Error("label and passphrase are required");
         const asciiKey = generatePnetKey();
@@ -711,6 +739,7 @@ export const libp2pPnetAddCommand: CommandDefinition = {
         notes: { name: "notes", type: "string", description: "Optional notes.", required: false },
     },
     output: "JSON with the new network entry id and fingerprint.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         if (!args.label || !args.psk || !args.passphrase) {
             throw new Error("label, psk and passphrase are required");
@@ -738,6 +767,7 @@ export const libp2pPnetListCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder", "researcher", "validator"],
     args: {},
     output: "JSON array of network entry metadata.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async () => {
         const networks = useLibp2pCollections.getState().networks.map((n) => ({
             id: n.id,
@@ -757,6 +787,7 @@ export const libp2pPnetRemoveCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: { id: { name: "id", type: "string", description: "Network entry id.", required: true } },
     output: "JSON confirming the removal.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args) => {
         if (!args.id || typeof args.id !== "string") throw new Error("id is required");
         useLibp2pCollections.getState().removePnetEntry(args.id);
@@ -775,6 +806,7 @@ export const libp2pPnetApplyCommand: CommandDefinition = {
         passphrase: { name: "passphrase", type: "string", description: "Passphrase that protects the entry.", required: true },
     },
     output: "JSON with the started node status and the network fingerprint.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         if (!args.pnetId || !args.passphrase) throw new Error("pnetId and passphrase are required");
         const entry = getPnetEntry(args.pnetId);

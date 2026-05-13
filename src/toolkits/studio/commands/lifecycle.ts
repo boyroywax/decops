@@ -18,13 +18,16 @@ export const studioGetStateCommand: CommandDefinition = {
     args: {},
     output: "Full Studio state object",
     outputSchema: {
-        name: "string",
-        description: "string",
-        mode: "string",
-        stepCount: "number",
-        steps: "array",
-        deliverables: "array",
-        storageEntries: "array",
+        type: "object",
+        properties: {
+            name: { type: "string" },
+            description: { type: "string" },
+            mode: { type: "string" },
+            stepCount: { type: "number" },
+            steps: { type: "array" },
+            deliverables: { type: "array" },
+            storageEntries: { type: "array" },
+        },
     },
     execute: async (_args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
@@ -47,6 +50,7 @@ export const studioSetJobMetaCommand: CommandDefinition = {
         description: { name: "description", type: "string", description: "Job description", required: false },
     },
     output: "Updated job metadata",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -67,6 +71,7 @@ export const studioSaveJobCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: {},
     output: "Saved job definition ID",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (_args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -83,6 +88,7 @@ export const studioRunJobCommand: CommandDefinition = {
     spawnsChildJobs: true,
     args: {},
     output: "Run status with final job result",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (_args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -121,6 +127,7 @@ export const studioLoadJobCommand: CommandDefinition = {
         jobId: { name: "jobId", type: "string", description: "The job definition ID to load from the catalog", required: true },
     },
     output: "Loaded job info",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -136,6 +143,7 @@ export const studioClearCanvasCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: {},
     output: "Confirmation message",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (_args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -208,6 +216,7 @@ export const studioCreateJobCommand: CommandDefinition = {
         run: { name: "run", type: "boolean", description: "Run the job immediately after creation", required: false, defaultValue: false },
     },
     output: "Created job info with optional save/run results",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -354,6 +363,7 @@ export const studioAddTriggerCommand: CommandDefinition = {
         cron: { name: "cron", type: "string", description: "Cron expression (only for schedule:cron events)", required: false },
     },
     output: "Created trigger ID",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -375,6 +385,7 @@ export const studioRemoveTriggerCommand: CommandDefinition = {
         triggerId: { name: "triggerId", type: "string", description: "ID of the trigger to remove", required: true },
     },
     output: "Removed trigger confirmation",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -396,6 +407,7 @@ export const studioAutoLayoutCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: {},
     output: "Layout result",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (_args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };

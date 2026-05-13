@@ -20,6 +20,7 @@ export const studioAddDeliverableCommand: CommandDefinition = {
         description: { name: "description", type: "string", description: "Description of what this deliverable contains", required: false },
     },
     output: "Added deliverable info",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -37,6 +38,7 @@ export const studioRemoveDeliverableCommand: CommandDefinition = {
         index: { name: "index", type: "number", description: "Index of the deliverable to remove (0-based)", required: true },
     },
     output: "Removal confirmation",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -59,6 +61,7 @@ export const studioAddStorageCommand: CommandDefinition = {
         value: { name: "value", type: "string", description: "Default value (string or JSON)", required: false, defaultValue: "" },
     },
     output: "Added storage entry",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -76,6 +79,7 @@ export const studioRemoveStorageCommand: CommandDefinition = {
         index: { name: "index", type: "number", description: "Index of the storage entry to remove (0-based)", required: true },
     },
     output: "Removal confirmation",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -99,6 +103,7 @@ export const studioAddInputCommand: CommandDefinition = {
         entityId: { name: "entityId", type: "string", description: "The entity ID to map to", required: false, defaultValue: "" },
     },
     output: "Added entity input",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -116,6 +121,7 @@ export const studioRemoveInputCommand: CommandDefinition = {
         index: { name: "index", type: "number", description: "Index of the input to remove (0-based)", required: true },
     },
     output: "Removal confirmation",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -135,6 +141,7 @@ export const studioUpdateInputCommand: CommandDefinition = {
         value: { name: "value", type: "string", description: "New value for the field", required: true },
     },
     output: "Updated input",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };

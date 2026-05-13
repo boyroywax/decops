@@ -342,6 +342,13 @@ export const clearImageCacheCommand: CommandDefinition = {
     recommendedModel: "imagen-4.0-generate-001",
     args: {},
     output: "Confirmation message.",
+    outputSchema: {
+        type: "object",
+        properties: {
+            cleared: { type: "boolean" },
+            message: { type: "string" },
+        },
+    },
     execute: async (_args, context) => {
         await clearPortraitCache();
         context.workspace.addLog("Image cache cleared. Portraits and badges will regenerate on next view.");

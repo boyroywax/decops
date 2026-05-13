@@ -13,6 +13,7 @@ export const broadcastMessageCommand: CommandDefinition = {
         sender_id: { name: "sender_id", type: "agent", description: "Sender Agent ID", required: false } // optional, defaults to first member
     },
     output: "Confirmation",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { group_id, message, sender_id } = args;
         const { agents, channels, groups, setMessages, setActiveChannels, addLog } = context.workspace;

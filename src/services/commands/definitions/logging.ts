@@ -72,6 +72,7 @@ export const logQueryCommand: CommandDefinition = {
     },
   },
   output: "Array of matching log entries",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args) => {
     const agg = getLogAggregator();
     const entries = agg.query({
@@ -129,6 +130,7 @@ export const logPublishCommand: CommandDefinition = {
     },
   },
   output: "Published entry ID",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args) => {
     const agg = getLogAggregator();
     const entry = {
@@ -153,6 +155,7 @@ export const logListChannelsCommand: CommandDefinition = {
   rbac: ["orchestrator"],
   args: {},
   output: "Array of channel metadata",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async () => {
     const agg = getLogAggregator();
     return JSON.stringify(agg.getChannels(), null, 2);
@@ -168,6 +171,7 @@ export const logListSinksCommand: CommandDefinition = {
   rbac: ["orchestrator"],
   args: {},
   output: "Array of sink IDs",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async () => {
     const agg = getLogAggregator();
     return JSON.stringify(agg.getSinkIds());
@@ -191,6 +195,7 @@ export const logAddSinkCommand: CommandDefinition = {
     },
   },
   output: "Confirmation",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args) => {
     const agg = getLogAggregator();
     const config = args.config as LogSinkConfig;
@@ -218,6 +223,7 @@ export const logRemoveSinkCommand: CommandDefinition = {
     },
   },
   output: "Confirmation",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args) => {
     const agg = getLogAggregator();
     await agg.removeSink(args.sinkId as string);
@@ -234,6 +240,7 @@ export const logClearCommand: CommandDefinition = {
   rbac: ["orchestrator"],
   args: {},
   output: "Confirmation",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async () => {
     const agg = getLogAggregator();
     agg.clear();
@@ -250,6 +257,7 @@ export const logFlushCommand: CommandDefinition = {
   rbac: ["orchestrator"],
   args: {},
   output: "Confirmation",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async () => {
     const agg = getLogAggregator();
     await agg.flush();
@@ -268,6 +276,7 @@ export const logRootCidsCommand: CommandDefinition = {
   rbac: ["orchestrator"],
   args: {},
   output: "Map of sink ID → root CID",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async () => {
     const agg = getLogAggregator();
     const cids = agg.collectRootCids();

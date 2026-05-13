@@ -174,6 +174,7 @@ export const delegateTaskCommand: CommandDefinition = {
     },
   },
   output: "Updated task status after delegation.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args, context: CommandContext) => {
     const task = getTask(args.taskId);
     if (!task) throw new Error(`Task "${args.taskId}" not found`);
@@ -233,6 +234,7 @@ export const escalateTaskCommand: CommandDefinition = {
     },
   },
   output: "Updated task status after escalation.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args, context: CommandContext) => {
     const task = getTask(args.taskId);
     if (!task) throw new Error(`Task "${args.taskId}" not found`);
@@ -285,6 +287,7 @@ export const taskStatusCommand: CommandDefinition = {
     },
   },
   output: "Full task status including history and result.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args) => {
     const task = getTask(args.taskId);
     if (!task) throw new Error(`Task "${args.taskId}" not found`);
@@ -346,6 +349,7 @@ export const listTasksCommand: CommandDefinition = {
     },
   },
   output: "Array of task summaries.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args) => {
     let tasks = getAllTasks();
     if (args.status) {
@@ -525,6 +529,7 @@ export const proposeAgentCommand: CommandDefinition = {
     },
   },
   output: "Consensus result with member positions and outcome.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args, context: CommandContext) => {
     const { addLog, agents, groups } = context.workspace;
 
@@ -622,6 +627,7 @@ export const executeProposalCommand: CommandDefinition = {
     },
   },
   output: "Result of the proposal execution.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args, context: CommandContext) => {
     const proposal = context.storage[`proposal_${args.proposalId}`] as ConsensusProposal | undefined;
     if (!proposal) throw new Error(`Proposal "${args.proposalId}" not found in storage`);
