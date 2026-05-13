@@ -5,7 +5,7 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
-    color: #e2e8f0;
+    color: var(--text-primary, #e2e8f0);
     font-family: "DM Mono", monospace;
     overflow-y: auto;
     height: 100%;
@@ -102,7 +102,7 @@
     border-radius: 4px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: var(--rgba-white-04, rgba(255, 255, 255, 0.04));
-    color: #e2e8f0;
+    color: var(--text-primary, #e2e8f0);
     font-family: inherit;
     font-size: 12px;
     cursor: pointer;
@@ -147,7 +147,7 @@
     border-radius: 3px;
     border: 1px solid transparent;
     background: transparent;
-    color: #94a3b8;
+    color: var(--text-muted, #94a3b8);
     cursor: pointer;
 }
 
@@ -192,7 +192,7 @@
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #94a3b8;
+    color: var(--text-muted, #94a3b8);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -223,14 +223,14 @@
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #64748b;
+    color: var(--text-ghost, #64748b);
     min-width: 80px;
 }
 
 .libp2p-mono {
     font-family: "DM Mono", monospace;
     font-size: 11px;
-    color: #cbd5e1;
+    color: var(--text-secondary, #cbd5e1);
     background: rgba(0, 0, 0, 0.3);
     padding: 2px 6px;
     border-radius: 3px;
@@ -244,7 +244,7 @@
 
 .libp2p-muted {
     margin: 0;
-    color: #64748b;
+    color: var(--text-ghost, #64748b);
     font-size: 11px;
 }
 
@@ -275,7 +275,7 @@
     border-radius: 4px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(0, 0, 0, 0.3);
-    color: #e2e8f0;
+    color: var(--text-primary, #e2e8f0);
     font-family: inherit;
     font-size: 12px;
 }
@@ -291,7 +291,7 @@
 
 .libp2p-bootstrap {
     font-size: 11px;
-    color: #94a3b8;
+    color: var(--text-muted, #94a3b8);
 }
 
 .libp2p-bootstrap summary {
@@ -329,7 +329,7 @@
 }
 
 .libp2p-peer-status {
-    color: #64748b;
+    color: var(--text-ghost, #64748b);
     display: inline-flex;
 }
 
@@ -351,7 +351,7 @@
 .libp2p-source {
     font-size: 9px;
     text-transform: uppercase;
-    color: #64748b;
+    color: var(--text-ghost, #64748b);
     letter-spacing: 0.06em;
 }
 
@@ -370,7 +370,7 @@
     display: flex;
     gap: 8px;
     font-size: 11px;
-    color: #cbd5e1;
+    color: var(--text-secondary, #cbd5e1);
     padding: 2px 4px;
 }
 
@@ -379,7 +379,7 @@
 }
 
 .libp2p-log-ts {
-    color: #475569;
+    color: var(--text-ghost, #475569);
     flex-shrink: 0;
 }
 
@@ -390,7 +390,7 @@
     flex-wrap: wrap;
     gap: 4px;
     padding: 0 12px;
-    border-bottom: 1px solid #1e293b;
+    border-bottom: 1px solid var(--border-medium, #1e293b);
     background: var(--bg-surface, #0b1220);
 }
 
@@ -403,7 +403,7 @@
     border-bottom: none;
     border-radius: 6px 6px 0 0;
     background: var(--bg-surface, #0f172a);
-    color: #94a3b8;
+    color: var(--text-muted, #94a3b8);
     cursor: pointer;
     font-size: 12px;
     user-select: none;
@@ -433,15 +433,15 @@
     letter-spacing: 0.04em;
     padding: 1px 6px;
     border-radius: 8px;
-    background: #1e293b;
-    color: #94a3b8;
+    background: var(--bg-surface, #1e293b);
+    color: var(--text-muted, #94a3b8);
 }
 
 .libp2p-tab-badge--running { background: #14532d; color: #bbf7d0; }
 .libp2p-tab-badge--starting { background: #422006; color: #fde68a; }
 .libp2p-tab-badge--stopping { background: #422006; color: #fde68a; }
 .libp2p-tab-badge--error { background: #450a0a; color: #fecaca; }
-.libp2p-tab-badge--stopped { background: #1e293b; color: #94a3b8; }
+.libp2p-tab-badge--stopped { background: var(--bg-surface, #1e293b); color: var(--text-muted, #94a3b8); }
 
 .libp2p-tab-close {
     display: inline-flex;
@@ -449,14 +449,14 @@
     justify-content: center;
     border: none;
     background: transparent;
-    color: #64748b;
+    color: var(--text-ghost, #64748b);
     cursor: pointer;
     padding: 2px;
     border-radius: 4px;
 }
 
 .libp2p-tab-close:hover {
-    background: #334155;
+    background: var(--bg-surface-hover, #334155);
     color: #f87171;
 }
 
@@ -504,9 +504,9 @@
 }
 
 .libp2p-badge--count {
-    background: #1e293b;
-    color: #cbd5e1;
-    border: 1px solid #334155;
+    background: var(--bg-surface, #1e293b);
+    color: var(--text-secondary, #cbd5e1);
+    border: 1px solid var(--border-medium, #334155);
     padding: 0 6px;
     border-radius: 999px;
     font-size: 10px;
@@ -1223,7 +1223,7 @@
 }
 .libp2p-badge--muted {
     background: rgba(148, 163, 184, 0.15);
-    color: #94a3b8;
+    color: var(--text-muted, #94a3b8);
     border: 1px solid rgba(148, 163, 184, 0.25);
     font-size: 9.5px;
     text-transform: uppercase;
