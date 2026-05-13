@@ -4,7 +4,7 @@
  * Extracted from services/ai.ts for modularity.
  */
 
-import type { Agent, Channel, Group, Message, Network, Bridge, Job } from "@/types";
+import type { Agent, Channel, Group, Message, Network, Bridge, Job, JobRequest } from "@/types";
 import { TOOLKITS } from "@/services/toolkits";
 
 export interface WorkspaceContext {
@@ -14,8 +14,7 @@ export interface WorkspaceContext {
   messages: Message[];
   networks: Network[];
   bridges: Bridge[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  addJob?: (job: { type: string; request: any }) => void;
+  addJob?: (job: JobRequest) => void;
   jobs: Job[];
 }
 

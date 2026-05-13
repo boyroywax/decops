@@ -28,6 +28,14 @@ function downloadJSON(data: unknown, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
 export function useDataManagement(deps: DataManagementDeps) {
   const {
     agents, channels, groups, messages, networks, bridges,
@@ -59,44 +67,47 @@ export function useDataManagement(deps: DataManagementDeps) {
     }, `decops-full-backup-${Date.now()}.json`);
   }, [agents, channels, groups, messages, networks, bridges]);
 
-  const processImport = useCallback((json: any): { success: boolean; message: string } => {
-    if (!json.data) {
+  const processImport = useCallback((json: unknown): { success: boolean; message: string } => {
+    if (!isRecord(json) || !isRecord(json.data)) {
       return { success: false, message: "Invalid file format (missing data field)" };
     }
 
-    if (json.type === "full-backup") {
+    const type = typeof json.type === "string" ? json.type : undefined;
+    const data = json.data;
+
+    if (type === "full-backup") {
       // Support both old nested format and new flat format
-      const ws = json.data.workspace || json.data;
-      const eco = json.data.ecosystem || json.data;
-      setAgents(ws.agents || []);
-      setChannels(ws.channels || []);
-      setGroups(ws.groups || []);
-      setMessages(ws.messages || []);
+      const ws = isRecord(data.workspace) ? data.workspace : data;
+      const eco = isRecord(data.ecosystem) ? data.ecosystem : data;
+      setAgents(asArray<Agent>(ws.agents));
+      setChannels(asArray<Channel>(ws.channels));
+      setGroups(asArray<Group>(ws.groups));
+      setMessages(asArray<Message>(ws.messages));
       if (setNetworks && setBridges) {
-        setNetworks(eco.networks || eco.ecosystems || []);
-        setBridges(eco.bridges || []);
+        setNetworks(asArray<Network>(eco.networks || eco.ecosystems));
+        setBridges(asArray<Bridge>(eco.bridges));
       }
-    } else if (json.type === "workspace") {
-      setAgents(json.data.agents || []);
-      setChannels(json.data.channels || []);
-      setGroups(json.data.groups || []);
-      setMessages(json.data.messages || []);
+    } else if (type === "workspace") {
+      setAgents(asArray<Agent>(data.agents));
+      setChannels(asArray<Channel>(data.channels));
+      setGroups(asArray<Group>(data.groups));
+      setMessages(asArray<Message>(data.messages));
       // New workspace exports include networks/bridges
-      if (setNetworks && (json.data.networks || json.data.ecosystems)) {
-        setNetworks(json.data.networks || json.data.ecosystems || []);
+      if (setNetworks && (data.networks || data.ecosystems)) {
+        setNetworks(asArray<Network>(data.networks || data.ecosystems));
       }
-      if (setBridges && json.data.bridges) {
-        setBridges(json.data.bridges || []);
+      if (setBridges && data.bridges) {
+        setBridges(asArray<Bridge>(data.bridges));
       }
-    } else if (json.type === "ecosystem" && setNetworks && setBridges) {
+    } else if (type === "ecosystem" && setNetworks && setBridges) {
       // Legacy ecosystem-only imports
-      setNetworks(json.data.networks || json.data.ecosystems || []);
-      setBridges(json.data.bridges || []);
+      setNetworks(asArray<Network>(data.networks || data.ecosystems));
+      setBridges(asArray<Bridge>(data.bridges));
     } else {
       return { success: false, message: "Unknown or unsupported file type" };
     }
 
-    return { success: true, message: `Loaded data from ${json.type || "file"}.` };
+    return { success: true, message: `Loaded data from ${type || "file"}.` };
   }, [setAgents, setChannels, setGroups, setMessages, setNetworks, setBridges]);
 
   const resetAllData = useCallback(() => {

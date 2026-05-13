@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useEcosystemStore } from "@/stores";
 import type {
   Agent, Channel, Group, Message, Network, Bridge,
-  BridgeMessage, BridgeForm, ViewId, Ecosystem,
+  BridgeMessage, BridgeForm, ViewId, Ecosystem, JobRequest,
 } from "@/types";
 import { NETWORK_COLORS } from "@/constants";
 import { generateNetworkDID } from "@/utils/identity";
@@ -23,7 +23,7 @@ interface UseEcosystemDeps {
 export function useEcosystem({
   addLog, agents, channels, groups, messages,
   setAgents, setChannels, setGroups, setMessages, setView,
-}: UseEcosystemDeps, addJob?: (job: any) => void) {
+}: UseEcosystemDeps, addJob?: (job: JobRequest) => void) {
   // ─── Ecosystem state (backed by Zustand store) ───
   const ecosystem = useEcosystemStore((s) => s.ecosystem);
   const setEcosystem = useEcosystemStore((s) => s.setEcosystem);

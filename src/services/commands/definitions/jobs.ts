@@ -1,4 +1,5 @@
 import { CommandDefinition } from "@/services/commands/types";
+import type { JobDeliverable, JobRequest, JobStep } from "@/types";
 
 // --- Queue Management ---
 
@@ -20,16 +21,21 @@ export const queueNewJobCommand: CommandDefinition = {
     outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { type, request, steps, mode, deliverables, storageDefaults, parallelGroups } = args;
-        // JobRequest is a discriminated union whose fallback variant does not
-        // expose deliverables/storageDefaults — they're consumed by the executor
-        // via a wider payload shape. Keep an inline `any` cast scoped to addJob.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const jobPayload: any = { type, request };
-        if (steps) jobPayload.steps = steps;
-        if (mode) jobPayload.mode = mode;
-        if (deliverables) jobPayload.deliverables = deliverables;
-        if (storageDefaults) jobPayload.storageDefaults = storageDefaults;
-        if (parallelGroups) jobPayload.parallelGroups = parallelGroups;
+        const jobPayload = {
+            type: type as string,
+            request: request as Record<string, unknown>,
+        } as JobRequest & {
+            steps?: JobStep[];
+            mode?: "serial" | "parallel" | "mixed";
+            deliverables?: JobDeliverable[];
+            storageDefaults?: Record<string, unknown>;
+            parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>;
+        };
+        if (steps) jobPayload.steps = steps as JobStep[];
+        if (mode) jobPayload.mode = mode as "serial" | "parallel" | "mixed";
+        if (deliverables) jobPayload.deliverables = deliverables as JobDeliverable[];
+        if (storageDefaults) jobPayload.storageDefaults = storageDefaults as Record<string, unknown>;
+        if (parallelGroups) jobPayload.parallelGroups = parallelGroups as Array<{ id: string; label: string; stepIds: string[] }>;
         context.jobs.addJob(jobPayload);
         return "Job queued";
     }
