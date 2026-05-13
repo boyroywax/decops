@@ -116,11 +116,24 @@ export interface ProviderTool {
   input_schema?: Record<string, unknown>;
 }
 
+/**
+ * A message accepted by the provider request builder. Content may be a plain
+ * string or an array of provider-shaped content blocks (Anthropic tool_use,
+ * tool_result, etc.). The builder forwards it as-is to the underlying API.
+ * Additional provider-specific fields (e.g. OpenAI tool_calls, tool_call_id)
+ * are allowed via the index signature.
+ */
+export interface ProviderMessage {
+  role: string;
+  content: unknown;
+  [key: string]: unknown;
+}
+
 /** Build a non-streaming request for any provider */
 export function buildProviderRequest(
   model: string,
   systemPrompt: string,
-  messages: { role: string; content: string }[],
+  messages: ProviderMessage[],
   maxTokens: number,
   tools?: ProviderTool[],
 ): ProviderRequest {
@@ -279,7 +292,7 @@ export function buildToolResultMessages(
   model: string,
   assistantContent: unknown,
   toolResults: { id: string; content: string; isError?: boolean }[],
-): Array<Record<string, unknown>> {
+): ProviderMessage[] {
   const provider = getModelProvider(model);
 
   if (provider === "openai" || provider === "openrouter") {

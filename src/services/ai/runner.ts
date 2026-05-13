@@ -39,6 +39,7 @@ import {
   buildProviderRequest, parseProviderResponse,
   parseToolUseBlocks, buildToolResultMessages,
 } from "./providers";
+import type { ToolUseBlock, ProviderMessage } from "./providers";
 import { parseAnthropicSSE } from "./sse";
 
 // ── Public types ──────────────────────────────────────────────────────────
@@ -50,7 +51,7 @@ export interface ChatRunCallbacks {
   /** Fired when the model starts a tool call. `input` is empty during the
    *  streaming `content_block_start` event; the populated version arrives
    *  again via `onToolCallStart` immediately before execution. */
-  onToolCallStart?: (name: string, input: Record<string, any>) => void;
+  onToolCallStart?: (name: string, input: Record<string, unknown>) => void;
   /** Fired when a tool call completes (success or error). Includes any
    *  `jobId` the command spawned so the chat can render a JobProgressCard. */
   onToolCallComplete?: (display: ToolCallDisplay) => void;
@@ -64,8 +65,8 @@ export interface ChatRunCallbacks {
    *  undefined to proceed normally. */
   interceptToolCall?: (
     name: string,
-    input: Record<string, any>,
-  ) => { content: string; isError?: boolean; result?: any; error?: string } | null | undefined;
+    input: Record<string, unknown>,
+  ) => { content: string; isError?: boolean; result?: unknown; error?: string } | null | undefined;
   /** Abort the run. Both the SSE reader and the in-flight fetch are
    *  cancelled. The runner returns whatever text + tool calls accumulated
    *  so far. */
@@ -153,7 +154,7 @@ export async function runChatTurn(
   const useStream = stream && provider === "anthropic";
 
   // Mutable working state.
-  const apiMessages: any[] = [...messages];
+  const apiMessages: ProviderMessage[] = [...messages];
   const allToolCalls: ToolCallDisplay[] = [];
   let fullText = "";
 
@@ -163,14 +164,14 @@ export async function runChatTurn(
         return { text: fullText, toolCalls: allToolCalls, reason: "aborted" };
       }
 
-      let toolUseBlocks: any[] = [];
-      let rawAssistantContent: any = null;
+      let toolUseBlocks: ToolUseBlock[] = [];
+      let rawAssistantContent: unknown = null;
       let roundText = "";
 
       // ───── Provider call ─────
       if (useStream) {
         // Anthropic SSE path.
-        const body: any = {
+        const body: Record<string, unknown> = {
           model,
           max_tokens: maxTokens,
           system: systemPrompt,
@@ -213,7 +214,7 @@ export async function runChatTurn(
         );
 
         rawAssistantContent = sseResult.contentBlocks;
-        toolUseBlocks = sseResult.contentBlocks.filter((b: any) => b.type === "tool_use");
+        toolUseBlocks = sseResult.contentBlocks.filter((b): b is ToolUseBlock => b.type === "tool_use");
       } else {
         // Non-streaming path — works for every provider, including Anthropic
         // when stream:false.
