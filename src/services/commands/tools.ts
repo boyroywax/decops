@@ -28,17 +28,17 @@ interface AnthropicToolProperty {
   type: string;
   description: string;
   items?: { type: string };
-  default?: any;
+  default?: unknown;
   enum?: string[];
 }
 
-// ── Tool Result ────────────────────────────────────
+// ── Tool Result ───────────────────────────────────────
 
 export interface ToolCallResult {
   tool_use_id: string;
   name: string;
-  input: Record<string, any>;
-  result: any;
+  input: Record<string, unknown>;
+  result: unknown;
   error?: string;
   duration_ms: number;
   jobId?: string;
@@ -49,7 +49,7 @@ export interface ToolCallResult {
 // back to the awaiting tool call.
 
 interface PendingToolJob {
-  resolve: (result: any) => void;
+  resolve: (result: unknown) => void;
   reject: (err: Error) => void;
 }
 

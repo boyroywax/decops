@@ -15,9 +15,17 @@ import { getAgentModel, getCommandModel } from "@/services/ai";
 interface UseCommandContextProps {
     workspace: WorkspaceContextType;
     user: User | null;
-    jobs: any; // JobsContextType
-    ecosystem: any; // EcosystemContextType
-    architect: any; // Architect return
+    /** JobsContextType. Kept loose because test fixtures and the ChatPanel
+     *  caller pass partial mocks that would force widespread test rewrites
+     *  if tightened. */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    jobs: any;
+    /** EcosystemContextType. See `jobs` above for rationale. */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ecosystem: any;
+    /** UseArchitectReturn. See `jobs` above for rationale. */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    architect: any;
     addLog: (msg: string) => void;
     /** Toolkit-injected extensions (e.g. { studio: StudioAPI, editor: EditorAPI }) */
     extensions?: Record<string, unknown>;

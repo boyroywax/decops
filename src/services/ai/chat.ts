@@ -17,6 +17,7 @@ import {
 } from "./providers";
 import { getChatDelegation } from "./delegation";
 import { runChatTurn } from "./runner";
+import type { ChatTurnMessage } from "./runner";
 
 export interface ChatMessage {
   id?: string;
@@ -38,8 +39,8 @@ export interface ChatMessage {
 /** Lightweight representation of a tool call for display in chat */
 export interface ToolCallDisplay {
   name: string;
-  input: Record<string, any>;
-  result: any;
+  input: Record<string, unknown>;
+  result: unknown;
   error?: string;
   duration_ms: number;
   jobId?: string;
@@ -142,7 +143,7 @@ export async function chatWithAgent(
     `Respond concisely and in-character. Keep responses under 200 words. Use markdown formatting when appropriate.`,
   ].filter(Boolean).join("\n");
 
-  const messages: any[] = [
+  const messages: ChatTurnMessage[] = [
     ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
     { role: "user" as const, content: userMessage },
   ];
@@ -185,7 +186,7 @@ export async function chatWithWorkspace(
   // Build tools from command registry (tool use supported for anthropic + openai)
   const tools = commandContext && (provider === "anthropic" || provider === "openai") ? getAllTools() : [];
 
-  const messages: any[] = [
+  const messages: ChatTurnMessage[] = [
     ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
     { role: "user" as const, content: userMessage },
   ];

@@ -24,8 +24,8 @@ import {
   buildAgentProposal,
   deliberate,
 } from "@/services/autonomy";
-import type { Agent } from "@/types";
-import type { ConsensusProposal, AgentSpec, WorkflowSpec, EcosystemChangeSpec } from "@/types/autonomy";
+import type { Agent, Group } from "@/types";
+import type { ConsensusProposal, AgentSpec, WorkflowSpec, EcosystemChangeSpec, TaskEvent } from "@/types/autonomy";
 
 // ── assign_task ────────────────────────────────────
 
@@ -315,19 +315,20 @@ export const taskStatusCommand: CommandDefinition = {
   },
 };
 
-function summarizeEvent(event: any): string {
+function summarizeEvent(event: TaskEvent): string {
+  const detail = (event.detail || {}) as Record<string, unknown>;
   switch (event.kind) {
-    case "created": return `Task created with goal: "${event.detail.goal?.substring(0, 80)}"`;
-    case "plan_generated": return `Plan generated: ${event.detail.actionCount ?? "?"} actions, self-complete: ${event.detail.canSelfComplete}`;
-    case "action_executed": return `Executed ${event.detail.commandId} (step ${event.detail.order})`;
-    case "action_failed": return `Failed: ${event.detail.commandId} — ${event.detail.error}`;
-    case "delegated": return `Delegated to ${event.detail.targetId} (${event.detail.targetType})`;
-    case "escalated": return `Escalated: ${event.detail.fromLevel} → ${event.detail.toLevel}`;
-    case "agent_proposed": return `Proposed new agent: ${event.detail.spec?.name}`;
-    case "agent_created": return `Created agent: ${event.detail.agentName} (${event.detail.role})`;
-    case "consensus_reached": return `Consensus: ${event.detail.outcome?.decision}`;
-    case "completed": return `Completed: ${event.detail.summary}`;
-    case "failed": return `Failed: ${event.detail.reason}`;
+    case "created": return `Task created with goal: "${(detail.goal as string | undefined)?.substring(0, 80)}"`;
+    case "plan_generated": return `Plan generated: ${detail.actionCount ?? "?"} actions, self-complete: ${detail.canSelfComplete}`;
+    case "action_executed": return `Executed ${detail.commandId} (step ${detail.order})`;
+    case "action_failed": return `Failed: ${detail.commandId} — ${detail.error}`;
+    case "delegated": return `Delegated to ${detail.targetId} (${detail.targetType})`;
+    case "escalated": return `Escalated: ${detail.fromLevel} → ${detail.toLevel}`;
+    case "agent_proposed": return `Proposed new agent: ${(detail.spec as { name?: string } | undefined)?.name}`;
+    case "agent_created": return `Created agent: ${detail.agentName} (${detail.role})`;
+    case "consensus_reached": return `Consensus: ${(detail.outcome as { decision?: string } | undefined)?.decision}`;
+    case "completed": return `Completed: ${detail.summary}`;
+    case "failed": return `Failed: ${detail.reason}`;
     default: return event.kind;
   }
 }
@@ -533,7 +534,7 @@ export const proposeAgentCommand: CommandDefinition = {
   execute: async (args, context: CommandContext) => {
     const { addLog, agents, groups } = context.workspace;
 
-    const group = groups.find((g: any) => g.id === args.groupId);
+    const group = groups.find((g: Group) => g.id === args.groupId);
     if (!group) throw new Error(`Group "${args.groupId}" not found`);
 
     const spec: AgentSpec = {
@@ -560,9 +561,10 @@ export const proposeAgentCommand: CommandDefinition = {
     addLog(`📋 Agent proposal: "${args.name}" (${args.role}) submitted to group "${group.name}"`);
 
     // Deliberate
-    const allAgents = [...agents, ...(context.storage._agents || [])];
+    const storage = context.storage as { _agents?: Agent[] };
+    const allAgents: Agent[] = [...agents, ...(storage._agents || [])];
     const memberAgents = group.members
-      .map((mid: string) => allAgents.find((a: any) => a.id === mid))
+      .map((mid: string) => allAgents.find((a) => a.id === mid))
       .filter(Boolean) as Agent[];
 
     if (memberAgents.length >= 2) {
