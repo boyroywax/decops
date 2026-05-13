@@ -1,5 +1,5 @@
 import { CommandDefinition } from "@/services/commands/types";
-import { Group, Channel } from "@/types";
+import { Agent, Group, Channel } from "@/types";
 import { generateGroupDID } from "@/utils/identity";
 import { GROUP_COLORS } from "@/constants";
 import { isUnresolvedRef } from "@/utils/storageKey";
@@ -59,7 +59,8 @@ export const createGroupCommand: CommandDefinition = {
         const { agents, groups, setGroups, setChannels, addLog } = context.workspace;
 
         // Combine workspace agents with any created in previous job steps
-        const allAgents = [...agents, ...(context.storage._agents || [])];
+        const storage = context.storage as { _agents?: Agent[]; _channels?: Channel[] } & Record<string, unknown>;
+        const allAgents: Agent[] = [...agents, ...(storage._agents || [])];
 
         // Normalize: batch items or single spec
         const specs = args.items
@@ -75,7 +76,7 @@ export const createGroupCommand: CommandDefinition = {
             // Validate members
             const memberIds: string[] = [];
             for (const input of members) {
-                const agent = allAgents.find((a: any) => a.id === input || a.name === input);
+                const agent = allAgents.find((a) => a.id === input || a.name === input);
                 if (!agent) throw new Error(`Agent '${input}' not found`);
                 memberIds.push(agent.id);
             }
@@ -99,10 +100,10 @@ export const createGroupCommand: CommandDefinition = {
             createdGroups.push(newGroup);
 
             // Auto-create consensus channels between members
-            const currentChannels = [...context.workspace.channels, ...(context.storage._channels || [])];
+            const currentChannels: Channel[] = [...context.workspace.channels, ...(storage._channels || [])];
             for (let i = 0; i < uniqueMembers.length; i++) {
                 for (let j = i + 1; j < uniqueMembers.length; j++) {
-                    const hasChannel = currentChannels.concat(allNewChannels).some((c: any) =>
+                    const hasChannel = currentChannels.concat(allNewChannels).some((c) =>
                         (c.from === uniqueMembers[i] && c.to === uniqueMembers[j]) ||
                         (c.from === uniqueMembers[j] && c.to === uniqueMembers[i])
                     );
@@ -127,11 +128,11 @@ export const createGroupCommand: CommandDefinition = {
             context.storage[`group_${name}`] = newGroup.id;
         }
 
-        setGroups((prev: any[]) => [...prev, ...createdGroups]);
+        setGroups((prev: Group[]) => [...prev, ...createdGroups]);
         addLog(`Created ${createdGroups.length} group(s): ${createdGroups.map(g => g.name).join(", ")}`);
 
         if (allNewChannels.length > 0) {
-            setChannels((prev: any[]) => [...prev, ...allNewChannels]);
+            setChannels((prev: Channel[]) => [...prev, ...allNewChannels]);
             addLog(`Created ${allNewChannels.length} consensus channels for groups`);
         }
 
