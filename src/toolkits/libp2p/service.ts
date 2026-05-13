@@ -12,8 +12,44 @@ import type { Libp2p } from "libp2p";
 import type { Multiaddr } from "@multiformats/multiaddr";
 import { logError } from "@/services/logging";
 
-/** Loose alias — the concrete PrivateKey shape is opaque to consumers. */
-type PrivateKey = unknown;
+type PrivateKey = Awaited<ReturnType<typeof import("@libp2p/crypto/keys").generateKeyPair>>;
+
+interface Libp2pComponents {
+    transportManager?: { getAddrs: () => Multiaddr[] };
+    privateKey?: PrivateKey;
+}
+
+interface Libp2pWithComponents extends Libp2p {
+    components?: Libp2pComponents;
+}
+
+interface Libp2pPubsubService {
+    addEventListener?: (type: "message", listener: (evt: CustomEvent<Libp2pPubsubMessageDetail>) => void) => void;
+    subscribe?: (topic: string) => void;
+    unsubscribe?: (topic: string) => void;
+    publish?: (topic: string, data: Uint8Array) => Promise<void> | void;
+}
+
+interface Libp2pPingService {
+    ping?: (peerId: unknown) => Promise<number> | number;
+}
+
+interface Libp2pServiceMap {
+    pubsub?: Libp2pPubsubService;
+    ping?: Libp2pPingService;
+    [service: string]: unknown;
+}
+
+interface Libp2pPeerDiscoveryDetail {
+    id?: { toString: () => string };
+    multiaddrs?: Multiaddr[];
+}
+
+interface Libp2pPubsubMessageDetail {
+    topic?: string;
+    from?: { toString: () => string };
+    data?: Uint8Array | ArrayLike<number>;
+}
 
 // ── Types ────────────────────────────────────────
 
@@ -221,7 +257,7 @@ class Libp2pNode {
         if (this.privateKey) {
             try {
                 const { privateKeyToProtobuf } = await import("@libp2p/crypto/keys");
-                out.privateKey = bytesToBase64(privateKeyToProtobuf(this.privateKey as any));
+                out.privateKey = bytesToBase64(privateKeyToProtobuf(this.privateKey));
             } catch { /* ignore */ }
         }
         return out;
@@ -248,7 +284,7 @@ class Libp2pNode {
                 for (const ma of node.getMultiaddrs()) multiaddrs.push(ma.toString());
             } catch { /* noop */ }
             try {
-                const tm = (node as any).components?.transportManager;
+                const tm = (node as Libp2pWithComponents).components?.transportManager;
                 if (tm) {
                     for (const ma of tm.getAddrs() as Multiaddr[]) listenAddrs.push(ma.toString());
                 }
@@ -329,11 +365,11 @@ class Libp2pNode {
         let key = this.privateKey;
         // If running but no preloaded key, pull from the node components.
         if (!key && this.node) {
-            const components: any = (this.node as any).components;
+            const components = (this.node as Libp2pWithComponents).components;
             key = components?.privateKey ?? null;
         }
         if (!key) throw new Error("No identity available to export — start or load one first");
-        const bytes = privateKeyToProtobuf(key as any);
+        const bytes = privateKeyToProtobuf(key);
         const peerIdStr = this.node
             ? this.node.peerId.toString()
             : await this.peerIdHint();
@@ -344,7 +380,7 @@ class Libp2pNode {
     private async peerIdHint(): Promise<string> {
         if (!this.privateKey) return "";
         const { peerIdFromPrivateKey } = await import("@libp2p/peer-id");
-        return peerIdFromPrivateKey(this.privateKey as any).toString();
+        return peerIdFromPrivateKey(this.privateKey).toString();
     }
 
     /** Clear the preloaded identity (libp2p will mint a new one on next start). */
@@ -417,7 +453,7 @@ class Libp2pNode {
                 const disabledSet = new Set(opts.disabledBootstrap ?? []);
                 const list = baseList.filter((a) => !disabledSet.has(a));
 
-                const transports: any[] = [];
+                const transports: unknown[] = [];
                 if (useWebSockets) transports.push(webSockets());
                 if (useWebRTC) transports.push(webRTC());
                 if (useCircuitRelay) transports.push(circuitRelayTransport());
@@ -426,7 +462,7 @@ class Libp2pNode {
                 if (useCircuitRelay) listen.push("/p2p-circuit");
                 if (useWebRTC) listen.push("/webrtc");
 
-                const peerDiscovery: any[] = [];
+                const peerDiscovery: unknown[] = [];
                 if (useBootstrap && list.length > 0) peerDiscovery.push(bootstrap({ list }));
                 if (usePubsubDiscovery) {
                     peerDiscovery.push(pubsubPeerDiscovery({
@@ -435,7 +471,7 @@ class Libp2pNode {
                     }));
                 }
 
-                const services: Record<string, any> = {};
+                const services: Record<string, unknown> = {};
                 if (useIdentify) services.identify = identify();
                 if (usePing) services.ping = ping();
                 if (useDcutr) services.dcutr = dcutr();
@@ -446,7 +482,7 @@ class Libp2pNode {
                 }
 
                 // Private network (pnet) connection protector — optional.
-                let connectionProtector: any | undefined;
+                let connectionProtector: unknown;
                 if (opts.pnetKey && opts.pnetKey.trim()) {
                     const { preSharedKey } = await import("@libp2p/pnet");
                     connectionProtector = preSharedKey({
@@ -455,24 +491,24 @@ class Libp2pNode {
                 }
 
                 const node = await createLibp2p({
-                    ...(this.privateKey ? { privateKey: this.privateKey as any } : {}),
+                    ...(this.privateKey ? { privateKey: this.privateKey } : {}),
                     addresses: { listen },
                     transports,
                     connectionEncrypters: [noise()],
                     streamMuxers: [yamux()],
                     peerDiscovery,
-                    services: services as any,
+                    services,
                     ...(connectionProtector ? { connectionProtector } : {}),
                     connectionGater: {
                         denyDialMultiaddr: () => false,
                     },
-                });
+                } as Parameters<typeof createLibp2p>[0]);
 
                 this.node = node;
                 // Capture the running private key so subsequent stop+start
                 // preserves the same peer id (until the user clears identity).
                 if (!this.privateKey) {
-                    const components: any = (node as any).components;
+                    const components = (node as Libp2pWithComponents).components;
                     if (components?.privateKey) this.privateKey = components.privateKey;
                 }
                 this.wireEvents(node);
@@ -495,7 +531,7 @@ class Libp2pNode {
 
     private wireEvents(node: Libp2p) {
         node.addEventListener("peer:discovery", (evt) => {
-            const detail: any = (evt as any).detail;
+            const detail = (evt as CustomEvent<Libp2pPeerDiscoveryDetail>).detail;
             const id = detail?.id?.toString?.() ?? String(detail?.id ?? "");
             if (!id) return;
             const addrs = (detail?.multiaddrs ?? []).map((ma: Multiaddr) => ma.toString());
@@ -503,13 +539,13 @@ class Libp2pNode {
             this.onChange();
         });
         node.addEventListener("peer:connect", (evt) => {
-            const id = (evt as any).detail?.toString?.() ?? "";
+            const id = (evt as CustomEvent<{ toString: () => string }>).detail?.toString?.() ?? "";
             if (!id) return;
             this.touchPeer(id, { connected: true });
             this.onChange();
         });
         node.addEventListener("peer:disconnect", (evt) => {
-            const id = (evt as any).detail?.toString?.() ?? "";
+            const id = (evt as CustomEvent<{ toString: () => string }>).detail?.toString?.() ?? "";
             if (!id) return;
             this.touchPeer(id, { connected: false });
             this.onChange();
@@ -519,9 +555,9 @@ class Libp2pNode {
         });
         // Pubsub message counter — gossipsub emits "message" on the service.
         try {
-            const pubsub: any = (node.services as any).pubsub;
+            const pubsub = (node.services as Libp2pServiceMap).pubsub;
             if (pubsub?.addEventListener) {
-                pubsub.addEventListener("message", (evt: any) => {
+                pubsub.addEventListener("message", (evt) => {
                     const detail = evt?.detail ?? {};
                     const topic: string = typeof detail.topic === "string" ? detail.topic : "";
                     // Ignore internal pubsub-discovery chatter from our metric.
@@ -593,7 +629,7 @@ class Libp2pNode {
     async ping(peerId: string): Promise<number> {
         const node = this.requireNode();
         const { peerIdFromString } = await import("@libp2p/peer-id");
-        const svc: any = (node.services as any).ping;
+        const svc = (node.services as Libp2pServiceMap).ping;
         if (!svc?.ping) throw new Error("Ping service unavailable");
         const latency = await svc.ping(peerIdFromString(peerId));
         this.touchPeer(peerId, { latencyMs: latency });
@@ -603,7 +639,7 @@ class Libp2pNode {
 
     async subscribeTopic(topic: string): Promise<void> {
         const node = this.requireNode();
-        const pubsub: any = (node.services as any).pubsub;
+        const pubsub = (node.services as Libp2pServiceMap).pubsub;
         if (!pubsub?.subscribe) throw new Error("Pubsub service unavailable");
         pubsub.subscribe(topic);
         this.topics.add(topic);
@@ -612,7 +648,7 @@ class Libp2pNode {
 
     async unsubscribeTopic(topic: string): Promise<void> {
         const node = this.requireNode();
-        const pubsub: any = (node.services as any).pubsub;
+        const pubsub = (node.services as Libp2pServiceMap).pubsub;
         if (!pubsub?.unsubscribe) return;
         pubsub.unsubscribe(topic);
         this.topics.delete(topic);
@@ -621,7 +657,7 @@ class Libp2pNode {
 
     async publish(topic: string, message: string): Promise<void> {
         const node = this.requireNode();
-        const pubsub: any = (node.services as any).pubsub;
+        const pubsub = (node.services as Libp2pServiceMap).pubsub;
         if (!pubsub?.publish) throw new Error("Pubsub service unavailable");
         const data = new TextEncoder().encode(message);
         await pubsub.publish(topic, data);
