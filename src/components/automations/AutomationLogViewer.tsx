@@ -80,7 +80,7 @@ export function AutomationLogViewer({ run, onClose }: AutomationLogViewerProps) 
                                     <div className="log-viewer__details">
                                         {typeof log.details === "string"
                                             ? log.details
-                                            : JSON.stringify(log.details, null, 2)}
+                                            : JSON.stringify(log.details as unknown, null, 2)}
                                     </div>
                                 )}
                             </div>

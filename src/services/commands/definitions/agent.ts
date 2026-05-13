@@ -1,5 +1,6 @@
 
 import { CommandDefinition } from "@/services/commands/types";
+import type { Agent } from "@/types";
 import { generateDID, generateKeyPair } from "@/utils/identity";
 import { createAieosEntity } from "@/utils/aieos";
 import { ROLES } from "@/constants";
@@ -75,7 +76,7 @@ export const createAgentCommand: CommandDefinition = {
             ? (Array.isArray(args.items) ? args.items : [args.items])
             : [{ name: args.name, role: args.role, prompt: args.prompt, networkId: args.networkId }];
 
-        const created: any[] = [];
+        const created: Agent[] = [];
         for (const spec of specs) {
             const { name, role, prompt, title } = spec;
             // Drop unresolved $storage.* refs so we fall back to activeNetworkId
@@ -106,7 +107,7 @@ export const createAgentCommand: CommandDefinition = {
             context.storage[`agent_${slugifyStorageKey(name)}`] = newAgent.id;
         }
 
-        workspace.setAgents((prev: any[]) => [...prev, ...created]);
+        workspace.setAgents((prev: Agent[]) => [...prev, ...created]);
         workspace.addLog(`Created ${created.length} agent(s): ${created.map(a => a.name).join(", ")}`);
 
         // Accumulate in storage so downstream steps (channels, groups) can look up

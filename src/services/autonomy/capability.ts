@@ -3,7 +3,7 @@
  * task, based on role, AIEOS skills, allowed commands, and semantic relevance.
  */
 
-import type { Agent } from "@/types";
+import type { Agent, RoleId } from "@/types";
 import type { AgentCapability } from "@/types/autonomy";
 import { registry } from "@/services/commands/registry";
 import { getCommandIdsForAgent } from "@/services/commands/tools";
@@ -24,7 +24,7 @@ export function assessAgent(agent: Agent): AgentCapability {
   // Commands gated by RBAC role
   const allCommands = registry.getAll();
   let allowedCommands = allCommands
-    .filter(cmd => cmd.rbac.includes(agent.role as any))
+    .filter(cmd => cmd.rbac.includes(agent.role))
     .map(cmd => cmd.id);
 
   // If agent has toolkit bindings, further restrict to toolkit-scoped commands
@@ -132,7 +132,7 @@ export function identifyGaps(
   if (missingCommands.length > 0) {
     // Determine which roles could fill the gap
     const allCommands = registry.getAll();
-    const neededRoles = new Set<string>();
+    const neededRoles = new Set<RoleId>();
     for (const cmdId of missingCommands) {
       const cmd = allCommands.find(c => c.id === cmdId);
       if (cmd) {
@@ -145,7 +145,7 @@ export function identifyGaps(
         recommendations.push(
           `Create a ${role} agent to cover: ${missingCommands.filter(id => {
             const cmd = allCommands.find(c => c.id === id);
-            return cmd?.rbac.includes(role as any);
+            return cmd?.rbac.includes(role);
           }).join(", ")}`,
         );
       }

@@ -98,7 +98,7 @@ export const duplicateWorkspaceCommand: CommandDefinition = {
     execute: async (args, context) => {
         if (!context.workspaceManager) throw new Error("Workspace Manager not available");
         // We need to cast or extend the type definition in next steps, for now assume duplicate exists
-        const id = await (context.workspaceManager as any).duplicate(args.sourceId, args.name);
+        const id = await context.workspaceManager.duplicate(args.sourceId as string, args.name as string | undefined);
         context.workspace.addLog(`Duplicated workspace ${args.sourceId} to new workspace ${id}`);
         return id;
     }
@@ -131,7 +131,8 @@ export const editWorkspaceCommand: CommandDefinition = {
         const updates: string[] = [];
         if (args.title) updates.push(`title → "${args.title}"`);
         if (args.description) updates.push(`description → "${args.description}"`);
-        await (context.workspaceManager as any).edit(args.title, args.description);
+        if (!context.workspaceManager.edit) throw new Error("Workspace Manager does not support edit");
+        await context.workspaceManager.edit(args.title as string | undefined, args.description as string | undefined);
         context.workspace.addLog(`Edited workspace: ${updates.join(", ")}`);
         return `Workspace updated: ${updates.join(", ")}`;
     }

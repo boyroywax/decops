@@ -141,6 +141,7 @@ export interface CommandContext {
         switch: (id: string) => Promise<void>;
         delete: (id: string) => Promise<void>;
         duplicate: (sourceId: string, name?: string) => Promise<string>;
+        edit?: (title?: string, description?: string) => Promise<void>;
         currentId: string | null;
     };
     /**

@@ -16,11 +16,20 @@ export interface AnthropicSSECallbacks {
   onError: (err: Error) => void;
 }
 
+export type SSETextBlock = { type: "text"; text: string };
+export type SSEToolUseBlock = {
+  type: "tool_use";
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+};
+export type SSEContentBlock = SSETextBlock | SSEToolUseBlock;
+
 export async function parseAnthropicSSE(
   response: Response,
   callbacks: AnthropicSSECallbacks,
   signal?: AbortSignal,
-): Promise<{ contentBlocks: any[]; stopReason: string }> {
+): Promise<{ contentBlocks: SSEContentBlock[]; stopReason: string }> {
   const reader = response.body!.getReader();
   if (signal) {
     signal.addEventListener("abort", () => { reader.cancel(); }, { once: true });
@@ -29,7 +38,7 @@ export async function parseAnthropicSSE(
   let buffer = "";
   let stopReason = "end_turn";
 
-  const contentBlocks: any[] = [];
+  const contentBlocks: SSEContentBlock[] = [];
   let currentBlockIndex = -1;
   let currentToolInput = "";
 
@@ -73,8 +82,9 @@ export async function parseAnthropicSSE(
               const idx = event.index ?? currentBlockIndex;
               if (delta.type === "text_delta" && delta.text) {
                 callbacks.onText(delta.text);
-                if (contentBlocks[idx]) {
-                  contentBlocks[idx].text = (contentBlocks[idx].text || "") + delta.text;
+                const block = contentBlocks[idx];
+                if (block && block.type === "text") {
+                  block.text = (block.text || "") + delta.text;
                 }
               } else if (delta.type === "input_json_delta" && delta.partial_json) {
                 currentToolInput += delta.partial_json;
@@ -84,11 +94,12 @@ export async function parseAnthropicSSE(
             }
             case "content_block_stop": {
               const idx = event.index ?? currentBlockIndex;
-              if (contentBlocks[idx]?.type === "tool_use" && currentToolInput) {
+              const block = contentBlocks[idx];
+              if (block && block.type === "tool_use" && currentToolInput) {
                 try {
-                  contentBlocks[idx].input = JSON.parse(currentToolInput);
+                  block.input = JSON.parse(currentToolInput);
                 } catch {
-                  contentBlocks[idx].input = {};
+                  block.input = {};
                 }
                 currentToolInput = "";
               }
