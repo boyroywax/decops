@@ -14,6 +14,7 @@ export interface WorkspaceContext {
   messages: Message[];
   networks: Network[];
   bridges: Bridge[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   addJob?: (job: { type: string; request: any }) => void;
   jobs: Job[];
 }

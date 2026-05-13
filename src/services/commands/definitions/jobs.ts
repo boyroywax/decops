@@ -20,6 +20,10 @@ export const queueNewJobCommand: CommandDefinition = {
     outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { type, request, steps, mode, deliverables, storageDefaults, parallelGroups } = args;
+        // JobRequest is a discriminated union whose fallback variant does not
+        // expose deliverables/storageDefaults — they're consumed by the executor
+        // via a wider payload shape. Keep an inline `any` cast scoped to addJob.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const jobPayload: any = { type, request };
         if (steps) jobPayload.steps = steps;
         if (mode) jobPayload.mode = mode;

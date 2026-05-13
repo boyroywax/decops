@@ -117,8 +117,9 @@ export const sendMessageCommand: CommandDefinition = {
                     messageId: msgId,
                     response
                 };
-            } catch (err: any) {
-                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, status: "failed", response: `Error: ${err.message}` } : m));
+            } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : String(err);
+                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, status: "failed", response: `Error: ${msg}` } : m));
                 throw err;
             }
         } else {

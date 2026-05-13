@@ -76,7 +76,7 @@ export function AutomationLogViewer({ run, onClose }: AutomationLogViewerProps) 
                                     </div>
                                 </div>
 
-                                {expandedSteps.has(log.id ?? String(logIdx)) && log.details && (
+                                {expandedSteps.has(log.id ?? String(logIdx)) && !!log.details && (
                                     <div className="log-viewer__details">
                                         {typeof log.details === "string"
                                             ? log.details

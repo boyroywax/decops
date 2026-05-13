@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import type { Job, JobStatus, JobArtifact, JobRequest, JobEvent } from "@/types";
+import type { Job, JobStatus, JobArtifact, JobRequest, JobEvent, EntityInput } from "@/types";
 
 /** Push a lifecycle event onto a job's timeline (immutable). */
 function pushEvent(existing: JobEvent[] | undefined, event: Omit<JobEvent, "timestamp">): JobEvent[] {
@@ -145,7 +145,7 @@ export function useJobs() {
         setJobs(prev => prev.map(job => {
             if (job.id === jobId && job.status === "awaiting-input" && job.pendingPrompt?.inputName === inputName) {
                 // Update the input's entityId with the user-provided value
-                const updatedInputs = (job.inputs || job.request?.inputDefaults || []).map((inp: any) =>
+                const updatedInputs = (job.inputs || job.request?.inputDefaults || []).map((inp: EntityInput) =>
                     inp.name === inputName ? { ...inp, entityId: value } : inp
                 );
                 const now = Date.now();
