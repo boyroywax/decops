@@ -25,7 +25,7 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 |----------|----------|------|
 | High     | 6        | **0** |
 | Medium   | 9        | **3** |
-| Low      | 5        | **5** |
+| Low      | 5        | **2** |
 
 ### Completed Commits (this initiative)
 
@@ -52,6 +52,8 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 - `515de6b` style(theme): libp2p hardcoded colors → design tokens [§6.1]
 - `b637b9c` feat(commands): outputSchema on every command + coverage test [§9.1]
 - `7bc2c82` feat(a11y): aria-label icon buttons + focus trap on modals [§6.2]
+- `1ff4f6f` feat(a11y,theme): focus-trap on JobInputPromptModal+NodeEditModal; tokenize studio styles [§6.1 + §6.2 follow-up]
+- _pending_ chore(ci): GH Actions typecheck+test+build workflow + ADRs 0001–0004 [§8 + §10]
 
 ---
 
@@ -182,11 +184,11 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 
 ---
 
-## 8. Documentation Gaps — **LOW (OPEN)**
+## 8. Documentation Gaps — **LOW (PARTIALLY RESOLVED)**
 
-- Missing ADRs for: toolkit contract, chat-delegation model, job lifecycle, theme tokens.
-- Missing top-level `docs/ARCHITECTURE.md` mapping `services/` → `hooks/` → `components/`.
-- Sparse JSDoc in `src/services/ai/runner.ts`, `src/services/commands/tools.ts`.
+- ADRs 0001–0004 added under `docs/adr/` covering toolkit contract, chat-delegation, job lifecycle, and theme tokens.
+- `docs/ARCHITECTURE.md` already exists and is current; deeper service-by-service doc is deferred.
+- Sparse JSDoc in `src/services/ai/runner.ts`, `src/services/commands/tools.ts` remains — add as files are touched.
 
 ---
 
@@ -205,12 +207,11 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 
 ---
 
-## 10. Dependency / Build Gaps — **LOW (OPEN)**
+## 10. Dependency / Build Gaps — **LOW (PARTIALLY RESOLVED)**
 
-- Unused imports scattered in UI files (no `ts-prune` in CI).
-- No bundle-size budget on Vite outputs.
-- No `tsc --noEmit --strict` enforcement step in CI.
-- **Fix:** add `ts-prune`, `size-limit`, and a `tsc --noEmit --strict` job to GH Actions.
+- `.github/workflows/ci.yml` runs `npm run typecheck` (already `strict: true`), `npm test`, and `npm run build` on every push/PR.
+- New npm scripts: `test`, `test:watch`, `test:coverage`.
+- Still open: `ts-prune` for dead-export detection and `size-limit` for bundle budgets.
 
 ---
 
@@ -222,11 +223,10 @@ All HIGH-severity gaps are now resolved. Remaining items are MEDIUM/LOW.
 1. [MEDIUM] Integration tests for `useJobExecutor` (parallel/serial modes, output mappings, step handlers); end-to-end tests for `libp2pBot` / `studioBot` (§2.1 remaining).
 2. [MEDIUM] Playwright/Cypress E2E smoke suite for `ChatPanel` (§2.2).
 
-### Phase 7 — Low priority
-3. [LOW] ADRs, bundle-size budget, `ts-prune`, `tsc --strict` in CI (§8 + §10).
-4. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on `ecosystem.ts`, `libp2p/service.ts`, `ChatPanel.tsx`, `maintenance.ts` (§3.1 remaining).
-5. [LOW] Extend focus-trap to `JobInputPromptModal` and `NodeEditModal`; replace remaining greys in `studio/styles/` and `editor/styles/`.
-6. [LOW] Migrate sync-snapshot command callers (`send_message`, etc.) onto live workspace getters (§1.3 follow-up).
+### Phase 7 — Low priority (remaining)
+3. [LOW] `ts-prune` + `size-limit` budgets in CI (§10 follow-up).
+4. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on `ecosystem.ts`, `libp2p/service.ts`, `ChatPanel.tsx`, `maintenance.ts` (§3.1 remaining; current count 226).
+5. [LOW] Migrate sync-snapshot command callers (`send_message`, etc.) onto live workspace getters (§1.3 follow-up).
 
 ---
 
