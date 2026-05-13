@@ -9,6 +9,7 @@
 
 import type { CommandDefinition } from "@/services/commands/types";
 import { libp2pService } from "../service";
+import { logAudit } from "@/services/logging";
 import {
     useLibp2pCollections,
     encryptIdentity,
@@ -449,6 +450,15 @@ export const libp2pExportIdentityCommand: CommandDefinition = {
     execute: async (args, context) => {
         const result = await libp2pService.exportIdentity(args.nodeId);
         context.workspace.addLog(`libp2p exported identity ${result.peerId.slice(0, 16)}…`);
+        const actor = context.auth?.user as { id?: string; role?: string } | null | undefined;
+        logAudit("libp2p.identity.export", {
+            peerId: result.peerId,
+            nodeId: args.nodeId,
+            surface: "command",
+            actorRole: actor?.role,
+            actorId: actor?.id,
+            timestamp: new Date().toISOString(),
+        });
         return result;
     },
 };

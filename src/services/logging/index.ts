@@ -15,6 +15,9 @@ export type { LogSubscriber, LogQuery } from "./aggregator";
 export { logError } from "./logError";
 export type { LogErrorOptions } from "./logError";
 
+export { logAudit } from "./logAudit";
+export type { LogAuditOptions } from "./logAudit";
+
 export {
   type LogBackend,
   ConsoleBackend,

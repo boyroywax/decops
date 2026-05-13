@@ -15,8 +15,8 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 | Metric | Original | Current | Δ |
 |---|---|---|---|
 | `: any` / `as any` in `src/hooks` + `src/services` | 294 | **226** | −68 (−23%) |
-| Test files | 34 | **41** | +7 |
-| Total tests passing | n/a | **424/424** | — |
+| Test files | 34 | **42** | +8 |
+| Total tests passing | n/a | **430/430** | — |
 | Silent `catch {}` blocks | 18 | **12** | −6 |
 
 ### Severity Counts (Remaining Open)
@@ -47,6 +47,7 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 - `af2628e` refactor(jobs): drop 1s setInterval polling fallback [phase 4.3]
 - `ac3891a` refactor(topology): exponential backoff with 5s ceiling [phase 4.4]
 - `49d53b3` feat(logging): centralized logError utility; adopt in libp2p service [§5.1]
+- `34165da` feat(commands): per-command timeoutMs + spawnsChildJobs flag [§9.2 + §9.3]
 
 ---
 
@@ -188,13 +189,12 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 - Many `CommandDefinition` entries lack `outputSchema`. The LLM cannot reliably chain tools that don't declare what they return.
 - **Fix:** add minimal `outputSchema` to every tool returning structured data (`src/services/commands/definitions/*.ts`).
 
-### 9.2 Command Timeout Inconsistency — **MEDIUM (OPEN)**
-- Tool-job wait uses `TOOL_JOB_TIMEOUT_MS = 30 s` / `JOB_RUNNER_TIMEOUT_MS = 180 s`. No per-command override.
-- **Fix:** optional `timeoutMs` field on `CommandDefinition`.
+### 9.2 Command Timeout Inconsistency — **DONE** (commit `34165da`)
+- `CommandDefinition` now carries optional `timeoutMs` and `spawnsChildJobs` fields.
+- Tool-call adapter uses `resolveToolTimeout(name)` with order: explicit `timeoutMs` → `spawnsChildJobs` (180 s) → default (30 s).
 
-### 9.3 `JOB_RUNNER_COMMANDS` Allowlist Is Stale — **LOW (OPEN)**
-- Currently only `["studio_run_job", "studio_create_job"]`. `deploy_network` also spawns child jobs and may hit the 30 s default.
-- **Fix:** replace allowlist with `command.spawnsChildJobs: true` flag.
+### 9.3 `JOB_RUNNER_COMMANDS` Allowlist — **DONE** (commit `34165da`)
+- Hardcoded allowlist deleted. `studio_run_job`, `studio_create_job`, and `deploy_network` now declare `spawnsChildJobs: true` on their definitions.
 
 ---
 
@@ -214,7 +214,6 @@ All HIGH-severity gaps are now resolved. Remaining items are MEDIUM/LOW.
 ### Phase 6 — Quality
 1. [MEDIUM] Integration tests for `useJobExecutor` (parallel/serial modes, output mappings, step handlers); end-to-end tests for `libp2pBot` / `studioBot` (§2.1 remaining).
 2. [MEDIUM] Replace remaining hardcoded colors in studio / editor styles (§6.1).
-3. [MEDIUM] Per-command `timeoutMs` + `spawnsChildJobs` flag; retire `JOB_RUNNER_COMMANDS` allowlist (§9.2 + §9.3).
 
 ### Phase 7 — Polish
 4. [MEDIUM] Identity export audit log; confirm editor markdown sanitization (§7.2 + §7.3).

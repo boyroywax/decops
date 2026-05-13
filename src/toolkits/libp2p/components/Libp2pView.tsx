@@ -19,6 +19,7 @@ import {
 import { useLibp2p } from "../Libp2pContext";
 import { DEFAULT_BOOTSTRAP, libp2pService } from "../service";
 import type { Libp2pServiceToggles, Libp2pDiscoveryToggles, Libp2pTransportToggles } from "../service";
+import { logAudit } from "@/services/logging";
 import { useJobsContext } from "@/context/JobsContext";
 import type { JobRequest } from "@/types";
 import { Libp2pCollectionsModal, type CollectionsTab } from "./Libp2pCollectionsModal";
@@ -344,6 +345,12 @@ export function Libp2pView(_props: Libp2pViewProps) {
         setExportPending(action);
         try {
             const result = await libp2pService.exportIdentity();
+            logAudit("libp2p.identity.export", {
+                peerId: result.peerId,
+                surface: action === "copy" ? "ui-copy" : "ui-encrypt-download",
+                initiatedBy: "user",
+                timestamp: new Date().toISOString(),
+            });
             if (action === "copy") {
                 // Clipboard writes require a fresh user gesture — keep the
                 // service call inside the click handler chain.
