@@ -10,7 +10,7 @@
  *  - Cross-network collaboration strategies
  */
 
-import type { Agent, Network } from "@/types";
+import type { Agent, Group, Ecosystem, Network } from "@/types";
 import type {
   ConsensusProposal,
   AgentSpec,
@@ -57,12 +57,12 @@ export interface IdeationResult {
 export async function runIdeationSession(
   request: IdeationRequest,
   agents: Agent[],
-  groups: any[],
+  groups: Group[],
   networks: Network[],
-  ecosystem: any,
+  ecosystem: Ecosystem | null,
   modelId?: string,
 ): Promise<IdeationResult> {
-  const group = groups.find((g: any) => g.id === request.groupId);
+  const group = groups.find((g) => g.id === request.groupId);
   if (!group) throw new Error(`Group "${request.groupId}" not found`);
 
   const model = modelId || getGroupModel(request.groupId, group.modelId);
@@ -150,9 +150,9 @@ async function generateIdeationProposals(
   orchestrator: Agent,
   request: IdeationRequest,
   agents: Agent[],
-  groups: any[],
+  groups: Group[],
   networks: Network[],
-  ecosystem: any,
+  ecosystem: Ecosystem | null,
   model: string,
   maxProposals: number,
 ): Promise<Omit<ConsensusProposal, "id" | "createdAt">[]> {
@@ -180,9 +180,9 @@ async function generateIdeationProposals(
 function buildIdeationSystemPrompt(
   orchestrator: Agent,
   agents: Agent[],
-  groups: any[],
+  groups: Group[],
   networks: Network[],
-  ecosystem: any,
+  ecosystem: Ecosystem | null,
   focus?: string[],
 ): string {
   // Build workspace snapshot
@@ -191,7 +191,7 @@ function buildIdeationSystemPrompt(
     return `- ${a.name} (${cap.role}): ${cap.skills.join(", ") || "general"} [${cap.allowedCommands.length} commands]`;
   });
 
-  const groupSummaries = groups.map((g: any) =>
+  const groupSummaries = groups.map((g) =>
     `- ${g.name} (${g.governance}): ${g.members?.length || 0} members`,
   );
 
@@ -252,7 +252,7 @@ function parseIdeationResponse(
 ): Omit<ConsensusProposal, "id" | "createdAt">[] {
   try {
     const cleaned = text.replace(/^```(?:json)?\s*\n?/m, "").replace(/\n?```\s*$/m, "").trim();
-    let json: any;
+    let json: unknown;
     try {
       json = JSON.parse(cleaned);
     } catch {
@@ -262,13 +262,13 @@ function parseIdeationResponse(
 
     if (!Array.isArray(json)) return [];
 
-    return json.map((item: any) => ({
-      kind: item.kind || "custom",
-      title: item.title || "Untitled proposal",
-      description: item.description || "",
+    return (json as Array<Record<string, unknown>>).map((item) => ({
+      kind: (item.kind as ProposalKind) || "custom",
+      title: (item.title as string) || "Untitled proposal",
+      description: (item.description as string) || "",
       proposedBy,
       groupId,
-      spec: item.spec || {},
+      spec: (item.spec as AgentSpec | WorkflowSpec | EcosystemChangeSpec) || ({} as AgentSpec),
       positions: [],
       executed: false,
     }));

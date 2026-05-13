@@ -82,8 +82,8 @@ export function getOllamaEndpoint(modelId: string): { baseUrl: string; model: st
   const instanceId = parts[1];
   const modelName = parts.slice(2).join(":");
   try {
-    const instances = JSON.parse(localStorage.getItem("ollama_instances") || "[]");
-    const inst = instances.find((i: any) => i.id === instanceId);
+    const instances = JSON.parse(localStorage.getItem("ollama_instances") || "[]") as Array<{ id: string; baseUrl: string }>;
+    const inst = instances.find((i) => i.id === instanceId);
     if (!inst) throw new Error(`Ollama instance ${instanceId} not found`);
     return { baseUrl: inst.baseUrl, model: modelName };
   } catch (e) {
@@ -106,7 +106,14 @@ export function buildHeaders(apiKey: string): Record<string, string> {
 export interface ProviderRequest {
   url: string;
   headers: Record<string, string>;
-  body: any;
+  body: Record<string, unknown>;
+}
+
+/** Tool definition as accepted by the provider request builder (Anthropic-shaped). */
+export interface ProviderTool {
+  name: string;
+  description?: string;
+  input_schema?: Record<string, unknown>;
 }
 
 /** Build a non-streaming request for any provider */
@@ -115,7 +122,7 @@ export function buildProviderRequest(
   systemPrompt: string,
   messages: { role: string; content: string }[],
   maxTokens: number,
-  tools?: any[],
+  tools?: ProviderTool[],
 ): ProviderRequest {
   const provider = getModelProvider(model);
 
@@ -212,43 +219,67 @@ export function buildProviderRequest(
 }
 
 /** Extract text from a provider response */
-export function parseProviderResponse(model: string, data: any): string {
+export function parseProviderResponse(model: string, data: unknown): string {
   const provider = getModelProvider(model);
+  const d = (data ?? {}) as {
+    choices?: Array<{ message?: { content?: string } }>;
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    message?: { content?: string };
+    content?: Array<{ text?: string }>;
+  };
 
   if (provider === "openai" || provider === "openrouter") {
-    return data.choices?.[0]?.message?.content || "[No response]";
+    return d.choices?.[0]?.message?.content || "[No response]";
   }
   if (provider === "google") {
-    return data.candidates?.[0]?.content?.parts?.map((p: any) => p.text || "").join("") || "[No response]";
+    return d.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "[No response]";
   }
   if (provider === "ollama") {
-    return data.message?.content || "[No response]";
+    return d.message?.content || "[No response]";
   }
   // Anthropic
-  return data.content?.map((b: { text?: string }) => b.text || "").join("") || "[No response]";
+  return d.content?.map((b) => b.text || "").join("") || "[No response]";
+}
+
+/** Normalized tool-use block (Anthropic-shaped). */
+export interface ToolUseBlock {
+  type: "tool_use";
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
 }
 
 /** Check if a response contains tool use (returns blocks for Anthropic/OpenAI/OpenRouter, empty for others) */
-export function parseToolUseBlocks(model: string, data: any): any[] {
+export function parseToolUseBlocks(model: string, data: unknown): ToolUseBlock[] {
   const provider = getModelProvider(model);
+  const d = (data ?? {}) as {
+    content?: Array<{ type?: string; id?: string; name?: string; input?: Record<string, unknown> }>;
+    choices?: Array<{ message?: { tool_calls?: Array<{ id: string; function?: { name?: string; arguments?: string } }> } }>;
+  };
   if (provider === "anthropic") {
-    return (data.content || []).filter((b: any) => b.type === "tool_use");
+    return (d.content || [])
+      .filter((b) => b.type === "tool_use")
+      .map((b) => ({ type: "tool_use", id: b.id || "", name: b.name || "", input: b.input || {} }));
   }
   if (provider === "openai" || provider === "openrouter") {
-    const toolCalls = data.choices?.[0]?.message?.tool_calls || [];
+    const toolCalls = d.choices?.[0]?.message?.tool_calls || [];
     // Normalize to Anthropic-like format for compatibility
-    return toolCalls.map((tc: any) => ({
-      type: "tool_use",
+    return toolCalls.map((tc) => ({
+      type: "tool_use" as const,
       id: tc.id,
-      name: tc.function?.name,
-      input: JSON.parse(tc.function?.arguments || "{}"),
+      name: tc.function?.name || "",
+      input: JSON.parse(tc.function?.arguments || "{}") as Record<string, unknown>,
     }));
   }
   return []; // Google/Ollama: no tool support in this layer
 }
 
 /** Build tool result messages for the next API round */
-export function buildToolResultMessages(model: string, assistantContent: any, toolResults: { id: string; content: string; isError?: boolean }[]): any[] {
+export function buildToolResultMessages(
+  model: string,
+  assistantContent: unknown,
+  toolResults: { id: string; content: string; isError?: boolean }[],
+): Array<Record<string, unknown>> {
   const provider = getModelProvider(model);
 
   if (provider === "openai" || provider === "openrouter") {
