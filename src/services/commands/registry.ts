@@ -124,7 +124,7 @@ export class CommandRegistry {
         for (const [argName, argDef] of Object.entries(command.args)) {
             const value = args[argName];
             if (typeof value === "string" && entityTypes.has(argDef.type)) {
-                (args as any)[argName] = resolveEntityName(value, argDef.type, context);
+                (args as Record<string, unknown>)[argName] = resolveEntityName(value, argDef.type, context);
             }
         }
         // Also resolve entity names inside batch items arrays
@@ -148,7 +148,7 @@ export class CommandRegistry {
             // Handle missing values
             if (value === undefined || value === null) {
                 if (argDef.defaultValue !== undefined) {
-                    (args as any)[argName] = argDef.defaultValue;
+                    (args as Record<string, unknown>)[argName] = argDef.defaultValue;
                 } else if (argDef.required !== false && !(isBatch && argName !== 'items')) {
                     throw new Error(`Missing required argument: ${argName}`);
                 }
@@ -158,7 +158,7 @@ export class CommandRegistry {
             // Storage/deliverable refs may resolve to objects — coerce to string when arg expects string
             if (value !== undefined && value !== null) {
                 if (argDef.type === 'string' && typeof value !== 'string') {
-                    (args as any)[argName] = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
+                    (args as Record<string, unknown>)[argName] = typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value);
                 }
                 if (argDef.type === 'number' && typeof value !== 'number') throw new Error(`Argument ${argName} must be a number`);
                 if (argDef.type === 'boolean' && typeof value !== 'boolean') throw new Error(`Argument ${argName} must be a boolean`);
