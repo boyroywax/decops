@@ -80,6 +80,7 @@ export const studioRunJobCommand: CommandDefinition = {
     description: "Builds the current Studio job definition, submits it for execution, and monitors it until completion. The job must have a name and at least one step. Returns the final job result or error.",
     tags: ["studio", "job", "run"],
     rbac: ["orchestrator", "builder"],
+    spawnsChildJobs: true,
     args: {},
     output: "Run status with final job result",
     execute: async (_args, context) => {
@@ -163,6 +164,7 @@ export const studioCreateJobCommand: CommandDefinition = {
     description: "Creates a complete job in the Studio in one call. Clears the canvas first, then sets name, description, steps (with args, bindings, output mappings), parallel groups, deliverables, storage defaults, entity inputs, and triggers. Optionally saves and/or runs it immediately.",
     tags: ["studio", "job", "create"],
     rbac: ["orchestrator", "builder"],
+    spawnsChildJobs: true,
     args: {
         name: { name: "name", type: "string", description: "Job name", required: true },
         description: { name: "description", type: "string", description: "Job description", required: false, defaultValue: "" },

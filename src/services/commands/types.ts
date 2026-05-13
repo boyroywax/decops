@@ -175,6 +175,18 @@ export interface CommandDefinition<TArgs = any> {
     hidden?: boolean;
     /** Base64 data-URI or URL for a custom icon image */
     icon?: string;
+    /**
+     * If true, this command spawns one or more child jobs and waits for them
+     * to complete. The tool-call adapter uses a longer default timeout for
+     * these (see `timeoutMs` for an explicit override).
+     */
+    spawnsChildJobs?: boolean;
+    /**
+     * Explicit timeout (in ms) for the tool-call adapter's wait on the
+     * job-executor result. Overrides the platform default and the
+     * `spawnsChildJobs` heuristic.
+     */
+    timeoutMs?: number;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     execute: (args: TArgs, context: CommandContext) => Promise<any>;
 }

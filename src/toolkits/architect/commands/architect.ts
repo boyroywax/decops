@@ -49,6 +49,7 @@ export const deployNetworkCommand: CommandDefinition = {
     tags: ["architect", "deploy", "provision", "job"],
     rbac: ["builder", "orchestrator"],
     usesAI: true,
+    spawnsChildJobs: true,
     args: {
         prompt: {
             name: "prompt",

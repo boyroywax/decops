@@ -55,11 +55,29 @@ interface PendingToolJob {
 
 const pendingToolJobs = new Map<string, PendingToolJob>();
 
-const TOOL_JOB_TIMEOUT_MS = 30_000; // 30 second timeout
-const JOB_RUNNER_TIMEOUT_MS = 180_000; // 3 minute timeout for commands that spawn child jobs
+const TOOL_JOB_TIMEOUT_MS = 30_000; // 30 second default timeout
+const JOB_RUNNER_TIMEOUT_MS = 180_000; // 3 minute default for commands that spawn child jobs
 
-/** Commands that spawn and wait for child jobs — need longer timeouts */
-const JOB_RUNNER_COMMANDS = new Set(["studio_run_job", "studio_create_job"]);
+/**
+ * Pick the tool-call wait timeout for a given command.
+ *
+ * Resolution order:
+ *   1. Explicit `command.timeoutMs` on the definition.
+ *   2. `JOB_RUNNER_TIMEOUT_MS` when the definition sets `spawnsChildJobs`.
+ *   3. `TOOL_JOB_TIMEOUT_MS` otherwise.
+ *
+ * Falls back to the short timeout if the command id is unknown (the
+ * registry only knows about installed commands, but the tool adapter
+ * receives whatever the LLM tries to call).
+ *
+ * Exported for testing.
+ */
+export function resolveToolTimeout(toolName: string): number {
+  const def = registry.get(toolName);
+  if (def?.timeoutMs != null) return def.timeoutMs;
+  if (def?.spawnsChildJobs) return JOB_RUNNER_TIMEOUT_MS;
+  return TOOL_JOB_TIMEOUT_MS;
+}
 
 /** Called by the job executor when a tool-initiated job completes */
 export function resolveToolJob(jobId: string, result: unknown): boolean {
@@ -412,9 +430,10 @@ export async function executeToolCall(
     const result = await new Promise<unknown>((resolve, reject) => {
       pendingToolJobs.set(jobId, { resolve, reject });
 
-      // Timeout safety — don't block the tool loop forever
-      // Job-running commands get a longer timeout since they wait for child jobs
-      const timeout = JOB_RUNNER_COMMANDS.has(toolName) ? JOB_RUNNER_TIMEOUT_MS : TOOL_JOB_TIMEOUT_MS;
+      // Timeout safety — don't block the tool loop forever.
+      // Per-command `timeoutMs` / `spawnsChildJobs` on the CommandDefinition
+      // override the default. See `resolveToolTimeout`.
+      const timeout = resolveToolTimeout(toolName);
       setTimeout(() => {
         if (pendingToolJobs.has(jobId)) {
           pendingToolJobs.delete(jobId);
