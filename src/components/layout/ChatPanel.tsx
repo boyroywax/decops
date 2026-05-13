@@ -20,7 +20,7 @@ import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import { useStudioContext } from "@/toolkits/studio";
 import { useEditorContext } from "@/toolkits/editor";
 import type { ChatPosition } from "@/context/ThemeContext";
-import type { ViewId, JobStep } from "@/types";
+import type { ViewId, JobStep, Agent, Channel, Group } from "@/types";
 import { useConversations } from "@/hooks/useConversations";
 import { useChatResize } from "@/hooks/useChatResize";
 import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
@@ -30,7 +30,13 @@ import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {
     context: WorkspaceContext;
-    ecosystem?: any; // Automated ecosystem object
+    /** Live ecosystem snapshot (networks, peers, etc.). Shape provided by
+     * `useEcosystem()`; typed loosely here so this presentational component
+     * stays decoupled from the hook's internal shape. */
+    ecosystem?: {
+        networks?: Array<{ id: string; name: string; color?: string }>;
+        [key: string]: unknown;
+    };
     onClose: () => void;
     addLog?: (msg: string) => void;
     height: number;
@@ -185,11 +191,11 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const mentionCandidates = useMemo(() => {
         if (mentionQuery === null) return [];
         const q = mentionQuery.toLowerCase();
-        const agents = (workspaceCtx.agents || []).map((a: any) => ({
+        const agents = (workspaceCtx.agents || []).map((a: Agent) => ({
             type: "agent" as const, id: a.id as string, name: a.name as string,
             detail: (a.title || a.role || "") as string,
         }));
-        const groups = (workspaceCtx.groups || []).map((g: any) => ({
+        const groups = (workspaceCtx.groups || []).map((g: Group) => ({
             type: "group" as const, id: g.id as string, name: g.name as string,
             detail: `${g.governance} · ${g.members.length} members`,
         }));
@@ -491,25 +497,25 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                 // @mention routing — direct agent or group chat
                 const mentionRe = /@([A-Za-z0-9_]+)/g;
                 let mMatch;
-                const targetAgents: any[] = [];
+                const targetAgents: Agent[] = [];
                 const mentionLabels: string[] = [];
                 while ((mMatch = mentionRe.exec(text)) !== null) {
                     const mName = mMatch[1].replace(/_/g, " ");
-                    const agent = (workspaceCtx.agents || []).find((a: any) =>
+                    const agent = (workspaceCtx.agents || []).find((a: Agent) =>
                         a.name.toLowerCase() === mName.toLowerCase() || a.id.toLowerCase() === mName.toLowerCase()
                     );
-                    if (agent && !targetAgents.find((a: any) => a.id === agent.id)) {
+                    if (agent && !targetAgents.find((a: Agent) => a.id === agent.id)) {
                         targetAgents.push(agent);
                         mentionLabels.push(agent.name);
                         continue;
                     }
-                    const group = (workspaceCtx.groups || []).find((g: any) =>
+                    const group = (workspaceCtx.groups || []).find((g: Group) =>
                         g.name.toLowerCase() === mName.toLowerCase() || g.id.toLowerCase() === mName.toLowerCase()
                     );
                     if (group) {
-                        const members = (workspaceCtx.agents || []).filter((a: any) => group.members.includes(a.id));
+                        const members = (workspaceCtx.agents || []).filter((a: Agent) => group.members.includes(a.id));
                         for (const mem of members) {
-                            if (!targetAgents.find((a: any) => a.id === mem.id)) targetAgents.push(mem);
+                            if (!targetAgents.find((a: Agent) => a.id === mem.id)) targetAgents.push(mem);
                         }
                         mentionLabels.push(`${group.name} (group)`);
                     }
@@ -517,11 +523,11 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                 if (targetAgents.length > 0) {
                     const cleanText = text.replace(/@[A-Za-z0-9_]+/g, "").trim();
                     const replies = await Promise.all(
-                        targetAgents.map((a: any) => chatWithAgent(a, cleanText, currentMessages.slice(-10)))
+                        targetAgents.map((a: Agent) => chatWithAgent(a, cleanText, currentMessages.slice(-10)))
                     );
                     const combined = targetAgents.length === 1
                         ? `**${targetAgents[0].name}** says:\n\n${replies[0].text}`
-                        : targetAgents.map((a: any, i: number) =>
+                        : targetAgents.map((a: Agent, i: number) =>
                             `**${a.name}** (${a.title || a.role}):\n${replies[i].text}`
                         ).join("\n\n---\n\n");
                     const finalMsgs = [...updatedMsgs, { role: "assistant" as const, content: combined }];
@@ -996,10 +1002,10 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                     command={pendingCommand.command}
                     initialArgs={pendingCommand.initialArgs}
                     entities={{
-                        agents: workspaceCtx.agents.map((a: any) => ({ id: a.id, name: a.name })),
-                        channels: workspaceCtx.channels.map((c: any) => ({ id: c.id, from: c.from, to: c.to, type: c.type })),
-                        groups: workspaceCtx.groups.map((g: any) => ({ id: g.id, name: g.name })),
-                        networks: (ecosystem?.networks || []).map((n: any) => ({ id: n.id, name: n.name, color: n.color })),
+                        agents: workspaceCtx.agents.map((a: Agent) => ({ id: a.id, name: a.name })),
+                        channels: workspaceCtx.channels.map((c: Channel) => ({ id: c.id, from: c.from, to: c.to, type: c.type })),
+                        groups: workspaceCtx.groups.map((g: Group) => ({ id: g.id, name: g.name })),
+                        networks: (ecosystem?.networks || []).map((n: { id: string; name: string; color?: string }) => ({ id: n.id, name: n.name, color: n.color })),
                     }}
                     currentUser={user}
                     onSubmit={handlePromptSubmit}

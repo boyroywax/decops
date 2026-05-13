@@ -15,8 +15,8 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 | Metric | Original | Current | Δ |
 |---|---|---|---|
 | `: any` / `as any` in `src/hooks` + `src/services` | 294 | **226** | −68 (−23%) |
-| Test files | 34 | **46** | +12 |
-| Total tests passing | n/a | **452/452** | — |
+| Test files | 34 | **47** | +13 |
+| Total tests passing | n/a | **474/474** | — |
 | Silent `catch {}` blocks | 18 | **12** | −6 |
 
 ### Severity Counts (Remaining Open)
@@ -54,6 +54,8 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 - `7bc2c82` feat(a11y): aria-label icon buttons + focus trap on modals [§6.2]
 - `1ff4f6f` feat(a11y,theme): focus-trap on JobInputPromptModal+NodeEditModal; tokenize studio styles [§6.1 + §6.2 follow-up]
 - _pending_ chore(ci): GH Actions typecheck+test+build workflow + ADRs 0001–0004 [§8 + §10]
+- _pending_ test(bots): delegation-matcher coverage for libp2pBot + studioBot (22 tests) [§2.1]
+- _pending_ types(ChatPanel): tighten `any` props/maps to `Agent`/`Channel`/`Group` [§3.1]
 
 ---
 

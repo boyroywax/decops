@@ -30,3 +30,7 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Dead-export report (advisory)
+        run: npx ts-prune --error || echo "::warning::ts-prune flagged unused exports (advisory only)"
+        continue-on-error: true
