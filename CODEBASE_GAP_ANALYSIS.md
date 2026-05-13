@@ -14,7 +14,7 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 
 | Metric | Original | Current | Δ |
 |---|---|---|---|
-| `: any` / `as any` in `src/hooks` + `src/services` | 294 | **226** | −68 (−23%) |
+| `: any` / `as any` in `src/hooks` + `src/services` | 294 | **203** | −91 (−31%) |
 | Test files | 34 | **47** | +13 |
 | Total tests passing | n/a | **474/474** | — |
 | Silent `catch {}` blocks | 18 | **12** | −6 |
@@ -56,6 +56,7 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 - _pending_ chore(ci): GH Actions typecheck+test+build workflow + ADRs 0001–0004 [§8 + §10]
 - _pending_ test(bots): delegation-matcher coverage for libp2pBot + studioBot (22 tests) [§2.1]
 - _pending_ types(ChatPanel): tighten `any` props/maps to `Agent`/`Channel`/`Group` [§3.1]
+- _pending_ types(maintenance.ts): 23 → 0 `any` via discriminated `DeletableItem` union [§3.1]
 
 ---
 
