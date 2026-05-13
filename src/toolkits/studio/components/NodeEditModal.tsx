@@ -11,6 +11,7 @@ import { X, Database, Tag, Package, ChevronLeft, ChevronRight } from "lucide-rea
 import type { JobDeliverable, EntityInput, InputSourceKind, InputSource, ArtifactType } from "@/types";
 import { useWorkspaceStore, useEcosystemStore } from "@/stores";
 import { useJobsContext } from "@/context/JobsContext";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import "../styles/node-edit-modal.css";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -83,17 +84,17 @@ export function NodeEditModal({
 }: NodeEditModalProps) {
     const backdropRef = useRef<HTMLDivElement>(null);
     const cardRef = useRef<HTMLDivElement>(null);
+    const trapRef = useFocusTrap<HTMLDivElement>(isOpen, onClose);
 
     // ── Keyboard ──
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             if (e.key === "ArrowLeft" && onPrev) { e.preventDefault(); onPrev(); }
             if (e.key === "ArrowRight" && onNext) { e.preventDefault(); onNext(); }
-            if (e.key === "Escape") { e.preventDefault(); onClose(); }
         };
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
-    }, [onPrev, onNext, onClose]);
+    }, [onPrev, onNext]);
 
     // ── Mouse glow ──
     const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -154,11 +155,14 @@ export function NodeEditModal({
             )}
 
             <div
-                ref={cardRef}
+                ref={(el) => { cardRef.current = el; (trapRef as { current: HTMLDivElement | null }).current = el; }}
                 className={`tc-card nem-card nem-card--${data.type}`}
                 style={{ "--nem-accent": accentColor } as React.CSSProperties}
                 onMouseMove={handleMouseMove}
                 onClick={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-label={`Edit ${data.type}`}
             >
                 {/* ── Header ── */}
                 <div className="nem-header">

@@ -7,6 +7,7 @@ import { useState, useMemo } from "react";
 import { AlertCircle, Send, X, Keyboard } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { useJobsContext } from "@/context/JobsContext";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import "../styles/job-input-prompt.css";
 
 export function JobInputPromptModal() {
@@ -21,9 +22,12 @@ export function JobInputPromptModal() {
         [jobs],
     );
 
+    const trapRef = useFocusTrap<HTMLDivElement>(Boolean(pendingJob?.pendingPrompt));
+
     if (!pendingJob || !pendingJob.pendingPrompt) return null;
 
     const { inputName, promptText, inputType, options, min, max, step, placeholder } = pendingJob.pendingPrompt;
+
 
     const handleSubmit = () => {
         let value: string;
@@ -55,7 +59,7 @@ export function JobInputPromptModal() {
 
     return (
         <div className="jip-overlay" onClick={handleCancel}>
-            <div className="jip-modal" onClick={e => e.stopPropagation()}>
+            <div ref={trapRef} className="jip-modal" role="dialog" aria-modal="true" aria-label="Job input required" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="jip-header">
                     <div className="jip-header__icon">

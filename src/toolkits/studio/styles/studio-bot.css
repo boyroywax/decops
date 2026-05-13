@@ -418,24 +418,24 @@
 
 [data-theme="light"] .studio-bot__title,
 [data-theme="light"] .studio-bot__section-title {
-    color: #18181b;
+    color: var(--text-primary, #18181b);
 }
 
 [data-theme="light"] .studio-bot__subtitle,
 [data-theme="light"] .studio-bot__desc,
 [data-theme="light"] .studio-bot__config-item,
 [data-theme="light"] .studio-bot__cap {
-    color: #52525b;
+    color: var(--text-ghost, #52525b);
 }
 
 [data-theme="light"] .studio-bot__action-btn {
     border-color: rgba(0, 0, 0, 0.1);
-    color: #52525b;
+    color: var(--text-ghost, #52525b);
 }
 
 [data-theme="light"] .studio-bot__action-btn:hover:not(:disabled) {
     background: rgba(0, 0, 0, 0.04);
-    color: #18181b;
+    color: var(--text-primary, #18181b);
 }
 
 [data-theme="light"] .studio-bot__config,
