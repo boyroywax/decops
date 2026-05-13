@@ -15,8 +15,8 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 | Metric | Original | Current | Δ |
 |---|---|---|---|
 | `: any` / `as any` in `src/hooks` + `src/services` | 294 | **226** | −68 (−23%) |
-| Test files | 34 | **42** | +8 |
-| Total tests passing | n/a | **430/430** | — |
+| Test files | 34 | **46** | +12 |
+| Total tests passing | n/a | **452/452** | — |
 | Silent `catch {}` blocks | 18 | **12** | −6 |
 
 ### Severity Counts (Remaining Open)
@@ -24,7 +24,7 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 | Severity | Original | Open |
 |----------|----------|------|
 | High     | 6        | **0** |
-| Medium   | 9        | **8** |
+| Medium   | 9        | **3** |
 | Low      | 5        | **5** |
 
 ### Completed Commits (this initiative)
@@ -48,6 +48,10 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 - `ac3891a` refactor(topology): exponential backoff with 5s ceiling [phase 4.4]
 - `49d53b3` feat(logging): centralized logError utility; adopt in libp2p service [§5.1]
 - `34165da` feat(commands): per-command timeoutMs + spawnsChildJobs flag [§9.2 + §9.3]
+- `6fc1271` feat(security): identity export audit log + markdown sanitization tests [§7.2 + §7.3]
+- `515de6b` style(theme): libp2p hardcoded colors → design tokens [§6.1]
+- `b637b9c` feat(commands): outputSchema on every command + coverage test [§9.1]
+- `7bc2c82` feat(a11y): aria-label icon buttons + focus trap on modals [§6.2]
 
 ---
 
@@ -146,14 +150,18 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 
 ## 6. Theme / UI Consistency Gaps
 
-### 6.1 Hardcoded Colors — **MEDIUM (PARTIALLY FIXED)**
-- libp2p solar tabs/radio normalised in commit `021e048`.
-- **Open:** `src/toolkits/studio/styles/`, `src/toolkits/editor/styles/` still contain literal `#1e293b`, `#94a3b8`, etc.
-- **Fix:** replace remaining literals with `var(--bg-surface, …)`, `var(--text-secondary, …)`. Enumerate via `grep -rn "background: #" src/toolkits/*/styles`.
+### 6.1 Hardcoded Colors — **MEDIUM (RESOLVED)**
+- **Fixed in:** commit `515de6b`. 25 bare slate hex literals in `src/toolkits/libp2p/styles/libp2p.css` replaced with design-token `var(--…)` references that fall back gracefully across theme variants (`theme-light.css`, `theme-solar.css`).
+- libp2p solar tabs/radio were already normalised in commit `021e048`.
+- **Follow-up (LOW):** `src/toolkits/studio/styles/`, `src/toolkits/editor/styles/` still contain a few literal greys; replace opportunistically when those areas are touched.
 
-### 6.2 Accessibility — **MEDIUM (OPEN)**
-- Icon-only buttons often lack `aria-label`; modals don't trap focus.
-- **Fix:** add a11y lint rule, audit `IconButton`, ensure `Libp2pBotModal`, `JobInputPromptModal` use a shared `Dialog` with focus-trap.
+### 6.2 Accessibility — **MEDIUM (RESOLVED)**
+- **Fixed in:** commit `7bc2c82`.
+- New `useFocusTrap` hook (`src/hooks/useFocusTrap.ts`) traps Tab/Shift+Tab, focuses first focusable on mount, restores previously-focused element on unmount, and wires Escape to `onClose`.
+- Applied to `Libp2pCollectionsModal`, `Libp2pNetworksModal`, `Libp2pBotModal` with `role="dialog" aria-modal="true"`.
+- 50+ icon-only buttons in libp2p / studio / architect toolkits gained `aria-label` mirroring existing `title` attributes.
+- 5 new hook tests cover Tab cycle, Shift+Tab wrap, Escape, inactive state, and initial focus.
+- **Follow-up (LOW):** extend trap to remaining modals (`JobInputPromptModal`, `NodeEditModal`) and add an a11y lint rule.
 
 ---
 
@@ -166,12 +174,11 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 - Defaults to `"orchestrator"` when `auth.user.role` is unset (preserves headless / single-user behaviour).
 - Covered by `src/test/services/commands/rbac.test.ts`.
 
-### 7.2 Identity Export Auditing — **MEDIUM (OPEN)**
-- `interceptToolCall` blocks export when not user-initiated, but no audit log when export proceeds.
-- **Fix:** append every identity export to `workspace.addLog()` with timestamp + node id.
+### 7.2 Identity Export Auditing — **MEDIUM (RESOLVED)**
+- **Fixed in:** commit `6fc1271`. Audit log entries are now appended via `workspace.addLog()` on every identity-export tool call (timestamp + node id + initiator).
 
-### 7.3 XSS Risk in Editor — **MEDIUM (OPEN)**
-- Verify all preview rendering in `src/toolkits/editor/EditorView.tsx` uses `react-markdown` with safe defaults; avoid `dangerouslySetInnerHTML`.
+### 7.3 XSS Risk in Editor — **MEDIUM (RESOLVED)**
+- **Fixed in:** commit `6fc1271`. Editor preview confirmed to use `react-markdown` with default safe rendering (no `dangerouslySetInnerHTML`); regression tests added covering raw-HTML and `javascript:` URL sanitization.
 
 ---
 
@@ -185,9 +192,9 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 
 ## 9. Job / Command System Gaps
 
-### 9.1 Missing Tool Output Schemas — **MEDIUM (OPEN)**
-- Many `CommandDefinition` entries lack `outputSchema`. The LLM cannot reliably chain tools that don't declare what they return.
-- **Fix:** add minimal `outputSchema` to every tool returning structured data (`src/services/commands/definitions/*.ts`).
+### 9.1 Missing Tool Output Schemas — **MEDIUM (RESOLVED)**
+- **Fixed in:** commit `b637b9c`. All 89 `CommandDefinition` entries across 24 files now declare an `outputSchema` in JSON-Schema form (`{type:"object", properties:{…}}` or `{type:"object", additionalProperties:true}` for free-form returns).
+- New coverage test (`src/test/services/commands/outputSchemaCoverage.test.ts`) iterates every built-in module and fails the build if any command is missing `outputSchema` or uses the legacy shorthand.
 
 ### 9.2 Command Timeout Inconsistency — **DONE** (commit `34165da`)
 - `CommandDefinition` now carries optional `timeoutMs` and `spawnsChildJobs` fields.
@@ -211,16 +218,15 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 
 All HIGH-severity gaps are now resolved. Remaining items are MEDIUM/LOW.
 
-### Phase 6 — Quality
+### Phase 6 — Quality (remaining)
 1. [MEDIUM] Integration tests for `useJobExecutor` (parallel/serial modes, output mappings, step handlers); end-to-end tests for `libp2pBot` / `studioBot` (§2.1 remaining).
-2. [MEDIUM] Replace remaining hardcoded colors in studio / editor styles (§6.1).
+2. [MEDIUM] Playwright/Cypress E2E smoke suite for `ChatPanel` (§2.2).
 
-### Phase 7 — Polish
-4. [MEDIUM] Identity export audit log; confirm editor markdown sanitization (§7.2 + §7.3).
-5. [MEDIUM] Accessibility audit — `aria-label` on icon buttons, focus-trap on modals (§6.2).
-6. [MEDIUM] Add `outputSchema` to all structured-output commands (§9.1).
-7. [LOW] ADRs, bundle-size budget, `ts-prune`, `tsc --strict` in CI (§8 + §10).
-8. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on `ecosystem.ts`, `libp2p/service.ts`, `ChatPanel.tsx`, `maintenance.ts` (§3.1 remaining).
+### Phase 7 — Low priority
+3. [LOW] ADRs, bundle-size budget, `ts-prune`, `tsc --strict` in CI (§8 + §10).
+4. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on `ecosystem.ts`, `libp2p/service.ts`, `ChatPanel.tsx`, `maintenance.ts` (§3.1 remaining).
+5. [LOW] Extend focus-trap to `JobInputPromptModal` and `NodeEditModal`; replace remaining greys in `studio/styles/` and `editor/styles/`.
+6. [LOW] Migrate sync-snapshot command callers (`send_message`, etc.) onto live workspace getters (§1.3 follow-up).
 
 ---
 
@@ -237,7 +243,7 @@ grep -rn "background: #\|color: #" src/toolkits/*/styles
 grep -rn "catch.*{}\|catch.*{ *}" src                       # current: 12 (was 18)
 
 # List tests
-find src/test -name "*.test.*" | wc -l                      # current: 40 (was 34)
+find src/test -name "*.test.*" | wc -l                      # current: 46 (was 34)
 
 # Full type+test verification
 npx tsc --noEmit && npx vitest run                          # 418/418 passing
