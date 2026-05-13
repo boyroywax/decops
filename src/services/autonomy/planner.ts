@@ -45,7 +45,7 @@ export async function generatePlan(
   goal: string,
   constraints: string[],
   peerAgents: Agent[],
-  storageSnapshot: Record<string, any>,
+  storageSnapshot: Record<string, unknown>,
   modelOverride?: string,
   jobCatalog?: JobDefinition[],
 ): Promise<TaskPlan> {
@@ -57,7 +57,7 @@ export async function generatePlan(
   const toolkitCommandIds = getCommandIdsForAgent(agent);
   const availableCommands = allCommands
     .filter(cmd =>
-      cmd.rbac.includes(agent.role as any) &&
+      cmd.rbac.includes(agent.role) &&
       !cmd.hidden &&
       // If agent has toolkit bindings, restrict to toolkit-scoped commands
       (!toolkitCommandIds || toolkitCommandIds.has(cmd.id)),
@@ -130,11 +130,37 @@ export async function generatePlan(
 
 // ── System prompt ──────────────────────────────────
 
+interface PlannerCommandArg {
+  name: string;
+  type: string;
+  required: boolean;
+  description?: string;
+  enum?: readonly string[] | string[];
+  default?: unknown;
+}
+
+interface PlannerCommandSummary {
+  id: string;
+  description: string;
+  args: PlannerCommandArg[];
+  tags: string[];
+}
+
+interface PlannerPeerSummary {
+  id: string;
+  name: string;
+  role: string;
+  title?: string;
+  skills: string[];
+  enabledToolkits: string[];
+  prompt_excerpt?: string;
+}
+
 function buildPlannerSystemPrompt(
   agent: Agent,
   cap: AgentCapability,
-  commands: any[],
-  peers: any[],
+  commands: PlannerCommandSummary[],
+  peers: PlannerPeerSummary[],
   storageKeys: string[],
   jobCatalog: JobDefinition[],
 ): string {
@@ -149,7 +175,7 @@ function buildPlannerSystemPrompt(
       ? `Enabled toolkits: ${cap.enabledToolkits.join(", ")} (you can only use commands from these toolkits)`
       : `Toolkits: unrestricted (all RBAC-permitted commands available)`,
     `\n## Available commands (${commands.length}):`,
-    commands.map(c => `- **${c.id}**: ${c.description}\n  Args: ${c.args.map((a: any) => `${a.name}(${a.type}${a.required ? "*" : ""})`).join(", ")}`).join("\n"),
+    commands.map(c => `- **${c.id}**: ${c.description}\n  Args: ${c.args.map(a => `${a.name}(${a.type}${a.required ? "*" : ""})`).join(", ")}`).join("\n"),
     jobCatalog.length > 0 ? [
       `\n## Available job pipelines (${jobCatalog.length}):`,
       `Jobs are multi-step pipelines made of commands. You can reference these by ID instead of listing individual commands.`,
@@ -223,7 +249,7 @@ function buildPlannerUserMessage(goal: string, constraints: string[]): string {
 
 function parsePlanResponse(text: string, peerAgents: Agent[]): TaskPlan {
   // Try to extract JSON from the response
-  let json: any;
+  let json: Record<string, unknown>;
   try {
     // Strip markdown code fences if present
     const cleaned = text.replace(/^```(?:json)?\s*\n?/m, "").replace(/\n?```\s*$/m, "").trim();
@@ -254,34 +280,35 @@ function parsePlanResponse(text: string, peerAgents: Agent[]): TaskPlan {
   }
 
   // Parse actions
-  const actions: PlannedAction[] = (json.actions || []).map((a: any, i: number) => ({
-    order: a.order ?? i + 1,
-    type: a.type || "command",
-    commandId: a.commandId || a.command_id || "",
-    args: a.args || {},
-    reasoning: a.reasoning || "",
-    optional: a.optional || false,
-    jobDefinitionId: a.jobDefinitionId || a.job_definition_id || undefined,
-    jobDefinition: a.jobDefinition || undefined,
-    jobInputs: a.jobInputs || a.job_inputs || undefined,
+  const rawActions = (json.actions as Array<Record<string, unknown>> | undefined) || [];
+  const actions: PlannedAction[] = rawActions.map((a, i) => ({
+    order: (a.order as number | undefined) ?? i + 1,
+    type: (a.type as PlannedAction["type"]) || "command",
+    commandId: (a.commandId as string) || (a.command_id as string) || "",
+    args: (a.args as Record<string, unknown>) || {},
+    reasoning: (a.reasoning as string) || "",
+    optional: (a.optional as boolean) || false,
+    jobDefinitionId: (a.jobDefinitionId as string) || (a.job_definition_id as string) || undefined,
+    jobDefinition: (a.jobDefinition as PlannedAction["jobDefinition"]) || undefined,
+    jobInputs: (a.jobInputs as Record<string, string>) || (a.job_inputs as Record<string, string>) || undefined,
   }));
 
   // Parse delegation target
   let delegationTarget: DelegationTarget | undefined;
-  if (json.delegationTarget || json.delegation_target) {
-    const dt = json.delegationTarget || json.delegation_target;
+  const rawDt = (json.delegationTarget || json.delegation_target) as Record<string, unknown> | undefined;
+  if (rawDt) {
     delegationTarget = {
-      type: dt.type || "agent",
-      targetId: dt.targetId || dt.target_id || "",
-      reasoning: dt.reasoning || "",
+      type: (rawDt.type as DelegationTarget["type"]) || "agent",
+      targetId: (rawDt.targetId as string) || (rawDt.target_id as string) || "",
+      reasoning: (rawDt.reasoning as string) || "",
     };
   }
 
   return {
-    analysis: json.analysis || "",
-    canSelfComplete: json.canSelfComplete ?? json.can_self_complete ?? false,
+    analysis: (json.analysis as string) || "",
+    canSelfComplete: (json.canSelfComplete as boolean) ?? (json.can_self_complete as boolean) ?? false,
     actions,
     delegationTarget,
-    gaps: json.gaps || [],
+    gaps: (json.gaps as string[]) || [],
   };
 }
