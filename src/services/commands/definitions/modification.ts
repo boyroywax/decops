@@ -1,5 +1,6 @@
 
 import type { CommandDefinition, CommandContext } from "@/services/commands/types";
+import type { Agent, Channel, Group } from "@/types";
 
 export const deleteAgentCommand: CommandDefinition = {
     id: "delete_agent",
@@ -22,12 +23,12 @@ export const deleteAgentCommand: CommandDefinition = {
 
         // Validate all targets exist
         for (const id of targetIds) {
-            if (!agents.find((a: any) => a.id === id)) throw new Error(`Agent ${id} not found`);
+            if (!agents.find((a) => a.id === id)) throw new Error(`Agent ${id} not found`);
         }
 
-        setAgents((prev: any[]) => prev.filter((a: any) => !idSet.has(a.id)));
-        setChannels((prev: any[]) => prev.filter((c: any) => !idSet.has(c.from) && !idSet.has(c.to)));
-        setGroups((prev: any[]) => prev.map((g: any) => ({ ...g, members: g.members.filter((m: any) => !idSet.has(m)) })));
+        setAgents((prev: Agent[]) => prev.filter((a) => !idSet.has(a.id)));
+        setChannels((prev: Channel[]) => prev.filter((c) => !idSet.has(c.from) && !idSet.has(c.to)));
+        setGroups((prev: Group[]) => prev.map((g) => ({ ...g, members: g.members.filter((m) => !idSet.has(m)) })));
 
         addLog(`Deleted ${targetIds.length} agent(s) via command`);
         return { success: true, deleted: targetIds.length };
@@ -51,7 +52,7 @@ export const deleteChannelCommand: CommandDefinition = {
             : [args.id];
         const idSet = new Set(targetIds);
 
-        context.workspace.setChannels((prev: any[]) => prev.filter((c: any) => !idSet.has(c.id)));
+        context.workspace.setChannels((prev: Channel[]) => prev.filter((c) => !idSet.has(c.id)));
         context.workspace.addLog(`Dissolved ${targetIds.length} channel(s) via command`);
         return { success: true, deleted: targetIds.length };
     }
@@ -74,7 +75,7 @@ export const deleteGroupCommand: CommandDefinition = {
             : [args.id];
         const idSet = new Set(targetIds);
 
-        context.workspace.setGroups((prev: any[]) => prev.filter((g: any) => !idSet.has(g.id)));
+        context.workspace.setGroups((prev: Group[]) => prev.filter((g) => !idSet.has(g.id)));
         context.workspace.addLog(`Dissolved ${targetIds.length} group(s) via command`);
         return { success: true, deleted: targetIds.length };
     }
@@ -97,9 +98,9 @@ export const editChannelCommand: CommandDefinition = {
             ? (Array.isArray(args.items) ? args.items : [args.items])
             : [{ id: args.id, type: args.type }];
 
-        const idTypeMap = new Map(specs.map((s: any) => [s.id, s.type]));
-        context.workspace.setChannels((prev: any[]) => prev.map((c: any) =>
-            idTypeMap.has(c.id) ? { ...c, type: idTypeMap.get(c.id) } : c
+        const idTypeMap = new Map<string, Channel["type"]>(specs.map((s: { id: string; type: Channel["type"] }) => [s.id, s.type]));
+        context.workspace.setChannels((prev: Channel[]) => prev.map((c) =>
+            idTypeMap.has(c.id) ? { ...c, type: idTypeMap.get(c.id)! } : c
         ));
         context.workspace.addLog(`Updated ${specs.length} channel(s)`);
         return { success: true, updated: specs.length };
@@ -124,10 +125,10 @@ export const updateAgentPromptCommand: CommandDefinition = {
             ? (Array.isArray(args.items) ? args.items : [args.items])
             : [{ id: args.id, prompt: args.prompt }];
 
-        const idPromptMap = new Map(specs.map((s: any) => [s.id, s.prompt]));
+        const idPromptMap = new Map<string, string>(specs.map((s: { id: string; prompt: string }) => [s.id, s.prompt]));
         const { setAgents, addLog } = context.workspace;
-        setAgents((prev: any[]) => prev.map((a: any) =>
-            idPromptMap.has(a.id) ? { ...a, prompt: idPromptMap.get(a.id) } : a
+        setAgents((prev: Agent[]) => prev.map((a) =>
+            idPromptMap.has(a.id) ? { ...a, prompt: idPromptMap.get(a.id)! } : a
         ));
         addLog(`Prompt updated for ${specs.length} agent(s)`);
         return { success: true, updated: specs.length };
@@ -154,16 +155,16 @@ export const toggleGroupMemberCommand: CommandDefinition = {
 
         const { setGroups, addLog } = context.workspace;
 
-        setGroups((prev: any[]) => {
+        setGroups((prev: Group[]) => {
             let updated = [...prev];
             for (const spec of specs) {
-                updated = updated.map((g: any) => {
+                updated = updated.map((g) => {
                     if (g.id !== spec.group_id) return g;
                     const hasMember = g.members.includes(spec.agent_id);
                     return {
                         ...g,
                         members: hasMember
-                            ? g.members.filter((m: any) => m !== spec.agent_id)
+                            ? g.members.filter((m) => m !== spec.agent_id)
                             : [...g.members, spec.agent_id]
                     };
                 });
