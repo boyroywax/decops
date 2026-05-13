@@ -62,6 +62,7 @@ export function CopyableId({
         onClick={handleCopy}
         title={copied ? "Copied!" : `Copy ${label || "value"}`}
         type="button"
+        aria-label={copied ? "Copied!" : `Copy ${label || "value"}`}
       >
         {copied ? <Check size={11} /> : <Clipboard size={11} />}
       </button>

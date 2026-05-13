@@ -579,7 +579,13 @@ export function Libp2pView(_props: Libp2pViewProps) {
                                         ? "Unlock a private network in the NETWORK panel, or switch to the public network"
                                         : undefined
                             }
-                        >
+                         aria-label={
+                                transportCount === 0
+                                    ? "Enable at least one transport in Start options"
+                                    : pnetMode === "private" && !pnetUnlockedKey
+                                        ? "Unlock a private network in the NETWORK panel, or switch to the public network"
+                                        : undefined
+                            }>
                             <Power size={14} /> Start node
                         </button>
                     ) : (
@@ -617,7 +623,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         void handleRemoveNode(n.nodeId, n.label);
-                                    }}
+                                    }} aria-label="Remove node"
                                 >
                                     <X size={11} />
                                 </button>
@@ -753,7 +759,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                                 disabled={isRunning}
                                 onClick={() => setDisabledBootstrap(
                                     disabledBootstrap.size === 0 ? new Set(allBootstrap) : new Set(),
-                                )}
+                                )} aria-label={disabledBootstrap.size === 0 ? "Disable all" : "Enable all"}
                             >
                                 {disabledBootstrap.size === 0 ? <Square size={11} /> : <Check size={11} />}
                             </button>
@@ -785,7 +791,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                                                 className="libp2p-icon-btn"
                                                 title="Remove this bootstrap peer"
                                                 disabled={isRunning}
-                                                onClick={() => removeBootstrap(addr)}
+                                                onClick={() => removeBootstrap(addr)} aria-label="Remove this bootstrap peer"
                                             >
                                                 <Trash2 size={11} />
                                             </button>
@@ -868,7 +874,13 @@ export function Libp2pView(_props: Libp2pViewProps) {
                                                         }
                                                         onClick={() => {
                                                             if (usable) addBootstrap(addr);
-                                                        }}
+                                                        }} aria-label={
+                                                            !addr
+                                                                ? "Contact has no multiaddr or peer id"
+                                                                : already
+                                                                    ? "Already in the bootstrap list"
+                                                                    : "Add this contact as a bootstrap peer"
+                                                        }
                                                     >
                                                         <Plus size={10} /> Add
                                                     </button>
@@ -1035,7 +1047,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                         <div className="libp2p-row">
                             <span className="libp2p-label">Peer ID</span>
                             <code className="libp2p-mono libp2p-mono--wrap">{snapshot.peerId}</code>
-                            <button className="libp2p-icon-btn" title="Copy" onClick={() => copy(snapshot.peerId!)}>
+                            <button className="libp2p-icon-btn" title="Copy" onClick={() => copy(snapshot.peerId!)} aria-label="Copy">
                                 <Copy size={12} />
                             </button>
                         </div>
@@ -1048,7 +1060,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                                     {snapshot.multiaddrs.map((ma) => (
                                         <li key={ma}>
                                             <code className="libp2p-mono">{ma}</code>
-                                            <button className="libp2p-icon-btn" title="Copy" onClick={() => copy(ma)}>
+                                            <button className="libp2p-icon-btn" title="Copy" onClick={() => copy(ma)} aria-label="Copy">
                                                 <Copy size={12} />
                                             </button>
                                         </li>
@@ -1071,7 +1083,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                         onClick={handleGenerateIdentity}
                         disabled={busy || isRunning}
                         title="Stop the node first; generates a fresh Ed25519 key for the next start"
-                    >
+                     aria-label="Stop the node first; generates a fresh Ed25519 key for the next start">
                         <Sparkles size={12} /> Generate
                     </button>
                     <button
@@ -1118,7 +1130,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                         onClick={handleExportIdentity}
                         disabled={busy || (!snapshot.peerId && !snapshot.hasPersistedIdentity)}
                         title="Reveal the private key (treat as a credential)"
-                    >
+                     aria-label="Reveal the private key (treat as a credential)">
                         <Download size={12} /> Export
                     </button>
                     <button
@@ -1433,7 +1445,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                                 <button
                                     className="libp2p-icon-btn"
                                     title="Use as dial target"
-                                    onClick={() => setDialTarget(ma)}
+                                    onClick={() => setDialTarget(ma)} aria-label="Use as dial target"
                                 >
                                     <Link2 size={12} />
                                 </button>
@@ -1453,7 +1465,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                         title="Clear peer book"
                         onClick={handleClearPeers}
                         disabled={peers.length === 0 || busy}
-                    >
+                     aria-label="Clear peer book">
                         <Trash2 size={12} />
                     </button>
                 </h3>
@@ -1478,7 +1490,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                                         <button
                                             className="libp2p-icon-btn"
                                             title="Ping"
-                                            onClick={() => handlePing(p.id)}
+                                            onClick={() => handlePing(p.id)} aria-label="Ping"
                                         >
                                             <Activity size={12} />
                                         </button>
@@ -1487,7 +1499,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                                         <button
                                             className="libp2p-icon-btn"
                                             title="Disconnect"
-                                            onClick={() => handleHangUp(p.id)}
+                                            onClick={() => handleHangUp(p.id)} aria-label="Disconnect"
                                         >
                                             <PowerOff size={12} />
                                         </button>
@@ -1499,7 +1511,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                                                 "libp2p_dial",
                                                 { target: p.id },
                                                 `dial ${p.id.slice(0, 12)}…`,
-                                            )}
+                                            )} aria-label="Dial"
                                             disabled={busy}
                                         >
                                             <Link2 size={12} />
@@ -1518,7 +1530,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                                                         multiaddr: p.addrs?.[0],
                                                     },
                                                     `add contact ${p.id.slice(0, 12)}…`,
-                                                )}
+                                                )} aria-label={saved ? "Already in contacts" : "Add to contacts"}
                                                 disabled={saved}
                                             >
                                                 {saved ? <Check size={12} /> : <UserPlus size={12} />}
@@ -1548,7 +1560,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                     <button
                         className="libp2p-icon-btn libp2p-icon-btn--right"
                         title="Clear"
-                        onClick={() => setLog([])}
+                        onClick={() => setLog([])} aria-label="Clear"
                         disabled={log.length === 0}
                     >
                         <RefreshCw size={12} />

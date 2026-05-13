@@ -53,7 +53,7 @@ export function NodeEditor({
                 <div className="jm-editor">
                     <div className="jm-editor__header">
                         <Settings size={14} /> Properties
-                        <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                        <button className="jm-editor__close" onClick={onClose} title="Close properties" aria-label="Close properties"><X size={14} /></button>
                     </div>
                     <div className="jm-editor__body">
                         <div className="jm-editor__empty">
@@ -74,7 +74,7 @@ export function NodeEditor({
                 <div className="jm-editor">
                 <div className="jm-editor__header">
                     <Tag size={14} /> Entity Input
-                    <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                    <button className="jm-editor__close" onClick={onClose} title="Close properties" aria-label="Close properties"><X size={14} /></button>
                 </div>
                 <div className="jm-editor__body">
                     <div className="jm-editor__section">
@@ -136,7 +136,7 @@ export function NodeEditor({
                 <div className="jm-editor">
                 <div className="jm-editor__header">
                     <Package size={14} /> Deliverable
-                    <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                    <button className="jm-editor__close" onClick={onClose} title="Close properties" aria-label="Close properties"><X size={14} /></button>
                 </div>
                 <div className="jm-editor__body">
                     <div className="jm-editor__section">
@@ -193,7 +193,7 @@ export function NodeEditor({
                 <div className="jm-editor">
                 <div className="jm-editor__header">
                     <Database size={14} /> Shared Storage
-                    <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                    <button className="jm-editor__close" onClick={onClose} title="Close properties" aria-label="Close properties"><X size={14} /></button>
                 </div>
                 <div className="jm-editor__body">
                     <div className="jm-editor__section">
@@ -233,7 +233,7 @@ export function NodeEditor({
                 <div className="jm-editor">
                     <div className="jm-editor__header">
                         <Settings size={14} /> Properties
-                        <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                        <button className="jm-editor__close" onClick={onClose} title="Close properties" aria-label="Close properties"><X size={14} /></button>
                     </div>
                     <div className="jm-editor__body">
                         <div className="jm-editor__empty">
@@ -254,7 +254,7 @@ export function NodeEditor({
             <div className="jm-editor">
             <div className="jm-editor__header">
                 <Settings size={14} /> Step Configuration
-                <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                <button className="jm-editor__close" onClick={onClose} title="Close properties" aria-label="Close properties"><X size={14} /></button>
             </div>
             <div className="jm-editor__body">
                 {cmd && (

@@ -14,6 +14,7 @@ import { useCommandCtx } from "@/context/CommandContextProvider";
 import { handleLibp2pBotRequest } from "../libp2pBot";
 import type { Libp2pBotResponse } from "../types/libp2pBot";
 import { Libp2pBotPanel } from "./Libp2pBotPanel";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 interface Libp2pBotModalProps {
     open: boolean;
@@ -35,6 +36,7 @@ export function Libp2pBotModal({ open, onClose }: Libp2pBotModalProps) {
     const [history, setHistory] = useState<{ prompt: string; response: Libp2pBotResponse }[]>([]);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
     const scrollRef = useRef<HTMLDivElement | null>(null);
+    const trapRef = useFocusTrap<HTMLDivElement>(open, onClose);
 
     useEffect(() => {
         if (open) {
@@ -90,6 +92,7 @@ export function Libp2pBotModal({ open, onClose }: Libp2pBotModalProps) {
     return (
         <div className="libp2p-modal-backdrop" onClick={onClose}>
             <div
+                ref={trapRef}
                 className="libp2p-modal libp2p-bot-modal"
                 role="dialog"
                 aria-modal="true"
@@ -239,7 +242,7 @@ export function Libp2pBotModal({ open, onClose }: Libp2pBotModalProps) {
                                 className="libp2p-bot-modal__send"
                                 disabled={running || !input.trim()}
                                 title="Send (Enter)"
-                            >
+                             aria-label="Send (Enter)">
                                 {running ? <Loader2 size={14} className="libp2p-bot-modal__spinner" /> : <Send size={14} />}
                             </button>
                         </form>

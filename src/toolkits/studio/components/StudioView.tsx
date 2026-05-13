@@ -625,13 +625,13 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                         />
                     </div>
                     <div className="jm-toolbar__file-actions">
-                        <button className="jm-toolbar__icon-btn" onClick={handleNew} title="New job">
+                        <button className="jm-toolbar__icon-btn" onClick={handleNew} title="New job" aria-label="New job">
                             <Plus size={14} />
                         </button>
                         <button className="jm-toolbar__icon-btn" onClick={() => setShowCatalog(true)} title="Load from catalog">
                             <FolderOpen size={14} />
                         </button>
-                        <button className="jm-toolbar__icon-btn" onClick={handleSave} title="Save job">
+                        <button className="jm-toolbar__icon-btn" onClick={handleSave} title="Save job" aria-label="Save job">
                             <Save size={14} />
                         </button>
                         <div className="jm-toolbar__divider" />
@@ -651,16 +651,16 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                         placeholder="Description (optional)"
                     />
                     <div className="jm-toolbar__canvas-tools">
-                        <button className="jm-toolbar__tool-btn" onClick={addDeliverable} title="Add deliverable node">
+                        <button className="jm-toolbar__tool-btn" onClick={addDeliverable} title="Add deliverable node" aria-label="Add deliverable node">
                             <Package size={12} /> <span>Deliverable</span>
                         </button>
-                        <button className="jm-toolbar__tool-btn" onClick={addStorageEntry} title="Add storage node">
+                        <button className="jm-toolbar__tool-btn" onClick={addStorageEntry} title="Add storage node" aria-label="Add storage node">
                             <Database size={12} /> <span>Storage</span>
                         </button>
-                        <button className="jm-toolbar__tool-btn" onClick={addInput} title="Add entity input">
+                        <button className="jm-toolbar__tool-btn" onClick={addInput} title="Add entity input" aria-label="Add entity input">
                             <Tag size={12} /> <span>Input</span>
                         </button>
-                        <button className="jm-toolbar__tool-btn jm-toolbar__tool-btn--parallel" onClick={addParallelGroup} title="Add parallel group container">
+                        <button className="jm-toolbar__tool-btn jm-toolbar__tool-btn--parallel" onClick={addParallelGroup} title="Add parallel group container" aria-label="Add parallel group container">
                             <GitFork size={12} /> <span>Parallel</span>
                         </button>
                         <div className="jm-toolbar__divider" />

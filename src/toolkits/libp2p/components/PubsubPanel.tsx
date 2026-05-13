@@ -100,14 +100,14 @@ export function PubsubPanel({
                                     type="button"
                                     className={`libp2p-topic-chip${isFiltered ? " libp2p-topic-chip--active" : ""}`}
                                     title={isFiltered ? "Clear filter" : "Filter messages by this topic"}
-                                    onClick={() => setFilter(isFiltered ? "" : t)}
+                                    onClick={() => setFilter(isFiltered ? "" : t)} aria-label={isFiltered ? "Clear filter" : "Filter messages by this topic"}
                                 >
                                     <code className="libp2p-mono">{t}</code>
                                 </button>
                                 <button
                                     className="libp2p-icon-btn"
                                     title="Unsubscribe"
-                                    onClick={() => onUnsubscribe(t)}
+                                    onClick={() => onUnsubscribe(t)} aria-label="Unsubscribe"
                                 >
                                     <Trash2 size={12} />
                                 </button>
@@ -149,7 +149,7 @@ export function PubsubPanel({
                     <button
                         className="libp2p-icon-btn"
                         title="Clear topic filter"
-                        onClick={() => setFilter("")}
+                        onClick={() => setFilter("")} aria-label="Clear topic filter"
                     >
                         <RotateCcw size={11} />
                     </button>
@@ -201,6 +201,7 @@ function PubsubMessageRow({
                 <button
                     className="libp2p-icon-btn"
                     title="Copy message"
+                    aria-label="Copy message"
                     onClick={() => onCopy(message.data)}
                 >
                     <Copy size={11} />

@@ -65,7 +65,7 @@ export function JobInputPromptModal() {
                         <div className="jip-header__title">Input Required</div>
                         <div className="jip-header__job">Job: {pendingJob.type} <span className="jip-header__job-id">({pendingJob.id.slice(0, 8)})</span></div>
                     </div>
-                    <button className="jip-close" onClick={handleCancel} title="Cancel job">
+                    <button className="jip-close" onClick={handleCancel} title="Cancel job" aria-label="Cancel job">
                         <X size={14} />
                     </button>
                 </div>

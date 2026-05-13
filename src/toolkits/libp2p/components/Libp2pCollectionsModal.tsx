@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useLibp2pCollections, type Contact, type VaultEntry } from "../utils/collections";
 import { useJobsContext } from "@/context/JobsContext";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import type { JobRequest } from "@/types";
 
 export type CollectionsTab = "contacts" | "vault";
@@ -38,10 +39,12 @@ export function Libp2pCollectionsModal({
     onTabChange,
     onPickDial,
 }: Libp2pCollectionsModalProps) {
+    const trapRef = useFocusTrap<HTMLDivElement>(open, onClose);
     if (!open) return null;
     return (
         <div className="libp2p-modal-backdrop" onClick={onClose}>
             <div
+                ref={trapRef}
                 className="libp2p-modal"
                 role="dialog"
                 aria-modal="true"
@@ -63,7 +66,7 @@ export function Libp2pCollectionsModal({
                             <KeyRound size={14} /> Identity vault
                         </button>
                     </div>
-                    <button className="libp2p-icon-btn" title="Close" onClick={onClose}>
+                    <button className="libp2p-icon-btn" title="Close" onClick={onClose} aria-label="Close">
                         <X size={14} />
                     </button>
                 </header>
@@ -154,7 +157,7 @@ function ContactsPanel({
                                     <button
                                         className="libp2p-icon-btn"
                                         title="Dial via active node"
-                                        onClick={() => handleDial(c)}
+                                        onClick={() => handleDial(c)} aria-label="Dial via active node"
                                         disabled={!activeNodeId}
                                     >
                                         <Link2 size={12} />
@@ -163,15 +166,15 @@ function ContactsPanel({
                                         <button
                                             className="libp2p-icon-btn"
                                             title="Use as dial target"
-                                            onClick={() => { onPickDial(c.multiaddr || c.peerId); }}
+                                            onClick={() => { onPickDial(c.multiaddr || c.peerId); }} aria-label="Use as dial target"
                                         >
                                             <Download size={12} />
                                         </button>
                                     )}
-                                    <button className="libp2p-icon-btn" title="Copy peer id" onClick={() => copy(c.peerId)}>
+                                    <button className="libp2p-icon-btn" title="Copy peer id" onClick={() => copy(c.peerId)} aria-label="Copy peer id">
                                         <Copy size={12} />
                                     </button>
-                                    <button className="libp2p-icon-btn" title="Remove" onClick={() => handleRemove(c.id)}>
+                                    <button className="libp2p-icon-btn" title="Remove" onClick={() => handleRemove(c.id)} aria-label="Remove">
                                         <Trash2 size={12} />
                                     </button>
                                 </div>
@@ -317,12 +320,12 @@ function VaultPanel({ activeNodeId }: { activeNodeId: string | null }) {
                                         <button
                                             className="libp2p-icon-btn"
                                             title="Load into active node"
-                                            onClick={() => { setUnlockId(v.id); setUnlockPassphrase(""); }}
+                                            onClick={() => { setUnlockId(v.id); setUnlockPassphrase(""); }} aria-label="Load into active node"
                                         >
                                             <Unlock size={12} />
                                         </button>
                                     )}
-                                    <button className="libp2p-icon-btn" title="Remove" onClick={() => handleRemove(v.id)}>
+                                    <button className="libp2p-icon-btn" title="Remove" onClick={() => handleRemove(v.id)} aria-label="Remove">
                                         <Trash2 size={12} />
                                     </button>
                                 </div>

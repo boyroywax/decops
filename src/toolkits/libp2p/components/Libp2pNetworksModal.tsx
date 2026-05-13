@@ -25,6 +25,7 @@ import {
     decryptPnetKey,
     fingerprintPnetKey,
 } from "../utils/collections";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 interface Libp2pNetworksModalProps {
     open: boolean;
@@ -34,10 +35,12 @@ interface Libp2pNetworksModalProps {
 type Mode = "generate" | "import";
 
 export function Libp2pNetworksModal({ open, onClose }: Libp2pNetworksModalProps) {
+    const trapRef = useFocusTrap<HTMLDivElement>(open, onClose);
     if (!open) return null;
     return (
         <div className="libp2p-modal-backdrop" onClick={onClose}>
             <div
+                ref={trapRef}
                 className="libp2p-modal"
                 role="dialog"
                 aria-modal="true"
@@ -50,7 +53,7 @@ export function Libp2pNetworksModal({ open, onClose }: Libp2pNetworksModalProps)
                             <Network size={14} /> Private networks
                         </span>
                     </div>
-                    <button className="libp2p-icon-btn" title="Close" onClick={onClose}>
+                    <button className="libp2p-icon-btn" title="Close" onClick={onClose} aria-label="Close">
                         <X size={14} />
                     </button>
                 </header>
@@ -332,7 +335,7 @@ function NetworksPanel() {
                                         <button
                                             className="libp2p-icon-btn"
                                             title="Reveal key"
-                                            onClick={() => { resetReveal(); setRevealId(n.id); }}
+                                            onClick={() => { resetReveal(); setRevealId(n.id); }} aria-label="Reveal key"
                                         >
                                             <Eye size={12} />
                                         </button>
@@ -343,7 +346,7 @@ function NetworksPanel() {
                                         onClick={() => {
                                             if (revealId === n.id) resetReveal();
                                             removePnetEntry(n.id);
-                                        }}
+                                        }} aria-label="Remove"
                                     >
                                         <Trash2 size={12} />
                                     </button>

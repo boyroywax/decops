@@ -136,7 +136,7 @@ export function ArchitectBotPanel({ navigateTo }: ArchitectBotPanelProps) {
                     onClick={handleViewTopology}
                     disabled={!navigateTo}
                     title="View network topology"
-                >
+                 aria-label="View network topology">
                     <Map size={13} />
                     View Topology
                 </button>
@@ -145,7 +145,7 @@ export function ArchitectBotPanel({ navigateTo }: ArchitectBotPanelProps) {
                     onClick={handleDesignNetwork}
                     disabled={!navigateTo}
                     title="Open the Architect to design a new network"
-                >
+                 aria-label="Open the Architect to design a new network">
                     <Sparkles size={13} />
                     Design Network
                 </button>

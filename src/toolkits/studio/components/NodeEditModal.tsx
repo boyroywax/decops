@@ -175,7 +175,7 @@ export function NodeEditModal({
                             )}
                         </div>
                     </div>
-                    <button className="nem-close" onClick={onClose} title="Close">
+                    <button className="nem-close" onClick={onClose} title="Close" aria-label="Close">
                         <X size={16} />
                     </button>
                 </div>
