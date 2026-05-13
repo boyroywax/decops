@@ -1,5 +1,7 @@
 
 import type { CommandDefinition, CommandContext } from "@/services/commands/types";
+import type { Agent, Group } from "@/types";
+import type { JobArtifact } from "@/types/jobs";
 import { getGroupModel } from "@/services/ai";
 
 /**
@@ -82,7 +84,7 @@ export const groupDecideCommand: CommandDefinition = {
         const { agents, groups, addLog } = context.workspace;
 
         // Resolve group
-        const group = groups.find((g: any) => g.id === args.groupId);
+        const group = groups.find((g: Group) => g.id === args.groupId);
         if (!group) throw new Error(`Group '${args.groupId}' not found`);
 
         // Resolve the deliberation prompt
@@ -90,7 +92,7 @@ export const groupDecideCommand: CommandDefinition = {
         if (!deliberationPrompt && args.artifactKey) {
             // Look up artifact from storage or jobs context
             const artifacts = context.jobs?.allArtifacts ?? [];
-            const artifact = artifacts.find((a: any) => a.key === args.artifactKey || a.id === args.artifactKey);
+            const artifact = artifacts.find((a) => (a as JobArtifact & { key?: string }).key === args.artifactKey || a.id === args.artifactKey);
             if (artifact) {
                 deliberationPrompt = typeof artifact.content === "string"
                     ? artifact.content
@@ -110,10 +112,11 @@ export const groupDecideCommand: CommandDefinition = {
         const decisionType = args.decisionType || "approve-reject";
 
         // Resolve member agents
-        const allAgents = [...agents, ...(context.storage._agents || [])];
+        const storage = context.storage as { _agents?: Agent[] };
+        const allAgents: Agent[] = [...agents, ...(storage._agents || [])];
         const memberAgents = group.members
-            .map((mid: string) => allAgents.find((a: any) => a.id === mid))
-            .filter(Boolean);
+            .map((mid: string) => allAgents.find((a) => a.id === mid))
+            .filter((a): a is Agent => Boolean(a));
 
         if (memberAgents.length === 0) throw new Error("Group has no resolvable members");
 
@@ -125,7 +128,7 @@ export const groupDecideCommand: CommandDefinition = {
         addLog(`🤖 Model: ${modelId}`);
 
         // Simulate member positions based on their prompts/roles
-        const memberPositions = memberAgents.map((agent: any) => {
+        const memberPositions = memberAgents.map((agent) => {
             const role = agent.role || "analyst";
             // Each agent's "position" is determined by their system prompt and role
             return {
@@ -153,7 +156,7 @@ export const groupDecideCommand: CommandDefinition = {
             prompt: deliberationPrompt,
             decisionType,
             modelId,
-            memberPositions: memberPositions.map((mp: any) => ({
+            memberPositions: memberPositions.map((mp) => ({
                 agentId: mp.agentId,
                 agentName: mp.agentName,
                 role: mp.role,
