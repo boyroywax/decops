@@ -8,6 +8,7 @@ import { getAgentModel, getCommandModel } from "@/services/ai";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContextType } from "@/context/WorkspaceContext";
 import type { User, JobEvent, Job, JobArtifact, JobRequest, NotebookEntry, EntityInput } from "@/types";
+import type { JobStep, JobDeliverable } from "@/types/jobs";
 import type { UseJobsReturn } from "./useJobs";
 import type { UseJobCatalogReturn } from "./useJobCatalog";
 import type { UseNotebookReturn } from "./useNotebook";
@@ -175,7 +176,7 @@ export function useJobExecutor({
 
                     // Check for unresolved prompt inputs — pause job and ask user
                     const unresolvedPrompt = inputDefaults.find(
-                        (inp: any) => inp.source?.kind === "prompt" && !inp.entityId
+                        (inp: EntityInput) => inp.source?.kind === "prompt" && !inp.entityId
                     );
                     if (unresolvedPrompt) {
                         const promptSource = unresolvedPrompt.source;
@@ -202,10 +203,12 @@ export function useJobExecutor({
                         return; // Exit — finally block releases the slot. Job will resume when user provides input.
                     }
 
-                    // Track deliverables produced during execution
-                    const producedDeliverables: any[] = [];
+                    // Track deliverables produced during execution.
+                    // (Shape: { key, artifactId } as returned by assembleDeliverables;
+                    // this is wider than JobDeliverable so kept as a structural type.)
+                    const producedDeliverables: Array<{ key: string; artifactId: string }> = [];
                     /** Map of deliverable key → content for $deliverable.key resolution */
-                    const deliverableContents: Record<string, any> = {};
+                    const deliverableContents: Record<string, unknown> = {};
 
                     const context: CommandContext = {
                         workspace: {
@@ -285,10 +288,10 @@ export function useJobExecutor({
                     const refs: RefContext = { storage: jobStorage, deliverables: deliverableContents, inputs: inputMap };
 
                     /** Build a step-scoped context that overrides model resolution if step has modelId */
-                    const stepCtxFor = (step: any): CommandContext => getStepContext(step, context);
+                    const stepCtxFor = (step: JobStep): CommandContext => getStepContext(step, context);
 
                     /** Wrapper: sync storage + deliverables into job state alongside step updates */
-                    const syncJobState = (updates: Partial<any>) => {
+                    const syncJobState = (updates: Partial<Job>) => {
                         if (!updateJob) return;
                         updateJob(queuedJob.id, {
                             ...updates,
@@ -300,12 +303,12 @@ export function useJobExecutor({
 
                     // ═══ DRY-RUN BRANCH ═══
                     // When dryRun is flagged, validate without executing and return report
-                    if ((queuedJob as any).dryRun) {
+                    if ((queuedJob as Job & { dryRun?: boolean }).dryRun) {
                         let dryRunReport;
 
                         if (queuedJob.steps && queuedJob.steps.length > 0) {
                             // Multi-step job dry-run
-                            const deliverableKeys = (queuedJob.deliverables || []).map((d: any) => d.key);
+                            const deliverableKeys = (queuedJob.deliverables || []).map((d: JobDeliverable) => d.key);
                             // dryRunJob only supports serial|parallel — 'mixed' jobs use parallel scheduling.
                             const dryRunMode: 'serial' | 'parallel' =
                                 queuedJob.mode === 'parallel' || queuedJob.mode === 'mixed' ? 'parallel' : 'serial';
@@ -333,9 +336,9 @@ export function useJobExecutor({
                                 unresolvedRefs: [],
                                 summary: cmdResult.summary,
                                 totalChecks: cmdResult.checks.length,
-                                passedChecks: cmdResult.checks.filter((c: any) => c.status === 'pass').length,
-                                failedChecks: cmdResult.checks.filter((c: any) => c.status === 'fail').length,
-                                warningCount: cmdResult.checks.filter((c: any) => c.status === 'warn').length,
+                                passedChecks: cmdResult.checks.filter((c) => c.status === 'pass').length,
+                                failedChecks: cmdResult.checks.filter((c) => c.status === 'fail').length,
+                                warningCount: cmdResult.checks.filter((c) => c.status === 'warn').length,
                             };
                         }
 
@@ -387,12 +390,12 @@ export function useJobExecutor({
                             // Update job to mark all running with startedAt
                             if (updateJob) {
                                 const now = Date.now();
-                                const runningSteps = steps.map((s: any) => ({ ...s, status: 'running', startedAt: now }));
+                                const runningSteps = steps.map((s) => ({ ...s, status: 'running' as const, startedAt: now }));
                                 syncJobState({ steps: runningSteps });
                             }
                             pushTimelineEvent({ kind: "step:started", label: `All ${steps.length} steps started (parallel)` });
 
-                            const promises = queuedJob.steps.map(async (step: any, idx: number) => {
+                            const promises = queuedJob.steps.map(async (step: JobStep, idx: number) => {
                                 const stepStarted = Date.now();
                                 try {
                                     const boundArgs = applyInputBindings(step.args, step.inputBindings, jobStorage, deliverableContents);
@@ -412,11 +415,12 @@ export function useJobExecutor({
                                     }
 
                                     return { stepId: step.id, result: res, status: 'completed', outputMappings: step.outputMappings, startedAt: stepStarted, completedAt: Date.now() };
-                                } catch (e: any) {
+                                } catch (e) {
+                                    const errMsg = e instanceof Error ? e.message : String(e);
                                     // ── onFailure handler (parallel) ──
                                     let continueFlag = false;
                                     if (step.onFailure) {
-                                        const handlerRefs: HandlerRefContext = { ...refs, error: e.message };
+                                        const handlerRefs: HandlerRefContext = { ...refs, error: errMsg };
                                         const handlerResult = await executeStepHandler(
                                             step.onFailure, handlerRefs, jobStorage,
                                             (cmdId, args) => registry.execute(cmdId, args, stepCtxFor(step)),
@@ -427,8 +431,8 @@ export function useJobExecutor({
                                     // In parallel mode, continueOnFailure marks the step as failed but doesn't abort others
                                     return {
                                         stepId: step.id,
-                                        error: e.message,
-                                        status: continueFlag ? 'completed' : 'failed',
+                                        error: errMsg,
+                                        status: continueFlag ? 'completed' : 'failed' as 'completed' | 'failed',
                                         outputMappings: undefined,
                                         continued: continueFlag,
                                         startedAt: stepStarted,
@@ -441,16 +445,16 @@ export function useJobExecutor({
 
                             // Update final state of steps with timestamps
                             if (updateJob) {
-                                const finalSteps = queuedJob.steps.map((s: any) => {
+                                const finalSteps: JobStep[] = queuedJob.steps.map((s) => {
                                     const res = results.find(r => r.stepId === s.id);
-                                    return res ? { ...s, result: res.result || res.error, status: res.status, startedAt: res.startedAt, completedAt: res.completedAt } : s;
+                                    return res ? { ...s, result: res.result || res.error, status: res.status as JobStep["status"], startedAt: res.startedAt, completedAt: res.completedAt } : s;
                                 });
                                 syncJobState({ steps: finalSteps });
                             }
 
                             // Push timeline events for parallel results
                             for (const r of results) {
-                                const step = queuedJob.steps.find((s: any) => s.id === r.stepId);
+                                const step = queuedJob.steps.find((s) => s.id === r.stepId);
                                 const stepName = step?.name || step?.commandId || r.stepId;
                                 pushTimelineEvent({
                                     kind: r.status === 'completed' ? 'step:completed' : 'step:failed',
@@ -545,27 +549,28 @@ export function useJobExecutor({
                                     syncJobState({ steps: [...steps] });
                                     pushTimelineEvent({ kind: 'step:completed', label: `${stepName} completed`, stepId, duration: Date.now() - stepStart, detail: resultStr.slice(0, 120) });
                                     return { status: 'completed', result: resultStr };
-                                } catch (e: any) {
-                                    steps[idx] = { ...steps[idx], status: 'failed', result: e.message, completedAt: Date.now() };
+                                } catch (e) {
+                                    const errMsg = e instanceof Error ? e.message : String(e);
+                                    steps[idx] = { ...steps[idx], status: 'failed', result: errMsg, completedAt: Date.now() };
 
                                     // ── onFailure handler (mixed) ──
                                     if (step.onFailure) {
-                                        const handlerRefs: HandlerRefContext = { ...refs, error: e.message };
+                                        const handlerRefs: HandlerRefContext = { ...refs, error: errMsg };
                                         const handlerResult = await executeStepHandler(
                                             step.onFailure, handlerRefs, jobStorage,
                                             (cmdId, a) => registry.execute(cmdId, a, stepCtxFor(step)),
                                             addLog,
                                         );
                                         if (handlerResult.continueOnFailure) {
-                                            steps[idx] = { ...steps[idx], status: 'completed', result: `[continued] ${e.message}` };
+                                            steps[idx] = { ...steps[idx], status: 'completed', result: `[continued] ${errMsg}` };
                                             syncJobState({ steps: [...steps] });
-                                            return { status: 'completed', result: e.message };
+                                            return { status: 'completed', result: errMsg };
                                         }
                                     }
 
                                     syncJobState({ steps: [...steps] });
-                                    pushTimelineEvent({ kind: 'step:failed', label: `${stepName} failed`, stepId, duration: Date.now() - stepStart, detail: e.message });
-                                    return { status: 'failed', error: e.message };
+                                    pushTimelineEvent({ kind: 'step:failed', label: `${stepName} failed`, stepId, duration: Date.now() - stepStart, detail: errMsg });
+                                    return { status: 'failed', error: errMsg };
                                 }
                             };
 
@@ -642,14 +647,15 @@ export function useJobExecutor({
                                             break;
                                         }
                                     }
-                                } catch (e: any) {
-                                    steps[i] = { ...steps[i], status: 'failed', result: e.message, completedAt: Date.now() };
+                                } catch (e) {
+                                    const errMsg = e instanceof Error ? e.message : String(e);
+                                    steps[i] = { ...steps[i], status: 'failed', result: errMsg, completedAt: Date.now() };
 
-                                    pushTimelineEvent({ kind: 'step:failed', label: `${stepName} failed`, stepId: steps[i].id, duration: Date.now() - stepStart, detail: e.message });
+                                    pushTimelineEvent({ kind: 'step:failed', label: `${stepName} failed`, stepId: steps[i].id, duration: Date.now() - stepStart, detail: errMsg });
 
                                     // ── onFailure handler ──
                                     if (steps[i].onFailure) {
-                                        const handlerRefs: HandlerRefContext = { ...refs, error: e.message };
+                                        const handlerRefs: HandlerRefContext = { ...refs, error: errMsg };
                                         const handlerResult = await executeStepHandler(
                                             steps[i].onFailure,
                                             handlerRefs,
@@ -658,7 +664,7 @@ export function useJobExecutor({
                                             addLog,
                                         );
                                         if (handlerResult.continueOnFailure) {
-                                            addLog(`Step "${steps[i].name || steps[i].id}" failed but continuing: ${e.message}`);
+                                            addLog(`Step "${steps[i].name || steps[i].id}" failed but continuing: ${errMsg}`);
                                             syncJobState({ steps: [...steps] });
                                             continue; // Skip throw, proceed to next step
                                         }
@@ -702,8 +708,10 @@ export function useJobExecutor({
                         addLog(`Assembly complete: ${assembled.length}/${declaredDeliverables.length} deliverables produced.`);
                     }
 
-                    // Final sync: push storage + deliverables into job state before marking complete
-                    syncJobState({ deliverables: producedDeliverables.length > 0 ? producedDeliverables : undefined });
+                    // Final sync: push storage + deliverables into job state before marking complete.
+                    // (Runtime shape `{key,artifactId}` is narrower than the declared
+                    // `JobDeliverable` type; cast bridges this pre-existing mismatch.)
+                    syncJobState({ deliverables: producedDeliverables.length > 0 ? (producedDeliverables as unknown as JobDeliverable[]) : undefined });
 
                     updateJobStatus(queuedJob.id, "completed", typeof finalResult === 'string' ? finalResult : JSON.stringify(finalResult));
 
@@ -719,19 +727,20 @@ export function useJobExecutor({
                         tags: ["job", "success", queuedJob.type],
                     });
 
-                } catch (err: any) {
+                } catch (err) {
+                    const errMsg = err instanceof Error ? err.message : String(err);
                     console.error("Job Failed", err);
-                    updateJobStatus(queuedJob.id, "failed", err.message || "Unknown error");
+                    updateJobStatus(queuedJob.id, "failed", errMsg || "Unknown error");
 
                     // Signal tool call promise (if this job was created by a tool call)
-                    rejectToolJob(queuedJob.id, err.message || "Unknown error");
+                    rejectToolJob(queuedJob.id, errMsg || "Unknown error");
 
                     addNotebookEntry({
                         category: "system",
                         icon: <GradientIcon icon={XCircle} size={16} gradient={["#ef4444", "#dc2626"]} />,
                         title: `Job Failed: ${queuedJob.type}`,
-                        description: `Job "${queuedJob.type}" failed: ${err.message || "Unknown error"}.`,
-                        details: { jobId: queuedJob.id, command: queuedJob.type, error: err.message },
+                        description: `Job "${queuedJob.type}" failed: ${errMsg || "Unknown error"}.`,
+                        details: { jobId: queuedJob.id, command: queuedJob.type, error: errMsg },
                         tags: ["job", "error", queuedJob.type],
                     });
                 } finally {
