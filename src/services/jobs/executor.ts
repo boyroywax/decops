@@ -31,7 +31,7 @@ import {
 export type JobStepResult = {
   stepId: string;
   status: "completed" | "failed" | "skipped";
-  result?: any;
+  result?: unknown;
   error?: string;
 };
 
@@ -212,11 +212,12 @@ async function executeSerial(
           break;
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
       // onFailure handler
       let continueOnFailure = false;
       if (step.onFailure) {
-        const handlerRefs: HandlerRefContext = { ...refs, error: e.message };
+        const handlerRefs: HandlerRefContext = { ...refs, error: errMsg };
         const handlerResult = await executeStepHandler(
           step.onFailure, handlerRefs, refs.storage,
           (cmdId, args) => registry.execute(cmdId, args, getStepContext(step, context)),
@@ -226,14 +227,14 @@ async function executeSerial(
       }
 
       if (continueOnFailure) {
-        addLog(`Step "${step.name || step.id}" failed but continuing: ${e.message}`);
-        results.push({ stepId: step.id, status: "completed", result: `[continued] ${e.message}` });
-        onStepUpdate?.(step.id, "completed", `[continued] ${e.message}`);
+        addLog(`Step "${step.name || step.id}" failed but continuing: ${errMsg}`);
+        results.push({ stepId: step.id, status: "completed", result: `[continued] ${errMsg}` });
+        onStepUpdate?.(step.id, "completed", `[continued] ${errMsg}`);
         continue;
       }
 
-      results.push({ stepId: step.id, status: "failed", error: e.message });
-      onStepUpdate?.(step.id, "failed", e.message);
+      results.push({ stepId: step.id, status: "failed", error: errMsg });
+      onStepUpdate?.(step.id, "failed", errMsg);
       throw e; // Stop serial execution
     }
   }
@@ -271,10 +272,11 @@ async function executeParallel(
       }
 
       return { stepId: step.id, status: "completed" as const, result: typeof res === "string" ? res : JSON.stringify(res) };
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
       let continueFlag = false;
       if (step.onFailure) {
-        const handlerRefs: HandlerRefContext = { ...refs, error: e.message };
+        const handlerRefs: HandlerRefContext = { ...refs, error: errMsg };
         const handlerResult = await executeStepHandler(
           step.onFailure, handlerRefs, refs.storage,
           (cmdId, args) => registry.execute(cmdId, args, getStepContext(step, context)),
@@ -286,8 +288,8 @@ async function executeParallel(
       return {
         stepId: step.id,
         status: (continueFlag ? "completed" : "failed") as "completed" | "failed",
-        error: e.message,
-        result: continueFlag ? `[continued] ${e.message}` : undefined,
+        error: errMsg,
+        result: continueFlag ? `[continued] ${errMsg}` : undefined,
       };
     }
   });
@@ -367,22 +369,23 @@ async function executeMixed(
 
       onStepUpdate?.(stepId, "completed", resultStr);
       return { stepId, status: "completed", result: resultStr };
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
       if (step.onFailure) {
-        const handlerRefs: HandlerRefContext = { ...refs, error: e.message };
+        const handlerRefs: HandlerRefContext = { ...refs, error: errMsg };
         const handlerResult = await executeStepHandler(
           step.onFailure, handlerRefs, refs.storage,
           (cmdId, a) => registry.execute(cmdId, a, getStepContext(step, context)),
           addLog,
         );
         if (handlerResult.continueOnFailure) {
-          onStepUpdate?.(stepId, "completed", `[continued] ${e.message}`);
-          return { stepId, status: "completed", result: `[continued] ${e.message}` };
+          onStepUpdate?.(stepId, "completed", `[continued] ${errMsg}`);
+          return { stepId, status: "completed", result: `[continued] ${errMsg}` };
         }
       }
 
-      onStepUpdate?.(stepId, "failed", e.message);
-      return { stepId, status: "failed", error: e.message };
+      onStepUpdate?.(stepId, "failed", errMsg);
+      return { stepId, status: "failed", error: errMsg };
     }
   };
 
