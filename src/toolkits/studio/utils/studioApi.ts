@@ -27,7 +27,7 @@ export interface StudioRefs {
     // Callback refs
     addStep: React.MutableRefObject<(cid: string) => string>;
     removeStep: React.MutableRefObject<(id: string) => void>;
-    updateStepArg: React.MutableRefObject<(sid: string, arg: string, val: any) => void>;
+    updateStepArg: React.MutableRefObject<(sid: string, arg: string, val: unknown) => void>;
     updateStepPreCondition: React.MutableRefObject<(sid: string, cond: string) => void>;
     updateStepPostCondition: React.MutableRefObject<(sid: string, cond: string) => void>;
     updateStepPosition: React.MutableRefObject<(sid: string, x: number, y: number) => void>;
@@ -59,7 +59,7 @@ export function createStudioAPI(
     refs: StudioRefs,
     setters: StudioSetters,
     onSaveJob: (job: JobDefinition) => void,
-    onRunJob: (job: JobDefinition) => any,
+    onRunJob: (job: JobDefinition) => { id?: string } | undefined,
 ): StudioAPI {
     return {
         getState: (): StudioState => ({
@@ -81,7 +81,7 @@ export function createStudioAPI(
                 // For immediate reads, compute position from refs.steps.current
                 const prev = refs.steps.current;
                 const command = registry.get(cid);
-                const args: Record<string, any> = {};
+                const args: Record<string, unknown> = {};
                 if (command) {
                     Object.entries(command.args).forEach(([key, def]) => {
                         if (def.defaultValue !== undefined) args[key] = def.defaultValue;

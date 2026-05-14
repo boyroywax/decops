@@ -12,7 +12,7 @@ import { useLLM } from "@/context/LLMContext";
 import { readDraft, clearDraft, saveDraft, DRAFT_SAVE_DELAY } from "@/toolkits/studio/utils/studioDraft";
 import { buildJobDef as buildJobDefFn, loadJobToStudioState } from "@/toolkits/studio/utils/studioJobBuilder";
 import { createStudioAPI } from "@/toolkits/studio/utils/studioApi";
-import type { JobDefinition, JobDeliverable, EntityInput, JobTrigger, TriggerEvent } from "@/types";
+import type { Job, JobDefinition, JobDeliverable, EntityInput, JobTrigger, TriggerEvent } from "@/types";
 import type { StudioDraft } from "@/toolkits/studio/utils/studioDraft";
 import "../styles/job-manager.css";
 
@@ -27,7 +27,7 @@ interface StudioViewProps {
     savedJobs: JobDefinition[];
     onSaveJob: (job: JobDefinition) => void;
     onDeleteJob: (id: string) => void;
-    onRunJob: (job: JobDefinition) => any;
+    onRunJob: (job: JobDefinition) => Job;
 }
 
 export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: StudioViewProps) {
@@ -214,7 +214,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         return () => window.removeEventListener("studio:add-command", handler);
     }, [addStep]);
 
-    const updateStepArg = useCallback((stepId: string, argName: string, value: any) => {
+    const updateStepArg = useCallback((stepId: string, argName: string, value: unknown) => {
         setSteps(prev => prev.map(s =>
             s.id === stepId ? { ...s, args: { ...s.args, [argName]: value } } : s
         ));
@@ -284,7 +284,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const addDeliverable = () => {
         setDeliverables(prev => [...prev, { key: "", label: "", type: "json", description: "" }]);
     };
-    const updateDeliverable = (index: number, field: keyof JobDeliverable, value: any) => {
+    const updateDeliverable = (index: number, field: keyof JobDeliverable, value: JobDeliverable[keyof JobDeliverable]) => {
         setDeliverables(prev => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
     };
     const removeDeliverable = (index: number) => {
@@ -308,7 +308,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const addInput = () => {
         setInputs(prev => [...prev, { name: "", type: "agent", entityId: "" }]);
     };
-    const updateInput = (index: number, field: keyof EntityInput, value: any) => {
+    const updateInput = (index: number, field: keyof EntityInput, value: EntityInput[keyof EntityInput]) => {
         setInputs(prev => prev.map((inp, i) => i === index ? { ...inp, [field]: value } : inp));
     };
     const removeInput = (index: number) => {
