@@ -41,7 +41,7 @@ export type AnchorSide = "top" | "right" | "bottom" | "left";
 export interface StudioStep {
     id: string;
     commandId: string;  // PARALLEL_GROUP_CMD for parallel containers
-    args: Record<string, any>;
+    args: Record<string, unknown>;
     inputBindings: Record<string, InputBinding>;  // argName → source binding
     preCondition: string;
     postCondition: string;

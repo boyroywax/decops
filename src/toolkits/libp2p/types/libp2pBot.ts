@@ -20,7 +20,7 @@ export interface Libp2pBotOperation {
     /** Order in execution sequence */
     order: number;
     status: "pending" | "executing" | "completed" | "failed";
-    result?: any;
+    result?: unknown;
     error?: string;
 }
 

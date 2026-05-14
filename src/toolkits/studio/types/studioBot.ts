@@ -49,12 +49,12 @@ export interface StudioBotPlan {
 
 export interface StudioBotOperation {
     command: string;
-    args: Record<string, any>;
+    args: Record<string, unknown>;
     description: string;
     /** Order in execution sequence */
     order: number;
     status: "pending" | "executing" | "completed" | "failed";
-    result?: any;
+    result?: unknown;
     error?: string;
 }
 
@@ -89,7 +89,7 @@ export interface StudioBotRequest {
     /** The natural language instruction from the user (or main AI) */
     instruction: string;
     /** Current studio state snapshot */
-    studioState?: any;
+    studioState?: unknown;
     /** Who initiated: "user" from chat, "agent" from AI delegation */
     source: "user" | "agent";
     /** The agent ID that delegated (if source is "agent") */

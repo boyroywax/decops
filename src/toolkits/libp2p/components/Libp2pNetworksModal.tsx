@@ -120,8 +120,8 @@ function NetworksPanel() {
             const { ciphertext, salt, iv } = await encryptPnetKey(asciiKey, pass1);
             addPnetEntry({ label: label.trim(), fingerprint, ciphertext, salt, iv });
             resetCreate();
-        } catch (err: any) {
-            setCreateError(err?.message ?? String(err));
+        } catch (err: unknown) {
+            setCreateError(err instanceof Error ? err.message : String(err));
         } finally {
             setBusy(false);
         }
@@ -133,8 +133,8 @@ function NetworksPanel() {
         try {
             const ascii = await decryptPnetKey(n, revealPass);
             setRevealed(ascii);
-        } catch (err: any) {
-            setRevealError(err?.message ?? String(err));
+        } catch (err: unknown) {
+            setRevealError(err instanceof Error ? err.message : String(err));
         }
     };
 

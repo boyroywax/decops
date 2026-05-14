@@ -74,8 +74,8 @@ export function Libp2pBotModal({ open, onClose }: Libp2pBotModalProps) {
             );
             setHistory((prev) => [...prev, { prompt: instruction, response }]);
             setInput("");
-        } catch (err: any) {
-            setError(err?.message || String(err));
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : String(err));
         } finally {
             setRunning(false);
             setTimeout(() => inputRef.current?.focus(), 30);
