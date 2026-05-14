@@ -11,7 +11,7 @@
  */
 
 import { getCommandErrors, type CommandError } from "./commandErrors";
-import type { CommandDefinition, CommandArg } from "./types";
+import type { CommandDefinition, CommandArg, CommandContext } from "./types";
 import type { JobStep } from "@/types";
 import { DELIVERABLE_STORAGE_PREFIX } from "@/utils/jobRuntime";
 
@@ -94,8 +94,7 @@ function findEntity(
 }
 
 /** Get the entity collection for an arg type from context */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getEntityCollection(argType: string, context: any): NamedEntity[] | undefined {
+function getEntityCollection(argType: string, context: CommandContext): NamedEntity[] | undefined {
   switch (argType) {
     case "agent": {
       const agents = (context?.workspace?.agents ?? []) as NamedEntity[];
@@ -180,8 +179,7 @@ export function dryRunCommand(
   command: CommandDefinition | undefined,
   commandId: string,
   args: Record<string, unknown>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any,
+  context: CommandContext,
 ): DryRunResult {
   const checks: DryRunCheck[] = [];
   const warnings: string[] = [];
@@ -457,8 +455,7 @@ export function dryRunJob(
   steps: JobStep[],
   mode: "serial" | "parallel",
   getCommand: (id: string) => CommandDefinition | undefined,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: any,
+  context: CommandContext,
   storage: Record<string, unknown> = {},
   deliverableKeys: string[] = [],
   inputMap: Record<string, string> = {},

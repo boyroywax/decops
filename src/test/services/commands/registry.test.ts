@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CommandRegistry } from '@/services/commands/registry';
-import { CommandDefinition } from '@/services/commands/types';
+import { CommandDefinition, type CommandContext } from '@/services/commands/types';
 
 describe('CommandRegistry', () => {
     let registry: CommandRegistry;
@@ -33,7 +33,7 @@ describe('CommandRegistry', () => {
 
     it('executes valid commands', async () => {
         registry.register(mockCommand);
-        const result = await registry.execute('test_command', { requiredArg: 'foo' }, {});
+        const result = await registry.execute('test_command', { requiredArg: 'foo' }, {} as CommandContext);
         expect(result.success).toBe(true);
         expect(result.args.requiredArg).toBe('foo');
         expect(mockCommand.execute).toHaveBeenCalled();
@@ -41,24 +41,24 @@ describe('CommandRegistry', () => {
 
     it('applies default values', async () => {
         registry.register(mockCommand);
-        const result = await registry.execute('test_command', { requiredArg: 'foo' }, {});
+        const result = await registry.execute('test_command', { requiredArg: 'foo' }, {} as CommandContext);
         expect(result.args.optionalArg).toBe('default');
     });
 
     it('throws on missing required argument', async () => {
         registry.register(mockCommand);
-        await expect(registry.execute('test_command', {}, {}))
+        await expect(registry.execute('test_command', {}, {} as CommandContext))
             .rejects.toThrow('Missing required argument: requiredArg');
     });
 
     it('throws on invalid type', async () => {
         registry.register(mockCommand);
-        await expect(registry.execute('test_command', { requiredArg: 'foo', numberArg: "not a number" }, {}))
+        await expect(registry.execute('test_command', { requiredArg: 'foo', numberArg: "not a number" }, {} as CommandContext))
             .rejects.toThrow('Argument numberArg must be a number');
     });
 
     it('throws on unknown command', async () => {
-        await expect(registry.execute('unknown_command', {}, {}))
+        await expect(registry.execute('unknown_command', {}, {} as CommandContext))
             .rejects.toThrow('Command unknown_command not found');
     });
 
@@ -92,7 +92,7 @@ describe('CommandRegistry', () => {
                 ],
             },
             storage: {},
-        };
+        } as unknown as CommandContext;
 
         it('resolves agent names to IDs', async () => {
             registry.register(agentCommand);

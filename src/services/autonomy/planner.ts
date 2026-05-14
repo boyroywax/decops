@@ -38,7 +38,7 @@ import { assessAgent, rankAgentsForGoal } from "./capability";
  * - canSelfComplete: whether it can handle this alone
  * - actions: ordered list of commands to execute
  * - delegationTarget: if it can't self-complete, who to delegate to
- * - gaps: any identified capability shortcomings
+ * - gaps: identified capability shortcomings
  */
 export async function generatePlan(
   agent: Agent,

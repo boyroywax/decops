@@ -1,5 +1,5 @@
 
-import { CommandDefinition, CommandArgType } from "./types";
+import { CommandDefinition, CommandArgType, CommandContext } from "./types";
 import { dryRunCommand, dryRunJob, type DryRunResult, type DryRunJobResult } from "./dryRun";
 import { assertRBAC } from "./rbac";
 import type { JobStep } from "@/types";
@@ -18,8 +18,7 @@ interface NamedEntity {
 function resolveEntityName(
     value: string,
     argType: CommandArgType,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    context: any,
+    context: CommandContext,
 ): string {
     if (!value || typeof value !== "string") return value;
 
@@ -100,7 +99,7 @@ export class CommandRegistry {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async execute<T extends Record<string, any> = any>(id: string, args: T, context: any): Promise<any> {
+    async execute<T extends Record<string, unknown> = Record<string, unknown>>(id: string, args: T, context: CommandContext): Promise<any> {
         const command = this.get(id);
         if (!command) {
             throw new Error(`Command ${id} not found`);
@@ -179,8 +178,7 @@ export class CommandRegistry {
     }
 
     /** Dry-run a single command: validate everything without executing */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    dryRun(id: string, args: Record<string, any>, context: any): DryRunResult {
+    dryRun(id: string, args: Record<string, unknown>, context: CommandContext): DryRunResult {
         return dryRunCommand(this.get(id), id, args, context);
     }
 
@@ -188,10 +186,8 @@ export class CommandRegistry {
     dryRunJob(
         steps: JobStep[],
         mode: "serial" | "parallel",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        context: any,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        storage: Record<string, any> = {},
+        context: CommandContext,
+        storage: Record<string, unknown> = {},
         deliverableKeys: string[] = [],
         inputMap: Record<string, string> = {},
     ): DryRunJobResult {
