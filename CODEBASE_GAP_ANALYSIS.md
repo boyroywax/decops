@@ -221,11 +221,11 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 
 ---
 
-## 10. Dependency / Build Gaps — **LOW (PARTIALLY RESOLVED)**
+## 10. Dependency / Build Gaps — **LOW (RESOLVED)**
 
-- `.github/workflows/ci.yml` runs `npm run typecheck` (already `strict: true`), `npm test`, and `npm run build` on every push/PR.
-- New npm scripts: `test`, `test:watch`, `test:coverage`.
-- Still open: `ts-prune` for dead-export detection and `size-limit` for bundle budgets.
+- `.github/workflows/ci.yml` runs `npm run typecheck` (already `strict: true`), `npm test`, `npm run build`, and `npm run size` on every push/PR. `ts-prune` runs as an advisory step (`continue-on-error: true`) since most flagged exports are re-exports / module-internal types.
+- New npm scripts: `test`, `test:watch`, `test:coverage`, `size`, `prune`.
+- `.size-limit.cjs` resolves Vite's hashed entry assets from `dist/index.html` and enforces gzip budgets: main JS ≤ 450 KB (currently 419 KB), main CSS ≤ 95 KB (currently 86 KB).
 
 ---
 
@@ -238,9 +238,8 @@ All HIGH-severity gaps are now resolved. Remaining items are MEDIUM/LOW.
 2. [MEDIUM] Playwright/Cypress E2E smoke suite for `ChatPanel` (§2.2).
 
 ### Phase 7 — Low priority (remaining)
-3. [LOW] `ts-prune` + `size-limit` budgets in CI (§10 follow-up).
-4. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on `ecosystem.ts`, `libp2p/service.ts`, `ChatPanel.tsx`, `maintenance.ts` (§3.1 remaining; current count 226).
-5. [LOW] Migrate sync-snapshot command callers (`send_message`, etc.) onto live workspace getters (§1.3 follow-up).
+3. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on remaining 3 boundary matches in `src/hooks/useCommandContext.ts` (§3.1 remaining).
+4. [LOW] Migrate sync-snapshot command callers (`send_message`, etc.) onto live workspace getters (§1.3 follow-up).
 
 ---
 

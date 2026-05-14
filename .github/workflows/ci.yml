@@ -31,6 +31,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Bundle size budgets
+        run: npm run size
+
       - name: Dead-export report (advisory)
         run: npx ts-prune --error || echo "::warning::ts-prune flagged unused exports (advisory only)"
         continue-on-error: true
