@@ -1,14 +1,11 @@
 /* libp2p toolkit styles — terminal-grade, dark-first */
 
 .libp2p-view {
-    padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 12px;
     color: var(--text-primary, #e2e8f0);
     font-family: "DM Mono", monospace;
-    overflow-y: auto;
-    height: 100%;
 }
 
 .libp2p-header {
