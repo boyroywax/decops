@@ -1,5 +1,6 @@
 
 import { CommandDefinition } from "@/services/commands/types";
+import type { Agent, Group } from "@/types";
 import { generatePortrait, hasGeminiApiKey, type ImageStyle } from "./imageGen";
 import {
     setCachedPortrait,
@@ -8,6 +9,10 @@ import {
     clearPortraitCache,
     type CachedPortrait,
 } from "./portraitCache";
+
+function errorMessage(err: unknown): string {
+    return err instanceof Error ? err.message : String(err || "Image generation failed");
+}
 
 // ── generate_image ──
 
@@ -86,7 +91,7 @@ export const generateImageCommand: CommandDefinition = {
         // ── Build prompt from entity data ──
         if (target === "agent_portrait") {
             if (!entityId) throw new Error("entityId is required for agent_portrait target.");
-            const agent = workspace.agents.find((a: any) => a.id === entityId);
+            const agent = workspace.agents.find((a: Agent) => a.id === entityId);
             if (!agent) throw new Error(`Agent not found: ${entityId}`);
 
             imageStyle = "portrait";
@@ -112,7 +117,7 @@ export const generateImageCommand: CommandDefinition = {
             }
         } else if (target === "group_badge") {
             if (!entityId) throw new Error("entityId is required for group_badge target.");
-            const group = workspace.groups.find((g: any) => g.id === entityId);
+            const group = workspace.groups.find((g: Group) => g.id === entityId);
             if (!group) throw new Error(`Group not found: ${entityId}`);
 
             imageStyle = "badge";
@@ -121,9 +126,9 @@ export const generateImageCommand: CommandDefinition = {
             if (!finalPrompt) {
                 const memberRoles = [...new Set(
                     group.members
-                        .map((mid: string) => workspace.agents.find((a: any) => a.id === mid))
-                        .filter(Boolean)
-                        .map((a: any) => a.role),
+                        .map((mid: string) => workspace.agents.find((a: Agent) => a.id === mid))
+                        .filter((agent): agent is Agent => Boolean(agent))
+                        .map((agent) => agent.role),
                 )];
                 finalPrompt = `emblem badge icon for a group called "${group.name}", ${group.governance} governance, ${memberRoles.join(", ")} roles, ${group.members.length} members`;
             }
@@ -252,7 +257,7 @@ export const generateAllImagesCommand: CommandDefinition = {
         // Build agent items
         if (doAgents) {
             for (const agent of workspace.agents) {
-                const phys = (agent as any).aieos?.physicality;
+                const phys = agent.aieos?.physicality;
                 const base = phys?.image_prompts?.portrait || "";
                 let prompt: string;
                 if (base) {
@@ -264,26 +269,25 @@ export const generateAllImagesCommand: CommandDefinition = {
                         phys.face?.hair?.color && `${phys.face.hair.color} ${phys.face.hair.style || "hair"}`,
                         phys.style?.aesthetic_archetype,
                     ].filter(Boolean);
-                    prompt = parts.length > 0 ? parts.join(", ") : `AI agent portrait, ${(agent as any).role} role`;
+                    prompt = parts.length > 0 ? parts.join(", ") : `AI agent portrait, ${agent.role} role`;
                 } else {
-                    prompt = `AI agent portrait, ${(agent as any).role} role`;
+                    prompt = `AI agent portrait, ${agent.role} role`;
                 }
-                items.push({ cacheKey: (agent as any).id, prompt, style: "portrait", label: `Agent: ${(agent as any).name}` });
+                items.push({ cacheKey: agent.id, prompt, style: "portrait", label: `Agent: ${agent.name}` });
             }
         }
 
         // Build group items
         if (doGroups) {
             for (const group of workspace.groups) {
-                const g = group as any;
                 const memberRoles = [...new Set(
-                    g.members
-                        .map((mid: string) => workspace.agents.find((a: any) => a.id === mid))
-                        .filter(Boolean)
-                        .map((a: any) => a.role),
+                    group.members
+                        .map((mid: string) => workspace.agents.find((a: Agent) => a.id === mid))
+                        .filter((agent): agent is Agent => Boolean(agent))
+                        .map((agent) => agent.role),
                 )];
-                const prompt = `emblem badge icon for a group called "${g.name}", ${g.governance} governance, ${memberRoles.join(", ")} roles, ${g.members.length} members`;
-                items.push({ cacheKey: `group-${g.id}`, prompt, style: "badge", label: `Group: ${g.name}` });
+                const prompt = `emblem badge icon for a group called "${group.name}", ${group.governance} governance, ${memberRoles.join(", ")} roles, ${group.members.length} members`;
+                items.push({ cacheKey: `group-${group.id}`, prompt, style: "badge", label: `Group: ${group.name}` });
             }
         }
 
@@ -319,10 +323,11 @@ export const generateAllImagesCommand: CommandDefinition = {
                 succeeded++;
                 results.push({ key: item.cacheKey, label: item.label, status: "generated" });
                 workspace.addLog(`✓ ${item.label}`);
-            } catch (err: any) {
+            } catch (err: unknown) {
+                const message = errorMessage(err);
                 failed++;
-                results.push({ key: item.cacheKey, label: item.label, status: "failed", error: err.message });
-                workspace.addLog(`✗ ${item.label}: ${err.message}`);
+                results.push({ key: item.cacheKey, label: item.label, status: "failed", error: message });
+                workspace.addLog(`✗ ${item.label}: ${message}`);
             }
         }
 
