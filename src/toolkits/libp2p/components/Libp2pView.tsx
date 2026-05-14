@@ -21,7 +21,7 @@ import { DEFAULT_BOOTSTRAP, libp2pService } from "../service";
 import type { Libp2pServiceToggles, Libp2pDiscoveryToggles, Libp2pTransportToggles } from "../service";
 import { logAudit } from "@/services/logging";
 import { useJobsContext } from "@/context/JobsContext";
-import type { JobRequest } from "@/types";
+import type { Job, JobRequest } from "@/types";
 import { Libp2pCollectionsModal, type CollectionsTab } from "./Libp2pCollectionsModal";
 import { Libp2pNetworksModal } from "./Libp2pNetworksModal";
 import { useLibp2pCollections, decryptIdentity, encryptIdentity, decryptPnetKey } from "../utils/collections";
@@ -134,6 +134,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
     const [fileError, setFileError] = useState<string | null>(null);
     const [exported, setExported] = useState<{ peerId: string; privateKey: string } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const loggedJobIds = useRef<Set<string>>(new Set());
 
     // Collections modal
     const [collectionsOpen, setCollectionsOpen] = useState(false);
@@ -186,8 +187,8 @@ export function Libp2pView(_props: Libp2pViewProps) {
             setPnetUnlockedLabel(entry.label);
             setPnetPassphrase("");
             addLog(`Unlocked private network "${entry.label}"`);
-        } catch (err: any) {
-            setPnetError(err?.message ?? String(err));
+        } catch (err: unknown) {
+            setPnetError(err instanceof Error ? err.message : String(err));
         } finally {
             setPnetBusy(false);
         }
@@ -207,7 +208,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
     /** Submit a libp2p command as a job, scoped to the active node. */
     const dispatch = (
         type: string,
-        request: Record<string, any> = {},
+        request: Record<string, unknown> = {},
         label?: string,
     ) => {
         const payload = activeId ? { ...request, nodeId: activeId } : request;
@@ -227,7 +228,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
 
     /** True while a libp2p job is queued or running. */
     const busy = useMemo(() => {
-        return jobs.some((j: any) =>
+        return jobs.some((j: Job) =>
             typeof j.type === "string" &&
             j.type.startsWith("libp2p_") &&
             (j.status === "queued" || j.status === "running"),
@@ -237,7 +238,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
     // Surface job results into the local activity log.
     useEffect(() => {
         const recent = jobs
-            .filter((j: any) =>
+            .filter((j: Job) =>
                 typeof j.type === "string" &&
                 j.type.startsWith("libp2p_") &&
                 (j.status === "completed" || j.status === "failed") &&
@@ -245,14 +246,14 @@ export function Libp2pView(_props: Libp2pViewProps) {
             )
             .slice(0, 5);
         for (const j of recent) {
-            const key = `__libp2p_logged_${j.id}`;
-            if ((window as any)[key]) continue;
-            (window as any)[key] = true;
+            if (loggedJobIds.current.has(j.id)) continue;
+            loggedJobIds.current.add(j.id);
             if (j.status === "completed") {
                 // Capture the export-identity result so the UI can reveal it.
-                const result: any = j.result;
-                if (j.type === "libp2p_export_identity" && result && typeof result === "object" && result.privateKey) {
-                    setExported({ peerId: result.peerId, privateKey: result.privateKey });
+                const result = j.result as { peerId?: unknown; privateKey?: unknown } | undefined;
+                if (j.type === "libp2p_export_identity" && typeof result?.privateKey === "string") {
+                    const peerId = typeof result.peerId === "string" ? result.peerId : "";
+                    setExported({ peerId, privateKey: result.privateKey });
                 }
                 addLog(`${j.type} completed`);
             } else {
