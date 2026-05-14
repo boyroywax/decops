@@ -1,6 +1,6 @@
 # Codebase Gap Analysis — decops
 
-**Date:** 2026-05-12 (updated)
+**Date:** 2026-05-13 (updated)
 **Branch:** `feat/libp2p-toolkit`
 **Scope:** Full audit of `src/` covering architecture, testing, types, performance, errors, theme, security, docs, jobs, and build.
 
@@ -14,7 +14,7 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 
 | Metric | Original | Current | Δ |
 |---|---|---|---|
-| `: any` / `as any` in `src/hooks` + `src/services` | 294 | **203** | −91 (−31%) |
+| `: any` / `as any` in `src/hooks` + `src/services` | 294 | **12** | −282 (−96%) |
 | Test files | 34 | **47** | +13 |
 | Total tests passing | n/a | **474/474** | — |
 | Silent `catch {}` blocks | 18 | **12** | −6 |
@@ -55,8 +55,14 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 - `1ff4f6f` feat(a11y,theme): focus-trap on JobInputPromptModal+NodeEditModal; tokenize studio styles [§6.1 + §6.2 follow-up]
 - _pending_ chore(ci): GH Actions typecheck+test+build workflow + ADRs 0001–0004 [§8 + §10]
 - _pending_ test(bots): delegation-matcher coverage for libp2pBot + studioBot (22 tests) [§2.1]
-- _pending_ types(ChatPanel): tighten `any` props/maps to `Agent`/`Channel`/`Group` [§3.1]
-- _pending_ types(maintenance.ts): 23 → 0 `any` via discriminated `DeletableItem` union [§3.1]
+- `ae7cc97` types(hooks, services): clean up trailing any sites [§3.1]
+- `0cc7d99` types(libp2p): remove explicit any from service [§3.1]
+- `43b5965` types(studio): remove lifecycle API any usage [§3.1]
+- `b5b41df` types(image-gen): remove explicit any from commands [§3.1]
+- `0d24a8d` types(studio): remove any from node edit modal [§3.1]
+- `dd25c38` types(libp2p): remove any from view component [§3.1]
+- `168b5c1` types(toolkits): clean up small any sites [§3.1]
+- `3bc16d4` types(toolkits): remove final one-off any sites [§3.1]
 
 ---
 
@@ -103,16 +109,18 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 
 ## 3. Type Safety Gaps — **MEDIUM (DOWNGRADED FROM HIGH)**
 
-### 3.1 `any` Proliferation — **PARTIALLY RESOLVED**
-- **Current count:** **226** (was 294; −68, −23 %).
+### 3.1 `any` Proliferation — **MOSTLY RESOLVED**
+- **Current count:** **12** raw `: any` / `as any` matches in `src/hooks` + `src/services` (was 294; −282, −96 %). Toolkit TypeScript is at **0** explicit `any` matches; the remaining toolkit grep hits are CSS `overflow-wrap: anywhere` false positives.
 - **Resolved hot spots:**
   - `src/hooks/useJobExecutor.tsx` — `jobs`, `addJob`, `updateJobStatus`, etc. now use derived `UseJobsReturn[...]` types (commit `6e725e5`).
   - `src/services/commands/tools.ts`, `runner.ts`, `streaming.ts` — most `any` → `unknown` with proper narrowing (commit `3e42bce`).
   - `src/services/commands/registry.ts`, `dryRun.ts`, `jobRuntime.ts` — local helpers, accumulators, and entity lookups tightened (commits `95d7fab`, `5102edb`, `96acff5`).
   - `src/services/commands/types.ts` — `CommandContext` workspace/ecosystem/jobs/auth now use real types (commit `b3c7715`).
-- **Remaining hot spots (≈226 `any`):**
-  - `CommandDefinition.execute: Promise<any>`, `CommandContext.storage: Record<string, any>`, `CommandArg.validation: (value: any) => …` — kept with `eslint-disable` + rationale because tightening cascades into ~50 command definitions.
-  - `src/services/commands/definitions/ecosystem.ts` (41), `src/toolkits/libp2p/service.ts` (25), `src/components/layout/ChatPanel.tsx` (25), `src/services/commands/definitions/maintenance.ts` (23) — opportunistic cleanup as those areas are touched.
+  - §3.1 continuation commits through `3bc16d4` reduced `src/hooks` + `src/services` to intentional boundary matches and cleared explicit `any` from toolkit TypeScript.
+- **Remaining intentional / false-positive matches (12 raw):**
+  - `src/services/commands/registry.ts` (4), `src/services/commands/dryRun.ts` (3), and `src/hooks/useCommandContext.ts` (3) keep public command/context parameters loose with local `eslint-disable` rationale because tests and call sites pass partial command contexts.
+  - `src/services/commands/types.ts` keeps `CommandArg.validation(value: any)` as the public command-argument validation boundary; tightening it requires a dedicated audit of all command definitions.
+  - `src/services/autonomy/planner.ts` has one grep false positive in prose (`gaps: any identified...`).
 
 ### 3.2 Missing Discriminated Unions for Job States — **RESOLVED**
 - **Fixed in:** commit `e386ea3` — `Job` is now a discriminated union on `status`:
