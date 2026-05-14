@@ -55,7 +55,7 @@ const validatedCommand: CommandDefinition = {
             type: 'number',
             required: true,
             description: 'Port number',
-            validation: (v: number) => (v >= 1 && v <= 65535) ? true : 'Port must be between 1 and 65535',
+            validation: (v: unknown) => (typeof v === 'number' && v >= 1 && v <= 65535) ? true : 'Port must be between 1 and 65535',
         },
     },
     execute: vi.fn(async () => 'ok'),

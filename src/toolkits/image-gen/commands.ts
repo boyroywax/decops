@@ -30,7 +30,7 @@ export const generateImageCommand: CommandDefinition = {
             description: 'What to generate: "agent_portrait", "group_badge", or "custom"',
             required: true,
             validation: (val) =>
-                ["agent_portrait", "group_badge", "custom"].includes(val) ||
+                (typeof val === "string" && ["agent_portrait", "group_badge", "custom"].includes(val)) ||
                 'Must be "agent_portrait", "group_badge", or "custom"',
         },
         prompt: {
@@ -53,7 +53,7 @@ export const generateImageCommand: CommandDefinition = {
             required: false,
             defaultValue: "portrait",
             validation: (val) =>
-                ["portrait", "badge"].includes(val) || 'Must be "portrait" or "badge"',
+                (typeof val === "string" && ["portrait", "badge"].includes(val)) || 'Must be "portrait" or "badge"',
         },
         force: {
             name: "force",
@@ -216,6 +216,7 @@ export const generateAllImagesCommand: CommandDefinition = {
             required: false,
             defaultValue: "all",
             validation: (val) => {
+                if (typeof val !== "string") return 'Must be comma-separated: "agents", "groups", or "all"';
                 const valid = ["all", "agents", "groups"];
                 const parts = val.split(",").map((s: string) => s.trim());
                 return parts.every((p: string) => valid.includes(p)) || 'Must be comma-separated: "agents", "groups", or "all"';
@@ -379,7 +380,7 @@ export const generateIconCommand: CommandDefinition = {
             description: 'What to generate an icon for: "job", "command", or "automation".',
             required: true,
             validation: (val) =>
-                ["job", "command", "automation"].includes(val) ||
+                (typeof val === "string" && ["job", "command", "automation"].includes(val)) ||
                 'Must be "job", "command", or "automation"',
         },
         name: {

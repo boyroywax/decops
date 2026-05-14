@@ -17,7 +17,7 @@ export const createAgentCommand: CommandDefinition = {
             type: "string",
             description: "The name of the agent",
             required: true,
-            validation: (val) => val.length >= 3 || "Name must be at least 3 characters",
+            validation: (val) => (typeof val === "string" && val.length >= 3) || "Name must be at least 3 characters",
         },
         role: {
             name: "role",

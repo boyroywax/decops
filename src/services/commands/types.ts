@@ -17,9 +17,7 @@ export interface CommandArg {
     description: string;
     defaultValue?: unknown;
     enum?: string[]; // Allowed values — surfaced to AI tool schema
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    validation?: (value: any) => boolean | string; // Returns true if valid, or error message string
+    validation?: (value: unknown) => boolean | string; // Returns true if valid, or error message string
     /** When type is "agent", also show a "You (Current User)" option that resolves to "user" */
     includeUserOption?: boolean;
 }
