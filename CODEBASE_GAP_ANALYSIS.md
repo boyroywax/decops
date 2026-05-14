@@ -63,6 +63,8 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 - `dd25c38` types(libp2p): remove any from view component [§3.1]
 - `168b5c1` types(toolkits): clean up small any sites [§3.1]
 - `3bc16d4` types(toolkits): remove final one-off any sites [§3.1]
+- `955b90c` types(commands): tighten CommandArg.validation to unknown [§3.1]
+- `7b18a2c` types(commands): tighten registry/dryRun context to CommandContext [§3.1]
 
 ---
 
@@ -110,17 +112,18 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 ## 3. Type Safety Gaps — **MEDIUM (DOWNGRADED FROM HIGH)**
 
 ### 3.1 `any` Proliferation — **MOSTLY RESOLVED**
-- **Current count:** **12** raw `: any` / `as any` matches in `src/hooks` + `src/services` (was 294; −282, −96 %). Toolkit TypeScript is at **0** explicit `any` matches; the remaining toolkit grep hits are CSS `overflow-wrap: anywhere` false positives.
+- **Current count:** **3** raw `: any` matches in `src/hooks` + `src/services` (was 294; −291, −99 %). Toolkit TypeScript is at **0** explicit `any` matches; the remaining toolkit grep hits are CSS `overflow-wrap: anywhere` false positives.
 - **Resolved hot spots:**
   - `src/hooks/useJobExecutor.tsx` — `jobs`, `addJob`, `updateJobStatus`, etc. now use derived `UseJobsReturn[...]` types (commit `6e725e5`).
   - `src/services/commands/tools.ts`, `runner.ts`, `streaming.ts` — most `any` → `unknown` with proper narrowing (commit `3e42bce`).
   - `src/services/commands/registry.ts`, `dryRun.ts`, `jobRuntime.ts` — local helpers, accumulators, and entity lookups tightened (commits `95d7fab`, `5102edb`, `96acff5`).
   - `src/services/commands/types.ts` — `CommandContext` workspace/ecosystem/jobs/auth now use real types (commit `b3c7715`).
   - §3.1 continuation commits through `3bc16d4` reduced `src/hooks` + `src/services` to intentional boundary matches and cleared explicit `any` from toolkit TypeScript.
-- **Remaining intentional / false-positive matches (12 raw):**
-  - `src/services/commands/registry.ts` (4), `src/services/commands/dryRun.ts` (3), and `src/hooks/useCommandContext.ts` (3) keep public command/context parameters loose with local `eslint-disable` rationale because tests and call sites pass partial command contexts.
-  - `src/services/commands/types.ts` keeps `CommandArg.validation(value: any)` as the public command-argument validation boundary; tightening it requires a dedicated audit of all command definitions.
-  - `src/services/autonomy/planner.ts` has one grep false positive in prose (`gaps: any identified...`).
+  - `955b90c` tightened `CommandArg.validation` from `(value: any)` to `(value: unknown)` and narrowed all command-definition validators with `typeof` guards.
+  - `7b18a2c` tightened `registry.ts` (resolveEntityName, execute, dryRun, dryRunJob) and `dryRun.ts` (getEntityCollection, dryRunCommand, dryRunJob) from `context: any` to `context: CommandContext`; removed 7 `eslint-disable` directives. Test fixtures use `as CommandContext` cast.
+  - `7b18a2c` reworded `planner.ts` prose to drop the grep false positive.
+- **Remaining intentional matches (3 raw, all eslint-disabled):**
+  - `src/hooks/useCommandContext.ts` (3): `jobs: any`, `ecosystem: any`, `architect: any` props. Test fixtures and the `ChatPanel` caller pass partial mocks that would force widespread test rewrites if tightened; documented with `// eslint-disable-next-line` + rationale.
 
 ### 3.2 Missing Discriminated Unions for Job States — **RESOLVED**
 - **Fixed in:** commit `e386ea3` — `Job` is now a discriminated union on `status`:
