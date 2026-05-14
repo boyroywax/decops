@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import type { CSSProperties } from "react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { SCENARIO_PRESETS } from "@/constants";
 
@@ -30,7 +31,7 @@ export function ArchitectWelcome({ onPrompt }: ArchitectWelcomeProps) {
                         key={s.id}
                         type="button"
                         className="architect-welcome__card"
-                        style={{ ["--card-accent" as any]: s.color }}
+                        style={{ "--card-accent": s.color } as CSSProperties}
                         onClick={() => onPrompt?.(s.desc)}
                     >
                         <div className="architect-welcome__card-head">

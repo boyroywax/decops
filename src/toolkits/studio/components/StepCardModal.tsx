@@ -100,7 +100,7 @@ interface StepCardModalProps {
   /** e.g. "3 / 12" */
   position?: string;
   /* ── Edit callbacks ── */
-  onUpdateArg?: (stepId: string, argName: string, value: any) => void;
+  onUpdateArg?: (stepId: string, argName: string, value: unknown) => void;
   onUpdatePreCondition?: (stepId: string, condition: string) => void;
   onUpdatePostCondition?: (stepId: string, condition: string) => void;
   onUpdateOutputMappings?: (stepId: string, mappings: OutputMapping[]) => void;

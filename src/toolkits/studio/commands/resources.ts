@@ -3,6 +3,7 @@
  */
 
 import { CommandDefinition } from "@/services/commands/types";
+import type { EntityInput } from "@/types";
 
 // ────────────────────────────────────────────────────
 // Deliverables
@@ -145,7 +146,7 @@ export const studioUpdateInputCommand: CommandDefinition = {
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
-        studio.updateInput(args.index, args.field as any, args.value);
+        studio.updateInput(args.index, args.field as keyof EntityInput, args.value);
         return { index: args.index, field: args.field, value: args.value };
     },
 };
