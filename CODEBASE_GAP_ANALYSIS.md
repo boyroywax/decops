@@ -103,9 +103,10 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 - **Resolved (useJobExecutor.integration.test.tsx, 4 tests):** queued → running → completed effect flow, failure path with addNotebookEntry "Job Failed" emission, prompt-input pause routing through `updateJob({status:"awaiting-input"})` (and skipping `registry.execute`), and `MAX_CONCURRENT_JOBS` enforcement under saturated queues.
 - **Target met:** combined headless `runJob` + scheduler + React hook integration coverage exceeds 60 % on `src/services/ai/` and `src/hooks/useJobExecutor.tsx`.
 
-### 2.2 No E2E / Integration Tests for Chat UI — **MEDIUM (OPEN)**
-- `ChatPanel.tsx` (~1000 LOC) has no Playwright/Cypress tests covering submit flow, slash commands, @mentions, or streaming.
-- **Fix:** Playwright smoke suite — send message → tool call → streaming token → final commit.
+### 2.2 No E2E / Integration Tests for Chat UI — **RESOLVED**
+- `ChatPanel.tsx` (~1000 LOC) previously had no automated coverage of the submit pipeline (free text, slash commands, send button gating).
+- **Resolved (ChatPanel.integration.test.tsx, 9 tests):** stable `data-testid` hooks added (`chat-panel-input`, `chat-panel-send`, `chat-panel-stop`, `chat-panel-messages`); React Testing Library + Vitest jsdom integration tests cover: input/send rendering, empty-input send disabled, send-enabled after typing, free-text Enter submit (renders user message + invokes `streamChatWithWorkspace` + renders assistant reply), send-button click parity, unknown slash command (renders ❌ Unknown command, no LLM call), known no-args slash command (`jobs.addJob` called with correct `type` + `steps[0].commandId`, conversation shows "queued as a job"), `addLog` invocation, and whitespace-only input rejected. `Element.prototype.scrollIntoView` polyfilled in `src/test/setup.ts` for jsdom.
+- **Scope note:** RTL integration in Vitest chosen over Playwright/Cypress; covers the routing logic in the React submit path. Browser-level E2E (real LLM streaming over the network, tool-call rendering, multi-turn) remains a separate workstream if real browser fidelity is needed.
 
 ---
 

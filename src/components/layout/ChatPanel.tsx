@@ -759,7 +759,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                 </div>
             ) : (
                 /* Chat messages */
-                <div className="chat-panel__messages">
+                <div className="chat-panel__messages" data-testid="chat-panel-messages">
                     <ChatAgentBanner />
                     {activeAgent?.welcome && !loading && (
                         (() => {
@@ -978,18 +978,21 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                         placeholder={activeAgent?.placeholder ?? (studioActive ? "Ask the AI to build on the Studio canvas..." : editorActive ? "Ask the AI to help edit your file..." : "Ask about your workspace — type @ to mention agents...")}
                         disabled={loading && !streamingText}
                         className={`chat-panel__input${studioActive ? " chat-panel__input--studio" : editorActive ? " chat-panel__input--editor" : ""}`}
+                        data-testid="chat-panel-input"
                     />
                     {loading ? (
                         <button
                             onClick={stopStreaming}
                             className="chat-panel__send-btn chat-panel__send-btn--stop"
                             title="Stop generating"
+                            data-testid="chat-panel-stop"
                         ><Square size={14} /></button>
                     ) : (
                         <button
                             onClick={send}
                             disabled={!input.trim()}
                             className={`chat-panel__send-btn${isReady ? " chat-panel__send-btn--ready" : ""}`}
+                            data-testid="chat-panel-send"
                         ><Send size={14} /></button>
                     )}
                     </div>
