@@ -29,6 +29,11 @@ function makeWorkspace(overrides: Record<string, any> = {}) {
 
 function makeJobs() {
     return {
+        // Catalog augmentation read by useCommandContext
+        savedJobs: [],
+        saveJob: vi.fn(),
+        deleteJob: vi.fn(),
+        // UseJobsReturn surface
         addArtifact: vi.fn(),
         removeArtifact: vi.fn(),
         importArtifact: vi.fn(),
@@ -39,15 +44,23 @@ function makeJobs() {
         toggleQueuePause: vi.fn(),
         isPaused: false,
         jobs: [],
-        savedJobs: [],
-        saveJob: vi.fn(),
-        deleteJob: vi.fn(),
-    };
+        // Remaining UseJobsReturn fields — required for type fit; unused in
+        // these getter-focused tests.
+        updateJobStatus: vi.fn(),
+        clearJobs: vi.fn(),
+        stopJob: vi.fn(),
+        resolvePromptInput: vi.fn(),
+        updateJob: vi.fn(),
+        reorderQueue: vi.fn(),
+        setJobs: vi.fn(),
+        setStandaloneArtifacts: vi.fn(),
+        standaloneArtifacts: [],
+    } as unknown as Parameters<typeof useCommandContext>[0]["jobs"];
 }
 
 function makeEcosystem() {
     return {
-        ecosystem: null,
+        ecosystem: undefined,
         setEcosystem: vi.fn(),
         activeNetworkId: null,
         setActiveNetworkId: vi.fn(),
@@ -61,7 +74,7 @@ function makeEcosystem() {
         createBridge: vi.fn(),
         removeBridge: vi.fn(),
         dissolveNetwork: vi.fn(),
-    };
+    } as unknown as Parameters<typeof useCommandContext>[0]["ecosystem"];
 }
 
 const wrapper = undefined;

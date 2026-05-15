@@ -9,6 +9,7 @@ import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
 import { makeId } from "@/components/chat/utils";
 import type { Conversation } from "@/components/chat/types";
 import { useCommandContext } from "@/hooks/useCommandContext";
+import type { EcosystemInput } from "@/hooks/useCommandContext";
 import { useJobsContext } from "@/context/JobsContext";
 import { useArchitectContext } from "@/toolkits/architect";
 import { useEcosystem } from "@/hooks/useEcosystem"; // Bridge UI — needed for command context ecosystem prop
@@ -30,13 +31,11 @@ import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {
     context: WorkspaceContext;
-    /** Live ecosystem snapshot (networks, peers, etc.). Shape provided by
-     * `useEcosystem()`; typed loosely here so this presentational component
-     * stays decoupled from the hook's internal shape. */
-    ecosystem?: {
-        networks?: Array<{ id: string; name: string; color?: string }>;
-        [key: string]: unknown;
-    };
+    /** Live ecosystem snapshot. Accepts the full `useEcosystem()` return
+     * (UseEcosystemReturn) or a partial fallback. Typed as the same narrow
+     * input shape that `useCommandContext` consumes so callers don't have
+     * to widen `as any` to pass either form. */
+    ecosystem?: EcosystemInput;
     onClose: () => void;
     addLog?: (msg: string) => void;
     height: number;
@@ -226,7 +225,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         workspace: workspaceCtx,
         user,
         jobs,
-        ecosystem: ecosystem || { networks: [], bridges: [] }, // Fallback if missing, some cmds might fail
+        ecosystem: ecosystem ?? { networks: [], bridges: [] }, // Fallback if missing, some cmds might fail
         architect,
         addLog: addLog || (() => { }) as (msg: string) => void,
         extensions: { studio: studioApi ?? undefined, editor: editorApi ?? undefined },

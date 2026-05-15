@@ -123,8 +123,12 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
   - `955b90c` tightened `CommandArg.validation` from `(value: any)` to `(value: unknown)` and narrowed all command-definition validators with `typeof` guards.
   - `7b18a2c` tightened `registry.ts` (resolveEntityName, execute, dryRun, dryRunJob) and `dryRun.ts` (getEntityCollection, dryRunCommand, dryRunJob) from `context: any` to `context: CommandContext`; removed 7 `eslint-disable` directives. Test fixtures use `as CommandContext` cast.
   - `7b18a2c` reworded `planner.ts` prose to drop the grep false positive.
-- **Remaining intentional matches (3 raw, all eslint-disabled):**
-  - `src/hooks/useCommandContext.ts` (3): `jobs: any`, `ecosystem: any`, `architect: any` props. Investigation (May 2026) confirmed tightening to real producer types (`UseJobsReturn`, `UseEcosystemReturn`, `UseArchitectReturn`) cascades into latent type mismatches across `CommandContextProvider`, `ChatPanel` (Network shape mismatch, `Promise<void>` vs `void` return type on the architect fallback), `useCommandContext` itself (`Ecosystem | null` vs `Ecosystem`), `JobArtifact.type` literal narrowing, and 4 test fixtures — all pre-existing latent shape mismatches the `any`s were hiding. Tightening is therefore deferred as a separate workstream covering those callers/types; documented with `// eslint-disable-next-line` + rationale.
+- **Remaining intentional matches: 0.** Previous 3 boundary `any`s in `src/hooks/useCommandContext.ts` (`jobs`, `ecosystem`, `architect` props) eliminated in the deferred §3.1 follow-up:
+  - Introduced narrow input aliases `JobsInput = UseJobsReturn & { savedJobs?; saveJob?; deleteJob? }`, `EcosystemInput = Partial<UseEcosystemReturn>`, and `ArchitectInput = { generateNetwork(prompt): void | Promise<void>; deployNetwork(): void | Promise<void> }`. Optional ecosystem fields receive no-op / empty defaults inside the hook body so the ChatPanel lite fallback (`{ networks: [], bridges: [] }`) still satisfies the contract.
+  - Discarded the architect impl's Promise to keep `CommandContext.architect.{generateNetwork,deployNetwork}: () => void` invariant (`(p) => { void architect.generateNetwork(p); }`).
+  - `JobArtifact.type` narrowed via documented `as JobArtifact["type"]` cast inside `addDeliverable` (CommandContext exposes `string` ergonomically; storage demands `ArtifactType` literal).
+  - `CommandContextProvider` re-exported `EcosystemInput` / `ArchitectInput`; `ChatPanel.ecosystem?: EcosystemInput` replaces the ad-hoc `{ networks?: …[]; [key: string]: unknown }` shape that had a latent Network-shape mismatch.
+  - `src/test/hooks/useCommandContext.test.ts` fixtures expanded with full `UseJobsReturn` surface and cast through the hook's parameter type.
 
 ### 3.2 Missing Discriminated Unions for Job States — **RESOLVED**
 - **Fixed in:** commit `e386ea3` — `Job` is now a discriminated union on `status`:
@@ -235,11 +239,11 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 All HIGH-severity gaps are now resolved. Remaining items are MEDIUM/LOW.
 
 ### Phase 6 — Quality (remaining)
-1. [MEDIUM] Integration tests for `useJobExecutor` (parallel/serial modes, output mappings, step handlers); end-to-end tests for `libp2pBot` / `studioBot` (§2.1 remaining).
-2. [MEDIUM] Playwright/Cypress E2E smoke suite for `ChatPanel` (§2.2).
+1. ~~[MEDIUM] Integration tests for `useJobExecutor` + bots (§2.1).~~ — **RESOLVED**
+2. ~~[MEDIUM] E2E / integration smoke suite for `ChatPanel` (§2.2).~~ — **RESOLVED** (Vitest+RTL, 9 tests)
 
 ### Phase 7 — Low priority (remaining)
-3. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on remaining 3 boundary matches in `src/hooks/useCommandContext.ts` (§3.1 remaining).
+3. ~~[LOW] Continue opportunistic `any` cleanup — 3 remaining boundary matches in `src/hooks/useCommandContext.ts` (§3.1 deferred follow-up).~~ — **RESOLVED.** All 3 boundary `any`s replaced with narrow input aliases (`JobsInput`, `EcosystemInput`, `ArchitectInput`); cascading callers (`CommandContextProvider`, `ChatPanel`, test fixtures) updated.
 
 ---
 

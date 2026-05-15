@@ -11,7 +11,7 @@ import { createContext, useContext, type ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useJobsContext } from "@/context/JobsContext";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
-import { useCommandContext } from "@/hooks/useCommandContext";
+import { useCommandContext, type EcosystemInput, type ArchitectInput } from "@/hooks/useCommandContext";
 import type { CommandContext } from "@/services/commands/types";
 import { useToolkitChatAgents } from "@/toolkits";
 
@@ -23,8 +23,8 @@ function GlobalRegistrar() {
 const Ctx = createContext<CommandContext | null>(null);
 
 interface ProviderProps {
-    ecosystem: any;
-    architect: any;
+    ecosystem: EcosystemInput;
+    architect: ArchitectInput;
     addLog: (msg: string) => void;
     /** Toolkit-injected extensions (studio/editor APIs) */
     extensions?: Record<string, unknown>;
