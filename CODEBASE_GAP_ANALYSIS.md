@@ -164,8 +164,10 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 - Adopted in `src/toolkits/libp2p/service.ts` for `node.stop`, `manager.persist`, and `manager.removeNode.stop` failures that were previously hidden.
 - **Remaining silent catches** in the tree (clipboard writes, `localStorage` quota, JSON parse fallbacks, snapshot serialisation, pubsub-unavailable probes) are intentionally silent — they are idiomatic fallbacks, not error swallows, and should stay that way.
 
-### 5.2 Stream Error Channel Underused — **LOW (OPEN)**
-- Verify all delegations route through `streamChatWithWorkspace`.
+### 5.2 Stream Error Channel Underused — **RESOLVED**
+- Audit confirms every chat call site in `src/` routes through the unified `runChatTurn` runner (`src/services/ai/runner.ts`), the single LLM fetch point: `chatWithAgent`, `chatWithWorkspace`, `streamChatWithWorkspace`, plus the toolkit bots (`studioBot`, `libp2pBot`).
+- Both workspace entry points (`chatWithWorkspace` and `streamChatWithWorkspace`) invoke `getChatDelegation(userMessage)` to enhance the system prompt and `maxRounds` from registered toolkit delegations — i.e. delegations are wired identically on the streaming and non-streaming paths.
+- `chatWithAgent` and toolkit bots intentionally do **not** re-apply delegation: they are themselves the delegation targets, so re-applying would recurse.
 
 ---
 
@@ -174,15 +176,15 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 ### 6.1 Hardcoded Colors — **MEDIUM (RESOLVED)**
 - **Fixed in:** commit `515de6b`. 25 bare slate hex literals in `src/toolkits/libp2p/styles/libp2p.css` replaced with design-token `var(--…)` references that fall back gracefully across theme variants (`theme-light.css`, `theme-solar.css`).
 - libp2p solar tabs/radio were already normalised in commit `021e048`.
-- **Follow-up (LOW):** `src/toolkits/studio/styles/`, `src/toolkits/editor/styles/` still contain a few literal greys; replace opportunistically when those areas are touched.
+- **Follow-up audit (May 2026):** `src/toolkits/studio/styles/` and `src/toolkits/editor/` confirmed clean of bare slate greys. All slate references already use the `var(--token, #fallback)` pattern. The one remaining bare hex (`#94a3b8` in `EditorView.tsx` `getFileColor`) is an intentional file-type accent palette, not a theme grey.
 
 ### 6.2 Accessibility — **MEDIUM (RESOLVED)**
 - **Fixed in:** commit `7bc2c82`.
 - New `useFocusTrap` hook (`src/hooks/useFocusTrap.ts`) traps Tab/Shift+Tab, focuses first focusable on mount, restores previously-focused element on unmount, and wires Escape to `onClose`.
-- Applied to `Libp2pCollectionsModal`, `Libp2pNetworksModal`, `Libp2pBotModal` with `role="dialog" aria-modal="true"`.
+- Applied to `Libp2pCollectionsModal`, `Libp2pNetworksModal`, `Libp2pBotModal`, `JobInputPromptModal`, and `NodeEditModal` with `role="dialog" aria-modal="true"`.
 - 50+ icon-only buttons in libp2p / studio / architect toolkits gained `aria-label` mirroring existing `title` attributes.
 - 5 new hook tests cover Tab cycle, Shift+Tab wrap, Escape, inactive state, and initial focus.
-- **Follow-up (LOW):** extend trap to remaining modals (`JobInputPromptModal`, `NodeEditModal`) and add an a11y lint rule.
+- **Follow-up audit (May 2026):** confirmed all `role="dialog"` modals in `src/toolkits` now use `useFocusTrap`. Added trap to the inline export-identity modal in `Libp2pView.tsx` (the last remaining modal lacking the hook).
 
 ---
 

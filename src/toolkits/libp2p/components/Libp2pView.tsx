@@ -28,6 +28,7 @@ import { useLibp2pCollections, decryptIdentity, encryptIdentity, decryptPnetKey 
 import { PubsubPanel } from "./PubsubPanel";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import { useCommandCtx } from "@/context/CommandContextProvider";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import "../styles/libp2p.css";
 
 interface Libp2pViewProps {
@@ -118,6 +119,8 @@ export function Libp2pView(_props: Libp2pViewProps) {
     const [vaultError, setVaultError] = useState<string | null>(null);
     // Export — download-encrypted prompt
     const [exportModalOpen, setExportModalOpen] = useState(false);
+    // a11y: trap focus + restore on close inside the export-identity modal [§6.2 follow-up]
+    const exportModalRef = useFocusTrap<HTMLDivElement>(exportModalOpen, () => setExportModalOpen(false));
     /** What to do once the export-identity job returns the private key. */
     const [exportPending, setExportPending] = useState<"copy" | "encrypt" | null>(null);
     const [showExportPassphrase, setShowExportPassphrase] = useState(false);
@@ -1232,6 +1235,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
                         onClick={closeExportModal}
                     >
                         <div
+                            ref={exportModalRef}
                             className="libp2p-modal libp2p-export-modal"
                             role="dialog"
                             aria-modal="true"
