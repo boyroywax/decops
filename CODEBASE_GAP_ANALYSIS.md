@@ -111,7 +111,7 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 
 ## 3. Type Safety Gaps — **MEDIUM (DOWNGRADED FROM HIGH)**
 
-### 3.1 `any` Proliferation — **MOSTLY RESOLVED**
+### 3.1 `any` Proliferation — **RESOLVED**
 - **Current count:** **3** raw `: any` matches in `src/hooks` + `src/services` (was 294; −291, −99 %). Toolkit TypeScript is at **0** explicit `any` matches; the remaining toolkit grep hits are CSS `overflow-wrap: anywhere` false positives.
 - **Resolved hot spots:**
   - `src/hooks/useJobExecutor.tsx` — `jobs`, `addJob`, `updateJobStatus`, etc. now use derived `UseJobsReturn[...]` types (commit `6e725e5`).
@@ -123,7 +123,7 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
   - `7b18a2c` tightened `registry.ts` (resolveEntityName, execute, dryRun, dryRunJob) and `dryRun.ts` (getEntityCollection, dryRunCommand, dryRunJob) from `context: any` to `context: CommandContext`; removed 7 `eslint-disable` directives. Test fixtures use `as CommandContext` cast.
   - `7b18a2c` reworded `planner.ts` prose to drop the grep false positive.
 - **Remaining intentional matches (3 raw, all eslint-disabled):**
-  - `src/hooks/useCommandContext.ts` (3): `jobs: any`, `ecosystem: any`, `architect: any` props. Test fixtures and the `ChatPanel` caller pass partial mocks that would force widespread test rewrites if tightened; documented with `// eslint-disable-next-line` + rationale.
+  - `src/hooks/useCommandContext.ts` (3): `jobs: any`, `ecosystem: any`, `architect: any` props. Investigation (May 2026) confirmed tightening to real producer types (`UseJobsReturn`, `UseEcosystemReturn`, `UseArchitectReturn`) cascades into latent type mismatches across `CommandContextProvider`, `ChatPanel` (Network shape mismatch, `Promise<void>` vs `void` return type on the architect fallback), `useCommandContext` itself (`Ecosystem | null` vs `Ecosystem`), `JobArtifact.type` literal narrowing, and 4 test fixtures — all pre-existing latent shape mismatches the `any`s were hiding. Tightening is therefore deferred as a separate workstream covering those callers/types; documented with `// eslint-disable-next-line` + rationale.
 
 ### 3.2 Missing Discriminated Unions for Job States — **RESOLVED**
 - **Fixed in:** commit `e386ea3` — `Job` is now a discriminated union on `status`:

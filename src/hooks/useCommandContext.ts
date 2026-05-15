@@ -16,8 +16,9 @@ interface UseCommandContextProps {
     workspace: WorkspaceContextType;
     user: User | null;
     /** JobsContextType. Kept loose because test fixtures and the ChatPanel
-     *  caller pass partial mocks that would force widespread test rewrites
-     *  if tightened. */
+     *  caller pass partial mocks (and `useJobs()` does not include catalog
+     *  fields read here) — tightening would force widespread rewrites and
+     *  reveals pre-existing latent shape mismatches across the tree. */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jobs: any;
     /** EcosystemContextType. See `jobs` above for rationale. */
@@ -30,6 +31,7 @@ interface UseCommandContextProps {
     /** Toolkit-injected extensions (e.g. { studio: StudioAPI, editor: EditorAPI }) */
     extensions?: Record<string, unknown>;
 }
+
 
 export function useCommandContext({
     workspace,
