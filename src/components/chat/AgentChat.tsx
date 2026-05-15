@@ -5,6 +5,7 @@ import type { ChatMessage } from "@/services/ai";
 import { ROLES } from "@/constants";
 import { MessageSquare, Send, ChevronDown, ChevronUp } from "lucide-react";
 import { MarkdownContent } from "@/components/shared/MarkdownContent";
+import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
 import { useWorkspaceStore } from "@/stores";
 import { useAuth } from "@/context/AuthContext";
 import { useCommandCtx } from "@/context/CommandContextProvider";
@@ -175,14 +176,7 @@ export function AgentChat({ agent }: AgentChatProps) {
               </div>
             ))}
             {loading && (
-              <div className="agent-chat__typing">
-                <div className="agent-chat__typing-dots">
-                  <div className="agent-chat__typing-dot" />
-                  <div className="agent-chat__typing-dot" />
-                  <div className="agent-chat__typing-dot" />
-                </div>
-                {agent.name} is thinking...
-              </div>
+              <ThinkingIndicator name={agent.name} phase="thinking" />
             )}
             <div ref={endRef} />
           </div>

@@ -34,6 +34,7 @@ export const enableToolkitCommand: CommandDefinition = {
     },
   },
   output: "Confirmation of toolkit enablement with agent and toolkit details.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args, context) => {
     const { agentId, toolkitId, config } = args;
     const { workspace } = context;
@@ -110,6 +111,7 @@ export const disableToolkitCommand: CommandDefinition = {
     },
   },
   output: "Confirmation of toolkit disablement.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args, context) => {
     const { agentId, toolkitId } = args;
     const { workspace } = context;
@@ -169,9 +171,11 @@ export const listAgentToolkitsCommand: CommandDefinition = {
     },
   },
   output: "List of all toolkits with their enabled/disabled status for the agent.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args, context) => {
     const { agentId } = args;
-    const agent = context.workspace.agents.find((a: Agent) => a.id === agentId);
+    const liveAgents = context.workspace.getAgents?.() ?? context.workspace.agents;
+    const agent = liveAgents.find((a: Agent) => a.id === agentId);
     if (!agent) throw new Error(`Agent ${agentId} not found`);
 
     const enabledIds = new Set((agent.toolkits || []).map((b: AgentToolkitBinding) => b.toolkitId));
@@ -232,6 +236,7 @@ export const setAgentToolkitsCommand: CommandDefinition = {
     },
   },
   output: "Confirmation with the new toolkit configuration.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args, context) => {
     const { agentId, toolkitIds } = args;
     const { workspace } = context;

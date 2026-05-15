@@ -23,33 +23,33 @@ export function BridgeCard({ bridge: b, agents, networks, bridgeMessages, remove
   return (
     <div
       style={{
-        background: "rgba(255,255,255,0.02)",
+        background: "var(--bg-surface)",
         border: "1px solid rgba(255,255,255,0.05)",
         borderRadius: 10,
         padding: 14,
         transition: "all 0.15s",
       }}
     >
-      <div style={{ fontSize: 12, color: "#a1a1aa", marginBottom: 4, fontWeight: 500 }}>
+      <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 4, fontWeight: 500 }}>
         {fA?.name || "?"} <ArrowLeftRight size={10} color="#fbbf24" style={{ margin: "0 4px" }} /> {tA?.name || "?"}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: "#52525b" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10, color: "var(--text-subtle)" }}>
         <span style={{ color: fNet?.color }}>{fNet?.name}</span>
         <span>→</span>
         <span style={{ color: tNet?.color }}>{tNet?.name}</span>
-        {bmCount > 0 && <span style={{ color: "#38bdf8", marginLeft: 6 }}>{bmCount} msgs</span>}
+        {bmCount > 0 && <span style={{ color: "var(--color-info)", marginLeft: 6 }}>{bmCount} msgs</span>}
       </div>
       <div style={{ display: "flex", gap: 4, marginTop: 8, alignItems: "center" }}>
         <span style={{
           fontSize: 9, padding: "2px 8px", borderRadius: 4,
-          background: "rgba(56,189,248,0.06)", color: "#38bdf8",
+          background: "color-mix(in srgb, var(--color-info) 10%, transparent)", color: "var(--color-info)",
           border: "1px solid rgba(56,189,248,0.1)",
         }}>
           bridge
         </span>
         <span style={{
           fontSize: 9, padding: "2px 8px", borderRadius: 4,
-          background: "rgba(251,191,36,0.06)", color: "#fbbf24",
+          background: "color-mix(in srgb, var(--color-warning) 10%, transparent)", color: "var(--color-warning)",
         }}>
           {CHANNEL_TYPES.find((t) => t.id === b.type)?.label || "Data"}
         </span>
@@ -61,7 +61,7 @@ export function BridgeCard({ bridge: b, agents, networks, bridgeMessages, remove
             style={{
               background: "transparent",
               border: "1px solid rgba(239,68,68,0.12)",
-              color: "#52525b",
+              color: "var(--text-subtle)",
               padding: "2px 6px",
               borderRadius: 4,
               fontFamily: "inherit",
@@ -76,7 +76,7 @@ export function BridgeCard({ bridge: b, agents, networks, bridgeMessages, remove
           </button>
         )}
       </div>
-      <div style={{ fontSize: 9, color: "#3f3f46", marginTop: 8, fontStyle: "italic" }}>
+      <div style={{ fontSize: 9, color: "var(--text-ghost)", marginTop: 8, fontStyle: "italic" }}>
         Send messages via the Messages page
       </div>
     </div>

@@ -1,0 +1,1308 @@
+/* libp2p toolkit styles — terminal-grade, dark-first */
+
+.libp2p-view {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    color: var(--text-primary, #e2e8f0);
+    font-family: "DM Mono", monospace;
+}
+
+.libp2p-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+}
+
+.libp2p-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-self: start;
+}
+
+.libp2p-header-center {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-self: center;
+}
+
+.libp2p-header-title h2 {
+    margin: 0;
+    font-size: 16px;
+    font-family: "Space Grotesk", sans-serif;
+    letter-spacing: 0.02em;
+}
+
+.libp2p-status {
+    font-size: 10px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+    background: var(--rgba-white-04, rgba(255, 255, 255, 0.04));
+    letter-spacing: 0.06em;
+}
+
+.libp2p-status--running {
+    border-color: rgba(0, 229, 160, 0.5);
+    color: #00e5a0;
+    background: rgba(0, 229, 160, 0.08);
+}
+
+.libp2p-status--starting,
+.libp2p-status--stopping {
+    border-color: rgba(251, 191, 36, 0.5);
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.08);
+}
+
+.libp2p-status--error {
+    border-color: rgba(244, 114, 182, 0.5);
+    color: #f472b6;
+    background: rgba(244, 114, 182, 0.08);
+}
+
+.libp2p-header-actions {
+    display: flex;
+    gap: 8px;
+    justify-self: end;
+}
+
+.libp2p-status--ai {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 3px 8px;
+    line-height: 1;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(139, 92, 246, 0.22));
+    border-color: rgba(139, 92, 246, 0.45);
+    color: #c4b5fd;
+    transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.libp2p-status--ai:hover {
+    filter: brightness(1.15);
+    transform: translateY(-1px);
+}
+
+.libp2p-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: var(--rgba-white-04, rgba(255, 255, 255, 0.04));
+    color: var(--text-primary, #e2e8f0);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.libp2p-btn:hover:not(:disabled) {
+    background: rgba(56, 189, 248, 0.12);
+    border-color: rgba(56, 189, 248, 0.4);
+}
+
+.libp2p-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.libp2p-btn--primary {
+    border-color: rgba(0, 229, 160, 0.5);
+    color: #00e5a0;
+    background: rgba(0, 229, 160, 0.08);
+}
+
+.libp2p-btn--primary:hover:not(:disabled) {
+    background: rgba(0, 229, 160, 0.18);
+}
+
+.libp2p-btn--danger {
+    border-color: rgba(244, 114, 182, 0.5);
+    color: #f472b6;
+    background: rgba(244, 114, 182, 0.08);
+}
+
+.libp2p-btn--danger:hover:not(:disabled) {
+    background: rgba(244, 114, 182, 0.18);
+}
+
+.libp2p-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+}
+
+.libp2p-icon-btn:hover:not(:disabled) {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.1);
+}
+
+.libp2p-icon-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.libp2p-icon-btn--right {
+    margin-left: auto;
+}
+
+.libp2p-alert {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(244, 114, 182, 0.4);
+    background: rgba(244, 114, 182, 0.08);
+    color: #f472b6;
+    font-size: 12px;
+}
+
+.libp2p-panel {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--rgba-white-02, rgba(255, 255, 255, 0.02));
+    border-radius: 6px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.libp2p-panel h3 {
+    margin: 0;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted, #94a3b8);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.libp2p-badge {
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    padding: 1px 6px;
+    border-radius: 999px;
+    font-size: 10px;
+}
+
+.libp2p-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.libp2p-row--col {
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.libp2p-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-ghost, #64748b);
+    min-width: 80px;
+}
+
+.libp2p-mono {
+    font-family: "DM Mono", monospace;
+    font-size: 11px;
+    color: var(--text-secondary, #cbd5e1);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 3px;
+    word-break: break-all;
+}
+
+.libp2p-mono--wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.libp2p-muted {
+    margin: 0;
+    color: var(--text-ghost, #64748b);
+    font-size: 11px;
+}
+
+.libp2p-addr-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+}
+
+.libp2p-addr-list li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.libp2p-form-row {
+    display: flex;
+    gap: 8px;
+}
+
+.libp2p-input {
+    flex: 1;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-primary, #e2e8f0);
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.libp2p-input:focus {
+    outline: none;
+    border-color: rgba(56, 189, 248, 0.6);
+}
+
+.libp2p-input:disabled {
+    opacity: 0.5;
+}
+
+.libp2p-bootstrap {
+    font-size: 11px;
+    color: var(--text-muted, #94a3b8);
+}
+
+.libp2p-bootstrap summary {
+    cursor: pointer;
+    user-select: none;
+    margin-bottom: 4px;
+}
+
+.libp2p-peer-list,
+.libp2p-topic-list,
+.libp2p-log {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.libp2p-peer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    background: var(--rgba-white-02, rgba(255, 255, 255, 0.02));
+    border: 1px solid transparent;
+}
+
+.libp2p-peer--up {
+    border-color: rgba(0, 229, 160, 0.25);
+    background: rgba(0, 229, 160, 0.04);
+}
+
+.libp2p-peer-status {
+    color: var(--text-ghost, #64748b);
+    display: inline-flex;
+}
+
+.libp2p-peer--up .libp2p-peer-status {
+    color: #00e5a0;
+}
+
+.libp2p-peer-id {
+    flex: 1;
+    background: transparent;
+    padding: 0;
+}
+
+.libp2p-latency {
+    font-size: 10px;
+    color: #38bdf8;
+}
+
+.libp2p-source {
+    font-size: 9px;
+    text-transform: uppercase;
+    color: var(--text-ghost, #64748b);
+    letter-spacing: 0.06em;
+}
+
+.libp2p-peer-actions {
+    display: flex;
+    gap: 2px;
+}
+
+.libp2p-topic-list li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.libp2p-log-entry {
+    display: flex;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-secondary, #cbd5e1);
+    padding: 2px 4px;
+}
+
+.libp2p-log-entry--error {
+    color: #f472b6;
+}
+
+.libp2p-log-ts {
+    color: var(--text-ghost, #475569);
+    flex-shrink: 0;
+}
+
+/* ── Node tabs ─────────────────────────────── */
+
+.libp2p-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--border-medium, #1e293b);
+    background: var(--bg-surface, #0b1220);
+}
+
+.libp2p-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px 6px 12px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    background: var(--bg-surface, #0f172a);
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+    font-size: 12px;
+    user-select: none;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.libp2p-tab:hover {
+    background: var(--bg-surface-hover, #131c33);
+    color: var(--text-primary, #e2e8f0);
+}
+
+.libp2p-tab--active {
+    background: var(--bg-elevated, #131c33);
+    color: var(--text-primary, #f1f5f9);
+    border-color: var(--border-medium, #1e293b);
+    border-bottom-color: var(--bg-elevated, #131c33);
+    margin-bottom: -1px;
+}
+
+.libp2p-tab-label {
+    font-weight: 500;
+}
+
+.libp2p-tab-badge {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: var(--bg-surface, #1e293b);
+    color: var(--text-muted, #94a3b8);
+}
+
+.libp2p-tab-badge--running { background: #14532d; color: #bbf7d0; }
+.libp2p-tab-badge--starting { background: #422006; color: #fde68a; }
+.libp2p-tab-badge--stopping { background: #422006; color: #fde68a; }
+.libp2p-tab-badge--error { background: #450a0a; color: #fecaca; }
+.libp2p-tab-badge--stopped { background: var(--bg-surface, #1e293b); color: var(--text-muted, #94a3b8); }
+
+.libp2p-tab-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    color: var(--text-ghost, #64748b);
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+}
+
+.libp2p-tab-close:hover {
+    background: var(--bg-surface-hover, #334155);
+    color: #f87171;
+}
+
+/* ── Identity panel extras ─────────────────── */
+
+.libp2p-form-row--wrap {
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.libp2p-form-row--col {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.libp2p-textarea {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    resize: vertical;
+    min-height: 60px;
+}
+
+.libp2p-export {
+    margin-top: 10px;
+    padding: 8px 10px;
+    border: 1px solid #422006;
+    background: #1c1108;
+    border-radius: 6px;
+}
+
+.libp2p-secret {
+    word-break: break-all;
+    color: #fde68a;
+    font-size: 10px;
+    background: #0b0700;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid #422006;
+}
+
+.libp2p-badge--ok {
+    background: #14532d;
+    color: #bbf7d0;
+}
+
+.libp2p-badge--count {
+    background: var(--bg-surface, #1e293b);
+    color: var(--text-secondary, #cbd5e1);
+    border: 1px solid var(--border-medium, #334155);
+    padding: 0 6px;
+    border-radius: 999px;
+    font-size: 10px;
+    margin-left: 4px;
+}
+
+.libp2p-radio {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-default, #1f2937);
+    border-radius: 6px;
+    background: var(--bg-surface, #0b1220);
+    cursor: pointer;
+}
+
+.libp2p-radio:has(input:checked) {
+    border-color: var(--border-medium, #475569);
+    background: var(--bg-input, #111827);
+}
+
+.libp2p-radio input[type="radio"] {
+    margin-top: 3px;
+    accent-color: #38bdf8;
+}
+
+.libp2p-radio > span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.libp2p-btn--ghost {
+    background: transparent;
+    border-color: var(--border-medium, #334155);
+    color: var(--text-secondary, #94a3b8);
+}
+
+.libp2p-btn--ghost:hover:not(:disabled) {
+    color: var(--text-primary, #e2e8f0);
+    border-color: var(--border-medium, #475569);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Solar theme overrides — warm, parchment-toned light palette
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .libp2p-view {
+    background: #fdf6e3;
+    color: #3b2e1a;
+}
+
+[data-theme="solar"] .libp2p-header {
+    background: #fefaf0;
+    border-bottom-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .libp2p-header-title h2 {
+    color: #3b2e1a;
+}
+
+[data-theme="solar"] .libp2p-status {
+    background: rgba(120, 80, 20, 0.06);
+    color: #6b5b4a;
+    border: 1px solid rgba(120, 80, 20, 0.12);
+}
+[data-theme="solar"] .libp2p-status--running {
+    background: rgba(46, 125, 50, 0.12);
+    color: #2e7d32;
+    border-color: rgba(46, 125, 50, 0.25);
+}
+[data-theme="solar"] .libp2p-status--starting,
+[data-theme="solar"] .libp2p-status--stopping {
+    background: rgba(196, 125, 10, 0.14);
+    color: #9c6d10;
+    border-color: rgba(196, 125, 10, 0.3);
+}
+[data-theme="solar"] .libp2p-status--error {
+    background: rgba(192, 57, 43, 0.14);
+    color: #c0392b;
+    border-color: rgba(192, 57, 43, 0.3);
+}
+
+[data-theme="solar"] .libp2p-btn {
+    background: #fefaf0;
+    border: 1px solid rgba(120, 80, 20, 0.18);
+    color: #3b2e1a;
+}
+[data-theme="solar"] .libp2p-btn:hover:not(:disabled) {
+    background: rgba(184, 134, 11, 0.08);
+    border-color: rgba(184, 134, 11, 0.4);
+}
+[data-theme="solar"] .libp2p-btn:disabled {
+    color: #a89882;
+    background: rgba(120, 80, 20, 0.04);
+}
+[data-theme="solar"] .libp2p-btn--primary {
+    background: #b8860b;
+    border-color: #9c6d10;
+    color: #fefaf0;
+}
+[data-theme="solar"] .libp2p-btn--primary:hover:not(:disabled) {
+    background: #9c6d10;
+    border-color: #7a5208;
+}
+[data-theme="solar"] .libp2p-btn--danger {
+    background: rgba(192, 57, 43, 0.12);
+    border-color: rgba(192, 57, 43, 0.35);
+    color: #c0392b;
+}
+[data-theme="solar"] .libp2p-btn--danger:hover:not(:disabled) {
+    background: rgba(192, 57, 43, 0.2);
+    border-color: rgba(192, 57, 43, 0.5);
+}
+[data-theme="solar"] .libp2p-btn--ghost {
+    background: transparent;
+    border-color: rgba(120, 80, 20, 0.2);
+    color: #6b5b4a;
+}
+[data-theme="solar"] .libp2p-btn--ghost:hover:not(:disabled) {
+    color: #3b2e1a;
+    border-color: rgba(120, 80, 20, 0.35);
+    background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .libp2p-icon-btn {
+    background: transparent;
+    border: 1px solid rgba(120, 80, 20, 0.15);
+    color: #6b5b4a;
+}
+[data-theme="solar"] .libp2p-icon-btn:hover:not(:disabled) {
+    background: rgba(184, 134, 11, 0.1);
+    color: #3b2e1a;
+    border-color: rgba(184, 134, 11, 0.4);
+}
+
+[data-theme="solar"] .libp2p-alert {
+    background: rgba(192, 57, 43, 0.1);
+    border: 1px solid rgba(192, 57, 43, 0.3);
+    color: #c0392b;
+}
+
+[data-theme="solar"] .libp2p-panel {
+    background: #fefaf0;
+    border: 1px solid rgba(120, 80, 20, 0.1);
+    box-shadow: 0 1px 3px rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .libp2p-panel h3 {
+    color: #504030;
+    border-bottom-color: rgba(120, 80, 20, 0.1);
+}
+
+[data-theme="solar"] .libp2p-badge {
+    background: rgba(120, 80, 20, 0.08);
+    color: #6b5b4a;
+}
+[data-theme="solar"] .libp2p-badge--ok {
+    background: rgba(46, 125, 50, 0.15);
+    color: #2e7d32;
+}
+
+[data-theme="solar"] .libp2p-label {
+    color: #6b5b4a;
+}
+
+[data-theme="solar"] .libp2p-mono {
+    color: #3b2e1a;
+    background: rgba(120, 80, 20, 0.05);
+}
+
+[data-theme="solar"] .libp2p-muted {
+    color: #8a7968;
+}
+
+[data-theme="solar"] .libp2p-addr-list li,
+[data-theme="solar"] .libp2p-topic-list li {
+    background: rgba(120, 80, 20, 0.04);
+    border: 1px solid rgba(120, 80, 20, 0.08);
+}
+
+[data-theme="solar"] .libp2p-input {
+    background: #fdf6e3;
+    border: 1px solid rgba(120, 80, 20, 0.18);
+    color: #3b2e1a;
+}
+[data-theme="solar"] .libp2p-input::placeholder {
+    color: #a89882;
+}
+[data-theme="solar"] .libp2p-input:focus {
+    border-color: #b8860b;
+    box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.15);
+}
+[data-theme="solar"] .libp2p-input:disabled {
+    background: rgba(120, 80, 20, 0.05);
+    color: #a89882;
+}
+
+[data-theme="solar"] .libp2p-bootstrap summary {
+    color: #9c6d10;
+}
+
+[data-theme="solar"] .libp2p-peer {
+    background: rgba(120, 80, 20, 0.04);
+    border: 1px solid rgba(120, 80, 20, 0.1);
+}
+[data-theme="solar"] .libp2p-peer--up {
+    background: rgba(46, 125, 50, 0.08);
+    border-color: rgba(46, 125, 50, 0.25);
+}
+[data-theme="solar"] .libp2p-peer-status {
+    color: #a89882;
+}
+[data-theme="solar"] .libp2p-peer--up .libp2p-peer-status {
+    color: #2e7d32;
+}
+[data-theme="solar"] .libp2p-latency {
+    color: #2e7d32;
+}
+[data-theme="solar"] .libp2p-source {
+    background: rgba(120, 80, 20, 0.08);
+    color: #6b5b4a;
+}
+
+[data-theme="solar"] .libp2p-log-entry {
+    color: #504030;
+}
+[data-theme="solar"] .libp2p-log-entry--error {
+    color: #c0392b;
+}
+[data-theme="solar"] .libp2p-log-ts {
+    color: #a89882;
+}
+
+/* Node tabs */
+[data-theme="solar"] .libp2p-tabs {
+    background: #faf2dc;
+    border-bottom-color: rgba(120, 80, 20, 0.12);
+}
+[data-theme="solar"] .libp2p-tab {
+    background: rgba(120, 80, 20, 0.04);
+    color: #6b5b4a;
+}
+[data-theme="solar"] .libp2p-tab:hover {
+    background: rgba(184, 134, 11, 0.08);
+    color: #3b2e1a;
+}
+[data-theme="solar"] .libp2p-tab--active {
+    background: #fefaf0;
+    color: #3b2e1a;
+    border-color: rgba(120, 80, 20, 0.12);
+    border-bottom-color: #fefaf0;
+}
+[data-theme="solar"] .libp2p-tab-badge {
+    background: rgba(120, 80, 20, 0.1);
+    color: #6b5b4a;
+}
+[data-theme="solar"] .libp2p-tab-badge--running {
+    background: rgba(46, 125, 50, 0.15);
+    color: #2e7d32;
+}
+[data-theme="solar"] .libp2p-tab-badge--starting,
+[data-theme="solar"] .libp2p-tab-badge--stopping {
+    background: rgba(196, 125, 10, 0.18);
+    color: #9c6d10;
+}
+[data-theme="solar"] .libp2p-tab-badge--error {
+    background: rgba(192, 57, 43, 0.15);
+    color: #c0392b;
+}
+[data-theme="solar"] .libp2p-tab-badge--stopped {
+    background: rgba(120, 80, 20, 0.08);
+    color: #8a7968;
+}
+[data-theme="solar"] .libp2p-tab-close {
+    color: #a89882;
+}
+[data-theme="solar"] .libp2p-tab-close:hover {
+    background: rgba(192, 57, 43, 0.12);
+    color: #c0392b;
+}
+
+/* Identity export warning area */
+[data-theme="solar"] .libp2p-export {
+    background: #fff8df;
+    border-color: rgba(196, 125, 10, 0.4);
+}
+[data-theme="solar"] .libp2p-secret {
+    background: #fefaf0;
+    border-color: rgba(196, 125, 10, 0.3);
+    color: #7a5208;
+}
+
+/* ── Collections modal ───────────────────────────────────── */
+
+.libp2p-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9000;
+    padding: 24px;
+}
+
+.libp2p-modal {
+    background: var(--background, #1a1a1f);
+    color: var(--foreground, #e9e9ee);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    border-radius: 10px;
+    width: min(720px, 100%);
+    max-height: 86vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+
+.libp2p-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    background: var(--rgba-white-02, rgba(255, 255, 255, 0.02));
+}
+
+.libp2p-modal-tabs {
+    display: flex;
+    gap: 4px;
+}
+
+.libp2p-modal-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+.libp2p-modal-tab:hover {
+    background: var(--rgba-white-06, rgba(255, 255, 255, 0.06));
+}
+.libp2p-modal-tab--active {
+    background: rgba(99, 102, 241, 0.18);
+    border-color: rgba(99, 102, 241, 0.45);
+}
+
+.libp2p-modal-body {
+    padding: 16px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.libp2p-modal-section h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted-foreground, #9b9ba5);
+}
+
+.libp2p-collection-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.libp2p-collection-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    background: var(--rgba-white-02, rgba(255, 255, 255, 0.02));
+}
+
+.libp2p-collection-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+}
+
+.libp2p-collection-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.libp2p-collection-sub {
+    opacity: 0.85;
+}
+
+.libp2p-collection-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.libp2p-muted--small {
+    font-size: 11px;
+}
+
+/* Solar theme overrides */
+[data-theme="solar"] .libp2p-modal {
+    background: #fefaf0;
+    color: #3b2e1a;
+    border-color: rgba(196, 125, 10, 0.3);
+}
+[data-theme="solar"] .libp2p-modal-header {
+    background: #fdf6e3;
+    border-color: rgba(196, 125, 10, 0.3);
+}
+[data-theme="solar"] .libp2p-modal-tab:hover {
+    background: rgba(184, 134, 11, 0.12);
+}
+[data-theme="solar"] .libp2p-modal-tab--active {
+    background: rgba(184, 134, 11, 0.2);
+    border-color: rgba(184, 134, 11, 0.55);
+    color: #7a5208;
+}
+[data-theme="solar"] .libp2p-collection-item {
+    background: #fdf6e3;
+    border-color: rgba(196, 125, 10, 0.25);
+}
+
+/* ── Pubsub message log ────────────────────────── */
+
+.libp2p-pubsub-counters {
+    margin-left: auto;
+    display: inline-flex;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.85;
+}
+.libp2p-pubsub-counter {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.12);
+}
+.libp2p-pubsub-counter--in { color: #38bdf8; }
+.libp2p-pubsub-counter--out { color: #a78bfa; }
+
+.libp2p-topic-chip {
+    background: none;
+    border: 1px solid transparent;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: inherit;
+    font: inherit;
+}
+.libp2p-topic-chip:hover {
+    background: rgba(148, 163, 184, 0.1);
+}
+.libp2p-topic-chip--active {
+    background: rgba(56, 189, 248, 0.15);
+    border-color: rgba(56, 189, 248, 0.4);
+}
+
+.libp2p-pubsub-log-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 8px 0 4px;
+}
+
+.libp2p-pubsub-log {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 6px;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.18);
+}
+
+.libp2p-pubsub-msg {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 8px;
+    border-radius: 5px;
+    background: rgba(148, 163, 184, 0.06);
+    border-left: 2px solid transparent;
+}
+.libp2p-pubsub-msg--in { border-left-color: #38bdf8; }
+.libp2p-pubsub-msg--out { border-left-color: #a78bfa; }
+
+.libp2p-pubsub-msg-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 11px;
+}
+
+.libp2p-pubsub-dir {
+    display: inline-flex;
+    width: 16px;
+    height: 16px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+.libp2p-pubsub-dir--in { background: rgba(56, 189, 248, 0.18); color: #38bdf8; }
+.libp2p-pubsub-dir--out { background: rgba(167, 139, 250, 0.18); color: #a78bfa; }
+
+.libp2p-pubsub-msg-topic {
+    font-size: 11px;
+    opacity: 0.9;
+}
+.libp2p-pubsub-msg-from {
+    margin-left: auto;
+}
+
+.libp2p-pubsub-msg-body {
+    margin: 2px 0 0;
+    padding: 4px 6px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 4px;
+    font-size: 11.5px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+/* Solar theme */
+[data-theme="solar"] .libp2p-pubsub-counter { background: rgba(184, 134, 11, 0.10); }
+[data-theme="solar"] .libp2p-pubsub-counter--in { color: #2563eb; }
+[data-theme="solar"] .libp2p-pubsub-counter--out { color: #7c3aed; }
+[data-theme="solar"] .libp2p-pubsub-log {
+    background: #fdf6e3;
+    border-color: rgba(196, 125, 10, 0.25);
+}
+[data-theme="solar"] .libp2p-pubsub-msg {
+    background: rgba(184, 134, 11, 0.06);
+}
+[data-theme="solar"] .libp2p-pubsub-msg-body {
+    background: #fefaf0;
+    color: #3b2e1a;
+}
+[data-theme="solar"] .libp2p-topic-chip:hover { background: rgba(184, 134, 11, 0.10); }
+[data-theme="solar"] .libp2p-topic-chip--active {
+    background: rgba(184, 134, 11, 0.15);
+    border-color: rgba(184, 134, 11, 0.45);
+}
+
+/* ── Start options panel ──────────────────────── */
+
+.libp2p-options > summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    list-style: none;
+    user-select: none;
+}
+.libp2p-options > summary::-webkit-details-marker { display: none; }
+.libp2p-options-summary {
+    margin-left: auto;
+    display: inline-flex;
+    gap: 4px;
+}
+
+.libp2p-options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.libp2p-options-group h4 {
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.libp2p-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 0;
+    font-size: 12px;
+    cursor: pointer;
+}
+.libp2p-toggle--disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+.libp2p-toggle input[type="checkbox"] {
+    margin: 0;
+    accent-color: #38bdf8;
+}
+.libp2p-toggle-label { font-weight: 500; }
+.libp2p-toggle-hint {
+    margin-left: auto;
+    font-size: 10.5px;
+    opacity: 0.65;
+}
+
+.libp2p-bootstrap-list {
+    list-style: none;
+    margin: 6px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.libp2p-bootstrap-list li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+}
+.libp2p-bootstrap--off code { opacity: 0.45; text-decoration: line-through; }
+
+.libp2p-checkbox {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+    color: #38bdf8;
+    cursor: pointer;
+    padding: 0;
+}
+.libp2p-checkbox:hover:not(:disabled) {
+    border-color: rgba(56, 189, 248, 0.6);
+}
+.libp2p-checkbox:disabled { opacity: 0.55; cursor: not-allowed; }
+
+[data-theme="solar"] .libp2p-toggle input[type="checkbox"] { accent-color: #b8860b; }
+[data-theme="solar"] .libp2p-checkbox {
+    background: #fefaf0;
+    border-color: rgba(196, 125, 10, 0.35);
+    color: #b8860b;
+}
+[data-theme="solar"] .libp2p-checkbox:hover:not(:disabled) {
+    border-color: rgba(184, 134, 11, 0.7);
+}
+
+/* ── Bootstrap peers — add row + contact picker ── */
+.libp2p-bootstrap-add {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    margin-top: 8px;
+}
+.libp2p-bootstrap-add .libp2p-input {
+    flex: 1 1 240px;
+    min-width: 0;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+    background: rgba(0, 0, 0, 0.2);
+    color: inherit;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+}
+.libp2p-bootstrap-add .libp2p-input:focus {
+    outline: none;
+    border-color: rgba(56, 189, 248, 0.5);
+}
+.libp2p-btn--small {
+    padding: 4px 8px;
+    font-size: 11px;
+    gap: 4px;
+}
+.libp2p-bootstrap-list li > code {
+    flex: 1;
+    min-width: 0;
+}
+.libp2p-badge--muted {
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--text-muted, #94a3b8);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1px 5px;
+    border-radius: 999px;
+}
+.libp2p-bootstrap-contacts {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border: 1px dashed var(--border, rgba(255, 255, 255, 0.12));
+    border-radius: 6px;
+    background: var(--rgba-white-015, rgba(255, 255, 255, 0.015));
+}
+.libp2p-bootstrap-contact-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+}
+.libp2p-bootstrap-contact-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    border-radius: 4px;
+    background: var(--rgba-white-025, rgba(255, 255, 255, 0.025));
+}
+.libp2p-bootstrap-contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+.libp2p-bootstrap-contact-name {
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.libp2p-export-modal {
+    width: min(460px, 100%);
+}
+
+/* ── libp2p chat-banner (rendered inside chat panel when libp2p agent active) ── */
+.libp2p-chat-banner {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.libp2p-chat-banner__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--bg-surface, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-default, var(--rgba-white-06, rgba(255, 255, 255, 0.06)));
+  border-radius: 5px;
+  color: var(--text-secondary, #9ca3af);
+}
+.libp2p-chat-banner__stat svg {
+  color: rgba(56, 189, 248, 0.9);
+}
+.libp2p-chat-banner__value {
+  font-family: var(--font-mono, "DM Mono", monospace);
+  font-size: 13px;
+  color: var(--text-primary, #e4e4e7);
+  line-height: 1;
+}
+.libp2p-chat-banner__total {
+  font-size: 11px;
+  color: var(--text-secondary, #9ca3af);
+}
+.libp2p-chat-banner__label {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #9ca3af);
+}

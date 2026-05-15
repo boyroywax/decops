@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import type { Job, JobStatus, JobArtifact, JobRequest, JobEvent } from "@/types";
+import type { Job, JobStatus, JobArtifact, JobRequest, JobEvent, EntityInput } from "@/types";
 
 /** Push a lifecycle event onto a job's timeline (immutable). */
 function pushEvent(existing: JobEvent[] | undefined, event: Omit<JobEvent, "timestamp">): JobEvent[] {
@@ -47,7 +47,7 @@ export function useJobs() {
                         detail: result?.slice(0, 200),
                         duration,
                     }),
-                };
+                } as Job;
             }
             return job;
         }));
@@ -56,7 +56,7 @@ export function useJobs() {
     const updateJob = useCallback((id: string, updates: Partial<Job>) => {
         setJobs((prev) => prev.map((job) => {
             if (job.id === id) {
-                return { ...job, ...updates, updatedAt: Date.now() };
+                return { ...job, ...updates, updatedAt: Date.now() } as Job;
             }
             return job;
         }));
@@ -145,13 +145,13 @@ export function useJobs() {
         setJobs(prev => prev.map(job => {
             if (job.id === jobId && job.status === "awaiting-input" && job.pendingPrompt?.inputName === inputName) {
                 // Update the input's entityId with the user-provided value
-                const updatedInputs = (job.inputs || job.request?.inputDefaults || []).map((inp: any) =>
+                const updatedInputs = (job.inputs || job.request?.inputDefaults || []).map((inp: EntityInput) =>
                     inp.name === inputName ? { ...inp, entityId: value } : inp
                 );
                 const now = Date.now();
                 return {
                     ...job,
-                    status: "queued" as JobStatus,
+                    status: "queued" as const,
                     inputs: updatedInputs,
                     inputDefaults: updatedInputs,
                     pendingPrompt: undefined,
@@ -161,7 +161,7 @@ export function useJobs() {
                         label: `User provided input: ${inputName}`,
                         detail: value.slice(0, 200),
                     }),
-                };
+                } as Job;
             }
             return job;
         }));
@@ -226,3 +226,10 @@ export function useJobs() {
         standaloneArtifacts
     };
 }
+
+/**
+ * Inferred return type of {@link useJobs}. Use this in components/hooks
+ * that accept the jobs object as a prop so we don't propagate `any` —
+ * the shape stays in sync with the implementation automatically.
+ */
+export type UseJobsReturn = ReturnType<typeof useJobs>;

@@ -31,8 +31,9 @@ import type {
 } from "@/toolkits/studio/types/studioBot";
 import { isParallelGroup, NODE_SPACING_X, NODE_SPACING_Y, NODE_WIDTH, NODE_HEIGHT } from "@/toolkits/studio/types/studio";
 import { getSelectedModel } from "@/services/ai/models";
-import { getModelProvider, buildProviderRequest, parseProviderResponse, parseToolUseBlocks, buildToolResultMessages } from "@/services/ai/providers";
-import { getAllTools, executeToolCall } from "@/services/commands/tools";
+import { getModelProvider } from "@/services/ai/providers";
+import { runChatTurn } from "@/services/ai/runner";
+import { getAllTools } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
 import { registerChatDelegation } from "@/services/ai/delegation";
 
@@ -328,79 +329,40 @@ export async function handleStudioBotRequest(
         // Get only studio tools
         const tools = (provider === "anthropic" || provider === "openai") ? getStudioTools() : [];
 
-        // Build messages
-        const apiMessages: any[] = [
-            { role: "user", content: `${request.instruction}\n\nIMPORTANT: After building the job, always call studio_auto_layout to fix the canvas layout.` },
-        ];
-
         botStatus = "building";
 
-        // Multi-round tool use loop (same pattern as main chat)
-        const MAX_ROUNDS = 12;
-        let finalText = "";
-
-        for (let round = 0; round < MAX_ROUNDS; round++) {
-            const req = buildProviderRequest(model, systemPrompt, apiMessages, 4096, tools.length > 0 ? tools : undefined);
-            const response = await fetch(req.url, {
-                method: "POST",
-                headers: req.headers,
-                body: JSON.stringify(req.body),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
-            }
-
-            const data = await response.json();
-            const toolUseBlocks = parseToolUseBlocks(model, data);
-
-            if (toolUseBlocks.length === 0) {
-                finalText = parseProviderResponse(model, data);
-                break;
-            }
-
-            // Execute tool calls
-            const rawAssistant = provider === "openai"
-                ? data.choices?.[0]?.message?.tool_calls
-                : data.content;
-
-            const toolResults: { id: string; content: string; isError?: boolean }[] = [];
-            for (const block of toolUseBlocks) {
-                const opIndex = operations.length;
-                operations.push({
-                    command: block.name,
-                    args: block.input || {},
-                    description: `Execute ${block.name}`,
-                    order: opIndex,
-                    status: "executing",
-                });
-
-                const result = await executeToolCall(
-                    block.id,
-                    block.name,
-                    block.input || {},
-                    commandContext,
-                );
-
-                operations[opIndex].status = result.error ? "failed" : "completed";
-                operations[opIndex].result = result.result;
-                operations[opIndex].error = result.error;
-
-                const content = result.error
-                    ? JSON.stringify({ error: result.error })
-                    : JSON.stringify(result.result ?? { success: true });
-
-                toolResults.push({
-                    id: block.id,
-                    content,
-                    isError: !!result.error,
-                });
-            }
-
-            const resultMsgs = buildToolResultMessages(model, rawAssistant, toolResults);
-            apiMessages.push(...resultMsgs);
-        }
+        const runResult = await runChatTurn(
+            {
+                model,
+                systemPrompt,
+                messages: [{ role: "user", content: `${request.instruction}\n\nIMPORTANT: After building the job, always call studio_auto_layout to fix the canvas layout.` }],
+                tools: tools.length > 0 ? tools : undefined,
+                commandContext,
+                maxRounds: 12,
+            },
+            {
+                onToolCallStart: (name, input) => {
+                    operations.push({
+                        command: name,
+                        args: input,
+                        description: `Execute ${name}`,
+                        order: operations.length,
+                        status: "executing",
+                    });
+                },
+                onToolCallComplete: (display) => {
+                    for (let i = operations.length - 1; i >= 0; i--) {
+                        if (operations[i].command === display.name && operations[i].status === "executing") {
+                            operations[i].status = display.error ? "failed" : "completed";
+                            operations[i].result = display.result;
+                            operations[i].error = display.error;
+                            break;
+                        }
+                    }
+                },
+            },
+        );
+        const finalText = runResult.text;
 
         // Post-execution: analyze layout and fix if needed
         botStatus = "reviewing";

@@ -111,7 +111,7 @@ async function deliberateMember(
 function parsePositionResponse(agent: Agent, text: string): MemberPosition {
   try {
     const cleaned = text.replace(/^```(?:json)?\s*\n?/m, "").replace(/\n?```\s*$/m, "").trim();
-    let json: any;
+    let json: Record<string, unknown> | null = null;
     try {
       json = JSON.parse(cleaned);
     } catch {
@@ -120,12 +120,14 @@ function parsePositionResponse(agent: Agent, text: string): MemberPosition {
     }
 
     if (json) {
+      const vote = json.vote as string | undefined;
+      const amendments = json.amendments;
       return {
         agentId: agent.id,
         agentName: agent.name,
-        vote: ["approve", "reject", "abstain"].includes(json.vote) ? json.vote : "abstain",
-        reasoning: json.reasoning || "No reasoning provided",
-        amendments: json.amendments || undefined,
+        vote: vote && ["approve", "reject", "abstain"].includes(vote) ? (vote as "approve" | "reject" | "abstain") : "abstain",
+        reasoning: (json.reasoning as string) || "No reasoning provided",
+        amendments: Array.isArray(amendments) ? (amendments as string[]) : undefined,
       };
     }
   } catch { /* fall through */ }

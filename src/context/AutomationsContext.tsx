@@ -42,6 +42,7 @@ export const AutomationsProvider = ({ children, addLog }: { children: ReactNode,
 import { useWorkspaceStore } from "@/stores";
 import { useJobsContext } from "./JobsContext";
 import { CommandContext } from "@/services/commands/types";
+import type { Ecosystem } from "@/types";
 
 // Mock or import other contexts if needed
 // For now I'll implement a basic version
@@ -80,9 +81,9 @@ const AutomationsProviderInner = ({ children, addLog }: { children: ReactNode, a
             } as any, // Cast because context might have extra props or slight mismatch
             jobs: jobs as any,
             // Mocking the rest for now as they aren't used in Health Check
-            auth: { user: { id: "system", role: "orchestrator" } },
+            auth: { user: null },
             ecosystem: {
-                ecosystem: null,
+                ecosystem: { networks: [], bridges: [], bridgeMessages: [], activeBridges: new Set() } as unknown as Ecosystem,
                 setEcosystem: () => { },
                 activeNetworkId: null,
                 setActiveNetworkId: () => { },

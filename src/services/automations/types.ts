@@ -6,7 +6,7 @@ export interface AutomationLog {
     timestamp: string;
     level: "info" | "warn" | "error";
     message: string;
-    details?: any;
+    details?: unknown;
 }
 
 export interface AutomationRun {
@@ -16,7 +16,7 @@ export interface AutomationRun {
     endTime?: string;
     status: "running" | "completed" | "failed";
     logs: AutomationLog[];
-    results?: any;
+    results?: unknown;
     error?: string;
 }
 

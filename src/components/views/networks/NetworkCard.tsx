@@ -39,8 +39,8 @@ export function NetworkCard({
   return (
     <div
       style={{
-        background: "rgba(255,255,255,0.02)",
-        border: `1px solid ${net.color}20`,
+        background: "var(--bg-surface)",
+        border: `1px solid color-mix(in srgb, ${net.color} 20%, transparent)`,
         borderRadius: 14,
         overflow: "hidden",
         transition: "all 0.2s",
@@ -71,13 +71,13 @@ export function NetworkCard({
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 600,
                 fontSize: 14,
-                color: "#e4e4e7",
+                color: "var(--text-primary)",
               }}>
                 {net.name}
               </div>
-              <div style={{ fontSize: 9, color: "#52525b", marginTop: 2 }}>
+              <div style={{ fontSize: 9, color: "var(--text-subtle)", marginTop: 2 }}>
                 {networkAgents.length} agents · {networkChannels.length} ch · {networkGroups.length} groups
-                {netBridges.length > 0 && <span style={{ color: "#fbbf24" }}> · {netBridges.length} bridges</span>}
+                {netBridges.length > 0 && <span style={{ color: "var(--color-warning)" }}> · {netBridges.length} bridges</span>}
               </div>
             </div>
           </div>
@@ -94,6 +94,7 @@ export function NetworkCard({
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 12 }}>
           {networkAgents.slice(0, 5).map((a) => {
             const r = ROLES.find((x) => x.id === a.role);
+              const badgeColor = r ? `var(--color-${r.id})` : "var(--text-primary)";
             return (
               <span
                 key={a.id}
@@ -110,9 +111,9 @@ export function NetworkCard({
                   fontSize: 9,
                   padding: "3px 8px",
                   borderRadius: 4,
-                  background: (r?.color || "#555") + "10",
-                  color: r?.color || "#555",
-                  border: `1px solid ${(r?.color || "#555")}15`,
+                  background: `color-mix(in srgb, ${badgeColor} 10%, transparent)`,
+                  color: badgeColor,
+                  border: `1px solid color-mix(in srgb, ${badgeColor} 15%, transparent)`,
                   cursor: onNavigate ? "pointer" : "default",
                   transition: "background 0.15s",
                 }}
@@ -122,14 +123,14 @@ export function NetworkCard({
             );
           })}
           {networkAgents.length > 5 && (
-            <span style={{ fontSize: 9, padding: "3px 8px", color: "#52525b" }}>
+            <span style={{ fontSize: 9, padding: "3px 8px", color: "var(--text-subtle)" }}>
               +{networkAgents.length - 5}
             </span>
           )}
         </div>
 
         {/* DID */}
-        <div style={{ fontSize: 9, color: "#3f3f46", fontFamily: "monospace", marginBottom: 12, wordBreak: "break-all" }}>
+        <div style={{ fontSize: 9, color: "var(--text-ghost)", fontFamily: "monospace", marginBottom: 12, wordBreak: "break-all" }}>
           <CopyableId value={net.did} label="DID" />
         </div>
 
@@ -153,7 +154,7 @@ export function NetworkCard({
                 style={{
                   background: "rgba(255,255,255,0.03)",
                   border: "1px solid rgba(255,255,255,0.06)",
-                  color: "#71717a",
+                  color: "var(--text-subtle)",
                   padding: "6px 10px",
                   borderRadius: 6,
                   fontFamily: "inherit",
@@ -172,7 +173,7 @@ export function NetworkCard({
                   onClick={(e) => { e.stopPropagation(); onNavigate("networks", { networkId: net.id }); }}
                   style={{
                     background: `${net.color}10`,
-                    border: `1px solid ${net.color}20`,
+                    border: `1px solid color-mix(in srgb, ${net.color} 20%, transparent)`,
                     color: net.color,
                     padding: "6px 10px",
                     borderRadius: 6,
@@ -193,7 +194,7 @@ export function NetworkCard({
                 style={{
                   background: "rgba(239,68,68,0.06)",
                   border: "1px solid rgba(239,68,68,0.12)",
-                  color: "#71717a",
+                  color: "var(--text-subtle)",
                   padding: "6px 10px",
                   borderRadius: 6,
                   fontFamily: "inherit",
@@ -218,21 +219,22 @@ export function NetworkCard({
           padding: 16,
           background: "rgba(0,0,0,0.15)",
         }}>
-          <div style={{ fontSize: 10, color: "#71717a", marginBottom: 8, fontWeight: 500 }}>AGENTS</div>
+          <div style={{ fontSize: 10, color: "var(--text-subtle)", marginBottom: 8, fontWeight: 500 }}>AGENTS</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 12 }}>
             {networkAgents.map((a) => {
               const r = ROLES.find((x) => x.id === a.role);
+              const badgeColor = r ? `var(--color-${r.id})` : "var(--text-primary)";
               return (
                 <div key={a.id} style={{
                   display: "flex", alignItems: "center", gap: 8,
-                  fontSize: 11, color: "#a1a1aa",
+                  fontSize: 11, color: "var(--text-secondary)",
                   padding: "4px 8px",
-                  background: "rgba(255,255,255,0.02)",
+                  background: "var(--bg-surface)",
                   borderRadius: 4,
                 }}>
-                  <span style={{ color: r?.color }}>{r?.icon}</span>
+                  <span style={{ color: badgeColor }}>{r?.icon}</span>
                   <span>{a.name}</span>
-                  <span style={{ fontSize: 9, color: "#52525b", marginLeft: "auto" }}>{r?.label}</span>
+                  <span style={{ fontSize: 9, color: "var(--text-subtle)", marginLeft: "auto" }}>{r?.label}</span>
                 </div>
               );
             })}
@@ -240,7 +242,7 @@ export function NetworkCard({
 
           {networkChannels.length > 0 && (
             <>
-              <div style={{ fontSize: 10, color: "#71717a", marginBottom: 8, fontWeight: 500 }}>CHANNELS ({networkChannels.length})</div>
+              <div style={{ fontSize: 10, color: "var(--text-subtle)", marginBottom: 8, fontWeight: 500 }}>CHANNELS ({networkChannels.length})</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginBottom: 12 }}>
                 {networkChannels.map((ch) => {
                   const t = CHANNEL_TYPES.find((x) => x.id === ch.type);
@@ -249,9 +251,9 @@ export function NetworkCard({
                   return (
                     <span key={ch.id} style={{
                       fontSize: 9, padding: "3px 8px", borderRadius: 4,
-                      background: "rgba(167,139,250,0.06)",
-                      color: "#a78bfa",
-                      border: "1px solid rgba(167,139,250,0.12)",
+                      background: "color-mix(in srgb, var(--color-channel) 10%, transparent)",
+                      color: "var(--color-channel)",
+                      border: "1px solid color-mix(in srgb, var(--color-channel) 20%, transparent)",
                     }}>
                       {fromA?.name} → {toA?.name} ({t?.label})
                     </span>
@@ -263,7 +265,7 @@ export function NetworkCard({
 
           {netBridges.length > 0 && (
             <>
-              <div style={{ fontSize: 10, color: "#71717a", marginBottom: 8, fontWeight: 500 }}>BRIDGES ({netBridges.length})</div>
+              <div style={{ fontSize: 10, color: "var(--text-subtle)", marginBottom: 8, fontWeight: 500 }}>BRIDGES ({netBridges.length})</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                 {netBridges.map((b) => {
                   const otherNet = networks.find((n) =>
@@ -272,9 +274,9 @@ export function NetworkCard({
                   return (
                     <span key={b.id} style={{
                       fontSize: 9, padding: "3px 8px", borderRadius: 4,
-                      background: "rgba(251,191,36,0.06)",
-                      color: "#fbbf24",
-                      border: "1px solid rgba(251,191,36,0.12)",
+                      background: "color-mix(in srgb, var(--color-warning) 10%, transparent)",
+                      color: "var(--color-warning)",
+                      border: "1px solid color-mix(in srgb, var(--color-warning) 20%, transparent)",
                     }}>
                       <Link2 size={9} /> ↔ {otherNet?.name || "?"}
                     </span>
@@ -284,7 +286,7 @@ export function NetworkCard({
             </>
           )}
 
-          <div style={{ fontSize: 9, color: "#3f3f46", marginTop: 8 }}>
+          <div style={{ fontSize: 9, color: "var(--text-ghost)", marginTop: 8 }}>
             Created {new Date(net.createdAt).toLocaleDateString()}
           </div>
         </div>

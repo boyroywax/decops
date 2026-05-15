@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "@/types";
-import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor } from "lucide-react";
+import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor, Globe, Users, Radio } from "lucide-react";
 import type { ChatPosition } from "@/context/ThemeContext";
 import { ActionManager } from "@/components/actions/ActionManager";
 import { ArtifactsPanel } from "./ArtifactsPanel";
@@ -8,6 +8,7 @@ import { LLMManager } from "./LLMManager";
 import { DisplayPanel } from "./DisplayPanel";
 import { useLLM, type LivenessStatus } from "@/context/LLMContext";
 import { useEditorContext } from "@/toolkits/editor";
+import { useLibp2pMetrics } from "@/toolkits/libp2p";
 import "../../styles/components/footer.css";
 import "../../styles/components/llm-manager.css";
 
@@ -59,6 +60,12 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const llm = useLLM();
     const { api: editorApi, queueArtifact } = useEditorContext();
+    const libp2pMetrics = useLibp2pMetrics();
+
+    const handleOpenLibp2p = useCallback(() => {
+        setView("libp2p");
+        libp2pMetrics.acknowledgeMessages();
+    }, [setView, libp2pMetrics]);
 
     const handleOpenInEditor = useCallback((artifact: JobArtifact) => {
         // If editor is already mounted, load directly
@@ -212,6 +219,38 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
                             Chat
                         </button>
                     )}
+                </div>
+
+                <div className="footer__metrics" aria-label="libp2p metrics">
+                    <button
+                        type="button"
+                        className={`footer__metric footer__metric--libp2p${libp2pMetrics.newPubsubMessages > 0 ? " footer__metric--alert" : ""}`}
+                        onClick={handleOpenLibp2p}
+                        title={[
+                            `libp2p — ${libp2pMetrics.activeNodes}/${libp2pMetrics.totalNodes} node(s) running`,
+                            `${libp2pMetrics.connectedPeers} connected peer(s)`,
+                            libp2pMetrics.lastMessage
+                                ? `${libp2pMetrics.newPubsubMessages} new pubsub message(s) — last on "${libp2pMetrics.lastMessage.topic}"`
+                                : `${libp2pMetrics.newPubsubMessages} new pubsub message(s)`,
+                        ].join(" · ")}
+                    >
+                        <Globe size={11} />
+                        <span className="footer__metric-value">
+                            {libp2pMetrics.activeNodes}
+                            {libp2pMetrics.totalNodes > libp2pMetrics.activeNodes && (
+                                <span className="footer__metric-total">/{libp2pMetrics.totalNodes}</span>
+                            )}
+                        </span>
+                        <span className="footer__metric-sep" aria-hidden="true">·</span>
+                        <Users size={11} />
+                        <span className="footer__metric-value">{libp2pMetrics.connectedPeers}</span>
+                        <span className="footer__metric-sep" aria-hidden="true">·</span>
+                        <Radio size={11} />
+                        <span className="footer__metric-value">{libp2pMetrics.newPubsubMessages}</span>
+                        {libp2pMetrics.newPubsubMessages > 0 && (
+                            <span className="footer__metric-pulse" aria-hidden="true" />
+                        )}
+                    </button>
                 </div>
 
                 <div className="footer__controls">

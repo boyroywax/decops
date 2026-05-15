@@ -43,7 +43,7 @@
 }
 
 .networks-create-btn {
-  background: linear-gradient(135deg, #38bdf8 0%, #60a5fa 100%);
+  background: linear-gradient(135deg, var(--color-info) 0%, var(--color-validator) 100%);
   border: none;
   color: var(--bg-primary);
   padding: 10px 20px;
@@ -91,9 +91,9 @@
 }
 
 .networks-tab--active {
-  background: rgba(56, 189, 248, 0.1);
-  border-color: rgba(56, 189, 248, 0.2);
-  color: #38bdf8;
+  background: color-mix(in srgb, var(--color-info) 10%, transparent);
+  border-color: color-mix(in srgb, var(--color-info) 20%, transparent);
+  color: var(--color-info);
 }
 
 .networks-tab__count {
@@ -105,8 +105,8 @@
 }
 
 .networks-tab--active .networks-tab__count {
-  background: rgba(56, 189, 248, 0.2);
-  color: #38bdf8;
+  background: color-mix(in srgb, var(--color-info) 20%, transparent);
+  color: var(--color-info);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -140,7 +140,7 @@
   text-align: center;
   padding: 60px;
   color: var(--text-invisible);
-  border: 1px dashed rgba(56, 189, 248, 0.12);
+  border: 1px dashed color-mix(in srgb, var(--color-info) 12%, transparent);
   border-radius: var(--radius-3xl);
 }
 
@@ -169,9 +169,9 @@
 }
 
 .networks-empty__create-btn {
-  background: rgba(56, 189, 248, 0.1);
-  border: 1px solid rgba(56, 189, 248, 0.2);
-  color: #38bdf8;
+  background: color-mix(in srgb, var(--color-info) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-info) 20%, transparent);
+  color: var(--color-info);
   padding: 10px 20px;
   border-radius: var(--radius-xl);
   font-family: inherit;

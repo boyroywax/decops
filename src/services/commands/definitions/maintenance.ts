@@ -1,4 +1,8 @@
 import { CommandDefinition } from "@/services/commands/types";
+import type { Agent, Channel, Group, Message, Network, Bridge } from "@/types";
+
+/** Subset of items deletable through `bulk_delete`. */
+type DeletableItem = Agent | Channel | Group | Message | Network | Bridge;
 
 export const resetWorkspaceCommand: CommandDefinition = {
     id: "reset_workspace",
@@ -7,6 +11,7 @@ export const resetWorkspaceCommand: CommandDefinition = {
     rbac: ["orchestrator"], // High privilege
     args: {},
     output: "Confirmation message",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { setAgents, setChannels, setGroups, setMessages } = context.workspace;
         const addLog = context.workspace.addLog || (() => { });
@@ -52,17 +57,23 @@ export const bulkDeleteCommand: CommandDefinition = {
         all: { name: "all", type: "boolean", description: "Delete every item of the given type", required: false, defaultValue: false }
     },
     output: "Confirmation",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { type, ids, all } = args;
         const { setAgents, setChannels, setGroups, setMessages, addLog, agents, channels, groups, messages } = context.workspace;
-        const ecosystem = (context as any).ecosystem || {};
-        const networks: any[] = ecosystem.networks || [];
-        const bridges: any[] = ecosystem.bridges || [];
+        const ecosystem = (context as { ecosystem?: {
+            networks?: Network[];
+            bridges?: Bridge[];
+            setNetworks?: (updater: (prev: Network[]) => Network[]) => void;
+            setBridges?: (updater: (prev: Bridge[]) => Bridge[]) => void;
+        } }).ecosystem || {};
+        const networks: Network[] = ecosystem.networks || [];
+        const bridges: Bridge[] = ecosystem.bridges || [];
         const setNetworks = ecosystem.setNetworks;
         const setBridges = ecosystem.setBridges;
 
         // Pick collection by type
-        let collection: any[];
+        let collection: DeletableItem[];
         if (type === "agents") collection = agents;
         else if (type === "channels") collection = channels;
         else if (type === "groups") collection = groups;
@@ -76,7 +87,7 @@ export const bulkDeleteCommand: CommandDefinition = {
         let missingIds: string[] = [];
 
         if (all === true) {
-            existingIds = new Set(collection.map((item: any) => item.id));
+            existingIds = new Set(collection.map((item) => item.id));
         } else {
             const rawIds = (ids as string[] | undefined) || [];
             const idSet = new Set(rawIds);
@@ -88,18 +99,19 @@ export const bulkDeleteCommand: CommandDefinition = {
             const lowerSet = new Set(rawIds.map(s => String(s).toLowerCase()));
             existingIds = new Set(
                 collection
-                    .filter((item: any) => idSet.has(item.id)
-                        || (item.name && lowerSet.has(String(item.name).toLowerCase())))
-                    .map((item: any) => item.id)
+                    .filter((item) => idSet.has(item.id)
+                        || ((item as { name?: string }).name && lowerSet.has(String((item as { name?: string }).name).toLowerCase())))
+                    .map((item) => item.id)
             );
 
             // Track which inputs didn't resolve
             const matchedKeys = new Set<string>();
             for (const item of collection) {
                 if (idSet.has(item.id)) matchedKeys.add(item.id);
-                if (item.name && lowerSet.has(String(item.name).toLowerCase())) {
+                const named = item as { name?: string };
+                if (named.name && lowerSet.has(String(named.name).toLowerCase())) {
                     // find original-cased key from rawIds
-                    const orig = rawIds.find(r => String(r).toLowerCase() === String(item.name).toLowerCase());
+                    const orig = rawIds.find(r => String(r).toLowerCase() === String(named.name).toLowerCase());
                     if (orig) matchedKeys.add(orig);
                 }
             }
@@ -115,42 +127,42 @@ export const bulkDeleteCommand: CommandDefinition = {
 
         // Perform the deletions using only validated IDs
         if (type === "agents") {
-            setAgents((prev: any[]) => prev.filter((a: any) => !existingIds.has(a.id)));
+            setAgents((prev: Agent[]) => prev.filter((a) => !existingIds.has(a.id)));
             // Cleanup dependencies
-            setChannels((prev: any[]) => prev.filter((c: any) => !existingIds.has(c.from) && !existingIds.has(c.to)));
-            setGroups((prev: any[]) => prev.map((g: any) => ({ ...g, members: g.members.filter((m: any) => !existingIds.has(m)) })));
-            setMessages((prev: any[]) => prev.filter((m: any) => !existingIds.has(m.fromId) && !existingIds.has(m.toId)));
+            setChannels((prev: Channel[]) => prev.filter((c) => !existingIds.has(c.from) && !existingIds.has(c.to)));
+            setGroups((prev: Group[]) => prev.map((g) => ({ ...g, members: g.members.filter((m) => !existingIds.has(m)) })));
+            setMessages((prev: Message[]) => prev.filter((m) => !existingIds.has(m.fromId) && !existingIds.has(m.toId)));
         } else if (type === "channels") {
-            setChannels((prev: any[]) => prev.filter((c: any) => !existingIds.has(c.id)));
-            setMessages((prev: any[]) => prev.filter((m: any) => !existingIds.has(m.channelId)));
+            setChannels((prev: Channel[]) => prev.filter((c) => !existingIds.has(c.id)));
+            setMessages((prev: Message[]) => prev.filter((m) => !existingIds.has(m.channelId)));
         } else if (type === "groups") {
-            setGroups((prev: any[]) => prev.filter((g: any) => !existingIds.has(g.id)));
+            setGroups((prev: Group[]) => prev.filter((g) => !existingIds.has(g.id)));
         } else if (type === "messages") {
-            setMessages((prev: any[]) => prev.filter((m: any) => !existingIds.has(m.id)));
+            setMessages((prev: Message[]) => prev.filter((m) => !existingIds.has(m.id)));
         } else if (type === "networks") {
             if (!setNetworks) throw new Error("Ecosystem context unavailable: cannot delete networks");
             // Compute agents being cascaded so we can also clean orphan channels/messages
             const cascadedAgentIds = new Set(
-                agents.filter((a: any) => existingIds.has(a.networkId)).map((a: any) => a.id)
+                agents.filter((a) => a.networkId !== undefined && existingIds.has(a.networkId)).map((a) => a.id)
             );
-            setNetworks((prev: any[]) => prev.filter((n: any) => !existingIds.has(n.id)));
+            setNetworks((prev: Network[]) => prev.filter((n) => !existingIds.has(n.id)));
             if (setBridges) {
-                setBridges((prev: any[]) => prev.filter((b: any) =>
+                setBridges((prev: Bridge[]) => prev.filter((b) =>
                     !existingIds.has(b.fromNetworkId) && !existingIds.has(b.toNetworkId)));
             }
-            setAgents((prev: any[]) => prev.filter((a: any) => !existingIds.has(a.networkId)));
-            setChannels((prev: any[]) => prev.filter((c: any) =>
-                !existingIds.has(c.networkId)
+            setAgents((prev: Agent[]) => prev.filter((a) => a.networkId === undefined || !existingIds.has(a.networkId)));
+            setChannels((prev: Channel[]) => prev.filter((c) =>
+                (c.networkId === undefined || !existingIds.has(c.networkId))
                 && !cascadedAgentIds.has(c.from)
                 && !cascadedAgentIds.has(c.to)));
-            setGroups((prev: any[]) => prev.filter((g: any) => !existingIds.has(g.networkId)));
+            setGroups((prev: Group[]) => prev.filter((g) => g.networkId === undefined || !existingIds.has(g.networkId)));
             if (cascadedAgentIds.size > 0) {
-                setMessages((prev: any[]) => prev.filter((m: any) =>
+                setMessages((prev: Message[]) => prev.filter((m) =>
                     !cascadedAgentIds.has(m.fromId) && !cascadedAgentIds.has(m.toId)));
             }
         } else if (type === "bridges") {
             if (!setBridges) throw new Error("Ecosystem context unavailable: cannot delete bridges");
-            setBridges((prev: any[]) => prev.filter((b: any) => !existingIds.has(b.id)));
+            setBridges((prev: Bridge[]) => prev.filter((b) => !existingIds.has(b.id)));
         }
 
         // Build result message

@@ -12,7 +12,7 @@ import { useLLM } from "@/context/LLMContext";
 import { readDraft, clearDraft, saveDraft, DRAFT_SAVE_DELAY } from "@/toolkits/studio/utils/studioDraft";
 import { buildJobDef as buildJobDefFn, loadJobToStudioState } from "@/toolkits/studio/utils/studioJobBuilder";
 import { createStudioAPI } from "@/toolkits/studio/utils/studioApi";
-import type { JobDefinition, JobDeliverable, EntityInput, JobTrigger, TriggerEvent } from "@/types";
+import type { Job, JobDefinition, JobDeliverable, EntityInput, JobTrigger, TriggerEvent } from "@/types";
 import type { StudioDraft } from "@/toolkits/studio/utils/studioDraft";
 import "../styles/job-manager.css";
 
@@ -27,7 +27,7 @@ interface StudioViewProps {
     savedJobs: JobDefinition[];
     onSaveJob: (job: JobDefinition) => void;
     onDeleteJob: (id: string) => void;
-    onRunJob: (job: JobDefinition) => any;
+    onRunJob: (job: JobDefinition) => Job;
 }
 
 export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: StudioViewProps) {
@@ -214,7 +214,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         return () => window.removeEventListener("studio:add-command", handler);
     }, [addStep]);
 
-    const updateStepArg = useCallback((stepId: string, argName: string, value: any) => {
+    const updateStepArg = useCallback((stepId: string, argName: string, value: unknown) => {
         setSteps(prev => prev.map(s =>
             s.id === stepId ? { ...s, args: { ...s.args, [argName]: value } } : s
         ));
@@ -284,7 +284,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const addDeliverable = () => {
         setDeliverables(prev => [...prev, { key: "", label: "", type: "json", description: "" }]);
     };
-    const updateDeliverable = (index: number, field: keyof JobDeliverable, value: any) => {
+    const updateDeliverable = (index: number, field: keyof JobDeliverable, value: JobDeliverable[keyof JobDeliverable]) => {
         setDeliverables(prev => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
     };
     const removeDeliverable = (index: number) => {
@@ -308,7 +308,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const addInput = () => {
         setInputs(prev => [...prev, { name: "", type: "agent", entityId: "" }]);
     };
-    const updateInput = (index: number, field: keyof EntityInput, value: any) => {
+    const updateInput = (index: number, field: keyof EntityInput, value: EntityInput[keyof EntityInput]) => {
         setInputs(prev => prev.map((inp, i) => i === index ? { ...inp, [field]: value } : inp));
     };
     const removeInput = (index: number) => {
@@ -625,13 +625,13 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                         />
                     </div>
                     <div className="jm-toolbar__file-actions">
-                        <button className="jm-toolbar__icon-btn" onClick={handleNew} title="New job">
+                        <button className="jm-toolbar__icon-btn" onClick={handleNew} title="New job" aria-label="New job">
                             <Plus size={14} />
                         </button>
                         <button className="jm-toolbar__icon-btn" onClick={() => setShowCatalog(true)} title="Load from catalog">
                             <FolderOpen size={14} />
                         </button>
-                        <button className="jm-toolbar__icon-btn" onClick={handleSave} title="Save job">
+                        <button className="jm-toolbar__icon-btn" onClick={handleSave} title="Save job" aria-label="Save job">
                             <Save size={14} />
                         </button>
                         <div className="jm-toolbar__divider" />
@@ -651,16 +651,16 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
                         placeholder="Description (optional)"
                     />
                     <div className="jm-toolbar__canvas-tools">
-                        <button className="jm-toolbar__tool-btn" onClick={addDeliverable} title="Add deliverable node">
+                        <button className="jm-toolbar__tool-btn" onClick={addDeliverable} title="Add deliverable node" aria-label="Add deliverable node">
                             <Package size={12} /> <span>Deliverable</span>
                         </button>
-                        <button className="jm-toolbar__tool-btn" onClick={addStorageEntry} title="Add storage node">
+                        <button className="jm-toolbar__tool-btn" onClick={addStorageEntry} title="Add storage node" aria-label="Add storage node">
                             <Database size={12} /> <span>Storage</span>
                         </button>
-                        <button className="jm-toolbar__tool-btn" onClick={addInput} title="Add entity input">
+                        <button className="jm-toolbar__tool-btn" onClick={addInput} title="Add entity input" aria-label="Add entity input">
                             <Tag size={12} /> <span>Input</span>
                         </button>
-                        <button className="jm-toolbar__tool-btn jm-toolbar__tool-btn--parallel" onClick={addParallelGroup} title="Add parallel group container">
+                        <button className="jm-toolbar__tool-btn jm-toolbar__tool-btn--parallel" onClick={addParallelGroup} title="Add parallel group container" aria-label="Add parallel group container">
                             <GitFork size={12} /> <span>Parallel</span>
                         </button>
                         <div className="jm-toolbar__divider" />

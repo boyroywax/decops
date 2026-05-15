@@ -4,7 +4,7 @@
  * Extracted from services/ai.ts for modularity.
  */
 
-import type { Agent, Channel, Group, Message, Network, Bridge, Job } from "@/types";
+import type { Agent, Channel, Group, Message, Network, Bridge, Job, JobRequest } from "@/types";
 import { TOOLKITS } from "@/services/toolkits";
 
 export interface WorkspaceContext {
@@ -14,7 +14,7 @@ export interface WorkspaceContext {
   messages: Message[];
   networks: Network[];
   bridges: Bridge[];
-  addJob?: (job: { type: string; request: any }) => void;
+  addJob?: (job: JobRequest) => void;
   jobs: Job[];
 }
 
@@ -296,6 +296,15 @@ The workspace includes a specialized **Studio Bot** sub-agent that is an expert 
 - Data flow validation (ensures storage keys, deliverables, and bindings are properly wired)
 - Post-creation analysis to detect and fix layout issues
 After using studio_create_job, always call studio_auto_layout to ensure clean canvas positioning.
+
+
+
+When responding to a user's prompt, you must follow this methodology:
+- First attempt to understand and extrapolate on the meaning of the user's prompt.
+- If the prompt is asking for an action to be conducted on the workspace, or within libp2p, define the action/s to call.
+- Then, queue the jobs that will direct those actions.
+- Finally, review the output of the job/s and return an analysis of the ran job.
+- If an error occurs, reapproach the prompt and attempt to restart the understanding process unless you need more/missing information from the user.
 
 Be concise, helpful, and in-character as a workspace management AI. Use markdown formatting for readability. Keep responses under 300 words unless the user asks for detailed analysis.`;
 }

@@ -1,5 +1,5 @@
 import { CommandDefinition } from "@/services/commands/types";
-import { Channel } from "@/types";
+import { Agent, Channel } from "@/types";
 import { isUnresolvedRef } from "@/utils/storageKey";
 
 export const createChannelCommand: CommandDefinition = {
@@ -60,7 +60,8 @@ export const createChannelCommand: CommandDefinition = {
 
         // Combine workspace agents with any created in previous job steps
         // (React state may be stale within the same job execution cycle)
-        const allAgents = [...agents, ...(context.storage._agents || [])];
+        const storage = context.storage as { _agents?: Agent[]; _channels?: Channel[] } & Record<string, unknown>;
+        const allAgents: Agent[] = [...agents, ...(storage._agents || [])];
 
         // Normalize: batch items or single spec
         const specs = args.items
@@ -69,18 +70,18 @@ export const createChannelCommand: CommandDefinition = {
 
         const created: Channel[] = [];
         const skipped: string[] = [];
-        const allChannels = [...channels, ...(context.storage._channels || [])];
+        const allChannels: Channel[] = [...channels, ...(storage._channels || [])];
 
         for (const spec of specs) {
-            const fromAgent = allAgents.find((a: any) => a.id === spec.from || a.name === spec.from);
-            const toAgent = allAgents.find((a: any) => a.id === spec.to || a.name === spec.to);
+            const fromAgent = allAgents.find((a) => a.id === spec.from || a.name === spec.from);
+            const toAgent = allAgents.find((a) => a.id === spec.to || a.name === spec.to);
 
             if (!fromAgent) throw new Error(`Agent '${spec.from}' not found`);
             if (!toAgent) throw new Error(`Agent '${spec.to}' not found`);
             if (fromAgent.id === toAgent.id) throw new Error("Cannot create channel to self");
 
             // Check existence against both existing and newly-created channels
-            const exists = allChannels.concat(created).some((c: any) =>
+            const exists = allChannels.concat(created).some((c) =>
                 (c.from === fromAgent.id && c.to === toAgent.id) ||
                 (c.from === toAgent.id && c.to === fromAgent.id)
             );
@@ -109,7 +110,7 @@ export const createChannelCommand: CommandDefinition = {
         }
 
         if (created.length > 0) {
-            setChannels((prev: any[]) => [...prev, ...created]);
+            setChannels((prev: Channel[]) => [...prev, ...created]);
             addLog(`Created ${created.length} channel(s)${skipped.length ? `, ${skipped.length} already existed` : ""}`);
         } else {
             addLog(`All ${skipped.length} channel(s) already exist`);

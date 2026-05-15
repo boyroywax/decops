@@ -18,7 +18,7 @@
  * target gets a sub-task that goes through the same lifecycle.
  */
 
-import type { Agent, Network } from "@/types";
+import type { Agent, Group, Network } from "@/types";
 import type {
   AgentTask,
   TaskEvent,
@@ -533,7 +533,7 @@ function resolveJobDefinition(
   // 2. Catalog lookup
   if (action.jobDefinitionId) {
     const catalog = context.jobs.getCatalog?.() || [];
-    const found = catalog.find((d: any) => d.id === action.jobDefinitionId);
+    const found = catalog.find((d) => d.id === action.jobDefinitionId);
     if (found) return found;
     return null;
   }
@@ -568,10 +568,10 @@ async function handleCapabilityGaps(
   groupId: string,
   proposingAgent: Agent,
   agents: Agent[],
-  groups: any[],
+  groups: Group[],
   context: CommandContext,
 ): Promise<boolean> {
-  const group = groups.find((g: any) => g.id === groupId);
+  const group = groups.find((g) => g.id === groupId);
   if (!group) return false;
 
   // Check what commands are missing
@@ -804,13 +804,13 @@ function failTask(
 function gatherPeers(
   agent: Agent,
   allAgents: Agent[],
-  groups: any[],
+  groups: Group[],
   networks: Network[],
 ): Agent[] {
   const peers = new Set<string>();
 
   // Group peers
-  const agentGroups = groups.filter((g: any) => g.members?.includes(agent.id));
+  const agentGroups = groups.filter((g) => g.members?.includes(agent.id));
   for (const group of agentGroups) {
     for (const mid of group.members) {
       if (mid !== agent.id) peers.add(mid);

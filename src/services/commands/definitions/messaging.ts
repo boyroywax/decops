@@ -39,12 +39,19 @@ export const sendMessageCommand: CommandDefinition = {
     },
     execute: async (args, context) => {
         const { from_agent_id, to_agent_id, message } = args;
-        const { agents, channels, setMessages, addLog } = context.workspace;
+        const { setMessages, addLog } = context.workspace;
+
+        // Read LIVE workspace state via getters (falls back to snapshots
+        // for legacy/test contexts that don't supply getters). The
+        // snapshot arrays on context.workspace are frozen when the
+        // CommandContext was built and go stale during async execution.
+        const liveAgents = context.workspace.getAgents?.() ?? context.workspace.agents;
+        const liveChannels = context.workspace.getChannels?.() ?? context.workspace.channels;
 
         // Combine workspace state with entities created earlier in the same job
-        // (React state may be stale within a single job execution cycle)
-        const allAgents = [...agents, ...(context.storage._agents || [])];
-        const allChannels = [...channels, ...(context.storage._channels || [])];
+        // (some intra-job entities live only in shared storage until persisted)
+        const allAgents = [...liveAgents, ...(context.storage._agents || [])];
+        const allChannels = [...liveChannels, ...(context.storage._channels || [])];
 
         // 1. Resolve sender — 'user' keyword maps to the current user's DID
         const isUserSender = from_agent_id === 'user';
@@ -89,12 +96,12 @@ export const sendMessageCommand: CommandDefinition = {
 
         // 6. Trigger AI Response (if recipient has prompt)
         if (toAgent.prompt) {
-            // We need 'messages' history for context, but reading fresh state inside async execute might be tricky 
-            // if we rely on the closure 'context.workspace.messages'. 
-            // It's a snapshot. Ideally we pass current messages or fetch them.
-            // For now, let's just pass empty history or what we have in snapshot.
+            // Read LIVE message history via getter so the recipient sees
+            // any messages persisted earlier in the same job. Falls back to
+            // the snapshot for legacy contexts.
+            const history = context.workspace.getMessages?.() ?? context.workspace.messages;
             try {
-                const response = await callAgentAI(toAgent, fromAgent, message, channel?.type || 'data', []);
+                const response = await callAgentAI(toAgent, fromAgent, message, channel?.type || 'data', history);
 
                 // Update message with response
                 setMessages(prev => prev.map(m => m.id === msgId ? { ...m, response, status: "delivered" } : m));
@@ -110,8 +117,9 @@ export const sendMessageCommand: CommandDefinition = {
                     messageId: msgId,
                     response
                 };
-            } catch (err: any) {
-                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, status: "failed", response: `Error: ${err.message}` } : m));
+            } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : String(err);
+                setMessages(prev => prev.map(m => m.id === msgId ? { ...m, status: "failed", response: `Error: ${msg}` } : m));
                 throw err;
             }
         } else {

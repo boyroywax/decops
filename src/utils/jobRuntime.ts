@@ -5,12 +5,15 @@
  */
 
 import type { CommandContext } from "@/services/commands/types";
-import type { StepHandler } from "@/types/jobs";
+import type { StepHandler, JobStep } from "@/types/jobs";
 
 // ── Reference Resolution ──────────────────────────
 
 export interface RefContext {
+  // Storage/deliverables hold opaque command results; reads need narrowing.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   storage: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   deliverables: Record<string, any>;
   inputs: Record<string, string>;
 }
@@ -20,6 +23,9 @@ export interface RefContext {
  * - Whole-string references (e.g. "$storage.key") return the raw stored value (may be object/array).
  * - Embedded references within a larger string are interpolated in-place as strings.
  */
+// `value` is a user-supplied template — may be string, number, object, array,
+// or null. Returns the same shape with $ref placeholders resolved.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function resolveRefs(value: any, refs: RefContext): any {
   if (typeof value === 'string') {
     // Whole-string exact match → return raw value (preserves non-string types)
@@ -63,7 +69,7 @@ export function resolveRefs(value: any, refs: RefContext): any {
   }
   if (Array.isArray(value)) return value.map(v => resolveRefs(v, refs));
   if (value && typeof value === 'object') {
-    const out: any = {};
+    const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) out[k] = resolveRefs(v, refs);
     return out;
   }
@@ -108,14 +114,17 @@ export const DELIVERABLE_STORAGE_PREFIX = '_deliverable_';
  */
 export function applyOutputMappings(
   mappings: Array<{ outputKey: string; target: string; targetKey: string }> | undefined,
-  result: any,
+  result: unknown,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   storage: Record<string, any>,
 ): void {
   if (!mappings || result == null) return;
   for (const mapping of mappings) {
     const outputValue = mapping.outputKey === '*'
       ? result
-      : (typeof result === 'object' ? result[mapping.outputKey] : result);
+      : (typeof result === 'object' && result !== null
+          ? (result as Record<string, unknown>)[mapping.outputKey]
+          : result);
     if (mapping.target === 'storage' && mapping.targetKey) {
       storage[mapping.targetKey] = outputValue;
     } else if (mapping.target === 'deliverable' && mapping.targetKey) {
@@ -141,7 +150,9 @@ export function applyOutputMappings(
  */
 export async function assembleDeliverables(
   declaredDeliverables: Array<{ key: string; label: string; type: string; description?: string; sourceStorageKey?: string }>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   storage: Record<string, any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   executeCommand: (commandId: string, args: Record<string, any>) => Promise<any>,
   addLog: (msg: string) => void,
 ): Promise<Array<{ key: string; artifactId: string }>> {
@@ -171,13 +182,14 @@ export async function assembleDeliverables(
         deliverableKey: deliverable.key,
       });
 
-      const artifactId = result?.artifact?.id || storage.lastArtifactId;
+      const artifactId = (result as { artifact?: { id?: string } } | undefined)?.artifact?.id || storage.lastArtifactId;
       if (artifactId) {
         produced.push({ key: deliverable.key, artifactId });
       }
       addLog(`📦 Deliverable assembled: ${deliverable.label || deliverable.key}`);
-    } catch (e: any) {
-      addLog(`❌ Deliverable assembly failed for "${deliverable.key}": ${e.message}`);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      addLog(`❌ Deliverable assembly failed for "${deliverable.key}": ${message}`);
     }
   }
 
@@ -192,10 +204,10 @@ export async function assembleDeliverables(
 export function evaluateCondition(
   condition: string,
   context: CommandContext,
-  steps: any[],
+  steps: JobStep[],
 ): boolean {
   try {
-    const stepMap = steps.reduce((acc: any, s: any) => {
+    const stepMap = steps.reduce<Record<string, JobStep>>((acc, s) => {
       acc[s.id] = s;
       if (s.name) acc[s.name] = s;
       return acc;
@@ -214,14 +226,15 @@ export function evaluateCondition(
 /**
  * Build a step-scoped context that overrides model resolution if step has modelId.
  */
-export function getStepContext(step: any, baseContext: CommandContext): CommandContext {
+export function getStepContext(step: JobStep, baseContext: CommandContext): CommandContext {
   if (!step.modelId) return baseContext;
+  const modelId = step.modelId;
   return {
     ...baseContext,
     system: {
       ...baseContext.system,
-      getModelForCommand: () => step.modelId,
-      getModelForAgent: () => step.modelId,
+      getModelForCommand: () => modelId,
+      getModelForAgent: () => modelId,
     },
   };
 }
@@ -233,8 +246,8 @@ export function getStepContext(step: any, baseContext: CommandContext): CommandC
  * Extends RefContext with $result.* (step output) and $error.* (failure info).
  */
 export interface HandlerRefContext extends RefContext {
-  /** The step's result value (available in onSuccess) */
-  result?: any;
+  /** The step's result value (available in onSuccess). Opaque — readers narrow. */
+  result?: unknown;
   /** The error message string (available in onFailure) */
   error?: string;
 }
@@ -243,6 +256,7 @@ export interface HandlerRefContext extends RefContext {
  * Resolve handler-specific references: $result and $error in addition to
  * the standard $storage.*, $deliverable.*, $input.* refs.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function resolveHandlerRefs(value: any, refs: HandlerRefContext): any {
   if (typeof value === 'string') {
     // Whole-string exact match for $result / $error
@@ -251,7 +265,7 @@ export function resolveHandlerRefs(value: any, refs: HandlerRefContext): any {
     if (value.startsWith('$result.') && !value.includes('\n') && !value.includes(' ')) {
       const key = value.slice('$result.'.length);
       if (refs.result != null && typeof refs.result === 'object' && key in refs.result) {
-        return refs.result[key];
+        return (refs.result as Record<string, unknown>)[key];
       }
     }
 
@@ -259,7 +273,7 @@ export function resolveHandlerRefs(value: any, refs: HandlerRefContext): any {
     let resolved = value;
     resolved = resolved.replace(/\$result\.([A-Za-z0-9_]+)/g, (_match: string, key: string) => {
       if (refs.result != null && typeof refs.result === 'object' && key in refs.result) {
-        const v = refs.result[key];
+        const v = (refs.result as Record<string, unknown>)[key];
         return typeof v === 'string' ? v : JSON.stringify(v);
       }
       return _match;
@@ -279,7 +293,7 @@ export function resolveHandlerRefs(value: any, refs: HandlerRefContext): any {
   }
   if (Array.isArray(value)) return value.map(v => resolveHandlerRefs(v, refs));
   if (value && typeof value === 'object') {
-    const out: any = {};
+    const out: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) out[k] = resolveHandlerRefs(v, refs);
     return out;
   }
@@ -289,8 +303,8 @@ export function resolveHandlerRefs(value: any, refs: HandlerRefContext): any {
 export interface StepHandlerResult {
   /** Whether the handler executed without error */
   ok: boolean;
-  /** If the handler ran a command, its result */
-  commandResult?: any;
+  /** If the handler ran a command, its result. Opaque — readers narrow. */
+  commandResult?: unknown;
   /** Whether the job should continue after a failure (onFailure.continueOnFailure) */
   continueOnFailure: boolean;
   /** Whether the job should halt after success (onSuccess.haltAfterSuccess) */
@@ -311,7 +325,9 @@ export interface StepHandlerResult {
 export async function executeStepHandler(
   handler: StepHandler | undefined,
   refs: HandlerRefContext,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   storage: Record<string, any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   execute: (commandId: string, args: Record<string, any>) => Promise<any>,
   addLog: (msg: string) => void,
 ): Promise<StepHandlerResult> {
@@ -345,9 +361,10 @@ export async function executeStepHandler(
       const resolvedArgs = resolveHandlerRefs(handler.args || {}, refs);
       result.commandResult = await execute(handler.commandId, resolvedArgs);
     }
-  } catch (e: any) {
+  } catch (e: unknown) {
     result.ok = false;
-    addLog(`Step handler error: ${e.message || e}`);
+    const message = e instanceof Error ? e.message : String(e);
+    addLog(`Step handler error: ${message}`);
   }
 
   return result;

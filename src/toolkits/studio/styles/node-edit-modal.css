@@ -258,7 +258,7 @@
 }
 
 [data-theme="light"] .nem-list-option {
-  color: #475569;
+  color: var(--text-secondary, #475569);
 }
 
 [data-theme="solar"] .nem-list-option:hover {
@@ -295,7 +295,7 @@
 
 [data-theme="light"] .nem-close {
   border-color: rgba(0, 0, 0, 0.1);
-  color: #94a3b8;
+  color: var(--text-ghost, #94a3b8);
 }
 
 [data-theme="light"] .nem-close:hover {
@@ -307,9 +307,9 @@
 [data-theme="light"] .nem-field__input,
 [data-theme="light"] .nem-field__select,
 [data-theme="light"] .nem-field__textarea {
-  background: #f8fafc;
-  border-color: #e2e8f0;
-  color: #1e293b;
+  background: var(--bg-surface, #f8fafc);
+  border-color: var(--border-medium, #e2e8f0);
+  color: var(--text-primary, #1e293b);
 }
 
 [data-theme="light"] .nem-field__input:focus,
@@ -326,13 +326,13 @@
 
 [data-theme="light"] .nem-source-btn {
   border-color: rgba(0, 0, 0, 0.1);
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-surface, #f8fafc);
+  color: var(--text-muted, #64748b);
 }
 
 [data-theme="light"] .nem-source-btn:hover {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-surface-hover, #f1f5f9);
+  color: var(--text-secondary, #475569);
 }
 
 [data-theme="light"] .nem-source-btn--active {
@@ -343,23 +343,23 @@
 
 /* ── Light text colors ── */
 [data-theme="light"] .nem-header__type {
-  color: #1e293b;
+  color: var(--text-primary, #1e293b);
 }
 
 [data-theme="light"] .nem-header__index {
-  color: #94a3b8;
+  color: var(--text-ghost, #94a3b8);
 }
 
 [data-theme="light"] .nem-field__label {
-  color: #64748b;
+  color: var(--text-muted, #64748b);
 }
 
 [data-theme="light"] .nem-section__title {
-  color: #64748b;
+  color: var(--text-muted, #64748b);
 }
 
 [data-theme="light"] .nem-field__hint {
-  color: #94a3b8;
+  color: var(--text-ghost, #94a3b8);
 }
 
 [data-theme="light"] .nem-field__hint code {

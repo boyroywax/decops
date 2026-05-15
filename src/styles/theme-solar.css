@@ -29,13 +29,13 @@
    * TEXT HIERARCHY — Warm dark browns
    * ═══════════════════════════════════════════════════════════════════════════ */
   --text-primary: #3b2e1a;
-  --text-secondary: #504030;
-  --text-muted: #6b5b4a;
-  --text-subtle: #8a7968;
-  --text-ghost: #a89882;
-  --text-invisible: #c4b8a6;
+  --text-secondary: #3b2f21;
+  --text-muted: #4e4031;
+  --text-subtle: #625242;
+  --text-ghost: #786654;
+  --text-invisible: #8b7966;
   --text-void: #d9d0c2;
-  --text-faint: #a89882;
+  --text-faint: #8b7966;
   --text-accent: #9c6d10;
 
   /* ═══════════════════════════════════════════════════════════════════════════

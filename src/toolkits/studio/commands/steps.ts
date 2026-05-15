@@ -20,6 +20,7 @@ export const studioAddStepCommand: CommandDefinition = {
         args: { name: "args", type: "object", description: "Initial argument values for the step (key-value pairs matching the command's args)", required: false, defaultValue: {} },
     },
     output: "The ID of the newly created step",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -44,6 +45,7 @@ export const studioRemoveStepCommand: CommandDefinition = {
         stepId: { name: "stepId", type: "string", description: "ID of the step to remove", required: true },
     },
     output: "Confirmation message",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -62,6 +64,7 @@ export const studioSetStepArgsCommand: CommandDefinition = {
         args: { name: "args", type: "object", description: "Key-value pairs of argument values to set", required: true },
     },
     output: "Updated args",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -79,6 +82,7 @@ export const studioAddParallelGroupCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: {},
     output: "New parallel group step ID",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (_args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -97,6 +101,7 @@ export const studioSetStepConditionCommand: CommandDefinition = {
         condition: { name: "condition", type: "string", description: "JavaScript expression (evaluated at runtime with storage/deliverables in scope)", required: true },
     },
     output: "Updated condition",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -124,6 +129,7 @@ export const studioSetInputBindingsCommand: CommandDefinition = {
         },
     },
     output: "Updated input bindings",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -147,6 +153,7 @@ export const studioSetOutputMappingsCommand: CommandDefinition = {
         },
     },
     output: "Updated output mappings",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };

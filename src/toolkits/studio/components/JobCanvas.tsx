@@ -123,8 +123,11 @@ export function JobCanvas({
             specialKind: kind,
             specialIndex: index,
         });
-        const type = kind === "deliverable" ? "deliverable" : kind;
-        onSelect({ type, index } as any);
+        const selection: NonNullable<SelectedElement> =
+            kind === "storage" ? { type: "storage", index }
+                : kind === "input" ? { type: "input", index }
+                    : { type: "deliverable", index };
+        onSelect(selection);
         e.preventDefault();
     }, [onSelect]);
 

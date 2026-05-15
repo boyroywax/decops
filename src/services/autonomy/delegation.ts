@@ -9,7 +9,7 @@
  * 5. Results flow back up the chain
  */
 
-import type { Agent, Network } from "@/types";
+import type { Agent, Group, Network } from "@/types";
 import type {
   AgentTask,
   DelegationRequest,
@@ -36,7 +36,7 @@ export function findDelegationTarget(
   agent: Agent,
   goal: string,
   agents: Agent[],
-  groups: any[],
+  groups: Group[],
   networks: Network[],
   excludeIds: string[] = [],
 ): DelegationTarget | null {
@@ -49,7 +49,7 @@ export function findDelegationTarget(
 
     case "group": {
       // Find the agent's group(s) and look for best member
-      const agentGroups = groups.filter((g: any) =>
+      const agentGroups = groups.filter((g: Group) =>
         g.members?.includes(agent.id),
       );
       for (const group of agentGroups) {

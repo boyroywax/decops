@@ -11,6 +11,7 @@ import { X, Database, Tag, Package, ChevronLeft, ChevronRight } from "lucide-rea
 import type { JobDeliverable, EntityInput, InputSourceKind, InputSource, ArtifactType } from "@/types";
 import { useWorkspaceStore, useEcosystemStore } from "@/stores";
 import { useJobsContext } from "@/context/JobsContext";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import "../styles/node-edit-modal.css";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -62,8 +63,8 @@ interface NodeEditModalProps {
     position?: string;
     // Update callbacks
     onUpdateStorage?: (index: number, field: "key" | "value", val: string) => void;
-    onUpdateInput?: (index: number, field: keyof EntityInput, value: any) => void;
-    onUpdateDeliverable?: (index: number, field: keyof JobDeliverable, value: any) => void;
+    onUpdateInput?: (index: number, field: keyof EntityInput, value: EntityInput[keyof EntityInput]) => void;
+    onUpdateDeliverable?: (index: number, field: keyof JobDeliverable, value: JobDeliverable[keyof JobDeliverable]) => void;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -83,17 +84,17 @@ export function NodeEditModal({
 }: NodeEditModalProps) {
     const backdropRef = useRef<HTMLDivElement>(null);
     const cardRef = useRef<HTMLDivElement>(null);
+    const trapRef = useFocusTrap<HTMLDivElement>(isOpen, onClose);
 
     // ── Keyboard ──
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             if (e.key === "ArrowLeft" && onPrev) { e.preventDefault(); onPrev(); }
             if (e.key === "ArrowRight" && onNext) { e.preventDefault(); onNext(); }
-            if (e.key === "Escape") { e.preventDefault(); onClose(); }
         };
         window.addEventListener("keydown", handler);
         return () => window.removeEventListener("keydown", handler);
-    }, [onPrev, onNext, onClose]);
+    }, [onPrev, onNext]);
 
     // ── Mouse glow ──
     const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -154,11 +155,14 @@ export function NodeEditModal({
             )}
 
             <div
-                ref={cardRef}
+                ref={(el) => { cardRef.current = el; (trapRef as { current: HTMLDivElement | null }).current = el; }}
                 className={`tc-card nem-card nem-card--${data.type}`}
                 style={{ "--nem-accent": accentColor } as React.CSSProperties}
                 onMouseMove={handleMouseMove}
                 onClick={(e) => e.stopPropagation()}
+                role="dialog"
+                aria-modal="true"
+                aria-label={`Edit ${data.type}`}
             >
                 {/* ── Header ── */}
                 <div className="nem-header">
@@ -175,7 +179,7 @@ export function NodeEditModal({
                             )}
                         </div>
                     </div>
-                    <button className="nem-close" onClick={onClose} title="Close">
+                    <button className="nem-close" onClick={onClose} title="Close" aria-label="Close">
                         <X size={16} />
                     </button>
                 </div>
@@ -261,7 +265,7 @@ function InputFields({
 }: {
     entry: EntityInput;
     index: number;
-    onUpdate?: (index: number, field: keyof EntityInput, value: any) => void;
+    onUpdate?: (index: number, field: keyof EntityInput, value: EntityInput[keyof EntityInput]) => void;
 }) {
     const { agents, channels, groups } = useWorkspaceStore();
     const networks = useEcosystemStore((s) => s.ecosystem.networks);
@@ -280,10 +284,12 @@ function InputFields({
         onUpdate?.(index, "source", newSource);
     };
 
-    const handleSourceFieldChange = (field: string, value: string) => {
-        const base = entry.source || { kind: "hardcoded" as const, value: "" };
-        onUpdate?.(index, "source", { ...base, [field]: value });
-    };
+    const updateSource = (source: InputSource) => onUpdate?.(index, "source", source);
+
+    const promptSource = entry.source?.kind === "prompt" ? entry.source : undefined;
+    const storageSource = entry.source?.kind === "storage" ? entry.source : undefined;
+    const hardcodedSource = entry.source?.kind === "hardcoded" ? entry.source : undefined;
+    const artifactSource = entry.source?.kind === "artifact" ? entry.source : undefined;
 
     // Build entity options based on selected type
     const isEntityType = ["agent", "channel", "group", "network"].includes(entry.type);
@@ -545,8 +551,8 @@ function InputFields({
                             <input
                                 className="nem-field__input"
                                 type="text"
-                                value={(entry.source as any)?.promptText || ""}
-                                onChange={(e) => handleSourceFieldChange("promptText", e.target.value)}
+                                value={promptSource?.promptText || ""}
+                                onChange={(e) => updateSource({ kind: "prompt", promptText: e.target.value })}
                                 placeholder="Question to ask user..."
                             />
                         </div>
@@ -558,8 +564,8 @@ function InputFields({
                                 <input
                                     className="nem-field__input"
                                     type="text"
-                                    value={(entry.source as any)?.storageKey || ""}
-                                    onChange={(e) => handleSourceFieldChange("storageKey", e.target.value)}
+                                    value={storageSource?.storageKey || ""}
+                                    onChange={(e) => updateSource({ kind: "storage", storageKey: e.target.value, path: storageSource?.path })}
                                     placeholder="key_name"
                                 />
                             </div>
@@ -568,8 +574,8 @@ function InputFields({
                                 <input
                                     className="nem-field__input"
                                     type="text"
-                                    value={(entry.source as any)?.path || ""}
-                                    onChange={(e) => handleSourceFieldChange("path", e.target.value)}
+                                    value={storageSource?.path || ""}
+                                    onChange={(e) => updateSource({ kind: "storage", storageKey: storageSource?.storageKey || "", path: e.target.value })}
                                     placeholder="e.g. data.items[0]"
                                 />
                             </div>
@@ -581,8 +587,8 @@ function InputFields({
                             <input
                                 className="nem-field__input"
                                 type="text"
-                                value={(entry.source as any)?.value || ""}
-                                onChange={(e) => handleSourceFieldChange("value", e.target.value)}
+                                value={hardcodedSource?.value || ""}
+                                onChange={(e) => updateSource({ kind: "hardcoded", value: e.target.value })}
                                 placeholder="Hardcoded value"
                             />
                         </div>
@@ -594,8 +600,8 @@ function InputFields({
                                 {allArtifacts.length > 0 ? (
                                     <select
                                         className="nem-field__select"
-                                        value={(entry.source as any)?.artifactId || ""}
-                                        onChange={(e) => handleSourceFieldChange("artifactId", e.target.value)}
+                                        value={artifactSource?.artifactId || ""}
+                                        onChange={(e) => updateSource({ kind: "artifact", artifactId: e.target.value, tag: artifactSource?.tag })}
                                     >
                                         <option value="">— select artifact —</option>
                                         {allArtifacts.map(a => (
@@ -608,8 +614,8 @@ function InputFields({
                                     <input
                                         className="nem-field__input"
                                         type="text"
-                                        value={(entry.source as any)?.artifactId || ""}
-                                        onChange={(e) => handleSourceFieldChange("artifactId", e.target.value)}
+                                        value={artifactSource?.artifactId || ""}
+                                        onChange={(e) => updateSource({ kind: "artifact", artifactId: e.target.value, tag: artifactSource?.tag })}
                                         placeholder="Specific artifact UUID"
                                     />
                                 )}
@@ -619,8 +625,8 @@ function InputFields({
                                 <input
                                     className="nem-field__input"
                                     type="text"
-                                    value={(entry.source as any)?.tag || ""}
-                                    onChange={(e) => handleSourceFieldChange("tag", e.target.value)}
+                                    value={artifactSource?.tag || ""}
+                                    onChange={(e) => updateSource({ kind: "artifact", artifactId: artifactSource?.artifactId, tag: e.target.value })}
                                     placeholder="Match by tag"
                                 />
                             </div>
@@ -643,7 +649,7 @@ function DeliverableFields({
 }: {
     entry: JobDeliverable;
     index: number;
-    onUpdate?: (index: number, field: keyof JobDeliverable, value: any) => void;
+    onUpdate?: (index: number, field: keyof JobDeliverable, value: JobDeliverable[keyof JobDeliverable]) => void;
 }) {
     return (
         <>

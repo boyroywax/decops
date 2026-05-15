@@ -21,10 +21,10 @@ interface NodeEditorProps {
     storageEntries: Array<{ key: string; value: string }>;
     inputs: EntityInput[];
     allSteps: StudioStep[];
-    onUpdateArg: (stepId: string, argName: string, value: any) => void;
+    onUpdateArg: (stepId: string, argName: string, value: unknown) => void;
     onUpdatePreCondition: (stepId: string, condition: string) => void;
     onUpdatePostCondition: (stepId: string, condition: string) => void;
-    onUpdateDeliverable: (index: number, field: keyof JobDeliverable, value: any) => void;
+    onUpdateDeliverable: (index: number, field: keyof JobDeliverable, value: JobDeliverable[keyof JobDeliverable]) => void;
     onUpdateStorage: (index: number, field: "key" | "value", value: string) => void;
     onUpdateInput: (index: number, field: keyof EntityInput, value: string) => void;
     onUpdateOutputMappings: (stepId: string, mappings: OutputMapping[]) => void;
@@ -53,7 +53,7 @@ export function NodeEditor({
                 <div className="jm-editor">
                     <div className="jm-editor__header">
                         <Settings size={14} /> Properties
-                        <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                        <button className="jm-editor__close" onClick={onClose} title="Close properties" aria-label="Close properties"><X size={14} /></button>
                     </div>
                     <div className="jm-editor__body">
                         <div className="jm-editor__empty">
@@ -74,7 +74,7 @@ export function NodeEditor({
                 <div className="jm-editor">
                 <div className="jm-editor__header">
                     <Tag size={14} /> Entity Input
-                    <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                    <button className="jm-editor__close" onClick={onClose} title="Close properties" aria-label="Close properties"><X size={14} /></button>
                 </div>
                 <div className="jm-editor__body">
                     <div className="jm-editor__section">
@@ -136,7 +136,7 @@ export function NodeEditor({
                 <div className="jm-editor">
                 <div className="jm-editor__header">
                     <Package size={14} /> Deliverable
-                    <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                    <button className="jm-editor__close" onClick={onClose} title="Close properties" aria-label="Close properties"><X size={14} /></button>
                 </div>
                 <div className="jm-editor__body">
                     <div className="jm-editor__section">
@@ -193,7 +193,7 @@ export function NodeEditor({
                 <div className="jm-editor">
                 <div className="jm-editor__header">
                     <Database size={14} /> Shared Storage
-                    <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                    <button className="jm-editor__close" onClick={onClose} title="Close properties" aria-label="Close properties"><X size={14} /></button>
                 </div>
                 <div className="jm-editor__body">
                     <div className="jm-editor__section">
@@ -233,7 +233,7 @@ export function NodeEditor({
                 <div className="jm-editor">
                     <div className="jm-editor__header">
                         <Settings size={14} /> Properties
-                        <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                        <button className="jm-editor__close" onClick={onClose} title="Close properties" aria-label="Close properties"><X size={14} /></button>
                     </div>
                     <div className="jm-editor__body">
                         <div className="jm-editor__empty">
@@ -254,7 +254,7 @@ export function NodeEditor({
             <div className="jm-editor">
             <div className="jm-editor__header">
                 <Settings size={14} /> Step Configuration
-                <button className="jm-editor__close" onClick={onClose} title="Close properties"><X size={14} /></button>
+                <button className="jm-editor__close" onClick={onClose} title="Close properties" aria-label="Close properties"><X size={14} /></button>
             </div>
             <div className="jm-editor__body">
                 {cmd && (
@@ -442,14 +442,14 @@ export function NodeEditor({
                                     <strong>Output:</strong> {cmd.output}
                                 </div>
                             )}
-                            {cmd.outputSchema?.properties && (
+                            {(cmd.outputSchema?.properties as Record<string, unknown> | undefined) && (
                                 <div className="jm-editor__output-schema">
                                     <div className="jm-editor__output-schema-label">Schema keys:</div>
-                                    {Object.entries(cmd.outputSchema.properties as Record<string, any>).map(([key, schema]) => (
+                                    {Object.entries(cmd.outputSchema!.properties as Record<string, { type?: unknown }>).map(([key, schema]) => (
                                         <div key={key} className="jm-editor__output-schema-key">
                                             <code>{key}</code>
                                             <span className="jm-editor__output-schema-type">
-                                                {(schema as any)?.type || "any"}
+                                                {typeof schema.type === "string" ? schema.type : "any"}
                                             </span>
                                         </div>
                                     ))}
@@ -460,7 +460,7 @@ export function NodeEditor({
                             {step.outputMappings.map((mapping, mi) => {
                                 // Derive available output keys from schema
                                 const outputKeys = cmd.outputSchema?.properties
-                                    ? ["*", ...Object.keys(cmd.outputSchema.properties as Record<string, any>)]
+                                    ? ["*", ...Object.keys(cmd.outputSchema.properties as Record<string, unknown>)]
                                     : ["*"];
                                 // Available targets
                                 const storageKeys = storageEntries.filter(e => e.key.trim()).map(e => e.key);

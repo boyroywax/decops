@@ -24,8 +24,8 @@ import {
   buildAgentProposal,
   deliberate,
 } from "@/services/autonomy";
-import type { Agent } from "@/types";
-import type { ConsensusProposal, AgentSpec, WorkflowSpec, EcosystemChangeSpec } from "@/types/autonomy";
+import type { Agent, Group } from "@/types";
+import type { ConsensusProposal, AgentSpec, WorkflowSpec, EcosystemChangeSpec, TaskEvent } from "@/types/autonomy";
 
 // ── assign_task ────────────────────────────────────
 
@@ -174,6 +174,7 @@ export const delegateTaskCommand: CommandDefinition = {
     },
   },
   output: "Updated task status after delegation.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args, context: CommandContext) => {
     const task = getTask(args.taskId);
     if (!task) throw new Error(`Task "${args.taskId}" not found`);
@@ -233,6 +234,7 @@ export const escalateTaskCommand: CommandDefinition = {
     },
   },
   output: "Updated task status after escalation.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args, context: CommandContext) => {
     const task = getTask(args.taskId);
     if (!task) throw new Error(`Task "${args.taskId}" not found`);
@@ -285,6 +287,7 @@ export const taskStatusCommand: CommandDefinition = {
     },
   },
   output: "Full task status including history and result.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args) => {
     const task = getTask(args.taskId);
     if (!task) throw new Error(`Task "${args.taskId}" not found`);
@@ -312,19 +315,20 @@ export const taskStatusCommand: CommandDefinition = {
   },
 };
 
-function summarizeEvent(event: any): string {
+function summarizeEvent(event: TaskEvent): string {
+  const detail = (event.detail || {}) as Record<string, unknown>;
   switch (event.kind) {
-    case "created": return `Task created with goal: "${event.detail.goal?.substring(0, 80)}"`;
-    case "plan_generated": return `Plan generated: ${event.detail.actionCount ?? "?"} actions, self-complete: ${event.detail.canSelfComplete}`;
-    case "action_executed": return `Executed ${event.detail.commandId} (step ${event.detail.order})`;
-    case "action_failed": return `Failed: ${event.detail.commandId} — ${event.detail.error}`;
-    case "delegated": return `Delegated to ${event.detail.targetId} (${event.detail.targetType})`;
-    case "escalated": return `Escalated: ${event.detail.fromLevel} → ${event.detail.toLevel}`;
-    case "agent_proposed": return `Proposed new agent: ${event.detail.spec?.name}`;
-    case "agent_created": return `Created agent: ${event.detail.agentName} (${event.detail.role})`;
-    case "consensus_reached": return `Consensus: ${event.detail.outcome?.decision}`;
-    case "completed": return `Completed: ${event.detail.summary}`;
-    case "failed": return `Failed: ${event.detail.reason}`;
+    case "created": return `Task created with goal: "${(detail.goal as string | undefined)?.substring(0, 80)}"`;
+    case "plan_generated": return `Plan generated: ${detail.actionCount ?? "?"} actions, self-complete: ${detail.canSelfComplete}`;
+    case "action_executed": return `Executed ${detail.commandId} (step ${detail.order})`;
+    case "action_failed": return `Failed: ${detail.commandId} — ${detail.error}`;
+    case "delegated": return `Delegated to ${detail.targetId} (${detail.targetType})`;
+    case "escalated": return `Escalated: ${detail.fromLevel} → ${detail.toLevel}`;
+    case "agent_proposed": return `Proposed new agent: ${(detail.spec as { name?: string } | undefined)?.name}`;
+    case "agent_created": return `Created agent: ${detail.agentName} (${detail.role})`;
+    case "consensus_reached": return `Consensus: ${(detail.outcome as { decision?: string } | undefined)?.decision}`;
+    case "completed": return `Completed: ${detail.summary}`;
+    case "failed": return `Failed: ${detail.reason}`;
     default: return event.kind;
   }
 }
@@ -346,6 +350,7 @@ export const listTasksCommand: CommandDefinition = {
     },
   },
   output: "Array of task summaries.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args) => {
     let tasks = getAllTasks();
     if (args.status) {
@@ -525,10 +530,11 @@ export const proposeAgentCommand: CommandDefinition = {
     },
   },
   output: "Consensus result with member positions and outcome.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args, context: CommandContext) => {
     const { addLog, agents, groups } = context.workspace;
 
-    const group = groups.find((g: any) => g.id === args.groupId);
+    const group = groups.find((g: Group) => g.id === args.groupId);
     if (!group) throw new Error(`Group "${args.groupId}" not found`);
 
     const spec: AgentSpec = {
@@ -555,9 +561,10 @@ export const proposeAgentCommand: CommandDefinition = {
     addLog(`📋 Agent proposal: "${args.name}" (${args.role}) submitted to group "${group.name}"`);
 
     // Deliberate
-    const allAgents = [...agents, ...(context.storage._agents || [])];
+    const storage = context.storage as { _agents?: Agent[] };
+    const allAgents: Agent[] = [...agents, ...(storage._agents || [])];
     const memberAgents = group.members
-      .map((mid: string) => allAgents.find((a: any) => a.id === mid))
+      .map((mid: string) => allAgents.find((a) => a.id === mid))
       .filter(Boolean) as Agent[];
 
     if (memberAgents.length >= 2) {
@@ -622,6 +629,7 @@ export const executeProposalCommand: CommandDefinition = {
     },
   },
   output: "Result of the proposal execution.",
+  outputSchema: { type: "object", additionalProperties: true },
   execute: async (args, context: CommandContext) => {
     const proposal = context.storage[`proposal_${args.proposalId}`] as ConsensusProposal | undefined;
     if (!proposal) throw new Error(`Proposal "${args.proposalId}" not found in storage`);
@@ -673,7 +681,8 @@ async function executeProposal(
         deliverables: (spec.deliverables || []).map(d => ({
           key: d.toLowerCase().replace(/\s+/g, "-"),
           name: d,
-          type: "text",
+          label: d,
+          type: "txt" as const,
         })),
         createdAt: Date.now(),
         updatedAt: Date.now(),

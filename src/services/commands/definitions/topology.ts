@@ -1,5 +1,6 @@
 
 import type { CommandDefinition, CommandContext } from "@/services/commands/types";
+import type { Agent, Bridge, Channel, Group, Network } from "@/types";
 import { useEcosystemStore, useWorkspaceStore } from "@/stores";
 
 export const createBridgeCommand: CommandDefinition = {
@@ -29,29 +30,31 @@ export const createBridgeCommand: CommandDefinition = {
         const buildResolvers = () => {
             const liveAgents = useWorkspaceStore.getState().agents;
             const liveNetworks = useEcosystemStore.getState().ecosystem.networks;
-            const allAgents = [
+            const storage = context.storage as { _agents?: Agent[]; _networks?: Network[] };
+            const ctxAgents = context.workspace.getAgents?.() ?? context.workspace.agents;
+            const allAgents: Agent[] = [
                 ...liveAgents,
-                ...context.workspace.agents,
-                ...((context.storage as any)._agents || [])
+                ...ctxAgents,
+                ...(storage._agents || [])
             ];
-            const allNetworks = [
+            const allNetworks: Network[] = [
                 ...liveNetworks,
                 ...context.ecosystem.networks,
-                ...((context.storage as any)._networks || [])
+                ...(storage._networks || [])
             ];
             return {
                 resolveAgent: (key: string): string | null => {
                     if (!key) return null;
-                    const byId = allAgents.find((a: any) => a.id === key);
+                    const byId = allAgents.find((a) => a.id === key);
                     if (byId) return byId.id;
-                    const byName = allAgents.find((a: any) => a.name && String(a.name).toLowerCase() === String(key).toLowerCase());
+                    const byName = allAgents.find((a) => a.name && String(a.name).toLowerCase() === String(key).toLowerCase());
                     return byName?.id || null;
                 },
                 resolveNetwork: (key: string): string | null => {
                     if (!key) return null;
-                    const byId = allNetworks.find((n: any) => n.id === key);
+                    const byId = allNetworks.find((n) => n.id === key);
                     if (byId) return byId.id;
-                    const byName = allNetworks.find((n: any) => n.name && String(n.name).toLowerCase() === String(key).toLowerCase());
+                    const byName = allNetworks.find((n) => n.name && String(n.name).toLowerCase() === String(key).toLowerCase());
                     return byName?.id || null;
                 }
             };
@@ -59,10 +62,17 @@ export const createBridgeCommand: CommandDefinition = {
 
         // Resolve a single spec, retrying briefly to allow concurrent network/
         // agent creation jobs (in parallel architect deploys) to finish.
-        const resolveSpecWithRetry = async (spec: any): Promise<{ fromNetId: string|null; toNetId: string|null; fromAgentId: string|null; toAgentId: string|null }> => {
-            const maxAttempts = 30; // ~15s total
-            const delayMs = 500;
-            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        //
+        // Uses exponential backoff (50 ms → 100 → 200 → 400 → 800 → 1000 cap)
+        // with a 5 s total budget. Previous strategy of 30 × 500 ms = 15 s
+        // fixed wait blocked the chat round unnecessarily when the dependent
+        // jobs had already failed.
+        const resolveSpecWithRetry = async (spec: { from_network: string; to_network: string; from_agent: string; to_agent: string; type?: string }): Promise<{ fromNetId: string|null; toNetId: string|null; fromAgentId: string|null; toAgentId: string|null }> => {
+            const totalBudgetMs = 5_000;
+            const maxDelayMs = 1_000;
+            const startedAt = Date.now();
+            let delayMs = 50;
+            for (;;) {
                 const { resolveAgent, resolveNetwork } = buildResolvers();
                 const fromNetId = resolveNetwork(spec.from_network);
                 const toNetId = resolveNetwork(spec.to_network);
@@ -71,9 +81,10 @@ export const createBridgeCommand: CommandDefinition = {
                 if (fromNetId && toNetId && fromAgentId && toAgentId) {
                     return { fromNetId, toNetId, fromAgentId, toAgentId };
                 }
-                if (attempt < maxAttempts - 1) {
-                    await new Promise(r => setTimeout(r, delayMs));
-                }
+                const elapsed = Date.now() - startedAt;
+                if (elapsed + delayMs >= totalBudgetMs) break;
+                await new Promise(r => setTimeout(r, delayMs));
+                delayMs = Math.min(delayMs * 2, maxDelayMs);
             }
             const { resolveAgent, resolveNetwork } = buildResolvers();
             return {
@@ -84,7 +95,7 @@ export const createBridgeCommand: CommandDefinition = {
             };
         };
 
-        const created: any[] = [];
+        const created: Bridge[] = [];
 
         for (const spec of specs) {
             const { fromNetId, toNetId, fromAgentId, toAgentId } = await resolveSpecWithRetry(spec);
@@ -101,7 +112,7 @@ export const createBridgeCommand: CommandDefinition = {
                 continue;
             }
 
-            const exists = context.ecosystem.bridges.some((b: any) =>
+            const exists = context.ecosystem.bridges.some((b) =>
                 (b.fromAgentId === fromAgentId && b.toAgentId === toAgentId) ||
                 (b.fromAgentId === toAgentId && b.toAgentId === fromAgentId)
             );
@@ -126,7 +137,7 @@ export const createBridgeCommand: CommandDefinition = {
         }
 
         if (created.length > 0) {
-            context.ecosystem.setBridges((prev: any[]) => [...prev, ...created]);
+            context.ecosystem.setBridges((prev: Bridge[]) => [...prev, ...created]);
             context.workspace.addLog(`Created ${created.length} bridge(s).`);
         }
 
@@ -153,7 +164,7 @@ export const deleteBridgeCommand: CommandDefinition = {
             ? (Array.isArray(args.ids) ? args.ids : [args.ids])
             : [args.id];
         const idSet = new Set(targetIds);
-        context.ecosystem.setBridges((prev: any[]) => prev.filter((b: any) => !idSet.has(b.id)));
+        context.ecosystem.setBridges((prev: Bridge[]) => prev.filter((b) => !idSet.has(b.id)));
         context.workspace.addLog(`Dissolved ${targetIds.length} bridge(s)`);
         return { success: true, deleted: targetIds.length };
     }
@@ -176,12 +187,15 @@ export const printTopologyCommand: CommandDefinition = {
     },
     execute: async (args, context: CommandContext) => {
         const eco = context.ecosystem.ecosystem;
+        const liveAgents = context.workspace.getAgents?.() ?? context.workspace.agents;
+        const liveChannels = context.workspace.getChannels?.() ?? context.workspace.channels;
+        const liveGroups = context.workspace.getGroups?.() ?? context.workspace.groups;
         const topology = {
             ecosystem: eco ? { id: eco.id, name: eco.name, did: eco.did } : null,
-            agents: context.workspace.agents.map((a: any) => ({ id: a.id, name: a.name, role: a.role, networkId: a.networkId })),
-            channels: context.workspace.channels.map((c: any) => ({ from: c.from, to: c.to, type: c.type, networkId: c.networkId })),
-            groups: context.workspace.groups.map((g: any) => ({ name: g.name, members: g.members, networkId: g.networkId })),
-            networks: context.ecosystem.networks.map((e: any) => ({
+            agents: liveAgents.map((a: Agent) => ({ id: a.id, name: a.name, role: a.role, networkId: a.networkId })),
+            channels: liveChannels.map((c: Channel) => ({ from: c.from, to: c.to, type: c.type, networkId: c.networkId })),
+            groups: liveGroups.map((g: Group) => ({ name: g.name, members: g.members, networkId: g.networkId })),
+            networks: context.ecosystem.networks.map((e: Network) => ({
                 id: e.id, name: e.name,
                 agentCount: e.agents?.length || 0,
                 channelCount: e.channels?.length || 0,

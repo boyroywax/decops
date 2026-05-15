@@ -12,10 +12,10 @@ import { isParallelGroup, PARALLEL_GROUP_CMD, NODE_SPACING_X, NODE_SPACING_Y, IN
 
 export function buildStorageDefaults(
     storageEntries: Array<{ key: string; value: string }>
-): Record<string, any> | undefined {
+): Record<string, unknown> | undefined {
     const entries = storageEntries.filter(e => e.key.trim());
     if (entries.length === 0) return undefined;
-    const obj: Record<string, any> = {};
+    const obj: Record<string, unknown> = {};
     entries.forEach(({ key, value }) => {
         try { obj[key] = JSON.parse(value); }
         catch { obj[key] = value; }
@@ -113,7 +113,7 @@ export function buildJobDefFromRefs(params: BuildJobDefFromRefsParams): JobDefin
     const storageObj = storageEntries.filter(e => e.key.trim()).reduce((acc, { key, value }) => {
         try { acc[key] = JSON.parse(value); } catch { acc[key] = value; }
         return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, unknown>);
 
     const taskSteps = steps.filter(s => !isParallelGroup(s));
     const hasGroups = steps.some(s => isParallelGroup(s));
@@ -176,8 +176,8 @@ export function loadJobToStudioState(job: JobDefinition): LoadJobResult {
 
     // Reconstruct task steps with args + bindings
     const taskSteps: StudioStep[] = job.steps.map((s) => {
-        const savedBindings: Record<string, InputBinding> = (s as any).inputBindings || {};
-        const cleanArgs: Record<string, any> = {};
+        const savedBindings: Record<string, InputBinding> = s.inputBindings || {};
+        const cleanArgs: Record<string, unknown> = {};
         const bindings: Record<string, InputBinding> = { ...savedBindings };
         for (const [k, v] of Object.entries(s.args || {})) {
             if (typeof v === "string" && v.startsWith("$storage.") && !bindings[k]) {
@@ -199,7 +199,7 @@ export function loadJobToStudioState(job: JobDefinition): LoadJobResult {
             preCondition: s.condition || "",
             postCondition: "",
             parentId: null as string | null,
-            outputMappings: (s as any).outputMappings || [],
+            outputMappings: s.outputMappings || [],
             modelId: s.modelId,
             onSuccess: s.onSuccess || undefined,
             onFailure: s.onFailure || undefined,

@@ -7,9 +7,10 @@ interface PreviewContentProps {
   preview: MeshConfig;
   deployNetwork: () => void;
   resetArchitect: () => void;
+  showActions?: boolean;
 }
 
-export function PreviewContent({ preview, deployNetwork, resetArchitect }: PreviewContentProps) {
+export function PreviewContent({ preview, deployNetwork, resetArchitect, showActions = true }: PreviewContentProps) {
   const networkCount = preview.networks?.length || 0;
   const bridgeCount = preview.bridges?.length || 0;
   
@@ -184,14 +185,16 @@ export function PreviewContent({ preview, deployNetwork, resetArchitect }: Previ
       </div>
 
       {/* Action buttons */}
-      <div className="architect-review__actions">
-        <button onClick={deployNetwork} className="architect-review__deploy-btn">
-          <GradientIcon icon={Hexagon} size={14} gradient={["#f472b6", "#ec4899"]} /> Deploy Ecosystem
-        </button>
-        <button onClick={resetArchitect} className="architect-review__discard-btn">
-          Discard
-        </button>
-      </div>
+      {showActions && (
+        <div className="architect-review__actions">
+          <button onClick={deployNetwork} className="architect-review__deploy-btn">
+            <GradientIcon icon={Hexagon} size={14} gradient={["#f472b6", "#ec4899"]} /> Deploy Ecosystem
+          </button>
+          <button onClick={resetArchitect} className="architect-review__discard-btn">
+            Discard
+          </button>
+        </div>
+      )}
     </div>
   );
 }

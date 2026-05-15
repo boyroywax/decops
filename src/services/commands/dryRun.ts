@@ -11,9 +11,15 @@
  */
 
 import { getCommandErrors, type CommandError } from "./commandErrors";
-import type { CommandDefinition, CommandArg } from "./types";
+import type { CommandDefinition, CommandArg, CommandContext } from "./types";
 import type { JobStep } from "@/types";
 import { DELIVERABLE_STORAGE_PREFIX } from "@/utils/jobRuntime";
+
+/** Shape of an entity that findEntity looks up — needs id and (optionally) name. */
+interface NamedEntity {
+  id: string;
+  name?: string;
+}
 
 /* ─── Result Types ───────────────────────────────────────────────────── */
 
@@ -32,7 +38,7 @@ export interface DryRunResult {
   valid: boolean;
   commandId: string;
   commandFound: boolean;
-  resolvedArgs: Record<string, any>;
+  resolvedArgs: Record<string, unknown>;
   checks: DryRunCheck[];
   potentialErrors: CommandError[];
   warnings: string[];
@@ -65,7 +71,7 @@ export interface DryRunJobResult {
 /* ─── Helpers ────────────────────────────────────────────────────────── */
 
 /** Check if a value is empty (undefined, null, empty string, empty array) */
-function isEmpty(val: any): boolean {
+function isEmpty(val: unknown): boolean {
   if (val === undefined || val === null) return true;
   if (typeof val === "string" && val.trim() === "") return true;
   if (Array.isArray(val) && val.length === 0) return true;
@@ -75,35 +81,35 @@ function isEmpty(val: any): boolean {
 /** Find entity by name or ID in collection */
 function findEntity(
   value: string,
-  entities: any[] | undefined,
+  entities: NamedEntity[] | undefined,
 ): { found: boolean; resolvedId?: string; resolvedName?: string } {
   if (!entities || !value) return { found: false };
-  const byId = entities.find((e: any) => e.id === value);
+  const byId = entities.find((e) => e.id === value);
   if (byId) return { found: true, resolvedId: byId.id, resolvedName: byId.name };
   const byName = entities.find(
-    (e: any) => e.name?.toLowerCase() === value.toLowerCase(),
+    (e) => e.name?.toLowerCase() === value.toLowerCase(),
   );
   if (byName) return { found: true, resolvedId: byName.id, resolvedName: byName.name };
   return { found: false };
 }
 
 /** Get the entity collection for an arg type from context */
-function getEntityCollection(argType: string, context: any): any[] | undefined {
+function getEntityCollection(argType: string, context: CommandContext): NamedEntity[] | undefined {
   switch (argType) {
     case "agent": {
-      const agents = context?.workspace?.agents ?? [];
+      const agents = (context?.workspace?.agents ?? []) as NamedEntity[];
       // Also include agents from ecosystem networks
-      const nets: any[] = context?.ecosystem?.networks ?? [];
-      const netAgents = nets.flatMap((n: any) => n.agents ?? []);
-      const storageAgents: any[] = context?.storage?._agents ?? [];
+      const nets = (context?.ecosystem?.networks ?? []) as Array<{ agents?: NamedEntity[] }>;
+      const netAgents: NamedEntity[] = nets.flatMap((n) => n.agents ?? []);
+      const storageAgents = (context?.storage?._agents ?? []) as NamedEntity[];
       return [...agents, ...netAgents, ...storageAgents];
     }
     case "group":
-      return context?.workspace?.groups;
+      return context?.workspace?.groups as NamedEntity[] | undefined;
     case "channel":
-      return context?.workspace?.channels;
+      return context?.workspace?.channels as NamedEntity[] | undefined;
     case "network":
-      return context?.ecosystem?.networks;
+      return context?.ecosystem?.networks as NamedEntity[] | undefined;
     default:
       return undefined;
   }
@@ -111,14 +117,14 @@ function getEntityCollection(argType: string, context: any): any[] | undefined {
 
 /** Find $storage, $deliverable, $input references in args (both whole-string and embedded) */
 function findUnresolvedRefs(
-  args: Record<string, any>,
-  storage: Record<string, any>,
-  deliverables: Record<string, any>,
-  inputs: Record<string, any>,
+  args: Record<string, unknown>,
+  storage: Record<string, unknown>,
+  deliverables: Record<string, unknown>,
+  inputs: Record<string, unknown>,
 ): string[] {
   const unresolved: string[] = [];
 
-  const check = (val: any) => {
+  const check = (val: unknown) => {
     if (typeof val === "string") {
       // Check whole-string refs
       if (val.startsWith("$storage.") && !val.includes('\n') && !val.includes(' ')) {
@@ -155,7 +161,7 @@ function findUnresolvedRefs(
     } else if (Array.isArray(val)) {
       val.forEach(check);
     } else if (val && typeof val === "object") {
-      Object.values(val).forEach(check);
+      Object.values(val as Record<string, unknown>).forEach(check);
     }
   };
 
@@ -172,12 +178,12 @@ function findUnresolvedRefs(
 export function dryRunCommand(
   command: CommandDefinition | undefined,
   commandId: string,
-  args: Record<string, any>,
-  context: any,
+  args: Record<string, unknown>,
+  context: CommandContext,
 ): DryRunResult {
   const checks: DryRunCheck[] = [];
   const warnings: string[] = [];
-  const resolvedArgs = { ...args };
+  const resolvedArgs: Record<string, unknown> = { ...args };
 
   // ── 1. Command exists? ──
   if (!command) {
@@ -347,11 +353,12 @@ export function dryRunCommand(
               message: typeof result === "string" ? result : "Custom validation failed",
             });
           }
-        } catch (e: any) {
+        } catch (e: unknown) {
+          const message = e instanceof Error ? e.message : String(e);
           checks.push({
             label: `Validate: ${argName}`,
             status: "fail",
-            message: `Validation threw: ${e.message}`,
+            message: `Validation threw: ${message}`,
           });
         }
       }
@@ -448,8 +455,8 @@ export function dryRunJob(
   steps: JobStep[],
   mode: "serial" | "parallel",
   getCommand: (id: string) => CommandDefinition | undefined,
-  context: any,
-  storage: Record<string, any> = {},
+  context: CommandContext,
+  storage: Record<string, unknown> = {},
   deliverableKeys: string[] = [],
   inputMap: Record<string, string> = {},
 ): DryRunJobResult {
@@ -457,8 +464,8 @@ export function dryRunJob(
   const allUnresolvedRefs: string[] = [];
 
   // Simulated storage that builds up during serial dry-run
-  const simStorage = { ...storage };
-  const simDeliverables: Record<string, any> = {};
+  const simStorage: Record<string, unknown> = { ...storage };
+  const simDeliverables: Record<string, unknown> = {};
   for (const key of deliverableKeys) simDeliverables[key] = `<pending:${key}>`;
 
   for (let i = 0; i < steps.length; i++) {
@@ -469,7 +476,7 @@ export function dryRunJob(
     if (step.condition) {
       try {
         // Build evaluation context similar to executor
-        const stepMap = steps.reduce((acc: any, s) => {
+        const stepMap = steps.reduce<Record<string, JobStep>>((acc, s) => {
           acc[s.id] = s;
           if (s.name) acc[s.name] = s;
           return acc;
@@ -483,7 +490,7 @@ export function dryRunJob(
     }
 
     // ── Apply input bindings ──
-    const boundArgs = { ...step.args };
+    const boundArgs: Record<string, unknown> = { ...step.args };
     if (step.inputBindings) {
       for (const [argKey, binding] of Object.entries(step.inputBindings)) {
         if (binding.source === "storage" && binding.sourceKey in simStorage) {
@@ -517,7 +524,7 @@ export function dryRunJob(
 
     // ── Validate onSuccess / onFailure handler commands ──
     for (const [handlerKey, label] of [['onSuccess', 'onSuccess'], ['onFailure', 'onFailure']] as const) {
-      const handler = (step as any)[handlerKey];
+      const handler = (step as JobStep & Record<string, unknown>)[handlerKey] as { commandId?: string } | undefined;
       if (handler?.commandId) {
         const handlerCmd = getCommand(handler.commandId);
         if (!handlerCmd) {

@@ -3,10 +3,10 @@
  * Extracted from services/ai.ts for modularity.
  */
 
-import type { Agent, Message, BridgeMessage } from "@/types";
+import type { Agent, Message, BridgeMessage, ArchPhase, DeployProgress, MeshConfig } from "@/types";
 import { ROLES } from "@/constants";
 import { TOOLKITS } from "@/services/toolkits";
-import { getAllTools, getToolsForAgent, executeToolCall } from "@/services/commands/tools";
+import { getAllTools, getToolsForAgent } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContext } from "./prompts";
 import { buildWorkspaceSystemPrompt } from "./prompts";
@@ -14,13 +14,22 @@ import { getSelectedModel, getAgentModel } from "./models";
 import {
   getModelProvider,
   buildProviderRequest, parseProviderResponse,
-  parseToolUseBlocks, buildToolResultMessages,
 } from "./providers";
 import { getChatDelegation } from "./delegation";
+import { runChatTurn } from "./runner";
+import type { ChatTurnMessage } from "./runner";
 
 export interface ChatMessage {
+  id?: string;
   role: "user" | "assistant";
   content: string;
+  architectCard?: {
+    prompt: string;
+    phase: ArchPhase;
+    preview: MeshConfig | null;
+    deployProgress: DeployProgress;
+    live?: boolean;
+  };
   /** Tool calls the AI made (stored for display) */
   toolCalls?: ToolCallDisplay[];
   /** Job ID(s) associated with this message — renders inline progress */
@@ -30,8 +39,8 @@ export interface ChatMessage {
 /** Lightweight representation of a tool call for display in chat */
 export interface ToolCallDisplay {
   name: string;
-  input: Record<string, any>;
-  result: any;
+  input: Record<string, unknown>;
+  result: unknown;
   error?: string;
   duration_ms: number;
   jobId?: string;
@@ -123,91 +132,37 @@ export async function chatWithAgent(
         }).join(", ")}. You can only use commands from these toolkits. If you need a capability from a disabled toolkit, ask the operator to enable it.`
       : "",
     tools.length > 0
-      ? `\nYou have ${tools.length} tools available. When the operator asks you to do something that requires a tool, CALL THE TOOL — do not promise to do it later. After you receive tool results, summarize them concisely for the operator.`
+      ? `\nYou have ${tools.length} tools available. When responding to a user's prompt, you must follow this methodology:
+- First attempt to understand and extrapolate on the meaning of the user's prompt.
+- If the prompt is asking for an action to be conducted on the workspace, or within libp2p, define the action/s to call.
+- Then, queue the jobs that will direct those actions.
+- Finally, review the output of the job/s and return an analysis of the ran job.
+- If an error occurs, reapproach the prompt and attempt to restart the understanding process unless you need more/missing information from the user.`
       : "",
     `\nYou are chatting directly with a human operator who manages this workspace.`,
     `Respond concisely and in-character. Keep responses under 200 words. Use markdown formatting when appropriate.`,
   ].filter(Boolean).join("\n");
 
-  const apiMessages: any[] = [
+  const messages: ChatTurnMessage[] = [
     ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
     { role: "user" as const, content: userMessage },
   ];
 
-  const allToolCalls: ToolCallDisplay[] = [];
-  const MAX_TOOL_ROUNDS = tools.length > 0 ? 6 : 1;
-
-  try {
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const req = buildProviderRequest(
-        model, systemPrompt, apiMessages, 1500,
-        tools.length > 0 ? tools : undefined,
-      );
-      const response = await fetch(req.url, {
-        method: "POST",
-        headers: req.headers,
-        body: JSON.stringify(req.body),
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
-      }
-      const data = await response.json();
-
-      const toolUseBlocks = tools.length > 0 ? parseToolUseBlocks(model, data) : [];
-      if (toolUseBlocks.length === 0 || !commandContext) {
-        const text = parseProviderResponse(model, data);
-        return { text, toolCalls: allToolCalls };
-      }
-
-      // Execute tools and feed results back
-      const rawAssistant = provider === "openai"
-        ? data.choices?.[0]?.message?.tool_calls
-        : data.content;
-
-      const toolResults: { id: string; content: string; isError?: boolean }[] = [];
-      for (const block of toolUseBlocks) {
-        const result = await executeToolCall(
-          block.id,
-          block.name,
-          block.input || {},
-          commandContext,
-        );
-        const display: ToolCallDisplay = {
-          name: result.name,
-          input: result.input,
-          result: result.result,
-          error: result.error,
-          duration_ms: result.duration_ms,
-          jobId: result.jobId,
-        };
-        allToolCalls.push(display);
-        onToolCall?.(display);
-
-        toolResults.push({
-          id: block.id,
-          content: result.error
-            ? JSON.stringify({ error: result.error })
-            : JSON.stringify(result.result ?? { success: true }),
-          isError: !!result.error,
-        });
-      }
-
-      const resultMsgs = buildToolResultMessages(model, rawAssistant, toolResults);
-      apiMessages.push(...resultMsgs);
-    }
-
-    return { text: "[Tool call loop limit reached]", toolCalls: allToolCalls };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("No Anthropic API key") || msg.includes("No OpenAI API key") || msg.includes("No Google API key")) {
-      return {
-        text: `⚠️ No API key configured. Go to **LLM Manager → Providers** to add your API key.`,
-        toolCalls: allToolCalls,
-      };
-    }
-    return { text: `[Agent error: ${msg}]`, toolCalls: allToolCalls };
-  }
+  const result = await runChatTurn(
+    {
+      model,
+      systemPrompt,
+      messages,
+      tools: tools.length > 0 ? tools : undefined,
+      commandContext,
+      maxRounds: tools.length > 0 ? 6 : 1,
+      maxTokens: 1500,
+    },
+    {
+      onToolCallComplete: onToolCall,
+    },
+  );
+  return { text: result.text, toolCalls: result.toolCalls };
 }
 
 export async function chatWithWorkspace(
@@ -231,85 +186,18 @@ export async function chatWithWorkspace(
   // Build tools from command registry (tool use supported for anthropic + openai)
   const tools = commandContext && (provider === "anthropic" || provider === "openai") ? getAllTools() : [];
 
-  // Build message history
-  const apiMessages: any[] = [
+  const messages: ChatTurnMessage[] = [
     ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
     { role: "user" as const, content: userMessage },
   ];
 
-  const allToolCalls: ToolCallDisplay[] = [];
-  const MAX_TOOL_ROUNDS = maxRounds;
-
-  try {
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const req = buildProviderRequest(model, systemPrompt, apiMessages, 4096, tools.length > 0 ? tools : undefined);
-      const response = await fetch(req.url, {
-        method: "POST",
-        headers: req.headers,
-        body: JSON.stringify(req.body),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
-      }
-
-      const data = await response.json();
-
-      // Check for tool use
-      const toolUseBlocks = parseToolUseBlocks(model, data);
-
-      if (toolUseBlocks.length === 0 || !commandContext) {
-        const text = parseProviderResponse(model, data);
-        return { text, toolCalls: allToolCalls };
-      }
-
-      // Tool use round — execute tools then loop
-      // Get raw assistant content for the tool result message
-      const rawAssistant = provider === "openai"
-        ? data.choices?.[0]?.message?.tool_calls
-        : data.content;
-
-      const toolResults: { id: string; content: string; isError?: boolean }[] = [];
-      for (const block of toolUseBlocks) {
-        const result = await executeToolCall(
-          block.id,
-          block.name,
-          block.input || {},
-          commandContext,
-        );
-
-        allToolCalls.push({
-          name: result.name,
-          input: result.input,
-          result: result.result,
-          error: result.error,
-          duration_ms: result.duration_ms,
-          jobId: result.jobId,
-        });
-
-        const content = result.error
-          ? JSON.stringify({ error: result.error })
-          : JSON.stringify(result.result ?? { success: true });
-
-        toolResults.push({
-          id: block.id,
-          content,
-          isError: !!result.error,
-        });
-      }
-
-      // Append assistant + tool results in provider-specific format
-      const resultMsgs = buildToolResultMessages(model, rawAssistant, toolResults);
-      apiMessages.push(...resultMsgs);
-    }
-
-    return { text: "[Tool call loop limit reached]", toolCalls: allToolCalls };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("No Anthropic API key") || msg.includes("No OpenAI API key") || msg.includes("No Google API key")) {
-      return { text: "⚠️ No API key configured. Go to **LLM Manager → Providers** to add your API key.", toolCalls: [] };
-    }
-    return { text: `[Chat error: ${msg}]`, toolCalls: [] };
-  }
+  const result = await runChatTurn({
+    model,
+    systemPrompt,
+    messages,
+    tools: tools.length > 0 ? tools : undefined,
+    commandContext,
+    maxRounds,
+  });
+  return { text: result.text, toolCalls: result.toolCalls };
 }

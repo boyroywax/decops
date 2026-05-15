@@ -64,7 +64,7 @@ Example output format (multi-network with bridge):
       config.networks = [{
         name: "Default Network",
         description: "Auto-generated network",
-        agents: config.agents.map((_: any, i: number) => i)
+        agents: config.agents.map((_: unknown, i: number) => i)
       }];
     }
     

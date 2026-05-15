@@ -104,7 +104,7 @@ export const editArtifactCommand: CommandDefinition = {
     output: "Details of the updated artifact.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" }, artifact: { type: "object" } } },
     execute: async (args, context: CommandContext) => {
-        const existing = context.jobs.allArtifacts.find((a: any) => a.id === args.id);
+        const existing = context.jobs.allArtifacts.find((a) => a.id === args.id);
         if (!existing) {
             throw new Error(`Artifact ${args.id} not found.`);
         }
@@ -151,7 +151,7 @@ export const tagArtifactCommand: CommandDefinition = {
     output: "Updated artifact with new tags.",
     outputSchema: { type: "object", properties: { success: { type: "boolean" }, artifact: { type: "object" } } },
     execute: async (args, context: CommandContext) => {
-        const existing = context.jobs.allArtifacts.find((a: any) => a.id === args.id);
+        const existing = context.jobs.allArtifacts.find((a) => a.id === args.id);
         if (!existing) {
             throw new Error(`Artifact ${args.id} not found.`);
         }
@@ -255,26 +255,26 @@ export const listArtifactsCommand: CommandDefinition = {
         let results = [...context.jobs.allArtifacts];
 
         if (args.type) {
-            results = results.filter((a: any) => a.type === args.type);
+            results = results.filter((a) => a.type === args.type);
         }
         if (args.source) {
-            results = results.filter((a: any) => a.source === args.source);
+            results = results.filter((a) => a.source === args.source);
         }
         if (args.tag) {
-            results = results.filter((a: any) =>
+            results = results.filter((a) =>
                 Array.isArray(a.tags) && a.tags.some((t: string) => t === args.tag)
             );
         }
 
         // Sort newest first
-        results.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+        results.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
         const total = results.length;
         if (args.limit && args.limit > 0) {
             results = results.slice(0, args.limit);
         }
 
-        const artifacts = results.map((a: any) => ({
+        const artifacts = results.map((a) => ({
             id: a.id,
             name: a.name,
             type: a.type,
@@ -334,10 +334,10 @@ export const searchArtifactsCommand: CommandDefinition = {
         let candidates = [...context.jobs.allArtifacts];
 
         if (args.type) {
-            candidates = candidates.filter((a: any) => a.type === args.type);
+            candidates = candidates.filter((a) => a.type === args.type);
         }
 
-        const results: any[] = [];
+        const results: Array<{ id: string; name: string; type: string; source: string; tags: string[]; matchFields: string[]; snippet: string | null; createdAt: number | null }> = [];
 
         for (const artifact of candidates) {
             const matchFields: string[] = [];
@@ -418,7 +418,7 @@ export const exportArtifactCommand: CommandDefinition = {
         }
     },
     execute: async (args, context: CommandContext) => {
-        const artifact = context.jobs.allArtifacts.find((a: any) => a.id === args.id);
+        const artifact = context.jobs.allArtifacts.find((a) => a.id === args.id);
         if (!artifact) {
             throw new Error(`Artifact ${args.id} not found.`);
         }

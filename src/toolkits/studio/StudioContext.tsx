@@ -34,7 +34,7 @@ export interface StudioAPI {
     /** Add a step for the given command ID. Returns the new step ID. */
     addStep: (commandId: string) => string;
     removeStep: (id: string) => void;
-    updateStepArg: (stepId: string, argName: string, value: any) => void;
+    updateStepArg: (stepId: string, argName: string, value: unknown) => void;
     updateStepPreCondition: (stepId: string, condition: string) => void;
     updateStepPostCondition: (stepId: string, condition: string) => void;
     updateStepPosition: (stepId: string, x: number, y: number) => void;
@@ -49,7 +49,7 @@ export interface StudioAPI {
 
     // --- Deliverables ---
     addDeliverableEntry: (d: JobDeliverable) => void;
-    updateDeliverable: (index: number, field: keyof JobDeliverable, value: any) => void;
+    updateDeliverable: (index: number, field: keyof JobDeliverable, value: JobDeliverable[keyof JobDeliverable]) => void;
     removeDeliverableEntry: (index: number) => void;
 
     // --- Storage ---
@@ -63,7 +63,7 @@ export interface StudioAPI {
     removeInput: (index: number) => void;
 
     // --- Triggers ---
-    addTrigger: (event: TriggerEvent, id?: string, filter?: any, label?: string, cron?: string) => void;
+    addTrigger: (event: TriggerEvent, id?: string, filter?: JobTrigger["filter"], label?: string, cron?: string) => void;
     updateTrigger: (id: string, patch: Partial<JobTrigger>) => void;
     removeTrigger: (id: string) => void;
 
@@ -72,9 +72,9 @@ export interface StudioAPI {
     autoLayout: () => void;
 
     // --- Job lifecycle ---
-    saveJob: () => any;
-    runJob: () => any;
-    loadJobById: (id: string) => any;
+    saveJob: () => { saved: true; id: string; name: string } | { error: string };
+    runJob: () => { running: true; id: string; name: string; stepCount: number; runtimeJobId?: string } | { error: string };
+    loadJobById: (id: string) => { loaded: true; id: string; name: string } | { error: string };
     clearCanvas: () => void;
 }
 

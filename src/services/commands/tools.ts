@@ -28,17 +28,17 @@ interface AnthropicToolProperty {
   type: string;
   description: string;
   items?: { type: string };
-  default?: any;
+  default?: unknown;
   enum?: string[];
 }
 
-// ── Tool Result ────────────────────────────────────
+// ── Tool Result ───────────────────────────────────────
 
 export interface ToolCallResult {
   tool_use_id: string;
   name: string;
-  input: Record<string, any>;
-  result: any;
+  input: Record<string, unknown>;
+  result: unknown;
   error?: string;
   duration_ms: number;
   jobId?: string;
@@ -49,20 +49,38 @@ export interface ToolCallResult {
 // back to the awaiting tool call.
 
 interface PendingToolJob {
-  resolve: (result: any) => void;
+  resolve: (result: unknown) => void;
   reject: (err: Error) => void;
 }
 
 const pendingToolJobs = new Map<string, PendingToolJob>();
 
-const TOOL_JOB_TIMEOUT_MS = 30_000; // 30 second timeout
-const JOB_RUNNER_TIMEOUT_MS = 180_000; // 3 minute timeout for commands that spawn child jobs
+const TOOL_JOB_TIMEOUT_MS = 30_000; // 30 second default timeout
+const JOB_RUNNER_TIMEOUT_MS = 180_000; // 3 minute default for commands that spawn child jobs
 
-/** Commands that spawn and wait for child jobs — need longer timeouts */
-const JOB_RUNNER_COMMANDS = new Set(["studio_run_job", "studio_create_job"]);
+/**
+ * Pick the tool-call wait timeout for a given command.
+ *
+ * Resolution order:
+ *   1. Explicit `command.timeoutMs` on the definition.
+ *   2. `JOB_RUNNER_TIMEOUT_MS` when the definition sets `spawnsChildJobs`.
+ *   3. `TOOL_JOB_TIMEOUT_MS` otherwise.
+ *
+ * Falls back to the short timeout if the command id is unknown (the
+ * registry only knows about installed commands, but the tool adapter
+ * receives whatever the LLM tries to call).
+ *
+ * Exported for testing.
+ */
+export function resolveToolTimeout(toolName: string): number {
+  const def = registry.get(toolName);
+  if (def?.timeoutMs != null) return def.timeoutMs;
+  if (def?.spawnsChildJobs) return JOB_RUNNER_TIMEOUT_MS;
+  return TOOL_JOB_TIMEOUT_MS;
+}
 
 /** Called by the job executor when a tool-initiated job completes */
-export function resolveToolJob(jobId: string, result: any): boolean {
+export function resolveToolJob(jobId: string, result: unknown): boolean {
   const pending = pendingToolJobs.get(jobId);
   if (pending) {
     pending.resolve(result);
@@ -89,8 +107,8 @@ export function rejectToolJob(jobId: string, error: string): boolean {
  * The job executor already calls resolveToolJob/rejectToolJob for every job,
  * so registering here piggy-backs on that mechanism.
  */
-export function watchChildJob(childJobId: string, timeoutMs = JOB_RUNNER_TIMEOUT_MS): Promise<any> {
-  return new Promise<any>((resolve, reject) => {
+export function watchChildJob(childJobId: string, timeoutMs = JOB_RUNNER_TIMEOUT_MS): Promise<unknown> {
+  return new Promise<unknown>((resolve, reject) => {
     pendingToolJobs.set(childJobId, { resolve, reject });
     setTimeout(() => {
       if (pendingToolJobs.has(childJobId)) {
@@ -161,6 +179,54 @@ const EXCLUDED_COMMANDS = new Set([
   "reset_workspace",   // Danger: full workspace wipe
 ]);
 
+// Anthropic's tools API caps the array at 128 entries. We must keep the
+// exposed surface under that ceiling or every chat call rejects with
+// `Invalid 'tools': array too long`.
+const MAX_ANTHROPIC_TOOLS = 128;
+
+/**
+ * Sort + slice a tool list so it fits inside Anthropic's 128-tool ceiling.
+ *
+ * Priority (kept first):
+ *  1. Lower-cardinality / orchestration commands (toolkit + meta).
+ *  2. Ecosystem / network / agent / channel / group / message commands.
+ *  3. Everything else, by alphabetical id (deterministic).
+ *
+ * If we still overflow, we drop from the tail and emit a single warning.
+ */
+function capForAnthropic(cmds: CommandDefinition[]): CommandDefinition[] {
+  if (cmds.length <= MAX_ANTHROPIC_TOOLS) return cmds;
+
+  const priorityTag = (c: CommandDefinition): number => {
+    const tags = c.tags || [];
+    if (tags.includes("toolkit") || tags.includes("meta")) return 0;
+    if (
+      tags.includes("ecosystem") ||
+      tags.includes("network") ||
+      tags.includes("agent") ||
+      tags.includes("channel") ||
+      tags.includes("group") ||
+      tags.includes("message")
+    ) return 1;
+    return 2;
+  };
+
+  const sorted = [...cmds].sort((a, b) => {
+    const pa = priorityTag(a);
+    const pb = priorityTag(b);
+    if (pa !== pb) return pa - pb;
+    return a.id.localeCompare(b.id);
+  });
+
+  const kept = sorted.slice(0, MAX_ANTHROPIC_TOOLS);
+  const dropped = sorted.slice(MAX_ANTHROPIC_TOOLS).map((c) => c.id);
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[tools] ${cmds.length} commands exceeds Anthropic's ${MAX_ANTHROPIC_TOOLS}-tool limit; dropping ${dropped.length}: ${dropped.join(", ")}`,
+  );
+  return kept;
+}
+
 // ── Conversion ─────────────────────────────────────
 
 /** Convert a single CommandDefinition to an Anthropic tool schema */
@@ -196,19 +262,56 @@ export function commandToTool(cmd: CommandDefinition): AnthropicTool {
 
 /** Convert all registered commands to Anthropic tool schemas */
 export function getAllTools(): AnthropicTool[] {
-  return registry
+  const cmds = registry
     .getAll()
-    .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id) && !cmd.hidden)
-    .map(commandToTool);
+    .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id) && !cmd.hidden);
+  return capForAnthropic(cmds).map(commandToTool);
 }
 
 /** Get tools filtered by tags (e.g. only "agent" + "query" tools) */
 export function getToolsByTags(tags: string[]): AnthropicTool[] {
-  return registry
+  const cmds = registry
     .getAll()
     .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id) && !cmd.hidden)
-    .filter(cmd => tags.some(t => cmd.tags.includes(t)))
-    .map(commandToTool);
+    .filter(cmd => tags.some(t => cmd.tags.includes(t)));
+  return capForAnthropic(cmds).map(commandToTool);
+}
+
+/**
+ * Get tools restricted to the union of the given toolkit IDs' commands,
+ * plus a small set of always-available meta commands. Used by the workspace
+ * chat to scope the AI's tool surface to whatever the active chat agent
+ * declares it needs (keeps the request well under Anthropic's 128 cap and
+ * keeps the model focused on relevant tools).
+ *
+ * If `toolkitIds` is empty/undefined, falls back to `getAllTools()`.
+ */
+export function getToolsByToolkitIds(toolkitIds: string[] | undefined): AnthropicTool[] {
+  if (!toolkitIds || toolkitIds.length === 0) return getAllTools();
+
+  const allowed = new Set<string>();
+  for (const id of toolkitIds) {
+    const tk = TOOLKITS.find(t => t.id === id);
+    if (tk) for (const cmdId of tk.commands) allowed.add(cmdId);
+  }
+
+  // Always allow toolkit-management meta commands so the model can ask the
+  // operator to enable a missing toolkit instead of failing silently.
+  const META_COMMANDS = new Set([
+    "enable_toolkit",
+    "disable_toolkit",
+    "list_agent_toolkits",
+    "set_agent_toolkits",
+  ]);
+
+  const cmds = registry
+    .getAll()
+    .filter(cmd =>
+      !EXCLUDED_COMMANDS.has(cmd.id) &&
+      !cmd.hidden &&
+      (allowed.has(cmd.id) || META_COMMANDS.has(cmd.id)),
+    );
+  return capForAnthropic(cmds).map(commandToTool);
 }
 
 /**
@@ -251,14 +354,14 @@ export function getToolsForAgent(agent: Agent): AnthropicTool[] {
     "set_agent_toolkits",
   ]);
 
-  return registry
+  const cmds = registry
     .getAll()
     .filter(cmd =>
       !EXCLUDED_COMMANDS.has(cmd.id) &&
       !cmd.hidden &&
       (allowedCommands.has(cmd.id) || META_COMMANDS.has(cmd.id)),
-    )
-    .map(commandToTool);
+    );
+  return capForAnthropic(cmds).map(commandToTool);
 }
 
 /**
@@ -291,7 +394,7 @@ export function getCommandIdsForAgent(agent: Agent): Set<string> | null {
 export async function executeToolCall(
   toolUseId: string,
   toolName: string,
-  toolInput: Record<string, any>,
+  toolInput: Record<string, unknown>,
   context: CommandContext,
 ): Promise<ToolCallResult> {
   const start = performance.now();
@@ -324,12 +427,13 @@ export async function executeToolCall(
     }
 
     // Wait for the job executor to complete this job
-    const result = await new Promise<any>((resolve, reject) => {
+    const result = await new Promise<unknown>((resolve, reject) => {
       pendingToolJobs.set(jobId, { resolve, reject });
 
-      // Timeout safety — don't block the tool loop forever
-      // Job-running commands get a longer timeout since they wait for child jobs
-      const timeout = JOB_RUNNER_COMMANDS.has(toolName) ? JOB_RUNNER_TIMEOUT_MS : TOOL_JOB_TIMEOUT_MS;
+      // Timeout safety — don't block the tool loop forever.
+      // Per-command `timeoutMs` / `spawnsChildJobs` on the CommandDefinition
+      // override the default. See `resolveToolTimeout`.
+      const timeout = resolveToolTimeout(toolName);
       setTimeout(() => {
         if (pendingToolJobs.has(jobId)) {
           pendingToolJobs.delete(jobId);

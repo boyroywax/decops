@@ -129,3 +129,6 @@ export function useArchitect(addLog: (msg: string) => void, addJob: (job: JobReq
     resetArchitect,
   };
 }
+
+/** Inferred return type of {@link useArchitect}. Prefer this over `any`. */
+export type UseArchitectReturn = ReturnType<typeof useArchitect>;

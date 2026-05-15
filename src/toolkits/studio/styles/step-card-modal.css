@@ -1249,7 +1249,7 @@
 [data-theme="light"] .scm-edit-select {
   background: rgba(0, 0, 0, 0.03);
   border-color: rgba(0, 0, 0, 0.12);
-  color: #1e293b;
+  color: var(--text-primary, #1e293b);
 }
 
 [data-theme="light"] .scm-edit-input:focus,
@@ -1261,13 +1261,13 @@
 [data-theme="light"] .scm-bind-toggle {
   border-color: rgba(0, 0, 0, 0.1);
   background: rgba(0, 0, 0, 0.03);
-  color: #94a3b8;
+  color: var(--text-ghost, #94a3b8);
 }
 
 [data-theme="light"] .scm-bind-toggle:hover {
   border-color: rgba(0, 0, 0, 0.2);
   background: rgba(0, 0, 0, 0.06);
-  color: #475569;
+  color: var(--text-secondary, #475569);
 }
 
 [data-theme="light"] .scm-bind-toggle--active {
@@ -1280,7 +1280,7 @@
 [data-theme="light"] .scm-param__input-wrap .command-arg__select {
   background: rgba(0, 0, 0, 0.03);
   border-color: rgba(0, 0, 0, 0.12);
-  color: #1e293b;
+  color: var(--text-primary, #1e293b);
 }
 
 [data-theme="light"] .scm-param__input-wrap .command-arg__input:focus,
@@ -1300,12 +1300,12 @@
 [data-theme="light"] .scm-add-btn {
   border-color: rgba(0, 0, 0, 0.12);
   background: rgba(0, 0, 0, 0.02);
-  color: #94a3b8;
+  color: var(--text-ghost, #94a3b8);
 }
 
 [data-theme="light"] .scm-add-btn:hover {
   border-color: #059669;
-  color: #475569;
+  color: var(--text-secondary, #475569);
   background: rgba(0, 0, 0, 0.04);
 }
 

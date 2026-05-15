@@ -183,8 +183,9 @@ export const crawlSiteCommand: CommandDefinition = {
             let content = "";
             try {
                 content = await readerFetch(url, ac.signal);
-            } catch (e: any) {
-                context.workspace.addLog(`[web-crawler] crawl_site skip ${url}: ${e.message}`);
+            } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : String(e);
+                context.workspace.addLog(`[web-crawler] crawl_site skip ${url}: ${msg}`);
                 clearTimeout(timeout);
                 continue;
             }

@@ -37,15 +37,21 @@ export class AutomationRunner {
                 result = await def.execute(this.context, runId);
             } else if (def.type === "declarative") {
                 const { registry } = await import("../commands/registry");
-                const results: any[] = [];
+                interface StepResult {
+                    stepId: string;
+                    commandId: string;
+                    status: "completed" | "failed" | "skipped";
+                    result: unknown;
+                }
+                const results: StepResult[] = [];
 
                 // Helper for simple condition evaluation
-                const evaluateCondition = (condition: string, context: CommandContext, previousSteps: any[]) => {
+                const evaluateCondition = (condition: string, context: CommandContext, previousSteps: StepResult[]) => {
                     try {
-                        const stepMap = previousSteps.reduce((acc, s) => {
+                        const stepMap = previousSteps.reduce<Record<string, StepResult>>((acc, s) => {
                             acc[s.stepId] = s;
                             return acc;
-                        }, {} as any);
+                        }, {});
                         // eslint-disable-next-line no-new-func
                         const fn = new Function('steps', 'context', `return ${condition}`);
                         return fn(stepMap, context);
@@ -56,7 +62,7 @@ export class AutomationRunner {
                 };
 
                 // Initialize shared storage from defaults
-                const storage: Record<string, any> = { ...(def.storageDefaults || {}) };
+                const storage: Record<string, unknown> = { ...(def.storageDefaults || {}) };
 
                 // Wire storage and deliverables into the context for this run
                 this.context.storage = storage;
@@ -68,15 +74,15 @@ export class AutomationRunner {
                 };
 
                 /** Recursively resolve $storage.key references in step args */
-                const resolveStorageRefs = (value: any): any => {
+                const resolveStorageRefs = (value: unknown): unknown => {
                     if (typeof value === 'string' && value.startsWith('$storage.')) {
                         const key = value.slice('$storage.'.length);
                         return key in storage ? storage[key] : value;
                     }
                     if (Array.isArray(value)) return value.map(resolveStorageRefs);
                     if (value && typeof value === 'object') {
-                        const out: any = {};
-                        for (const [k, v] of Object.entries(value)) out[k] = resolveStorageRefs(v);
+                        const out: Record<string, unknown> = {};
+                        for (const [k, v] of Object.entries(value as Record<string, unknown>)) out[k] = resolveStorageRefs(v);
                         return out;
                     }
                     return value;
@@ -94,7 +100,7 @@ export class AutomationRunner {
 
                     this.log(run, "info", `Executing step: ${step.commandId}`);
                     try {
-                        const resolvedArgs = resolveStorageRefs(step.args || {});
+                        const resolvedArgs = resolveStorageRefs(step.args || {}) as Record<string, unknown>;
                         const stepResult = await registry.execute(step.commandId, resolvedArgs, this.context);
                         results.push({ stepId: step.id, commandId: step.commandId, status: "completed", result: stepResult });
                     } catch (e) {

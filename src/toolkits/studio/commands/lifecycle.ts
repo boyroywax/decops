@@ -5,6 +5,59 @@
 
 import { CommandDefinition } from "@/services/commands/types";
 import { watchChildJob } from "@/services/commands/tools";
+import type { EntityInput, JobDeliverable, JobTrigger, StepHandler, TriggerEvent } from "@/types";
+import type { InputBinding, OutputMapping } from "@/toolkits/studio/types/studio";
+
+type StudioAPI = import("@/toolkits/studio/StudioContext").StudioAPI;
+
+interface StudioCreateStepSpec {
+    commandId: string;
+    args?: Record<string, unknown>;
+    condition?: string;
+    inputBindings?: Record<string, InputBinding>;
+    outputMappings?: OutputMapping[];
+    modelId?: string;
+    onSuccess?: StepHandler;
+    onFailure?: StepHandler;
+    parallelGroup?: number;
+}
+
+interface StudioCreateTriggerSpec {
+    event: TriggerEvent;
+    filter?: string;
+    label?: string;
+    cron?: string;
+}
+
+interface StudioCreateJobArgs {
+    name: string;
+    description?: string;
+    steps: StudioCreateStepSpec[];
+    parallelGroups?: string[];
+    deliverables?: JobDeliverable[];
+    storageDefaults?: Record<string, unknown>;
+    inputs?: EntityInput[];
+    triggers?: StudioCreateTriggerSpec[];
+    save?: boolean;
+    run?: boolean;
+}
+
+interface StudioCreateJobResult {
+    name: string;
+    stepCount: number;
+    stepIds: string[];
+    groupCount: number;
+    groupIds: string[];
+    saved?: ReturnType<StudioAPI["saveJob"]>;
+    ran?: ReturnType<StudioAPI["runJob"]>;
+    ranCompleted?: boolean;
+    jobResult?: unknown;
+    jobError?: string;
+}
+
+function errorMessage(err: unknown): string {
+    return err instanceof Error ? err.message : String(err || "Job failed");
+}
 
 // ────────────────────────────────────────────────────
 // Studio State Queries
@@ -18,16 +71,19 @@ export const studioGetStateCommand: CommandDefinition = {
     args: {},
     output: "Full Studio state object",
     outputSchema: {
-        name: "string",
-        description: "string",
-        mode: "string",
-        stepCount: "number",
-        steps: "array",
-        deliverables: "array",
-        storageEntries: "array",
+        type: "object",
+        properties: {
+            name: { type: "string" },
+            description: { type: "string" },
+            mode: { type: "string" },
+            stepCount: { type: "number" },
+            steps: { type: "array" },
+            deliverables: { type: "array" },
+            storageEntries: { type: "array" },
+        },
     },
     execute: async (_args, context) => {
-        const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
+        const studio = context.extensions?.studio as StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available. Navigate to the Studio tab first." };
         return studio.getState();
     },
@@ -47,9 +103,11 @@ export const studioSetJobMetaCommand: CommandDefinition = {
         description: { name: "description", type: "string", description: "Job description", required: false },
     },
     output: "Updated job metadata",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
-        const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
+        const studio = context.extensions?.studio as StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
+        const createArgs = args as StudioCreateJobArgs;
         if (args.name !== undefined) studio.setName(args.name);
         if (args.description !== undefined) studio.setDescription(args.description);
         return { name: args.name ?? studio.getState().name, description: args.description ?? studio.getState().description };
@@ -67,6 +125,7 @@ export const studioSaveJobCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: {},
     output: "Saved job definition ID",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (_args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -80,8 +139,10 @@ export const studioRunJobCommand: CommandDefinition = {
     description: "Builds the current Studio job definition, submits it for execution, and monitors it until completion. The job must have a name and at least one step. Returns the final job result or error.",
     tags: ["studio", "job", "run"],
     rbac: ["orchestrator", "builder"],
+    spawnsChildJobs: true,
     args: {},
     output: "Run status with final job result",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (_args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -92,16 +153,17 @@ export const studioRunJobCommand: CommandDefinition = {
         if (result.runtimeJobId) {
             try {
                 const childResult = await watchChildJob(result.runtimeJobId);
+                const timedOut = !!(childResult && typeof childResult === "object" && "_childTimeout" in childResult && (childResult as { _childTimeout?: boolean })._childTimeout);
                 return {
                     ...result,
-                    completed: !childResult?._childTimeout,
+                    completed: !timedOut,
                     jobResult: childResult,
                 };
-            } catch (err: any) {
+            } catch (err: unknown) {
                 return {
                     ...result,
                     completed: false,
-                    jobError: err.message || "Job failed",
+                    jobError: errorMessage(err),
                 };
             }
         }
@@ -119,6 +181,7 @@ export const studioLoadJobCommand: CommandDefinition = {
         jobId: { name: "jobId", type: "string", description: "The job definition ID to load from the catalog", required: true },
     },
     output: "Loaded job info",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -134,6 +197,7 @@ export const studioClearCanvasCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: {},
     output: "Confirmation message",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (_args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
@@ -147,7 +211,7 @@ export const studioClearCanvasCommand: CommandDefinition = {
 // ────────────────────────────────────────────────────
 
 /** Parse a filter string into a structured filter object. */
-function parseTriggerFilter(val: string): { entityId?: string; tag?: string; name?: string } | undefined {
+function parseTriggerFilter(val: string): JobTrigger["filter"] | undefined {
     const isId = /^[a-z0-9-]{8,}$/i.test(val);
     const isTag = val.includes(":");
     return {
@@ -162,6 +226,7 @@ export const studioCreateJobCommand: CommandDefinition = {
     description: "Creates a complete job in the Studio in one call. Clears the canvas first, then sets name, description, steps (with args, bindings, output mappings), parallel groups, deliverables, storage defaults, entity inputs, and triggers. Optionally saves and/or runs it immediately.",
     tags: ["studio", "job", "create"],
     rbac: ["orchestrator", "builder"],
+    spawnsChildJobs: true,
     args: {
         name: { name: "name", type: "string", description: "Job name", required: true },
         description: { name: "description", type: "string", description: "Job description", required: false, defaultValue: "" },
@@ -205,21 +270,23 @@ export const studioCreateJobCommand: CommandDefinition = {
         run: { name: "run", type: "boolean", description: "Run the job immediately after creation", required: false, defaultValue: false },
     },
     output: "Created job info with optional save/run results",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
-        const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
+        const studio = context.extensions?.studio as StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
+        const createArgs = args as StudioCreateJobArgs;
 
         // 1. Clear canvas
         studio.clearCanvas();
 
         // 2. Set metadata
-        studio.setName(args.name);
-        studio.setDescription(args.description || "");
+        studio.setName(createArgs.name);
+        studio.setDescription(createArgs.description || "");
 
         // 3. Create parallel groups first (we need their IDs for child assignment)
         const groupIds: string[] = [];
-        if (args.parallelGroups && Array.isArray(args.parallelGroups)) {
-            for (const _label of args.parallelGroups) {
+        if (createArgs.parallelGroups && Array.isArray(createArgs.parallelGroups)) {
+            for (const _label of createArgs.parallelGroups) {
                 const gid = studio.addParallelGroup();
                 groupIds.push(gid);
             }
@@ -227,7 +294,7 @@ export const studioCreateJobCommand: CommandDefinition = {
 
         // 4. Add steps
         const stepIds: string[] = [];
-        for (const stepDef of args.steps) {
+        for (const stepDef of createArgs.steps) {
             const stepId = studio.addStep(stepDef.commandId);
             stepIds.push(stepId);
 
@@ -248,11 +315,11 @@ export const studioCreateJobCommand: CommandDefinition = {
             if (stepDef.modelId) {
                 studio.updateStepModel(stepId, stepDef.modelId);
             }
-            if (stepDef.onSuccess && (studio as any).updateStepOnSuccess) {
-                (studio as any).updateStepOnSuccess(stepId, stepDef.onSuccess);
+            if (stepDef.onSuccess) {
+                studio.updateStepOnSuccess(stepId, stepDef.onSuccess);
             }
-            if (stepDef.onFailure && (studio as any).updateStepOnFailure) {
-                (studio as any).updateStepOnFailure(stepId, stepDef.onFailure);
+            if (stepDef.onFailure) {
+                studio.updateStepOnFailure(stepId, stepDef.onFailure);
             }
             if (stepDef.parallelGroup !== undefined && typeof stepDef.parallelGroup === "number") {
                 const gid = groupIds[stepDef.parallelGroup];
@@ -263,8 +330,8 @@ export const studioCreateJobCommand: CommandDefinition = {
         }
 
         // 5. Add deliverables
-        if (args.deliverables) {
-            for (const d of args.deliverables) {
+        if (createArgs.deliverables) {
+            for (const d of createArgs.deliverables) {
                 studio.addDeliverableEntry({
                     key: d.key,
                     label: d.label,
@@ -275,41 +342,41 @@ export const studioCreateJobCommand: CommandDefinition = {
         }
 
         // 6. Add storage defaults
-        if (args.storageDefaults) {
-            for (const [key, value] of Object.entries(args.storageDefaults)) {
+        if (createArgs.storageDefaults) {
+            for (const [key, value] of Object.entries(createArgs.storageDefaults)) {
                 studio.addStorageEntryWithValues(key, typeof value === "string" ? value : JSON.stringify(value));
             }
         }
 
         // 7. Add entity inputs
-        if (args.inputs) {
-            for (const inp of args.inputs) {
+        if (createArgs.inputs) {
+            for (const inp of createArgs.inputs) {
                 studio.addInput({ name: inp.name, type: inp.type || "agent", entityId: inp.entityId || "" });
             }
         }
 
         // 8. Add triggers
-        if (args.triggers && Array.isArray(args.triggers) && (studio as any).addTrigger) {
-            for (const t of args.triggers) {
+        if (createArgs.triggers && Array.isArray(createArgs.triggers)) {
+            for (const t of createArgs.triggers) {
                 const id = `trigger-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
                 const filter = t.filter ? parseTriggerFilter(t.filter) : undefined;
-                (studio as any).addTrigger(t.event, id, filter, t.label, t.cron);
+                studio.addTrigger(t.event, id, filter, t.label, t.cron);
             }
         }
 
         // 9. Optionally save and/or run
-        const result: any = { name: args.name, stepCount: stepIds.length, stepIds, groupCount: groupIds.length, groupIds };
+        const result: StudioCreateJobResult = { name: createArgs.name, stepCount: stepIds.length, stepIds, groupCount: groupIds.length, groupIds };
 
         // 9a. Auto-layout the canvas so steps don't stack on top of each other
         if (studio.autoLayout) {
             studio.autoLayout();
         }
 
-        if (args.save) {
+        if (createArgs.save) {
             result.saved = studio.saveJob();
         }
 
-        if (args.run) {
+        if (createArgs.run) {
             const runResult = studio.runJob();
             result.ran = runResult;
 
@@ -317,11 +384,12 @@ export const studioCreateJobCommand: CommandDefinition = {
             if (runResult && !("error" in runResult) && runResult.runtimeJobId) {
                 try {
                     const childResult = await watchChildJob(runResult.runtimeJobId);
-                    result.ranCompleted = !childResult?._childTimeout;
+                    const timedOut = !!(childResult && typeof childResult === "object" && "_childTimeout" in childResult && (childResult as { _childTimeout?: boolean })._childTimeout);
+                    result.ranCompleted = !timedOut;
                     result.jobResult = childResult;
-                } catch (err: any) {
+                } catch (err: unknown) {
                     result.ranCompleted = false;
-                    result.jobError = err.message || "Job failed";
+                    result.jobError = errorMessage(err);
                 }
             }
         }
@@ -350,14 +418,13 @@ export const studioAddTriggerCommand: CommandDefinition = {
         cron: { name: "cron", type: "string", description: "Cron expression (only for schedule:cron events)", required: false },
     },
     output: "Created trigger ID",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
-        const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
+        const studio = context.extensions?.studio as StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
         const id = `trigger-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
         const filter = args.filter ? parseTriggerFilter(args.filter) : undefined;
-        if ((studio as any).addTrigger) {
-            (studio as any).addTrigger(args.event, id, filter, args.label, args.cron);
-        }
+        studio.addTrigger(args.event as TriggerEvent, id, filter, args.label, args.cron);
         return { triggerId: id, event: args.event, filter, label: args.label };
     },
 };
@@ -371,12 +438,11 @@ export const studioRemoveTriggerCommand: CommandDefinition = {
         triggerId: { name: "triggerId", type: "string", description: "ID of the trigger to remove", required: true },
     },
     output: "Removed trigger confirmation",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
-        const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
+        const studio = context.extensions?.studio as StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
-        if ((studio as any).removeTrigger) {
-            (studio as any).removeTrigger(args.triggerId);
-        }
+        studio.removeTrigger(args.triggerId);
         return { removed: args.triggerId };
     },
 };
@@ -392,6 +458,7 @@ export const studioAutoLayoutCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder"],
     args: {},
     output: "Layout result",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (_args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };

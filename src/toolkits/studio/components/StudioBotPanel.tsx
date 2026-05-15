@@ -101,7 +101,7 @@ export function StudioBotPanel() {
                     onClick={handleAnalyze}
                     disabled={!studioApi}
                     title={!studioApi ? "Open Studio tab first" : "Analyze canvas layout"}
-                >
+                 aria-label={!studioApi ? "Open Studio tab first" : "Analyze canvas layout"}>
                     <Eye size={13} />
                     Analyze Layout
                 </button>
@@ -110,7 +110,7 @@ export function StudioBotPanel() {
                     onClick={handleAutoLayout}
                     disabled={!studioApi}
                     title={!studioApi ? "Open Studio tab first" : "Fix layout issues"}
-                >
+                 aria-label={!studioApi ? "Open Studio tab first" : "Fix layout issues"}>
                     <Layout size={13} />
                     Auto-Layout
                 </button>

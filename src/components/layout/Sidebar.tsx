@@ -29,6 +29,7 @@ interface SidebarProps {
 const EDITOR_ITEM = { id: "editor" as ViewId, label: "Editor", icon: FileText, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] as [string, string] };
 const ARCHITECT_ITEM = { id: "architect" as ViewId, label: "Architect", icon: Sparkles, accent: "#fbbf24", gradient: ["#fbbf24", "#fb923c"] as [string, string] };
 const STUDIO_ITEM = { id: "jobs" as ViewId, label: "Studio", icon: Clapperboard, accent: "#8b5cf6", gradient: ["#8b5cf6", "#a78bfa"] as [string, string] };
+const LIBP2P_ITEM = { id: "libp2p" as ViewId, label: "libp2p", icon: Globe, accent: "#38bdf8", gradient: ["#38bdf8", "#a78bfa"] as [string, string] };
 const TOOLKITS_ITEM = { id: "toolkits" as ViewId, label: "Tool Kits", icon: Wrench, accent: "#f97316", gradient: ["#f97316", "#fb923c"] as [string, string] };
 const SYSTEM_ITEM = { id: "system" as ViewId, label: "System", icon: Monitor, accent: "#64748b", gradient: ["#64748b", "#94a3b8"] as [string, string] };
 
@@ -230,6 +231,26 @@ export function Sidebar({ view, setView, networks, messages, bridgeMessages, age
         {(!collapsed || isMobile) && (
           <>
             {STUDIO_ITEM.label}
+          </>
+        )}
+      </button>
+
+      <button
+        onClick={() => setView(LIBP2P_ITEM.id)}
+        title={collapsed && !isMobile ? LIBP2P_ITEM.label : undefined}
+        className={`sidebar-nav-item sidebar-nav-item--libp2p ${view === LIBP2P_ITEM.id ? 'active' : ''}`}
+        data-accent="info"
+        style={{ display: "none" }}
+        hidden
+        aria-hidden="true"
+      >
+        {view === LIBP2P_ITEM.id
+          ? <GradientIcon icon={LIBP2P_ITEM.icon} size={14} gradient={LIBP2P_ITEM.gradient} />
+          : <LIBP2P_ITEM.icon size={14} />
+        }
+        {(!collapsed || isMobile) && (
+          <>
+            {LIBP2P_ITEM.label}
           </>
         )}
       </button>

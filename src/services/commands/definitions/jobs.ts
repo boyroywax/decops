@@ -1,4 +1,5 @@
 import { CommandDefinition } from "@/services/commands/types";
+import type { JobDeliverable, JobRequest, JobStep } from "@/types";
 
 // --- Queue Management ---
 
@@ -17,14 +18,24 @@ export const queueNewJobCommand: CommandDefinition = {
         parallelGroups: { name: "parallelGroups", type: "array", description: "Parallel group metadata: [{ id, label, stepIds[] }]", required: false },
     },
     output: "The ID of the queued job.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { type, request, steps, mode, deliverables, storageDefaults, parallelGroups } = args;
-        const jobPayload: any = { type, request };
-        if (steps) jobPayload.steps = steps;
-        if (mode) jobPayload.mode = mode;
-        if (deliverables) jobPayload.deliverables = deliverables;
-        if (storageDefaults) jobPayload.storageDefaults = storageDefaults;
-        if (parallelGroups) jobPayload.parallelGroups = parallelGroups;
+        const jobPayload = {
+            type: type as string,
+            request: request as Record<string, unknown>,
+        } as JobRequest & {
+            steps?: JobStep[];
+            mode?: "serial" | "parallel" | "mixed";
+            deliverables?: JobDeliverable[];
+            storageDefaults?: Record<string, unknown>;
+            parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>;
+        };
+        if (steps) jobPayload.steps = steps as JobStep[];
+        if (mode) jobPayload.mode = mode as "serial" | "parallel" | "mixed";
+        if (deliverables) jobPayload.deliverables = deliverables as JobDeliverable[];
+        if (storageDefaults) jobPayload.storageDefaults = storageDefaults as Record<string, unknown>;
+        if (parallelGroups) jobPayload.parallelGroups = parallelGroups as Array<{ id: string; label: string; stepIds: string[] }>;
         context.jobs.addJob(jobPayload);
         return "Job queued";
     }
@@ -37,6 +48,7 @@ export const pauseQueueCommand: CommandDefinition = {
     rbac: ["orchestrator"],
     args: {},
     output: "Status message",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         context.jobs.pauseQueue();
         return "Queue paused";
@@ -50,6 +62,7 @@ export const resumeQueueCommand: CommandDefinition = {
     rbac: ["orchestrator"],
     args: {},
     output: "Status message",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         context.jobs.resumeQueue();
         return "Queue resumed";
@@ -65,6 +78,7 @@ export const deleteQueuedJobCommand: CommandDefinition = {
         id: { name: "id", type: "string", description: "Job ID to remove", required: true }
     },
     output: "Status message",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         context.jobs.removeJob(args.id);
         return `Job ${args.id} removed`;
@@ -78,6 +92,7 @@ export const listQueueCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder", "researcher"],
     args: {},
     output: "List of queued jobs",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         return context.jobs.getQueue();
     }
@@ -92,6 +107,7 @@ export const listCatalogJobsCommand: CommandDefinition = {
     rbac: ["orchestrator", "builder", "researcher"],
     args: {},
     output: "List of job definitions",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         return context.jobs.getCatalog();
     }
@@ -114,6 +130,7 @@ export const saveJobDefinitionCommand: CommandDefinition = {
         triggers: { name: "triggers", type: "array", description: "Trigger rules: [{ event, filter?, label?, cron? }]", required: false },
     },
     output: "ID of saved definition",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const id = `job-def-${Date.now()}`;
         const now = Date.now();
@@ -145,6 +162,7 @@ export const deleteJobDefinitionCommand: CommandDefinition = {
         id: { name: "id", type: "string", description: "Definition ID", required: true }
     },
     output: "Status message",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         context.jobs.deleteDefinition(args.id);
         return `Definition ${args.id} deleted`;

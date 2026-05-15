@@ -12,7 +12,7 @@ export const setApiKeyCommand: CommandDefinition = {
             type: "string",
             description: "The API key string (starts with sk-ant...)",
             required: true,
-            validation: (val) => val.startsWith("sk-") ? true : "Invalid key format (must start with sk-)"
+            validation: (val) => (typeof val === "string" && val.startsWith("sk-")) ? true : "Invalid key format (must start with sk-)"
         }
     },
     output: "Confirmation of API key update.",

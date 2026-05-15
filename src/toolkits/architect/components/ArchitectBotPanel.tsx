@@ -15,12 +15,12 @@ import {
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { useEcosystemStore } from "@/stores/ecosystemStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
-import type { ViewId } from "@/types";
+import type { NavContext, ViewId } from "@/types";
 import "../styles/architect-bot.css";
 
 interface ArchitectBotPanelProps {
     /** Navigate to a view. When provided, action buttons become active. */
-    navigateTo?: (view: ViewId, ctx?: any) => void;
+    navigateTo?: (view: ViewId, ctx: NavContext) => void;
 }
 
 export function ArchitectBotPanel({ navigateTo }: ArchitectBotPanelProps) {
@@ -93,11 +93,11 @@ export function ArchitectBotPanel({ navigateTo }: ArchitectBotPanelProps) {
     }, [stats, agents, channels]);
 
     const handleDesignNetwork = useCallback(() => {
-        if (navigateTo) navigateTo("architect");
+        if (navigateTo) navigateTo("architect", {});
     }, [navigateTo]);
 
     const handleViewTopology = useCallback(() => {
-        if (navigateTo) navigateTo("networks");
+        if (navigateTo) navigateTo("networks", {});
     }, [navigateTo]);
 
     const statusLabel = stats.networkCount === 0 ? "Ready" : "Active";
@@ -136,7 +136,7 @@ export function ArchitectBotPanel({ navigateTo }: ArchitectBotPanelProps) {
                     onClick={handleViewTopology}
                     disabled={!navigateTo}
                     title="View network topology"
-                >
+                 aria-label="View network topology">
                     <Map size={13} />
                     View Topology
                 </button>
@@ -145,7 +145,7 @@ export function ArchitectBotPanel({ navigateTo }: ArchitectBotPanelProps) {
                     onClick={handleDesignNetwork}
                     disabled={!navigateTo}
                     title="Open the Architect to design a new network"
-                >
+                 aria-label="Open the Architect to design a new network">
                     <Sparkles size={13} />
                     Design Network
                 </button>

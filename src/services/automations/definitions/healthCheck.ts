@@ -19,7 +19,7 @@ export const healthCheckAutomation: AutomationDefinition = {
             total: agents.length,
             online: 0,
             offline: 0,
-            failures: [] as any[]
+            failures: [] as Array<{ agentId: string; name: string; error: string }>
         };
 
         addLog(`[HealthCheck] Pinging ${agents.length} agents...`);

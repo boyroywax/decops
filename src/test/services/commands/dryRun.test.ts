@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import type { CommandContext } from '@/services/commands/types';
 import { dryRunCommand, dryRunJob } from '@/services/commands/dryRun';
 import type { CommandDefinition } from '@/services/commands/types';
 import { CommandRegistry } from '@/services/commands/registry';
@@ -55,7 +56,7 @@ const validatedCommand: CommandDefinition = {
             type: 'number',
             required: true,
             description: 'Port number',
-            validation: (v: number) => (v >= 1 && v <= 65535) ? true : 'Port must be between 1 and 65535',
+            validation: (v: unknown) => (typeof v === 'number' && v >= 1 && v <= 65535) ? true : 'Port must be between 1 and 65535',
         },
     },
     execute: vi.fn(async () => 'ok'),
@@ -77,7 +78,7 @@ const ctx = {
         ecosystems: [],
     },
     storage: {},
-};
+} as unknown as CommandContext;
 
 /* ─── dryRunCommand ──────────────────────────────────────────────────── */
 
@@ -150,22 +151,22 @@ describe('dryRunCommand', () => {
     });
 
     it('validates enum values', () => {
-        const valid = dryRunCommand(enumCommand, 'set_mode', { mode: 'fast' }, {});
+        const valid = dryRunCommand(enumCommand, 'set_mode', { mode: 'fast' }, {} as CommandContext);
         expect(valid.valid).toBe(true);
         const enumCheck = valid.checks.find(c => c.label === 'Enum: mode');
         expect(enumCheck?.status).toBe('pass');
 
-        const invalid = dryRunCommand(enumCommand, 'set_mode', { mode: 'turbo' }, {});
+        const invalid = dryRunCommand(enumCommand, 'set_mode', { mode: 'turbo' }, {} as CommandContext);
         expect(invalid.valid).toBe(false);
         const failCheck = invalid.checks.find(c => c.label === 'Enum: mode');
         expect(failCheck?.status).toBe('fail');
     });
 
     it('runs custom validation', () => {
-        const valid = dryRunCommand(validatedCommand, 'validated_cmd', { port: 8080 }, {});
+        const valid = dryRunCommand(validatedCommand, 'validated_cmd', { port: 8080 }, {} as CommandContext);
         expect(valid.valid).toBe(true);
 
-        const invalid = dryRunCommand(validatedCommand, 'validated_cmd', { port: 99999 }, {});
+        const invalid = dryRunCommand(validatedCommand, 'validated_cmd', { port: 99999 }, {} as CommandContext);
         expect(invalid.valid).toBe(false);
         const valCheck = invalid.checks.find(c => c.label === 'Validate: port');
         expect(valCheck?.status).toBe('fail');

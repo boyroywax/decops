@@ -1,0 +1,614 @@
+/* ═══════════════════════════════════════════════════════
+   libp2p Bot Panel — sub-agent UI
+   ═══════════════════════════════════════════════════════ */
+
+.libp2p-bot {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 8px;
+    background: var(--bg-surface, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
+}
+
+.libp2p-bot__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.libp2p-bot__header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.libp2p-bot__title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary, #e4e4e7);
+}
+.libp2p-bot__subtitle {
+    font-size: 10px;
+    color: var(--text-secondary, #a1a1aa);
+    line-height: 1.2;
+}
+.libp2p-bot__status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.libp2p-bot__desc {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-secondary, #a1a1aa);
+}
+
+/* ── Network snapshot ── */
+
+.libp2p-bot__network {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+.libp2p-bot__stat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+}
+.libp2p-bot__stat-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary, #e4e4e7);
+    line-height: 1.1;
+}
+.libp2p-bot__stat-total {
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.55;
+    margin-left: 1px;
+}
+.libp2p-bot__stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary, #a1a1aa);
+}
+
+.libp2p-bot__active-node {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px dashed rgba(56, 189, 248, 0.3);
+    border-radius: 6px;
+    background: rgba(56, 189, 248, 0.05);
+    font-size: 11px;
+}
+.libp2p-bot__active-label {
+    text-transform: uppercase;
+    font-size: 9.5px;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary, #a1a1aa);
+}
+.libp2p-bot__active-name { font-weight: 600; color: var(--text-primary, #e4e4e7); }
+.libp2p-bot__active-status {
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.libp2p-bot__active-status--running { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+.libp2p-bot__active-status--starting { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.libp2p-bot__active-status--error { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.libp2p-bot__active-peer {
+    margin-left: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10.5px;
+    color: var(--text-secondary, #a1a1aa);
+}
+
+/* ── Section title ── */
+
+.libp2p-bot__section-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary, #e4e4e7);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ── Activity log ── */
+
+.libp2p-bot__log {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.libp2p-bot__log-entry {
+    padding: 8px 10px;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.libp2p-bot__log-entry--error {
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.05);
+}
+.libp2p-bot__log-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-primary, #e4e4e7);
+}
+.libp2p-bot__log-summary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.libp2p-bot__log-time { font-size: 10px; color: var(--text-secondary, #a1a1aa); }
+.libp2p-bot__log-ops {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.libp2p-bot__log-op {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.1);
+    color: #38bdf8;
+    font-size: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.libp2p-bot__log-more {
+    font-size: 10px;
+    color: var(--text-secondary, #a1a1aa);
+}
+
+/* ── Configuration ── */
+
+.libp2p-bot__config {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.libp2p-bot__config-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: transparent;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
+    border-radius: 6px;
+    color: var(--text-secondary, #a1a1aa);
+    font-size: 11px;
+    cursor: pointer;
+}
+.libp2p-bot__config-toggle:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary, #e4e4e7);
+}
+.libp2p-bot__config-toggle > span:first-of-type { flex: 1; text-align: left; }
+.libp2p-bot__config-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
+    border-radius: 6px;
+}
+.libp2p-bot__config-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-primary, #e4e4e7);
+    cursor: pointer;
+}
+.libp2p-bot__config-item input[type="checkbox"] { accent-color: #38bdf8; }
+.libp2p-bot__config-item input[type="number"] {
+    margin-left: auto;
+    width: 56px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.12));
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--text-primary, #e4e4e7);
+    font-size: 11px;
+}
+.libp2p-bot__config-num { /* alias if used directly */ }
+
+/* ── Capabilities ── */
+
+.libp2p-bot__capabilities { display: flex; flex-direction: column; gap: 6px; }
+.libp2p-bot__cap-list { display: flex; flex-direction: column; gap: 4px; }
+.libp2p-bot__cap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-secondary, #a1a1aa);
+}
+.libp2p-bot__cap svg { color: #38bdf8; }
+
+/* ── Solar theme overrides ── */
+
+[data-theme="solar"] .libp2p-bot {
+    background: #fefaf0;
+    border-color: rgba(196, 125, 10, 0.2);
+}
+[data-theme="solar"] .libp2p-bot__active-node {
+    background: rgba(184, 134, 11, 0.06);
+    border-color: rgba(184, 134, 11, 0.35);
+}
+[data-theme="solar"] .libp2p-bot__log-op {
+    background: rgba(184, 134, 11, 0.12);
+    color: #b8860b;
+}
+[data-theme="solar"] .libp2p-bot__cap svg { color: #b8860b; }
+[data-theme="solar"] .libp2p-bot__config-item input[type="checkbox"] { accent-color: #b8860b; }
+
+/* ═══════════════════════════════════════════════════════
+   libp2p Bot Modal — full chat dialog
+   ═══════════════════════════════════════════════════════ */
+
+.libp2p-btn--ai {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(167, 139, 250, 0.18));
+    border-color: rgba(167, 139, 250, 0.35);
+    color: #e0e7ff;
+}
+.libp2p-btn--ai:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.28), rgba(167, 139, 250, 0.28));
+    border-color: rgba(167, 139, 250, 0.55);
+}
+[data-theme="solar"] .libp2p-btn--ai {
+    background: linear-gradient(135deg, rgba(184, 134, 11, 0.18), rgba(196, 125, 10, 0.18));
+    border-color: rgba(184, 134, 11, 0.4);
+    color: #5b3d04;
+}
+
+.libp2p-bot-modal {
+    width: min(1080px, 100%);
+    height: min(720px, 90vh);
+    max-height: 90vh;
+}
+.libp2p-bot-modal__title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.libp2p-bot-modal__title h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+.libp2p-bot-modal__subtitle {
+    font-size: 11px;
+    color: var(--text-secondary, #a1a1aa);
+}
+.libp2p-modal-close {
+    background: transparent;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    border-radius: 6px;
+    color: inherit;
+    padding: 4px 6px;
+    cursor: pointer;
+}
+.libp2p-modal-close:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.libp2p-bot-modal__body {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 0;
+    min-height: 0;
+}
+.libp2p-bot-modal__aside {
+    overflow-y: auto;
+    padding: 14px;
+    border-right: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    background: rgba(255, 255, 255, 0.015);
+}
+.libp2p-bot-modal__chat {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.libp2p-bot-modal__history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.libp2p-bot-modal__empty {
+    margin: auto;
+    max-width: 460px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary, #a1a1aa);
+}
+.libp2p-bot-modal__empty h4 {
+    margin: 4px 0 0;
+    color: var(--text-primary, #e4e4e7);
+    font-size: 14px;
+}
+.libp2p-bot-modal__empty p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.libp2p-bot-modal__suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 10px;
+}
+.libp2p-bot-modal__suggestion {
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-primary, #e4e4e7);
+    font-size: 11px;
+    cursor: pointer;
+}
+.libp2p-bot-modal__suggestion:hover:not(:disabled) {
+    border-color: rgba(167, 139, 250, 0.5);
+    background: rgba(167, 139, 250, 0.1);
+}
+.libp2p-bot-modal__suggestion:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.libp2p-bot-modal__turn {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.libp2p-bot-modal__msg {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    background: rgba(255, 255, 255, 0.025);
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+.libp2p-bot-modal__msg p {
+    margin: 4px 0 0;
+    white-space: pre-wrap;
+}
+.libp2p-bot-modal__msg--user {
+    align-self: flex-end;
+    max-width: 80%;
+    background: rgba(56, 189, 248, 0.08);
+    border-color: rgba(56, 189, 248, 0.25);
+}
+.libp2p-bot-modal__msg--bot {
+    max-width: 92%;
+}
+.libp2p-bot-modal__msg--ok { border-color: rgba(74, 222, 128, 0.25); }
+.libp2p-bot-modal__msg--err { border-color: rgba(248, 113, 113, 0.35); background: rgba(248, 113, 113, 0.06); }
+.libp2p-bot-modal__msg--loading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary, #a1a1aa);
+    font-size: 12px;
+}
+.libp2p-bot-modal__role {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary, #a1a1aa);
+}
+.libp2p-bot-modal__ops {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+}
+.libp2p-bot-modal__op {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    font-size: 10.5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.libp2p-bot-modal__op--err {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+}
+.libp2p-bot-modal__hints {
+    margin: 8px 0 0;
+    padding-left: 18px;
+    font-size: 11.5px;
+    color: var(--text-secondary, #a1a1aa);
+}
+.libp2p-bot-modal__error-line {
+    margin: 6px 0 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    color: #f87171;
+}
+
+.libp2p-bot-modal__alert {
+    margin: 0 16px 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    color: #f87171;
+    font-size: 11.5px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.libp2p-bot-modal__form {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    background: rgba(255, 255, 255, 0.015);
+}
+.libp2p-bot-modal__input {
+    flex: 1;
+    resize: none;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--text-primary, #e4e4e7);
+    font-size: 12.5px;
+    font-family: inherit;
+    line-height: 1.45;
+}
+.libp2p-bot-modal__input:focus {
+    outline: none;
+    border-color: rgba(167, 139, 250, 0.5);
+    box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.12);
+}
+.libp2p-bot-modal__send {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(167, 139, 250, 0.4);
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(167, 139, 250, 0.25));
+    color: #e0e7ff;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.libp2p-bot-modal__send:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.4), rgba(167, 139, 250, 0.4));
+}
+.libp2p-bot-modal__send:disabled { opacity: 0.4; cursor: not-allowed; }
+.libp2p-bot-modal__spinner { animation: libp2p-spin 0.8s linear infinite; }
+
+@keyframes libp2p-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 760px) {
+    .libp2p-bot-modal__body { grid-template-columns: 1fr; }
+    .libp2p-bot-modal__aside { display: none; }
+}
+
+/* Solar overrides */
+[data-theme="solar"] .libp2p-bot-modal__msg--user {
+    background: rgba(184, 134, 11, 0.1);
+    border-color: rgba(184, 134, 11, 0.3);
+}
+[data-theme="solar"] .libp2p-bot-modal__op {
+    background: rgba(184, 134, 11, 0.12);
+    color: #b8860b;
+}
+[data-theme="solar"] .libp2p-bot-modal__send {
+    background: linear-gradient(135deg, rgba(184, 134, 11, 0.25), rgba(196, 125, 10, 0.25));
+    border-color: rgba(184, 134, 11, 0.4);
+    color: #5b3d04;
+}
+
+/* ── Compact variant (used inside the bot modal aside) ── */
+.libp2p-bot--compact {
+    background: transparent;
+    border: 0;
+    padding: 0;
+    gap: 10px;
+}
+.libp2p-bot--compact .libp2p-bot__network {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.libp2p-bot--compact .libp2p-bot__stat { padding: 6px 8px; }
+.libp2p-bot--compact .libp2p-bot__stat-value { font-size: 14px; }
+.libp2p-bot__compact-status {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Allow stat values to truncate gracefully */
+.libp2p-bot__stat { min-width: 0; overflow: hidden; }
+.libp2p-bot__stat-value {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.libp2p-bot__active-node { min-width: 0; }
+.libp2p-bot__active-peer {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Chat overflow fixes ── */
+.libp2p-bot-modal__chat { min-width: 0; }
+.libp2p-bot-modal__history { min-width: 0; }
+.libp2p-bot-modal__msg {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+.libp2p-bot-modal__msg p {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+.libp2p-bot-modal__error-line {
+    overflow-wrap: anywhere;
+    word-break: break-all;
+}
+.libp2p-bot-modal__form { min-width: 0; }
+.libp2p-bot-modal__input {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+.libp2p-bot-modal__op {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: normal;
+}
+
+.libp2p-btn--icon {
+    padding-left: 8px;
+    padding-right: 8px;
+    gap: 0;
+}

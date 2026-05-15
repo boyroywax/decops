@@ -1,5 +1,6 @@
 
 import { CommandDefinition } from "@/services/commands/types";
+import type { Agent } from "@/types";
 import { generateDID, generateKeyPair } from "@/utils/identity";
 import { createAieosEntity } from "@/utils/aieos";
 import { ROLES } from "@/constants";
@@ -16,7 +17,7 @@ export const createAgentCommand: CommandDefinition = {
             type: "string",
             description: "The name of the agent",
             required: true,
-            validation: (val) => val.length >= 3 || "Name must be at least 3 characters",
+            validation: (val) => (typeof val === "string" && val.length >= 3) || "Name must be at least 3 characters",
         },
         role: {
             name: "role",
@@ -75,15 +76,13 @@ export const createAgentCommand: CommandDefinition = {
             ? (Array.isArray(args.items) ? args.items : [args.items])
             : [{ name: args.name, role: args.role, prompt: args.prompt, networkId: args.networkId }];
 
-        const created: any[] = [];
+        const created: Agent[] = [];
         for (const spec of specs) {
             const { name, role, prompt, title } = spec;
             // Drop unresolved $storage.* refs so we fall back to activeNetworkId
             // instead of persisting a literal placeholder string.
             const rawNetworkId = spec.networkId;
             const networkId = isUnresolvedRef(rawNetworkId) ? undefined : rawNetworkId;
-
-            await new Promise(resolve => setTimeout(resolve, 300));
 
             const newAgent = {
                 id: crypto.randomUUID(),
@@ -108,7 +107,7 @@ export const createAgentCommand: CommandDefinition = {
             context.storage[`agent_${slugifyStorageKey(name)}`] = newAgent.id;
         }
 
-        workspace.setAgents((prev: any[]) => [...prev, ...created]);
+        workspace.setAgents((prev: Agent[]) => [...prev, ...created]);
         workspace.addLog(`Created ${created.length} agent(s): ${created.map(a => a.name).join(", ")}`);
 
         // Accumulate in storage so downstream steps (channels, groups) can look up
@@ -138,17 +137,15 @@ export const pingAgentCommand: CommandDefinition = {
         }
     },
     output: "Pong response with latency and status.",
+    outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { agentId } = args;
-        const agent = context.workspace.agents.find(a => a.id === agentId);
+        const liveAgents = context.workspace.getAgents?.() ?? context.workspace.agents;
+        const agent = liveAgents.find(a => a.id === agentId);
 
         if (!agent) {
             throw new Error(`Agent ${agentId} not found`);
         }
-
-        // Simulate network latency and response
-        const latency = Math.floor(Math.random() * 200) + 50; // 50-250ms
-        await new Promise(resolve => setTimeout(resolve, latency));
 
         // Simulate occasional failure (5% chance)
         const isHealthy = Math.random() > 0.05;
@@ -161,7 +158,6 @@ export const pingAgentCommand: CommandDefinition = {
             agentId,
             name: agent.name,
             status: "online",
-            latency: `${latency}ms`,
             timestamp: new Date().toISOString()
         };
     }

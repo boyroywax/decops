@@ -2,6 +2,8 @@
 import type { CommandDefinition, CommandContext } from "@/services/commands/types";
 import { generateMeshConfig } from "@/services/ai";
 import { slugifyStorageKey } from "@/utils/storageKey";
+import type { MeshConfig, MeshConfigNetwork, MeshConfigBridge } from "@/types/mesh";
+import type { JobStep, JobRequest } from "@/types";
 
 export const promptArchitectCommand: CommandDefinition = {
     id: "prompt_architect",
@@ -47,6 +49,7 @@ export const deployNetworkCommand: CommandDefinition = {
     tags: ["architect", "deploy", "provision", "job"],
     rbac: ["builder", "orchestrator"],
     usesAI: true,
+    spawnsChildJobs: true,
     args: {
         prompt: {
             name: "prompt",
@@ -106,9 +109,9 @@ export const deployNetworkCommand: CommandDefinition = {
         addLog("Generating deployment plan from config...");
 
         // Normalize networks — ensure at least a default
-        const configNetworks = config.networks && config.networks.length > 0
+        const configNetworks: MeshConfigNetwork[] = config.networks && config.networks.length > 0
             ? [...config.networks]
-            : [{ name: "Default Network", description: "Auto-generated network", agents: config.agents.map((_: any, i: number) => i) }];
+            : [{ name: "Default Network", description: "Auto-generated network", agents: config.agents.map((_: unknown, i: number) => i) }];
 
         // Build agent-to-network index mapping
         const agentToNetworkIdx: (number | undefined)[] = [];
@@ -129,7 +132,7 @@ export const deployNetworkCommand: CommandDefinition = {
         // If the AI returned multiple networks but no bridges, create a chain of
         // bridges between each consecutive pair (using each network's first agent).
         if (configNetworks.length > 1 && (!config.bridges || config.bridges.length === 0)) {
-            const autoBridges: any[] = [];
+            const autoBridges: MeshConfigBridge[] = [];
             const firstAgentIdxOfNetwork = (netIdx: number): number | undefined => {
                 const net = configNetworks[netIdx];
                 if (net?.agents && net.agents.length > 0) return net.agents[0];
@@ -158,8 +161,8 @@ export const deployNetworkCommand: CommandDefinition = {
         }
 
         // ── Helper: build per-network pipeline steps ──
-        const buildNetworkPipeline = (net: any, netIdx: number, prefix: string) => {
-            const steps: any[] = [];
+        const buildNetworkPipeline = (net: MeshConfigNetwork, netIdx: number, prefix: string) => {
+            const steps: JobStep[] = [];
             let stepIdx = 0;
 
             // 1. Create the network
@@ -171,7 +174,7 @@ export const deployNetworkCommand: CommandDefinition = {
             });
 
             // 2. Create agents belonging to this network
-            const agentSpecs: any[] = [];
+            const agentSpecs: Array<Record<string, unknown>> = [];
             for (let i = 0; i < config.agents.length; i++) {
                 const a = config.agents[i];
                 if (!a?.name) continue;
@@ -200,7 +203,7 @@ export const deployNetworkCommand: CommandDefinition = {
                 const belongsToNet = config.agents[i]?.network ?? agentToNetworkIdx[i] ?? 0;
                 if (belongsToNet === netIdx) netAgentIndices.add(i);
             }
-            const channelSpecs: any[] = [];
+            const channelSpecs: Array<Record<string, unknown>> = [];
             for (const c of config.channels || []) {
                 if (c.from == null || c.to == null) continue;
                 if (!netAgentIndices.has(c.from) || !netAgentIndices.has(c.to)) continue;
@@ -224,7 +227,7 @@ export const deployNetworkCommand: CommandDefinition = {
             }
 
             // 4. Create groups (members in this network)
-            const groupSpecs: any[] = [];
+            const groupSpecs: Array<Record<string, unknown>> = [];
             for (const g of config.groups || []) {
                 if (!g?.name) continue;
                 const memberNames = (g.members || [])
@@ -282,8 +285,8 @@ export const deployNetworkCommand: CommandDefinition = {
         };
 
         // ── Build storage defaults for a network ──
-        const buildStorageDefaults = (net: any, netIdx: number) => {
-            const defaults: Record<string, any> = {};
+        const buildStorageDefaults = (net: MeshConfigNetwork, netIdx: number) => {
+            const defaults: Record<string, unknown> = {};
             defaults[`network_${slugifyStorageKey(net.name)}`] = null;
             for (let i = 0; i < config.agents.length; i++) {
                 const a = config.agents[i];
@@ -297,7 +300,7 @@ export const deployNetworkCommand: CommandDefinition = {
 
         // ── Parallel mode: one job per network ──
         if (effectiveMode === "parallel" && configNetworks.length > 1) {
-            const queuedJobs: any[] = [];
+            const queuedJobs: Array<{ jobId: string; network: string; stepCount: number }> = [];
 
             for (let netIdx = 0; netIdx < configNetworks.length; netIdx++) {
                 const net = configNetworks[netIdx];
@@ -305,7 +308,7 @@ export const deployNetworkCommand: CommandDefinition = {
                 const steps = buildNetworkPipeline(net, netIdx, `net${netIdx}`);
                 const storageDefaults = buildStorageDefaults(net, netIdx);
 
-                const jobPayload: any = {
+                const jobPayload: JobRequest = {
                     type: `deploy: ${net.name}`,
                     request: { config, generatedAt: new Date().toISOString(), networkIndex: netIdx },
                     steps,
@@ -315,7 +318,7 @@ export const deployNetworkCommand: CommandDefinition = {
                     ],
                     storageDefaults,
                     inputDefaults: [],
-                };
+                } as JobRequest;
 
                 const job = context.jobs.addJob(jobPayload);
                 queuedJobs.push({ jobId: job.id, network: net.name, stepCount: steps.length });
@@ -325,7 +328,7 @@ export const deployNetworkCommand: CommandDefinition = {
             // If there are cross-network bridges, queue a finalization job that
             // resolves agents/networks by NAME (since each parallel job has its
             // own storage scope; bridges run after all networks are created).
-            const bridgeSpecs: any[] = [];
+            const bridgeSpecs: Array<Record<string, string>> = [];
             for (const b of config.bridges || []) {
                 if (b.fromNetwork == null || b.toNetwork == null || b.fromAgent == null || b.toAgent == null) continue;
                 const fromAgentName = config.agents[b.fromAgent]?.name;
@@ -344,7 +347,7 @@ export const deployNetworkCommand: CommandDefinition = {
             }
 
             if (bridgeSpecs.length > 0) {
-                const bridgeJobPayload: any = {
+                const bridgeJobPayload: JobRequest = {
                     type: `bridges: ${bridgeSpecs.length} cross-network`,
                     request: { bridges: bridgeSpecs },
                     steps: [{
@@ -357,13 +360,13 @@ export const deployNetworkCommand: CommandDefinition = {
                     deliverables: [],
                     storageDefaults: {},
                     inputDefaults: [],
-                };
+                } as JobRequest;
                 const bridgeJob = context.jobs.addJob(bridgeJobPayload);
                 queuedJobs.push({ jobId: bridgeJob.id, network: "(bridges)", stepCount: 1 });
                 addLog(`[A/B] Queued bridges job: ${bridgeSpecs.length} cross-network bridge(s) → ${bridgeJob.id.slice(0, 12)}`);
             }
 
-            const totalSteps = queuedJobs.reduce((s: number, j: any) => s + j.stepCount, 0);
+            const totalSteps = queuedJobs.reduce((s, j) => s + j.stepCount, 0);
             return {
                 success: true,
                 mode: "parallel",
@@ -373,7 +376,7 @@ export const deployNetworkCommand: CommandDefinition = {
         }
 
         // ── Serial mode: single job with all networks ──
-        const steps: any[] = [];
+        const steps: JobStep[] = [];
         let stepIdx = 0;
 
         for (let netIdx = 0; netIdx < configNetworks.length; netIdx++) {
@@ -381,14 +384,14 @@ export const deployNetworkCommand: CommandDefinition = {
             if (!net?.name) continue;
             const pipelineSteps = buildNetworkPipeline(net, netIdx, `s${netIdx}`);
             // Remove per-network topology step (we'll add one at the end)
-            const withoutTopology = pipelineSteps.filter((s: any) => s.commandId !== "print_topology");
+            const withoutTopology = pipelineSteps.filter((s) => s.commandId !== "print_topology");
             for (const s of withoutTopology) {
                 steps.push({ ...s, id: `step-${stepIdx++}` });
             }
         }
 
         // Cross-network bridges (only in serial mode where all entities share storage)
-        const bridgeSpecs: any[] = [];
+        const bridgeSpecs: Array<Record<string, string>> = [];
         for (const b of config.bridges || []) {
             if (b.fromNetwork == null || b.toNetwork == null || b.fromAgent == null || b.toAgent == null) continue;
             const fromAgentName = config.agents[b.fromAgent]?.name;
@@ -444,7 +447,7 @@ export const deployNetworkCommand: CommandDefinition = {
         });
 
         // Build storage defaults
-        const childStorageDefaults: Record<string, any> = {};
+        const childStorageDefaults: Record<string, unknown> = {};
         for (const net of configNetworks) {
             if (net?.name) childStorageDefaults[`network_${slugifyStorageKey(net.name)}`] = null;
         }
@@ -452,8 +455,8 @@ export const deployNetworkCommand: CommandDefinition = {
             if (a?.name) childStorageDefaults[`agent_${slugifyStorageKey(a.name)}`] = null;
         }
 
-        const networkNames = configNetworks.map((n: any) => n.name).join(", ");
-        const jobPayload: any = {
+        const networkNames = configNetworks.map((n) => n.name).join(", ");
+        const jobPayload: JobRequest = {
             type: `deploy: ${networkNames}`,
             request: { config, generatedAt: new Date().toISOString() },
             steps,
@@ -463,7 +466,7 @@ export const deployNetworkCommand: CommandDefinition = {
             ],
             storageDefaults: childStorageDefaults,
             inputDefaults: [],
-        };
+        } as JobRequest;
 
         const job = context.jobs.addJob(jobPayload);
         addLog(`Deployment job queued: ${steps.length} steps → ${job.id.slice(0, 12)}`);

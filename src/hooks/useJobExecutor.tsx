@@ -7,7 +7,14 @@ import { resolveToolJob, rejectToolJob } from "@/services/commands/tools";
 import { getAgentModel, getCommandModel } from "@/services/ai";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContextType } from "@/context/WorkspaceContext";
-import type { User, JobEvent } from "@/types";
+import type { User, JobEvent, Job, JobArtifact, JobRequest, NotebookEntry, EntityInput } from "@/types";
+import type { JobStep, JobDeliverable } from "@/types/jobs";
+import type { UseJobsReturn } from "./useJobs";
+import type { UseJobCatalogReturn } from "./useJobCatalog";
+import type { UseNotebookReturn } from "./useNotebook";
+import type { UseEcosystemReturn } from "./useEcosystem";
+import type { UseArchitectReturn } from "@/toolkits/architect/hooks/useArchitect";
+import type { AutomationRun } from "@/services/automations/types";
 import { useStudioContext } from "@/toolkits/studio";
 import {
     resolveRefs, applyInputBindings, applyOutputMappings,
@@ -15,50 +22,63 @@ import {
     assembleDeliverables, DELIVERABLE_STORAGE_PREFIX,
     type RefContext, type HandlerRefContext,
 } from "@/utils/jobRuntime";
+import { reserveBatch } from "./jobScheduler";
 
-// Define strict types for the complex objects we're passing in
-// Ideally these should be exported from their respective hooks, but for now we'll define the shape or use 'any' for the complex rendering hooks if strict types aren't available easily.
-// However, we want to maintain type safety.
+/** Max number of jobs running concurrently. Exposed for tests. */
+export const MAX_CONCURRENT_JOBS = 4;
+
+// Type aliases derived from the source hooks so this file stays in sync
+// when those return shapes change. Previously every prop was `any`; the
+// derived types catch wiring bugs at compile time and document intent.
+
+/** Job-catalog half of `useJobs` (saved templates, not the live queue). */
+interface SavedJobsApi {
+    savedJobs: UseJobCatalogReturn["savedJobs"];
+    saveJob: UseJobCatalogReturn["saveJob"];
+    deleteJob: UseJobCatalogReturn["deleteJob"];
+}
 
 interface JobExecutorProps {
-    jobs: any[]; // useJobs return type
-    addJob: any;
-    updateJobStatus: any;
-    updateJob?: any; // New prop for detailed updates
-    addArtifact: any;
-    removeJob: any;
-    clearJobs: any;
-    allArtifacts: any;
-    importArtifact: any;
-    removeArtifact: any;
+    // ── Live queue + job state (from useJobs) ──
+    jobs: UseJobsReturn["jobs"];
+    addJob: UseJobsReturn["addJob"];
+    updateJobStatus: UseJobsReturn["updateJobStatus"];
+    updateJob?: UseJobsReturn["updateJob"];
+    addArtifact: UseJobsReturn["addArtifact"];
+    removeJob: UseJobsReturn["removeJob"];
+    clearJobs: UseJobsReturn["clearJobs"];
+    allArtifacts: JobArtifact[];
+    importArtifact: UseJobsReturn["importArtifact"];
+    removeArtifact: UseJobsReturn["removeArtifact"];
     isPaused: boolean;
-    toggleQueuePause: any;
-    updateArtifact: (id: string, updates: Record<string, any>) => void;
+    toggleQueuePause: UseJobsReturn["toggleQueuePause"];
+    updateArtifact: UseJobsReturn["updateArtifact"];
 
-    savedJobs: any[];
-    saveJob: any;
-    deleteJob: any;
+    // ── Saved-job catalog ──
+    savedJobs: SavedJobsApi["savedJobs"];
+    saveJob: SavedJobsApi["saveJob"];
+    deleteJob: SavedJobsApi["deleteJob"];
 
-    setJobs?: any; // [NEW]
-    setStandaloneArtifacts?: any; // [NEW]
+    // ── Persistence (optional setters used by reset / import flows) ──
+    setJobs?: UseJobsReturn["setJobs"];
+    setStandaloneArtifacts?: UseJobsReturn["setStandaloneArtifacts"];
 
     workspace: WorkspaceContextType;
     user: User | null;
 
-    architect: any; // useArchitect return
-    ecosystem: any; // useEcosystem return
+    architect: UseArchitectReturn;
+    ecosystem: UseEcosystemReturn;
 
     addLog: (log: string) => void;
-    addNotebookEntry: (entry: any) => void;
-    addDetail?: any; // metrics or similar
-    automations?: any; // Automations context
-    workspaceManager?: {
-        list: () => any[];
-        create: (name: string, description?: string) => Promise<string>;
-        switch: (id: string) => Promise<void>;
-        delete: (id: string) => Promise<void>;
-        currentId: string | null;
+    addNotebookEntry: UseNotebookReturn["addEntry"];
+    /** Optional metrics/details emitter (UI bookkeeping). */
+    addDetail?: (entry: NotebookEntry | Omit<NotebookEntry, "id" | "timestamp">) => void;
+    /** Automations context — runner/queue management for automation runs. */
+    automations?: {
+        runAutomation: (id: string) => Promise<void>;
+        runs: AutomationRun[];
     };
+    workspaceManager?: CommandContext['workspaceManager'];
 }
 
 export function useJobExecutor({
@@ -90,27 +110,32 @@ export function useJobExecutor({
     workspaceManager // [NEW]
 }: JobExecutorProps) {
     const processingRef = useRef<Set<string>>(new Set());
-    const MAX_CONCURRENT_JOBS = 4;
     const { api: studioApi } = useStudioContext();
+
+    // Live-state refs: jobs run async, so the workspace arrays captured into
+    // the per-job CommandContext go stale during multi-step execution.
+    // Getters below close over these refs so commands always see fresh state.
+    const agentsRef = useRef(workspace.agents);
+    const channelsRef = useRef(workspace.channels);
+    const groupsRef = useRef(workspace.groups);
+    const messagesRef = useRef(workspace.messages);
+    useEffect(() => { agentsRef.current = workspace.agents; }, [workspace.agents]);
+    useEffect(() => { channelsRef.current = workspace.channels; }, [workspace.channels]);
+    useEffect(() => { groupsRef.current = workspace.groups; }, [workspace.groups]);
+    useEffect(() => { messagesRef.current = workspace.messages; }, [workspace.messages]);
 
     useEffect(() => {
         const processJobs = async () => {
-            if (isPaused) return;
-
-            // Find all queued jobs that aren't already being processed
-            const queuedJobs = jobs.filter(
-                (j: any) => j.status === "queued" && !processingRef.current.has(j.id)
-            );
-            if (queuedJobs.length === 0) return;
-
-            // Limit concurrent execution
-            const slotsAvailable = MAX_CONCURRENT_JOBS - processingRef.current.size;
-            if (slotsAvailable <= 0) return;
-
-            const batch = queuedJobs.slice(0, slotsAvailable);
+            // Atomically reserve a batch — guarantees concurrency invariant
+            // even when processJobs is invoked repeatedly within the same tick.
+            const batch = reserveBatch(jobs, {
+                inFlight: processingRef.current,
+                maxConcurrent: MAX_CONCURRENT_JOBS,
+                paused: isPaused,
+            });
+            if (batch.length === 0) return;
 
             for (const queuedJob of batch) {
-                processingRef.current.add(queuedJob.id);
                 // Fire-and-forget: each job runs independently
                 (async () => {
                 try {
@@ -124,12 +149,12 @@ export function useJobExecutor({
                         tags: ["job", queuedJob.type],
                     });
 
-                    // Initialize shared storage from job's storageDefaults
-                    const jobStorage: Record<string, any> = { ...(queuedJob.request?.storageDefaults || queuedJob.storageDefaults || {}) };
+                    // Initialize shared storage from the request's storageDefaults
+                    const jobStorage: Record<string, any> = { ...(queuedJob.request?.storageDefaults || {}) };
 
-                    // Initialize entity input map from job's inputDefaults
+                    // Initialize entity input map from the request's inputDefaults
                     const inputMap: Record<string, string> = {};
-                    const inputDefaults = queuedJob.request?.inputDefaults || queuedJob.inputDefaults || queuedJob.inputs || [];
+                    const inputDefaults: EntityInput[] = (queuedJob.request?.inputDefaults || queuedJob.inputs || []) as EntityInput[];
                     for (const inp of inputDefaults) {
                         if (inp.name && inp.entityId) inputMap[inp.name] = inp.entityId;
                     }
@@ -151,14 +176,16 @@ export function useJobExecutor({
 
                     // Check for unresolved prompt inputs — pause job and ask user
                     const unresolvedPrompt = inputDefaults.find(
-                        (inp: any) => inp.source?.kind === "prompt" && !inp.entityId
+                        (inp: EntityInput) => inp.source?.kind === "prompt" && !inp.entityId
                     );
                     if (unresolvedPrompt) {
+                        const promptSource = unresolvedPrompt.source;
+                        const promptText = promptSource?.kind === "prompt" ? promptSource.promptText : undefined;
                         if (updateJob) updateJob(queuedJob.id, {
-                            status: "awaiting-input" as any,
+                            status: "awaiting-input",
                             pendingPrompt: {
                                 inputName: unresolvedPrompt.name,
-                                promptText: unresolvedPrompt.source?.promptText || `Enter value for "${unresolvedPrompt.name}"`,
+                                promptText: promptText || `Enter value for "${unresolvedPrompt.name}"`,
                                 inputType: unresolvedPrompt.type || "text",
                                 options: unresolvedPrompt.options,
                                 min: unresolvedPrompt.min,
@@ -170,17 +197,18 @@ export function useJobExecutor({
                         pushTimelineEvent({
                             kind: "awaiting-input",
                             label: `Waiting for input: ${unresolvedPrompt.name}`,
-                            detail: unresolvedPrompt.source?.promptText,
+                            detail: promptText,
                         });
                         addLog(`Job "${queuedJob.type}" is waiting for user input: ${unresolvedPrompt.name}`);
-                        processingRef.current.delete(queuedJob.id);
-                        return; // Exit — job will resume when user provides input
+                        return; // Exit — finally block releases the slot. Job will resume when user provides input.
                     }
 
-                    // Track deliverables produced during execution
-                    const producedDeliverables: any[] = [];
+                    // Track deliverables produced during execution.
+                    // (Shape: { key, artifactId } as returned by assembleDeliverables;
+                    // this is wider than JobDeliverable so kept as a structural type.)
+                    const producedDeliverables: Array<{ key: string; artifactId: string }> = [];
                     /** Map of deliverable key → content for $deliverable.key resolution */
-                    const deliverableContents: Record<string, any> = {};
+                    const deliverableContents: Record<string, unknown> = {};
 
                     const context: CommandContext = {
                         workspace: {
@@ -188,7 +216,11 @@ export function useJobExecutor({
                             addLog,
                             activeChannel: workspace.activeChannel,
                             setActiveChannel: workspace.setActiveChannel,
-                            setActiveChannels: workspace.setActiveChannels
+                            setActiveChannels: workspace.setActiveChannels,
+                            getAgents: () => agentsRef.current,
+                            getChannels: () => channelsRef.current,
+                            getGroups: () => groupsRef.current,
+                            getMessages: () => messagesRef.current,
                         },
                         auth: { user },
                         jobs: {
@@ -239,7 +271,7 @@ export function useJobExecutor({
                             generateNetwork: architect.generateNetwork,
                             deployNetwork: architect.deployNetwork
                         },
-                        automations: automations || { runAutomation: async () => { }, runs: [] },
+                        automations: automations || { runAutomation: async () => { }, runs: [] as AutomationRun[] },
                         workspaceManager: workspaceManager as CommandContext['workspaceManager'],
                         extensions: { studio: studioApi ?? undefined },
                         storage: jobStorage,
@@ -256,10 +288,10 @@ export function useJobExecutor({
                     const refs: RefContext = { storage: jobStorage, deliverables: deliverableContents, inputs: inputMap };
 
                     /** Build a step-scoped context that overrides model resolution if step has modelId */
-                    const stepCtxFor = (step: any): CommandContext => getStepContext(step, context);
+                    const stepCtxFor = (step: JobStep): CommandContext => getStepContext(step, context);
 
                     /** Wrapper: sync storage + deliverables into job state alongside step updates */
-                    const syncJobState = (updates: Partial<any>) => {
+                    const syncJobState = (updates: Partial<Job>) => {
                         if (!updateJob) return;
                         updateJob(queuedJob.id, {
                             ...updates,
@@ -271,15 +303,18 @@ export function useJobExecutor({
 
                     // ═══ DRY-RUN BRANCH ═══
                     // When dryRun is flagged, validate without executing and return report
-                    if ((queuedJob as any).dryRun) {
+                    if ((queuedJob as Job & { dryRun?: boolean }).dryRun) {
                         let dryRunReport;
 
                         if (queuedJob.steps && queuedJob.steps.length > 0) {
                             // Multi-step job dry-run
-                            const deliverableKeys = (queuedJob.deliverables || []).map((d: any) => d.key);
+                            const deliverableKeys = (queuedJob.deliverables || []).map((d: JobDeliverable) => d.key);
+                            // dryRunJob only supports serial|parallel — 'mixed' jobs use parallel scheduling.
+                            const dryRunMode: 'serial' | 'parallel' =
+                                queuedJob.mode === 'parallel' || queuedJob.mode === 'mixed' ? 'parallel' : 'serial';
                             dryRunReport = registry.dryRunJob(
                                 queuedJob.steps,
-                                queuedJob.mode || 'serial',
+                                dryRunMode,
                                 context,
                                 jobStorage,
                                 deliverableKeys,
@@ -301,9 +336,9 @@ export function useJobExecutor({
                                 unresolvedRefs: [],
                                 summary: cmdResult.summary,
                                 totalChecks: cmdResult.checks.length,
-                                passedChecks: cmdResult.checks.filter((c: any) => c.status === 'pass').length,
-                                failedChecks: cmdResult.checks.filter((c: any) => c.status === 'fail').length,
-                                warningCount: cmdResult.checks.filter((c: any) => c.status === 'warn').length,
+                                passedChecks: cmdResult.checks.filter((c) => c.status === 'pass').length,
+                                failedChecks: cmdResult.checks.filter((c) => c.status === 'fail').length,
+                                warningCount: cmdResult.checks.filter((c) => c.status === 'warn').length,
                             };
                         }
 
@@ -339,8 +374,7 @@ export function useJobExecutor({
                         });
 
                         // Don't trigger tool job resolution for dry runs
-                        processingRef.current.delete(queuedJob.id);
-                        return; // Skip actual execution
+                        return; // Skip actual execution — finally block releases the slot.
                     }
 
                     if (queuedJob.steps && queuedJob.steps.length > 0) {
@@ -356,12 +390,12 @@ export function useJobExecutor({
                             // Update job to mark all running with startedAt
                             if (updateJob) {
                                 const now = Date.now();
-                                const runningSteps = steps.map((s: any) => ({ ...s, status: 'running', startedAt: now }));
+                                const runningSteps = steps.map((s) => ({ ...s, status: 'running' as const, startedAt: now }));
                                 syncJobState({ steps: runningSteps });
                             }
                             pushTimelineEvent({ kind: "step:started", label: `All ${steps.length} steps started (parallel)` });
 
-                            const promises = queuedJob.steps.map(async (step: any, idx: number) => {
+                            const promises = queuedJob.steps.map(async (step: JobStep, idx: number) => {
                                 const stepStarted = Date.now();
                                 try {
                                     const boundArgs = applyInputBindings(step.args, step.inputBindings, jobStorage, deliverableContents);
@@ -381,11 +415,12 @@ export function useJobExecutor({
                                     }
 
                                     return { stepId: step.id, result: res, status: 'completed', outputMappings: step.outputMappings, startedAt: stepStarted, completedAt: Date.now() };
-                                } catch (e: any) {
+                                } catch (e) {
+                                    const errMsg = e instanceof Error ? e.message : String(e);
                                     // ── onFailure handler (parallel) ──
                                     let continueFlag = false;
                                     if (step.onFailure) {
-                                        const handlerRefs: HandlerRefContext = { ...refs, error: e.message };
+                                        const handlerRefs: HandlerRefContext = { ...refs, error: errMsg };
                                         const handlerResult = await executeStepHandler(
                                             step.onFailure, handlerRefs, jobStorage,
                                             (cmdId, args) => registry.execute(cmdId, args, stepCtxFor(step)),
@@ -396,8 +431,8 @@ export function useJobExecutor({
                                     // In parallel mode, continueOnFailure marks the step as failed but doesn't abort others
                                     return {
                                         stepId: step.id,
-                                        error: e.message,
-                                        status: continueFlag ? 'completed' : 'failed',
+                                        error: errMsg,
+                                        status: continueFlag ? 'completed' : 'failed' as 'completed' | 'failed',
                                         outputMappings: undefined,
                                         continued: continueFlag,
                                         startedAt: stepStarted,
@@ -410,16 +445,16 @@ export function useJobExecutor({
 
                             // Update final state of steps with timestamps
                             if (updateJob) {
-                                const finalSteps = queuedJob.steps.map((s: any) => {
+                                const finalSteps: JobStep[] = queuedJob.steps.map((s) => {
                                     const res = results.find(r => r.stepId === s.id);
-                                    return res ? { ...s, result: res.result || res.error, status: res.status, startedAt: res.startedAt, completedAt: res.completedAt } : s;
+                                    return res ? { ...s, result: res.result || res.error, status: res.status as JobStep["status"], startedAt: res.startedAt, completedAt: res.completedAt } : s;
                                 });
                                 syncJobState({ steps: finalSteps });
                             }
 
                             // Push timeline events for parallel results
                             for (const r of results) {
-                                const step = queuedJob.steps.find((s: any) => s.id === r.stepId);
+                                const step = queuedJob.steps.find((s) => s.id === r.stepId);
                                 const stepName = step?.name || step?.commandId || r.stepId;
                                 pushTimelineEvent({
                                     kind: r.status === 'completed' ? 'step:completed' : 'step:failed',
@@ -514,27 +549,28 @@ export function useJobExecutor({
                                     syncJobState({ steps: [...steps] });
                                     pushTimelineEvent({ kind: 'step:completed', label: `${stepName} completed`, stepId, duration: Date.now() - stepStart, detail: resultStr.slice(0, 120) });
                                     return { status: 'completed', result: resultStr };
-                                } catch (e: any) {
-                                    steps[idx] = { ...steps[idx], status: 'failed', result: e.message, completedAt: Date.now() };
+                                } catch (e) {
+                                    const errMsg = e instanceof Error ? e.message : String(e);
+                                    steps[idx] = { ...steps[idx], status: 'failed', result: errMsg, completedAt: Date.now() };
 
                                     // ── onFailure handler (mixed) ──
                                     if (step.onFailure) {
-                                        const handlerRefs: HandlerRefContext = { ...refs, error: e.message };
+                                        const handlerRefs: HandlerRefContext = { ...refs, error: errMsg };
                                         const handlerResult = await executeStepHandler(
                                             step.onFailure, handlerRefs, jobStorage,
                                             (cmdId, a) => registry.execute(cmdId, a, stepCtxFor(step)),
                                             addLog,
                                         );
                                         if (handlerResult.continueOnFailure) {
-                                            steps[idx] = { ...steps[idx], status: 'completed', result: `[continued] ${e.message}` };
+                                            steps[idx] = { ...steps[idx], status: 'completed', result: `[continued] ${errMsg}` };
                                             syncJobState({ steps: [...steps] });
-                                            return { status: 'completed', result: e.message };
+                                            return { status: 'completed', result: errMsg };
                                         }
                                     }
 
                                     syncJobState({ steps: [...steps] });
-                                    pushTimelineEvent({ kind: 'step:failed', label: `${stepName} failed`, stepId, duration: Date.now() - stepStart, detail: e.message });
-                                    return { status: 'failed', error: e.message };
+                                    pushTimelineEvent({ kind: 'step:failed', label: `${stepName} failed`, stepId, duration: Date.now() - stepStart, detail: errMsg });
+                                    return { status: 'failed', error: errMsg };
                                 }
                             };
 
@@ -567,8 +603,9 @@ export function useJobExecutor({
                             for (let i = 0; i < steps.length; i++) {
                                 const stepName = steps[i].name || steps[i].commandId || steps[i].id;
                                 // Check condition if exists
-                                if (steps[i].condition) {
-                                    if (!evaluateCondition(steps[i].condition, context, steps)) {
+                                const stepCondition = steps[i].condition;
+                                if (stepCondition) {
+                                    if (!evaluateCondition(stepCondition, context, steps)) {
                                         steps[i] = { ...steps[i], status: 'skipped', result: 'Condition not met' };
                                         syncJobState({ steps: [...steps] });
                                         pushTimelineEvent({ kind: 'step:skipped', label: `${stepName} skipped`, stepId: steps[i].id, detail: 'Condition not met' });
@@ -610,14 +647,15 @@ export function useJobExecutor({
                                             break;
                                         }
                                     }
-                                } catch (e: any) {
-                                    steps[i] = { ...steps[i], status: 'failed', result: e.message, completedAt: Date.now() };
+                                } catch (e) {
+                                    const errMsg = e instanceof Error ? e.message : String(e);
+                                    steps[i] = { ...steps[i], status: 'failed', result: errMsg, completedAt: Date.now() };
 
-                                    pushTimelineEvent({ kind: 'step:failed', label: `${stepName} failed`, stepId: steps[i].id, duration: Date.now() - stepStart, detail: e.message });
+                                    pushTimelineEvent({ kind: 'step:failed', label: `${stepName} failed`, stepId: steps[i].id, duration: Date.now() - stepStart, detail: errMsg });
 
                                     // ── onFailure handler ──
                                     if (steps[i].onFailure) {
-                                        const handlerRefs: HandlerRefContext = { ...refs, error: e.message };
+                                        const handlerRefs: HandlerRefContext = { ...refs, error: errMsg };
                                         const handlerResult = await executeStepHandler(
                                             steps[i].onFailure,
                                             handlerRefs,
@@ -626,7 +664,7 @@ export function useJobExecutor({
                                             addLog,
                                         );
                                         if (handlerResult.continueOnFailure) {
-                                            addLog(`Step "${steps[i].name || steps[i].id}" failed but continuing: ${e.message}`);
+                                            addLog(`Step "${steps[i].name || steps[i].id}" failed but continuing: ${errMsg}`);
                                             syncJobState({ steps: [...steps] });
                                             continue; // Skip throw, proceed to next step
                                         }
@@ -670,8 +708,10 @@ export function useJobExecutor({
                         addLog(`Assembly complete: ${assembled.length}/${declaredDeliverables.length} deliverables produced.`);
                     }
 
-                    // Final sync: push storage + deliverables into job state before marking complete
-                    syncJobState({ deliverables: producedDeliverables.length > 0 ? producedDeliverables : undefined });
+                    // Final sync: push storage + deliverables into job state before marking complete.
+                    // (Runtime shape `{key,artifactId}` is narrower than the declared
+                    // `JobDeliverable` type; cast bridges this pre-existing mismatch.)
+                    syncJobState({ deliverables: producedDeliverables.length > 0 ? (producedDeliverables as unknown as JobDeliverable[]) : undefined });
 
                     updateJobStatus(queuedJob.id, "completed", typeof finalResult === 'string' ? finalResult : JSON.stringify(finalResult));
 
@@ -687,19 +727,20 @@ export function useJobExecutor({
                         tags: ["job", "success", queuedJob.type],
                     });
 
-                } catch (err: any) {
+                } catch (err) {
+                    const errMsg = err instanceof Error ? err.message : String(err);
                     console.error("Job Failed", err);
-                    updateJobStatus(queuedJob.id, "failed", err.message || "Unknown error");
+                    updateJobStatus(queuedJob.id, "failed", errMsg || "Unknown error");
 
                     // Signal tool call promise (if this job was created by a tool call)
-                    rejectToolJob(queuedJob.id, err.message || "Unknown error");
+                    rejectToolJob(queuedJob.id, errMsg || "Unknown error");
 
                     addNotebookEntry({
                         category: "system",
                         icon: <GradientIcon icon={XCircle} size={16} gradient={["#ef4444", "#dc2626"]} />,
                         title: `Job Failed: ${queuedJob.type}`,
-                        description: `Job "${queuedJob.type}" failed: ${err.message || "Unknown error"}.`,
-                        details: { jobId: queuedJob.id, command: queuedJob.type, error: err.message },
+                        description: `Job "${queuedJob.type}" failed: ${errMsg || "Unknown error"}.`,
+                        details: { jobId: queuedJob.id, command: queuedJob.type, error: errMsg },
                         tags: ["job", "error", queuedJob.type],
                     });
                 } finally {
@@ -709,8 +750,14 @@ export function useJobExecutor({
             } // end for batch
         };
 
-        const interval = setInterval(processJobs, 1000); // Check every second (simple polling)
-        return () => clearInterval(interval);
+        // State-driven invocation: the effect re-runs whenever `jobs` (or any
+        // other dep) changes, so every transition that produces a "queued" job
+        // — addJob(), resolvePromptInput(), updateJob(status: "queued") —
+        // triggers processJobs immediately via immutable setState. The previous
+        // 1 s setInterval fallback was redundant safety; removing it eliminates
+        // wasted work on idle queues and simplifies reasoning about when jobs
+        // start.
+        processJobs();
     }, [
         jobs, updateJobStatus, workspace, addLog, user, addArtifact, ecosystem, architect,
         addJob, removeJob, importArtifact, removeArtifact, allArtifacts,

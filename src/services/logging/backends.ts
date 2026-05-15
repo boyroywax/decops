@@ -133,9 +133,8 @@ export class FileBackend implements LogBackend {
 
     // Server-side — dynamically import fs
     try {
-      // Dynamic import avoids bundler resolution; cast to any for browser builds
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fs: any = await (Function('return import("node:fs")')());
+      // Dynamic import avoids bundler resolution in browser builds.
+      const fs = await (Function('return import("node:fs")')()) as typeof import("node:fs");
       const data = batch.join("\n") + "\n";
       fs.appendFileSync(this.config.path, data, "utf-8");
     } catch {
