@@ -10,7 +10,7 @@ export const listAgentsCommand: CommandDefinition = {
     output: "List of active agents.",
     outputSchema: { type: "object", properties: { agents: { type: "array" } } },
     execute: async (args, context: CommandContext) => {
-        const result = { agents: context.workspace.agents };
+        const result = { agents: context.workspace.getAgents?.() ?? context.workspace.agents };
         context.storage.agents = result.agents;
         return result;
     }
@@ -25,7 +25,7 @@ export const listGroupsCommand: CommandDefinition = {
     output: "List of groups.",
     outputSchema: { type: "object", properties: { groups: { type: "array" } } },
     execute: async (args, context: CommandContext) => {
-        const result = { groups: context.workspace.groups };
+        const result = { groups: context.workspace.getGroups?.() ?? context.workspace.groups };
         context.storage.groups = result.groups;
         return result;
     }
@@ -40,7 +40,7 @@ export const listChannelsCommand: CommandDefinition = {
     output: "List of channels.",
     outputSchema: { type: "object", properties: { channels: { type: "array" } } },
     execute: async (args, context: CommandContext) => {
-        const result = { channels: context.workspace.channels };
+        const result = { channels: context.workspace.getChannels?.() ?? context.workspace.channels };
         context.storage.channels = result.channels;
         return result;
     }
@@ -58,7 +58,8 @@ export const listMessagesCommand: CommandDefinition = {
     outputSchema: { type: "object", properties: { messages: { type: "array" } } },
     execute: async (args, context: CommandContext) => {
         const limit = args.limit || 50;
-        const result = { messages: context.workspace.messages.slice(-limit) };
+        const liveMessages = context.workspace.getMessages?.() ?? context.workspace.messages;
+        const result = { messages: liveMessages.slice(-limit) };
         context.storage.messages = result.messages;
         return result;
     }

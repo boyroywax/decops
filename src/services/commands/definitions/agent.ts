@@ -140,7 +140,8 @@ export const pingAgentCommand: CommandDefinition = {
     outputSchema: { type: "object", additionalProperties: true },
     execute: async (args, context) => {
         const { agentId } = args;
-        const agent = context.workspace.agents.find(a => a.id === agentId);
+        const liveAgents = context.workspace.getAgents?.() ?? context.workspace.agents;
+        const agent = liveAgents.find(a => a.id === agentId);
 
         if (!agent) {
             throw new Error(`Agent ${agentId} not found`);

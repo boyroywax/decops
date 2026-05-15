@@ -89,7 +89,7 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 
 ### 1.3 Two Workspace Context Sources — **MEDIUM (RESOLVED)**
 - **Fixed in:** commit `3d1cf47` — `CommandContext.workspace` now exposes `getAgents() / getChannels() / getGroups() / getMessages()` live getters so commands always read fresh state during async multi-step jobs. Snapshot arrays still present for sync read sites.
-- **Follow-up (LOW):** migrate remaining sync-snapshot callers (`send_message`, etc.) onto the getters.
+- **Follow-up complete:** migrated all sync-snapshot callers in `agent.ts` (`ping_agent`), `toolkit.ts` (`list_agent_toolkits`), `query.ts` (`list_agents` / `list_groups` / `list_channels` / `list_messages`), `group.ts` (consensus-channel auto-creation), and `topology.ts` (`create_bridge` resolvers + `print_topology`) onto the live getters with snapshot fallback. `messaging.ts` was already migrated.
 
 ---
 
@@ -239,7 +239,6 @@ All HIGH-severity gaps are now resolved. Remaining items are MEDIUM/LOW.
 
 ### Phase 7 — Low priority (remaining)
 3. [LOW] Continue opportunistic `any` cleanup as files are touched — focus on remaining 3 boundary matches in `src/hooks/useCommandContext.ts` (§3.1 remaining).
-4. [LOW] Migrate sync-snapshot command callers (`send_message`, etc.) onto live workspace getters (§1.3 follow-up).
 
 ---
 

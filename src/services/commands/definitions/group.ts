@@ -100,7 +100,8 @@ export const createGroupCommand: CommandDefinition = {
             createdGroups.push(newGroup);
 
             // Auto-create consensus channels between members
-            const currentChannels: Channel[] = [...context.workspace.channels, ...(storage._channels || [])];
+            const liveChannels = context.workspace.getChannels?.() ?? context.workspace.channels;
+            const currentChannels: Channel[] = [...liveChannels, ...(storage._channels || [])];
             for (let i = 0; i < uniqueMembers.length; i++) {
                 for (let j = i + 1; j < uniqueMembers.length; j++) {
                     const hasChannel = currentChannels.concat(allNewChannels).some((c) =>

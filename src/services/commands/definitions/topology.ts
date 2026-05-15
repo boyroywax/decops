@@ -31,9 +31,10 @@ export const createBridgeCommand: CommandDefinition = {
             const liveAgents = useWorkspaceStore.getState().agents;
             const liveNetworks = useEcosystemStore.getState().ecosystem.networks;
             const storage = context.storage as { _agents?: Agent[]; _networks?: Network[] };
+            const ctxAgents = context.workspace.getAgents?.() ?? context.workspace.agents;
             const allAgents: Agent[] = [
                 ...liveAgents,
-                ...context.workspace.agents,
+                ...ctxAgents,
                 ...(storage._agents || [])
             ];
             const allNetworks: Network[] = [
@@ -186,11 +187,14 @@ export const printTopologyCommand: CommandDefinition = {
     },
     execute: async (args, context: CommandContext) => {
         const eco = context.ecosystem.ecosystem;
+        const liveAgents = context.workspace.getAgents?.() ?? context.workspace.agents;
+        const liveChannels = context.workspace.getChannels?.() ?? context.workspace.channels;
+        const liveGroups = context.workspace.getGroups?.() ?? context.workspace.groups;
         const topology = {
             ecosystem: eco ? { id: eco.id, name: eco.name, did: eco.did } : null,
-            agents: context.workspace.agents.map((a: Agent) => ({ id: a.id, name: a.name, role: a.role, networkId: a.networkId })),
-            channels: context.workspace.channels.map((c: Channel) => ({ from: c.from, to: c.to, type: c.type, networkId: c.networkId })),
-            groups: context.workspace.groups.map((g: Group) => ({ name: g.name, members: g.members, networkId: g.networkId })),
+            agents: liveAgents.map((a: Agent) => ({ id: a.id, name: a.name, role: a.role, networkId: a.networkId })),
+            channels: liveChannels.map((c: Channel) => ({ from: c.from, to: c.to, type: c.type, networkId: c.networkId })),
+            groups: liveGroups.map((g: Group) => ({ name: g.name, members: g.members, networkId: g.networkId })),
             networks: context.ecosystem.networks.map((e: Network) => ({
                 id: e.id, name: e.name,
                 agentCount: e.agents?.length || 0,

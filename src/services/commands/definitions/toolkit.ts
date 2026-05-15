@@ -174,7 +174,8 @@ export const listAgentToolkitsCommand: CommandDefinition = {
   outputSchema: { type: "object", additionalProperties: true },
   execute: async (args, context) => {
     const { agentId } = args;
-    const agent = context.workspace.agents.find((a: Agent) => a.id === agentId);
+    const liveAgents = context.workspace.getAgents?.() ?? context.workspace.agents;
+    const agent = liveAgents.find((a: Agent) => a.id === agentId);
     if (!agent) throw new Error(`Agent ${agentId} not found`);
 
     const enabledIds = new Set((agent.toolkits || []).map((b: AgentToolkitBinding) => b.toolkitId));
