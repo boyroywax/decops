@@ -19,6 +19,7 @@ import { studioModule } from "@/toolkits/studio";
 import { jobsModule } from "./jobs";
 import { imageGenModule } from "@/toolkits/image-gen";
 import { libp2pModule } from "@/toolkits/libp2p";
+import { heliaModule } from "@/toolkits/helia";
 import { workspaceMgmtModule } from "./workspace-mgmt";
 import { loggingModule } from "./logging";
 
@@ -45,6 +46,7 @@ export const builtinModules: ToolkitModule[] = [
   jobsModule,
   imageGenModule,
   libp2pModule,
+  heliaModule,
   workspaceMgmtModule,
   // Capability toolkits
   webCrawlerModule,
@@ -65,6 +67,7 @@ export {
   jobsModule,
   imageGenModule,
   libp2pModule,
+  heliaModule,
   workspaceMgmtModule,
   webCrawlerModule,
   ocrModule,

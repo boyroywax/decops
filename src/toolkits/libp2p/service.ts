@@ -336,6 +336,20 @@ class Libp2pNode {
         this.onChange();
     }
 
+    /**
+     * Access the live `Libp2p` instance (when running) so other toolkits can
+     * compose on top of it (e.g. Helia/IPFS, OrbitDB). Returns `null` when
+     * the node is stopped, starting, or in an error state.
+     */
+    getLibp2pInstance(): Libp2p | null {
+        return this.status === "running" ? this.node : null;
+    }
+
+    /** True iff this node has a running, usable libp2p instance. */
+    isRunning(): boolean {
+        return this.status === "running" && this.node !== null;
+    }
+
     /** Generate a fresh Ed25519 identity to use on next start. */
     async generateIdentity(): Promise<{ peerIdHint: string }> {
         if (this.status === "running") {
@@ -831,6 +845,14 @@ class Libp2pManager {
     importIdentity(privKeyBase64: string, id?: string) { return this.getNode(id).importIdentity(privKeyBase64); }
     exportIdentity(id?: string) { return this.getNode(id).exportIdentity(); }
     clearIdentity(id?: string) { this.getNode(id).clearIdentity(); }
+
+    /**
+     * Get the live `Libp2p` instance for a node so other toolkits (Helia, …)
+     * can compose on top of it. Returns `null` if the node isn't running.
+     */
+    getLibp2pInstance(id?: string | null): Libp2p | null {
+        try { return this.getNode(id).getLibp2pInstance(); } catch { return null; }
+    }
 }
 
 /** Singleton manager — shared across the app. */

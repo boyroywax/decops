@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "@/types";
-import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor, Globe, Users, Radio } from "lucide-react";
+import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor, Globe, Users, Radio, Boxes, Pin } from "lucide-react";
 import type { ChatPosition } from "@/context/ThemeContext";
 import { ActionManager } from "@/components/actions/ActionManager";
 import { ArtifactsPanel } from "./ArtifactsPanel";
@@ -9,6 +9,7 @@ import { DisplayPanel } from "./DisplayPanel";
 import { useLLM, type LivenessStatus } from "@/context/LLMContext";
 import { useEditorContext } from "@/toolkits/editor";
 import { useLibp2pMetrics } from "@/toolkits/libp2p";
+import { useHeliaMetrics } from "@/toolkits/helia";
 import "../../styles/components/footer.css";
 import "../../styles/components/llm-manager.css";
 
@@ -61,11 +62,17 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
     const llm = useLLM();
     const { api: editorApi, queueArtifact } = useEditorContext();
     const libp2pMetrics = useLibp2pMetrics();
+    const heliaMetrics = useHeliaMetrics();
 
     const handleOpenLibp2p = useCallback(() => {
         setView("libp2p");
         libp2pMetrics.acknowledgeMessages();
     }, [setView, libp2pMetrics]);
+
+    const handleOpenHelia = useCallback(() => {
+        setView("helia");
+        heliaMetrics.acknowledgeEntries();
+    }, [setView, heliaMetrics]);
 
     const handleOpenInEditor = useCallback((artifact: JobArtifact) => {
         // If editor is already mounted, load directly
@@ -248,6 +255,31 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
                         <Radio size={11} />
                         <span className="footer__metric-value">{libp2pMetrics.newPubsubMessages}</span>
                         {libp2pMetrics.newPubsubMessages > 0 && (
+                            <span className="footer__metric-pulse" aria-hidden="true" />
+                        )}
+                    </button>
+
+                    <button
+                        type="button"
+                        className={`footer__metric footer__metric--helia${heliaMetrics.newEntries > 0 ? " footer__metric--alert" : ""}`}
+                        onClick={handleOpenHelia}
+                        title={[
+                            `Helia (IPFS) — ${heliaMetrics.activeNodes}/${heliaMetrics.totalNodes} node(s) running`,
+                            `${heliaMetrics.totalEntries} CID(s) tracked`,
+                            `${heliaMetrics.pinnedCount} pinned`,
+                        ].join(" · ")}
+                    >
+                        <Boxes size={11} />
+                        <span className="footer__metric-value">
+                            {heliaMetrics.activeNodes}
+                            {heliaMetrics.totalNodes > heliaMetrics.activeNodes && (
+                                <span className="footer__metric-total">/{heliaMetrics.totalNodes}</span>
+                            )}
+                        </span>
+                        <span className="footer__metric-sep" aria-hidden="true">·</span>
+                        <Pin size={11} />
+                        <span className="footer__metric-value">{heliaMetrics.pinnedCount}</span>
+                        {heliaMetrics.newEntries > 0 && (
                             <span className="footer__metric-pulse" aria-hidden="true" />
                         )}
                     </button>

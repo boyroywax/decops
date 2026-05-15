@@ -1,0 +1,274 @@
+/* Helia toolkit styles — shares the libp2p look & feel */
+
+.helia-view {
+    --helia-accent: #f59e0b;
+    --helia-accent-soft: rgba(245, 158, 11, 0.15);
+}
+
+.helia-view .libp2p-header {
+    border-bottom-color: rgba(245, 158, 11, 0.18);
+}
+
+.helia-control-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 8px 4px;
+}
+
+.helia-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 140px;
+}
+
+.helia-field--grow {
+    flex: 1 1 280px;
+}
+
+.helia-field > label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(226, 232, 240, 0.55);
+    font-family: "DM Mono", monospace;
+}
+
+.helia-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.helia-peer-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: rgba(245, 158, 11, 0.05);
+    border: 1px solid rgba(245, 158, 11, 0.18);
+    border-radius: 4px;
+    font-family: "DM Mono", monospace;
+    font-size: 11px;
+}
+
+.helia-peer-bar__label {
+    color: rgba(226, 232, 240, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10px;
+}
+
+.helia-peer-bar__id {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--helia-accent);
+}
+
+.helia-body {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.2fr);
+    gap: 12px;
+}
+
+@media (max-width: 900px) {
+    .helia-body {
+        grid-template-columns: 1fr;
+    }
+}
+
+.helia-panel {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.helia-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(226, 232, 240, 0.7);
+    font-family: "DM Mono", monospace;
+}
+
+.helia-panel__body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+}
+
+.helia-mode-toggle {
+    display: flex;
+    gap: 4px;
+}
+
+.helia-textarea {
+    font-family: "DM Mono", monospace;
+    font-size: 11px;
+    resize: vertical;
+    min-height: 80px;
+}
+
+.helia-cat-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.helia-cat-row .libp2p-input {
+    flex: 1;
+}
+
+.helia-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    max-height: 480px;
+    overflow-y: auto;
+}
+
+.helia-entries__empty {
+    padding: 16px;
+    text-align: center;
+    color: rgba(226, 232, 240, 0.45);
+    font-size: 11px;
+    font-family: "DM Mono", monospace;
+}
+
+.helia-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.15);
+    font-family: "DM Mono", monospace;
+}
+
+.helia-entry__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.helia-entry__cid {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--helia-accent);
+}
+
+.helia-entry__badge {
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(226, 232, 240, 0.7);
+}
+
+.helia-entry__badge--added {
+    border-color: rgba(0, 229, 160, 0.45);
+    color: #00e5a0;
+    background: rgba(0, 229, 160, 0.08);
+}
+
+.helia-entry__badge--fetched {
+    border-color: rgba(56, 189, 248, 0.45);
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+}
+
+.helia-entry__codec {
+    font-size: 9px;
+    color: rgba(226, 232, 240, 0.5);
+    text-transform: lowercase;
+}
+
+.helia-entry__meta {
+    display: flex;
+    gap: 10px;
+    font-size: 10px;
+    color: rgba(226, 232, 240, 0.55);
+}
+
+.helia-entry__label {
+    color: var(--helia-accent);
+}
+
+.helia-entry__preview {
+    margin: 0;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 3px;
+    font-size: 10px;
+    line-height: 1.4;
+    color: rgba(226, 232, 240, 0.8);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 110px;
+    overflow: auto;
+}
+
+.helia-entry__actions {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.helia-log {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 10px;
+    max-height: 180px;
+    overflow-y: auto;
+    font-family: "DM Mono", monospace;
+    font-size: 11px;
+}
+
+.helia-log__row {
+    display: flex;
+    gap: 8px;
+    padding: 2px 0;
+    color: rgba(226, 232, 240, 0.75);
+}
+
+.helia-log__row--error { color: #f472b6; }
+
+.helia-log__time {
+    color: rgba(226, 232, 240, 0.4);
+    flex-shrink: 0;
+}
+
+/* Footer metric — orange theme for helia */
+.footer__metric--helia {
+    border-color: rgba(245, 158, 11, 0.35) !important;
+    color: #f59e0b !important;
+}
+
+.footer__metric--helia:hover {
+    background: rgba(245, 158, 11, 0.1) !important;
+}

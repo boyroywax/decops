@@ -27,15 +27,18 @@ import { useEffect } from "react";
 import { Bot } from "lucide-react";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import { Libp2pChatBanner } from "./libp2p/components/Libp2pChatBanner";
+import { HeliaChatBanner } from "./helia/components/HeliaChatBanner";
 
 // ── Step 1: Bot chat-delegation registration (must run before any chat) ──
 import "./studio/studioBot";
 import "./libp2p/libp2pBot";
+import "./helia/heliaBot";
 
 // ── Step 2: Toolkit UI registration ──
 import "./studio/register";
 import "./editor/register";
 import "./libp2p/register";
+import "./helia/register";
 import "./architect/register";
 
 /**
@@ -78,6 +81,32 @@ export function useToolkitChatAgents(): void {
                         label: "Generate identity",
                         prompt: "Generate a new identity and store it in the vault",
                     },
+                ],
+            }),
+        );
+
+        // Helia (IPFS) chat agent
+        disposers.push(
+            useChatAgentsStore.getState().register({
+                id: "helia",
+                name: "Helia Bot",
+                description:
+                    "Direct line to the Helia (IPFS) sub-agent — start nodes, add/fetch CIDs, pin blocks.",
+                icon: Bot,
+                gradient: ["#f59e0b", "#fb923c"],
+                banner: HeliaChatBanner,
+                placeholder:
+                    "Tell the Helia bot what to do (start, add text, fetch a CID, pin…)",
+                toolkitIds: ["helia", "libp2p", "infrastructure", "jobs"],
+                workspace: {
+                    view: "helia",
+                    sideChatFooterPanel: "none",
+                },
+                quickActions: [
+                    { label: "Start helia", prompt: "Start the active Helia node" },
+                    { label: "Add hello world", prompt: "Add the text 'hello world' to IPFS and return the CID" },
+                    { label: "List entries", prompt: "List the entries currently known to this Helia node" },
+                    { label: "New helia node", prompt: "Add a new Helia node bound to the currently active libp2p node" },
                 ],
             }),
         );

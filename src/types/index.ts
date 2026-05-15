@@ -31,6 +31,7 @@ export type ViewId =
   | "editor"
   | "studio"
   | "libp2p"
+  | "helia"
   | "system";
 
 /** Navigation context for hierarchical drill-down: Ecosystem → Network → Group → Agent → Channel */
@@ -180,6 +181,7 @@ export type ToolkitId =
   | "workspace-mgmt"
   | "logging"
   | "libp2p"
+  | "helia"
   // Capability toolkits (external)
   | "web-crawler"
   | "ocr"
