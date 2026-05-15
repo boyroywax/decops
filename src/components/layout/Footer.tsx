@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "@/types";
-import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor, Globe, Users, Radio, Boxes, Pin } from "lucide-react";
+import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor, Globe, Users, Radio, Boxes, Pin, Database, Layers } from "lucide-react";
 import type { ChatPosition } from "@/context/ThemeContext";
 import { ActionManager } from "@/components/actions/ActionManager";
 import { ArtifactsPanel } from "./ArtifactsPanel";
@@ -10,6 +10,7 @@ import { useLLM, type LivenessStatus } from "@/context/LLMContext";
 import { useEditorContext } from "@/toolkits/editor";
 import { useLibp2pMetrics } from "@/toolkits/libp2p";
 import { useHeliaMetrics } from "@/toolkits/helia";
+import { useOrbitdbMetrics } from "@/toolkits/orbitdb";
 import "../../styles/components/footer.css";
 import "../../styles/components/llm-manager.css";
 
@@ -63,6 +64,7 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
     const { api: editorApi, queueArtifact } = useEditorContext();
     const libp2pMetrics = useLibp2pMetrics();
     const heliaMetrics = useHeliaMetrics();
+    const orbitdbMetrics = useOrbitdbMetrics();
 
     const handleOpenLibp2p = useCallback(() => {
         setView("libp2p");
@@ -73,6 +75,11 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
         setView("helia");
         heliaMetrics.acknowledgeEntries();
     }, [setView, heliaMetrics]);
+
+    const handleOpenOrbitdb = useCallback(() => {
+        setView("orbitdb");
+        orbitdbMetrics.acknowledgeDbs();
+    }, [setView, orbitdbMetrics]);
 
     const handleOpenInEditor = useCallback((artifact: JobArtifact) => {
         // If editor is already mounted, load directly
@@ -280,6 +287,31 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
                         <Pin size={11} />
                         <span className="footer__metric-value">{heliaMetrics.pinnedCount}</span>
                         {heliaMetrics.newEntries > 0 && (
+                            <span className="footer__metric-pulse" aria-hidden="true" />
+                        )}
+                    </button>
+
+                    <button
+                        type="button"
+                        className={`footer__metric footer__metric--orbitdb${orbitdbMetrics.newDbs > 0 ? " footer__metric--alert" : ""}`}
+                        onClick={handleOpenOrbitdb}
+                        title={[
+                            `OrbitDB — ${orbitdbMetrics.activeNodes}/${orbitdbMetrics.totalNodes} node(s) running`,
+                            `${orbitdbMetrics.openDbs}/${orbitdbMetrics.totalDbs} database(s) open`,
+                            `${orbitdbMetrics.totalEntries} entr${orbitdbMetrics.totalEntries === 1 ? "y" : "ies"} tracked`,
+                        ].join(" · ")}
+                    >
+                        <Database size={11} />
+                        <span className="footer__metric-value">
+                            {orbitdbMetrics.activeNodes}
+                            {orbitdbMetrics.totalNodes > orbitdbMetrics.activeNodes && (
+                                <span className="footer__metric-total">/{orbitdbMetrics.totalNodes}</span>
+                            )}
+                        </span>
+                        <span className="footer__metric-sep" aria-hidden="true">·</span>
+                        <Layers size={11} />
+                        <span className="footer__metric-value">{orbitdbMetrics.openDbs}</span>
+                        {orbitdbMetrics.newDbs > 0 && (
                             <span className="footer__metric-pulse" aria-hidden="true" />
                         )}
                     </button>

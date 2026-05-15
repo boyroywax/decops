@@ -17,6 +17,7 @@ const VIEW_TO_PATH: Record<string, string> = {
   editor: "/editor",
   libp2p: "/libp2p",
   helia: "/helia",
+  orbitdb: "/orbitdb",
 };
 
 /** Map URL path segment back to ViewId */
@@ -34,6 +35,7 @@ const PATH_TO_VIEW: Record<string, ViewId> = {
   editor: "editor",
   libp2p: "libp2p",
   helia: "helia",
+  orbitdb: "orbitdb",
 };
 
 /**

@@ -1,0 +1,98 @@
+/* OrbitDB toolkit — purple accent, otherwise reuses libp2p/helia base */
+
+.orbitdb-view {
+    --orbitdb-accent: #a855f7;
+    --orbitdb-accent-2: #c084fc;
+}
+
+.orbitdb-view .libp2p-status--ai {
+    background: linear-gradient(135deg, var(--orbitdb-accent), var(--orbitdb-accent-2));
+}
+
+.orbitdb-db-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.orbitdb-db {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: rgba(168, 85, 247, 0.06);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.orbitdb-db--active {
+    background: rgba(168, 85, 247, 0.15);
+    border-color: rgba(168, 85, 247, 0.45);
+}
+
+.orbitdb-db__type {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(168, 85, 247, 0.2);
+    color: var(--orbitdb-accent-2);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.orbitdb-db__name {
+    font-weight: 600;
+    color: #e5e7eb;
+}
+
+.orbitdb-db__addr {
+    color: #9ca3af;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+}
+
+.orbitdb-db__count {
+    margin-left: auto;
+    color: #c084fc;
+    font-variant-numeric: tabular-nums;
+}
+
+.orbitdb-entry-list {
+    max-height: 260px;
+    overflow: auto;
+    border: 1px solid rgba(168, 85, 247, 0.2);
+    border-radius: 6px;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.orbitdb-entry {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    padding: 4px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: #d1d5db;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+.orbitdb-entry:last-child { border-bottom: none; }
+
+.orbitdb-entry__key {
+    color: var(--orbitdb-accent-2);
+    font-weight: 600;
+}
+
+/* Footer metric — purple theme for orbitdb */
+.footer__metric--orbitdb {
+    border-color: rgba(168, 85, 247, 0.35) !important;
+    color: #a855f7 !important;
+}
+
+.footer__metric--orbitdb:hover {
+    background: rgba(168, 85, 247, 0.1) !important;
+}

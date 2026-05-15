@@ -32,6 +32,7 @@ export type ViewId =
   | "studio"
   | "libp2p"
   | "helia"
+  | "orbitdb"
   | "system";
 
 /** Navigation context for hierarchical drill-down: Ecosystem → Network → Group → Agent → Channel */
@@ -182,6 +183,7 @@ export type ToolkitId =
   | "logging"
   | "libp2p"
   | "helia"
+  | "orbitdb"
   // Capability toolkits (external)
   | "web-crawler"
   | "ocr"

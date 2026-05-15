@@ -28,17 +28,20 @@ import { Bot } from "lucide-react";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import { Libp2pChatBanner } from "./libp2p/components/Libp2pChatBanner";
 import { HeliaChatBanner } from "./helia/components/HeliaChatBanner";
+import { OrbitdbChatBanner } from "./orbitdb/components/OrbitdbChatBanner";
 
 // ── Step 1: Bot chat-delegation registration (must run before any chat) ──
 import "./studio/studioBot";
 import "./libp2p/libp2pBot";
 import "./helia/heliaBot";
+import "./orbitdb/orbitdbBot";
 
 // ── Step 2: Toolkit UI registration ──
 import "./studio/register";
 import "./editor/register";
 import "./libp2p/register";
 import "./helia/register";
+import "./orbitdb/register";
 import "./architect/register";
 
 /**
@@ -107,6 +110,32 @@ export function useToolkitChatAgents(): void {
                     { label: "Add hello world", prompt: "Add the text 'hello world' to IPFS and return the CID" },
                     { label: "List entries", prompt: "List the entries currently known to this Helia node" },
                     { label: "New helia node", prompt: "Add a new Helia node bound to the currently active libp2p node" },
+                ],
+            }),
+        );
+
+        // OrbitDB chat agent
+        disposers.push(
+            useChatAgentsStore.getState().register({
+                id: "orbitdb",
+                name: "OrbitDB Bot",
+                description:
+                    "Direct line to the OrbitDB sub-agent — open databases, write entries, query documents.",
+                icon: Bot,
+                gradient: ["#a855f7", "#c084fc"],
+                banner: OrbitdbChatBanner,
+                placeholder:
+                    "Tell the OrbitDB bot what to do (open a kv db, add an event, query docs…)",
+                toolkitIds: ["orbitdb", "helia", "libp2p", "infrastructure", "jobs"],
+                workspace: {
+                    view: "orbitdb",
+                    sideChatFooterPanel: "none",
+                },
+                quickActions: [
+                    { label: "Start orbitdb", prompt: "Start the active OrbitDB node, auto-starting helia if needed" },
+                    { label: "Open KV db", prompt: 'Open a key-value database named "todos"' },
+                    { label: "Add event", prompt: 'Open an events log named "audit" and add { actor: "me", action: "login" }' },
+                    { label: "Query docs", prompt: 'Open a documents database named "items" and query for documents where status equals active' },
                 ],
             }),
         );
