@@ -44,7 +44,8 @@ const HELIA_COMMAND_IDS = new Set([
     "helia_start", "helia_stop",
     "helia_add_node", "helia_remove_node", "helia_set_active_node", "helia_rename_node",
     "helia_set_libp2p",
-    "helia_add_text", "helia_add_json", "helia_cat",
+    "helia_add_text", "helia_add_json", "helia_add_dag_json", "helia_add_dag_cbor",
+    "helia_add_bytes", "helia_cat", "helia_get_dag",
     "helia_pin", "helia_unpin",
     "helia_list_entries", "helia_clear_entries",
     // Transitive libp2p tools so the bot can prep the network layer.
@@ -104,8 +105,12 @@ CAPABILITIES YOU CONTROL:
 
 **Content**
 - helia_add_text({ text, label?, nodeId? }) → returns { cid, bytes }
-- helia_add_json({ value, label?, nodeId? }) → returns { cid, bytes } (dag-json)
-- helia_cat({ cid, nodeId? }) → returns { cid, text, bytes }
+- helia_add_json({ value, label?, nodeId? }) → returns { cid, bytes } (json codec; opaque, no IPLD links)
+- helia_add_dag_json({ value, label?, nodeId? }) → IPLD dag-json (CID links: \`{ "/": "<cid>" }\`)
+- helia_add_dag_cbor({ value, label?, nodeId? }) → IPLD dag-cbor (binary, link-aware)
+- helia_add_bytes({ bytes, label?, nodeId? }) → add raw binary; \`bytes\` is base64
+- helia_cat({ cid, nodeId? }) → returns { cid, text, bytes } (UnixFS / UTF-8)
+- helia_get_dag({ cid, path?, nodeId? }) → resolves an IPLD block; \`path\` traverses CID links
 
 **Pins**
 - helia_pin({ cid, nodeId? })

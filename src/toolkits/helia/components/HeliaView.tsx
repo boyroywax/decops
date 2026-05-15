@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
     Boxes, Power, PowerOff, Plus, X, Copy, Trash2, Pin, PinOff,
     Download, FileText, Braces, ListTree, Bot, RefreshCw, Link2,
+    Network, Binary, Upload,
 } from "lucide-react";
 import { useHelia } from "../HeliaContext";
 import { heliaService } from "../service";
@@ -24,6 +25,24 @@ import "../styles/helia.css";
 interface HeliaViewProps {
     navigateTo?: (view: string) => void;
 }
+
+/** Convert a Uint8Array to a base64 string (chunked to avoid arg-length limits). */
+function bytesToBase64(bytes: Uint8Array): string {
+    const CHUNK = 0x8000;
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+        bin += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+    }
+    return btoa(bin);
+}
+
+const ADD_MODES: Array<{ id: "text" | "json" | "dag-json" | "dag-cbor" | "binary"; label: string; icon: React.ReactNode }> = [
+    { id: "text", label: "Text", icon: <FileText size={11} /> },
+    { id: "json", label: "JSON", icon: <Braces size={11} /> },
+    { id: "dag-json", label: "dag-json", icon: <Network size={11} /> },
+    { id: "dag-cbor", label: "dag-cbor", icon: <Binary size={11} /> },
+    { id: "binary", label: "Binary", icon: <Upload size={11} /> },
+];
 
 export function HeliaView(_props: HeliaViewProps) {
     const { snapshot, nodes, activeId, setActive, addNode, removeNode } = useHelia();
@@ -48,14 +67,17 @@ export function HeliaView(_props: HeliaViewProps) {
     useEffect(() => { setLabelDraft(snapshot.label); }, [snapshot.nodeId, snapshot.label]);
 
     // Add-content form
-    const [addMode, setAddMode] = useState<"text" | "json">("text");
+    const [addMode, setAddMode] = useState<"text" | "json" | "dag-json" | "dag-cbor" | "binary">("text");
     const [addLabel, setAddLabel] = useState("");
     const [addText, setAddText] = useState("");
     const [addJsonText, setAddJsonText] = useState("");
     const [addError, setAddError] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [pendingFile, setPendingFile] = useState<{ name: string; size: number; bytes: Uint8Array } | null>(null);
 
     // Cat / fetch
     const [catCid, setCatCid] = useState("");
+    const [catPath, setCatPath] = useState("");
 
     const isRunning = snapshot.status === "running";
     const isBusy = snapshot.status === "starting" || snapshot.status === "stopping";
@@ -120,34 +142,75 @@ export function HeliaView(_props: HeliaViewProps) {
     const onAdd = () => {
         setAddError(null);
         if (!isRunning) { setAddError("Start the node first"); return; }
+        const labelArg = addLabel.trim() ? { label: addLabel.trim() } : {};
         if (addMode === "text") {
             if (!addText) { setAddError("Enter some text"); return; }
-            dispatch("helia_add_text", {
-                text: addText,
-                ...(addLabel.trim() ? { label: addLabel.trim() } : {}),
-            }, "add text");
+            dispatch("helia_add_text", { text: addText, ...labelArg }, "add text");
             setAddText("");
             setAddLabel("");
-        } else {
-            try {
-                const value = JSON.parse(addJsonText);
-                dispatch("helia_add_json", {
-                    value,
-                    ...(addLabel.trim() ? { label: addLabel.trim() } : {}),
-                }, "add json");
-                setAddJsonText("");
-                setAddLabel("");
-            } catch (err) {
-                setAddError(err instanceof Error ? err.message : "Invalid JSON");
-            }
+            return;
+        }
+        if (addMode === "binary") {
+            if (!pendingFile) { setAddError("Pick a file first"); return; }
+            // Encode bytes to base64 for transport through the job system.
+            const b64 = bytesToBase64(pendingFile.bytes);
+            dispatch(
+                "helia_add_bytes",
+                { bytes: b64, label: addLabel.trim() || pendingFile.name },
+                `add bytes (${pendingFile.name})`,
+            );
+            setPendingFile(null);
+            setAddLabel("");
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            return;
+        }
+        // json | dag-json | dag-cbor — all accept a JSON-shaped value
+        try {
+            const value = JSON.parse(addJsonText);
+            const cmd =
+                addMode === "json" ? "helia_add_json"
+                : addMode === "dag-json" ? "helia_add_dag_json"
+                : "helia_add_dag_cbor";
+            dispatch(cmd, { value, ...labelArg }, `add ${addMode}`);
+            setAddJsonText("");
+            setAddLabel("");
+        } catch (err) {
+            setAddError(err instanceof Error ? err.message : "Invalid JSON");
         }
     };
 
-    const onCat = () => {
-        const cid = catCid.trim();
+    const onPickFile = async (file: File | null) => {
+        setAddError(null);
+        if (!file) { setPendingFile(null); return; }
+        try {
+            const buf = new Uint8Array(await file.arrayBuffer());
+            setPendingFile({ name: file.name, size: file.size, bytes: buf });
+            if (!addLabel.trim()) setAddLabel(file.name);
+        } catch (err) {
+            setAddError(err instanceof Error ? err.message : "Failed to read file");
+        }
+    };
+
+    const onCat = (cidOverride?: string) => {
+        const cid = (cidOverride ?? catCid).trim();
         if (!cid) return;
-        dispatch("helia_cat", { cid }, `cat ${cid.slice(0, 12)}…`);
+        const path = catPath.trim();
+        if (path) {
+            dispatch("helia_get_dag", { cid, path }, `get-dag ${cid.slice(0, 12)}…/${path}`);
+        } else {
+            dispatch("helia_cat", { cid }, `cat ${cid.slice(0, 12)}…`);
+        }
         setCatCid("");
+        setCatPath("");
+    };
+
+    const onGetDag = (cidOverride?: string) => {
+        const cid = (cidOverride ?? catCid).trim();
+        if (!cid) return;
+        const path = catPath.trim() || undefined;
+        dispatch("helia_get_dag", { cid, ...(path ? { path } : {}) }, `get-dag ${cid.slice(0, 12)}…`);
+        setCatCid("");
+        setCatPath("");
     };
 
     const onPin = (cid: string) => dispatch("helia_pin", { cid }, `pin ${cid.slice(0, 12)}…`);
@@ -342,20 +405,17 @@ export function HeliaView(_props: HeliaViewProps) {
                     <header className="helia-panel__head">
                         <span>Add to IPFS</span>
                         <div className="helia-mode-toggle">
-                            <button
-                                type="button"
-                                className={`libp2p-btn libp2p-btn--ghost${addMode === "text" ? " libp2p-btn--active" : ""}`}
-                                onClick={() => setAddMode("text")}
-                            >
-                                <FileText size={11} /> Text
-                            </button>
-                            <button
-                                type="button"
-                                className={`libp2p-btn libp2p-btn--ghost${addMode === "json" ? " libp2p-btn--active" : ""}`}
-                                onClick={() => setAddMode("json")}
-                            >
-                                <Braces size={11} /> JSON
-                            </button>
+                            {ADD_MODES.map((m) => (
+                                <button
+                                    key={m.id}
+                                    type="button"
+                                    className={`libp2p-btn libp2p-btn--ghost${addMode === m.id ? " libp2p-btn--active" : ""}`}
+                                    onClick={() => { setAddMode(m.id); setAddError(null); }}
+                                    title={m.label}
+                                >
+                                    {m.icon} {m.label}
+                                </button>
+                            ))}
                         </div>
                     </header>
                     <div className="helia-panel__body">
@@ -366,7 +426,7 @@ export function HeliaView(_props: HeliaViewProps) {
                             onChange={(e) => setAddLabel(e.target.value)}
                             disabled={!isRunning}
                         />
-                        {addMode === "text" ? (
+                        {addMode === "text" && (
                             <textarea
                                 className="libp2p-input helia-textarea"
                                 placeholder="UTF-8 content…"
@@ -375,22 +435,44 @@ export function HeliaView(_props: HeliaViewProps) {
                                 disabled={!isRunning}
                                 rows={6}
                             />
-                        ) : (
+                        )}
+                        {(addMode === "json" || addMode === "dag-json" || addMode === "dag-cbor") && (
                             <textarea
                                 className="libp2p-input helia-textarea"
-                                placeholder='{"hello": "world"}'
+                                placeholder={
+                                    addMode === "json"
+                                        ? '{"hello": "world"}'
+                                        : '{"name": "alice", "avatar": {"/": "bafy…"}}'
+                                }
                                 value={addJsonText}
                                 onChange={(e) => setAddJsonText(e.target.value)}
                                 disabled={!isRunning}
                                 rows={6}
                             />
                         )}
+                        {addMode === "binary" && (
+                            <div className="helia-cat-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    className="libp2p-input"
+                                    disabled={!isRunning}
+                                    onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
+                                />
+                                {pendingFile && (
+                                    <div className="helia-entry__meta" style={{ paddingLeft: 2 }}>
+                                        <span className="helia-entry__label">{pendingFile.name}</span>
+                                        <span>{fmtBytes(pendingFile.size)}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         {addError && <div className="libp2p-error">{addError}</div>}
                         <button
                             type="button"
                             className="libp2p-btn libp2p-btn--primary"
                             onClick={onAdd}
-                            disabled={!isRunning}
+                            disabled={!isRunning || (addMode === "binary" && !pendingFile)}
                         >
                             <Plus size={11} /> Add → CID
                         </button>
@@ -399,7 +481,7 @@ export function HeliaView(_props: HeliaViewProps) {
                     <header className="helia-panel__head">
                         <span>Fetch by CID</span>
                     </header>
-                    <div className="helia-panel__body helia-cat-row">
+                    <div className="helia-panel__body helia-cat-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
                         <input
                             className="libp2p-input"
                             placeholder="bafy… / Qm…"
@@ -408,14 +490,34 @@ export function HeliaView(_props: HeliaViewProps) {
                             onKeyDown={(e) => { if (e.key === "Enter") onCat(); }}
                             disabled={!isRunning}
                         />
-                        <button
-                            type="button"
-                            className="libp2p-btn"
-                            onClick={onCat}
-                            disabled={!isRunning || !catCid.trim()}
-                        >
-                            <Download size={11} /> Fetch
-                        </button>
+                        <input
+                            className="libp2p-input"
+                            placeholder="IPLD path (optional, e.g. author/name)"
+                            value={catPath}
+                            onChange={(e) => setCatPath(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === "Enter") onGetDag(); }}
+                            disabled={!isRunning}
+                        />
+                        <div style={{ display: "flex", gap: 6 }}>
+                            <button
+                                type="button"
+                                className="libp2p-btn"
+                                onClick={() => onCat()}
+                                disabled={!isRunning || !catCid.trim()}
+                                title="Fetch as UTF-8 text via UnixFS"
+                            >
+                                <Download size={11} /> Cat
+                            </button>
+                            <button
+                                type="button"
+                                className="libp2p-btn"
+                                onClick={() => onGetDag()}
+                                disabled={!isRunning || !catCid.trim()}
+                                title="Resolve as an IPLD block (dag-cbor/dag-json/json)"
+                            >
+                                <Network size={11} /> Get IPLD
+                            </button>
+                        </div>
                     </div>
                 </section>
 
@@ -489,7 +591,7 @@ export function HeliaView(_props: HeliaViewProps) {
                                     <button
                                         type="button"
                                         className="libp2p-btn libp2p-btn--ghost"
-                                        onClick={() => { setCatCid(e.cid); onCat(); }}
+                                        onClick={() => onCat(e.cid)}
                                         disabled={!isRunning}
                                         title="Re-fetch"
                                     >

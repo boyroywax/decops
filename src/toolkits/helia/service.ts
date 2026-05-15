@@ -37,18 +37,28 @@ interface HeliaLike {
 }
 
 interface UnixfsLike {
-    addBytes: (bytes: Uint8Array) => Promise<any>;
-    cat: (cid: any) => AsyncIterable<Uint8Array>;
+    addBytes: (bytes: Uint8Array, options?: { signal?: AbortSignal }) => Promise<any>;
+    cat: (cid: any, options?: { signal?: AbortSignal; offline?: boolean }) => AsyncIterable<Uint8Array>;
 }
 
 interface StringsLike {
     add: (text: string) => Promise<any>;
-    get: (cid: any) => Promise<string>;
+    get: (cid: any, options?: { signal?: AbortSignal }) => Promise<string>;
 }
 
 interface JsonLike {
     add: (value: unknown) => Promise<any>;
-    get: (cid: any) => Promise<unknown>;
+    get: (cid: any, options?: { signal?: AbortSignal }) => Promise<unknown>;
+}
+
+interface DagJsonLike {
+    add: (value: unknown) => Promise<any>;
+    get: (cid: any, options?: { path?: string; signal?: AbortSignal }) => Promise<unknown>;
+}
+
+interface DagCborLike {
+    add: (value: unknown) => Promise<any>;
+    get: (cid: any, options?: { path?: string; signal?: AbortSignal }) => Promise<unknown>;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
@@ -87,6 +97,30 @@ function savePersistedManager(state: PersistedManager): void {
 
 const PREVIEW_CHARS = 240;
 const ENTRY_LIMIT = 200;
+/**
+ * Default timeout for fetch operations (cat / get-dag). Helia's bitswap
+ * has no inherent timeout; if a block is not in the local blockstore and
+ * no peer offers it, the iterator hangs forever. We surface a friendly
+ * error instead.
+ */
+const DEFAULT_CAT_TIMEOUT_MS = 20_000;
+
+/**
+ * Returns an AbortSignal that fires after `timeoutMs`, optionally
+ * combined with a caller-supplied signal. Uses `AbortSignal.any` when
+ * available, falling back to a manual link.
+ */
+function withTimeout(parent: AbortSignal | undefined, timeoutMs: number): AbortSignal {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(new Error(`timeout after ${timeoutMs}ms`)), timeoutMs);
+    // Clear timer when aborted from elsewhere.
+    ctrl.signal.addEventListener("abort", () => clearTimeout(timer), { once: true });
+    if (parent) {
+        if (parent.aborted) ctrl.abort(parent.reason);
+        else parent.addEventListener("abort", () => ctrl.abort(parent.reason), { once: true });
+    }
+    return ctrl.signal;
+}
 
 class HeliaNode {
     readonly id: string;
@@ -103,6 +137,8 @@ class HeliaNode {
     private fs: UnixfsLike | null = null;
     private strings: StringsLike | null = null;
     private json: JsonLike | null = null;
+    private dagJson: DagJsonLike | null = null;
+    private dagCbor: DagCborLike | null = null;
     private startPromise: Promise<void> | null = null;
     private onChange: () => void;
 
@@ -211,11 +247,15 @@ class HeliaNode {
                     { unixfs },
                     { strings },
                     { json },
+                    { dagJson },
+                    { dagCbor },
                 ] = await Promise.all([
                     import("helia"),
                     import("@helia/unixfs"),
                     import("@helia/strings"),
                     import("@helia/json"),
+                    import("@helia/dag-json"),
+                    import("@helia/dag-cbor"),
                 ]);
 
                 // ── 3) Boot Helia using the existing libp2p instance ──────
@@ -226,6 +266,8 @@ class HeliaNode {
                 this.fs = unixfs(helia) as unknown as UnixfsLike;
                 this.strings = strings(helia) as unknown as StringsLike;
                 this.json = json(helia) as unknown as JsonLike;
+                this.dagJson = dagJson(helia) as unknown as DagJsonLike;
+                this.dagCbor = dagCbor(helia) as unknown as DagCborLike;
 
                 this.startedAt = new Date().toISOString();
                 this.setStatus("running");
@@ -256,6 +298,8 @@ class HeliaNode {
         this.fs = null;
         this.strings = null;
         this.json = null;
+        this.dagJson = null;
+        this.dagCbor = null;
         this.startedAt = undefined;
         this.setStatus("stopped");
     }
@@ -296,13 +340,35 @@ class HeliaNode {
         });
     }
 
-    /** Add a JSON-serialisable value via `@helia/json` (dag-json). */
+    /** Add a JSON-serialisable value via `@helia/json` (json codec 0x0200). */
     async addJson(value: unknown, label?: string): Promise<HeliaContentEntry> {
         this.requireRunning();
         if (!this.json) throw new Error("@helia/json not initialised");
         const cid = await this.json.add(value);
         const serialised = (() => {
             try { return JSON.stringify(value); } catch { return ""; }
+        })();
+        return this.recordEntry({
+            cid: cid.toString(),
+            codec: "json",
+            bytes: serialised ? new TextEncoder().encode(serialised).byteLength : undefined,
+            label,
+            preview: serialised.slice(0, PREVIEW_CHARS),
+            source: "added",
+        });
+    }
+
+    /**
+     * Add a value as a `dag-json` IPLD block. Unlike `addJson`, this codec
+     * understands CID links — any `CID` instance embedded in the value is
+     * encoded as an IPLD link and traversable via {@link getDag} paths.
+     */
+    async addDagJson(value: unknown, label?: string): Promise<HeliaContentEntry> {
+        this.requireRunning();
+        if (!this.dagJson) throw new Error("@helia/dag-json not initialised");
+        const cid = await this.dagJson.add(value);
+        const serialised = (() => {
+            try { return JSON.stringify(value, jsonStringifyReplacer); } catch { return ""; }
         })();
         return this.recordEntry({
             cid: cid.toString(),
@@ -314,30 +380,122 @@ class HeliaNode {
         });
     }
 
-    /** Fetch a CID as a UTF-8 string. */
-    async catString(cidStr: string): Promise<string> {
+    /**
+     * Add a value as a `dag-cbor` IPLD block (binary, compact, link-aware).
+     */
+    async addDagCbor(value: unknown, label?: string): Promise<HeliaContentEntry> {
+        this.requireRunning();
+        if (!this.dagCbor) throw new Error("@helia/dag-cbor not initialised");
+        const cid = await this.dagCbor.add(value);
+        let previewText = "";
+        try { previewText = JSON.stringify(value, jsonStringifyReplacer); } catch { /* noop */ }
+        return this.recordEntry({
+            cid: cid.toString(),
+            codec: "dag-cbor",
+            label,
+            preview: previewText.slice(0, PREVIEW_CHARS),
+            source: "added",
+        });
+    }
+
+    /**
+     * Resolve and decode an IPLD block by CID. Supports an optional path
+     * (e.g. `"author/name"`) which traverses CID links transparently. The
+     * codec is inferred from the CID; falls back to dag-cbor.
+     */
+    async getDag(cidStr: string, path?: string, options: { signal?: AbortSignal; timeoutMs?: number } = {}): Promise<{ value: unknown; codec: string; cid: string }> {
+        this.requireRunning();
+        const { CID } = await import("multiformats/cid");
+        const cid = CID.parse(cidStr);
+        // CID code → codec name. Use a tiny map of well-known codecs.
+        const codecByCode: Record<number, string> = {
+            0x55: "raw",
+            0x70: "dag-pb",
+            0x71: "dag-cbor",
+            0x0129: "dag-json",
+            0x0200: "json",
+        };
+        const codec = codecByCode[cid.code] ?? "dag-cbor";
+
+        const signal = withTimeout(options.signal, options.timeoutMs ?? DEFAULT_CAT_TIMEOUT_MS);
+        let value: unknown;
+        const opts = { signal, ...(path ? { path } : {}) };
+        try {
+            if (codec === "dag-cbor") {
+                if (!this.dagCbor) throw new Error("@helia/dag-cbor not initialised");
+                value = await this.dagCbor.get(cid, opts);
+            } else if (codec === "dag-json") {
+                if (!this.dagJson) throw new Error("@helia/dag-json not initialised");
+                value = await this.dagJson.get(cid, opts);
+            } else if (codec === "json") {
+                if (!this.json) throw new Error("@helia/json not initialised");
+                value = await this.json.get(cid, { signal });
+            } else {
+                // raw / dag-pb / unknown — read bytes via unixfs and return as text-or-hex
+                value = await this.catBytes(cidStr, { signal });
+            }
+        } catch (err) {
+            if (signal.aborted) {
+                throw new Error(`get-dag ${cidStr.slice(0, 16)}\u2026 timed out — block not available locally or via bitswap`);
+            }
+            throw err;
+        }
+
+        let previewText = "";
+        try { previewText = JSON.stringify(value, jsonStringifyReplacer); } catch { /* noop */ }
+        this.recordEntry({
+            cid: cidStr,
+            codec,
+            label: path ? `${cidStr.slice(0, 10)}…/${path}` : undefined,
+            preview: previewText.slice(0, PREVIEW_CHARS),
+            source: "fetched",
+        });
+        return { value, codec, cid: cidStr };
+    }
+
+    /** Fetch a CID as raw bytes via unixfs. */
+    async catBytes(cidStr: string, options: { signal?: AbortSignal; timeoutMs?: number } = {}): Promise<Uint8Array> {
         this.requireRunning();
         if (!this.fs) throw new Error("unixfs not initialised");
         const { CID } = await import("multiformats/cid");
         const cid = CID.parse(cidStr);
+        const signal = withTimeout(options.signal, options.timeoutMs ?? DEFAULT_CAT_TIMEOUT_MS);
         const chunks: Uint8Array[] = [];
         let total = 0;
-        for await (const chunk of this.fs.cat(cid)) {
-            chunks.push(chunk);
-            total += chunk.byteLength;
+        try {
+            for await (const chunk of this.fs.cat(cid, { signal })) {
+                chunks.push(chunk);
+                total += chunk.byteLength;
+            }
+        } catch (err) {
+            if (signal.aborted) {
+                throw new Error(`cat ${cidStr.slice(0, 16)}\u2026 timed out — block not available locally or via bitswap`);
+            }
+            throw err;
         }
         const combined = new Uint8Array(total);
         let offset = 0;
         for (const c of chunks) { combined.set(c, offset); offset += c.byteLength; }
-        const text = new TextDecoder().decode(combined);
-        // Record as a fetched entry so it shows up in the entries list.
         this.recordEntry({
             cid: cidStr,
             codec: "raw",
             bytes: total,
-            preview: text.slice(0, PREVIEW_CHARS),
+            preview: tryPreviewBytes(combined),
             source: "fetched",
         });
+        return combined;
+    }
+
+    /** Fetch a CID as a UTF-8 string. */
+    async catString(cidStr: string): Promise<string> {
+        const combined = await this.catBytes(cidStr);
+        const text = new TextDecoder().decode(combined);
+        // Update the entry the cat recorded with a text preview.
+        const entry = this.entries.find((e) => e.cid === cidStr);
+        if (entry) {
+            entry.preview = text.slice(0, PREVIEW_CHARS);
+            this.onChange();
+        }
         return text;
     }
 
@@ -412,6 +570,28 @@ function tryPreviewBytes(bytes: Uint8Array): string | undefined {
         const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes.subarray(0, PREVIEW_CHARS * 2));
         return text.slice(0, PREVIEW_CHARS);
     } catch { return undefined; }
+}
+
+/**
+ * Lossy JSON.stringify replacer used for preview text only. Coerces
+ * non-JSON values (CID instances, Uint8Array, bigint, …) into something
+ * human-readable so the preview pane is useful for IPLD blocks.
+ */
+function jsonStringifyReplacer(_key: string, value: unknown): unknown {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    if (typeof value === "bigint") return `${value.toString()}n`;
+    if (value instanceof Uint8Array) {
+        return `<bytes:${value.byteLength}>`;
+    }
+    // CID instances expose .toString() and have an asCID symbol; duck-type it.
+    if (typeof value === "object" && value !== null) {
+        const v = value as { ["/"]?: unknown; toString?: () => string; asCID?: unknown };
+        if (v.asCID === value || (v["/"] && typeof v.toString === "function")) {
+            try { return { "/": v.toString!() }; } catch { /* noop */ }
+        }
+    }
+    return value;
 }
 
 class HeliaManager {
@@ -540,7 +720,11 @@ class HeliaManager {
     addString(text: string, label?: string, id?: string) { return this.getNode(id).addString(text, label); }
     addBytes(bytes: Uint8Array, label?: string, id?: string) { return this.getNode(id).addBytes(bytes, label); }
     addJson(value: unknown, label?: string, id?: string) { return this.getNode(id).addJson(value, label); }
+    addDagJson(value: unknown, label?: string, id?: string) { return this.getNode(id).addDagJson(value, label); }
+    addDagCbor(value: unknown, label?: string, id?: string) { return this.getNode(id).addDagCbor(value, label); }
     catString(cid: string, id?: string) { return this.getNode(id).catString(cid); }
+    catBytes(cid: string, id?: string) { return this.getNode(id).catBytes(cid); }
+    getDag(cid: string, path?: string, id?: string) { return this.getNode(id).getDag(cid, path); }
     pin(cid: string, id?: string) { return this.getNode(id).pin(cid); }
     unpin(cid: string, id?: string) { return this.getNode(id).unpin(cid); }
     listEntries(id?: string) { return this.getNode(id).listEntries(); }

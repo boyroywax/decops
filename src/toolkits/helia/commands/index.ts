@@ -229,7 +229,7 @@ export const heliaAddTextCommand: CommandDefinition = {
 
 export const heliaAddJsonCommand: CommandDefinition = {
     id: "helia_add_json",
-    description: "Add a JSON-serialisable value to IPFS via Helia (dag-json). Returns the resulting CID.",
+    description: "Add a JSON-serialisable value to IPFS via Helia (`json` codec, no CID links). Returns the resulting CID.",
     tags: ["helia", "ipfs", "add"],
     rbac: ["orchestrator", "builder"],
     args: {
@@ -244,6 +244,127 @@ export const heliaAddJsonCommand: CommandDefinition = {
         const entry = await heliaService.addJson(value, typeof label === "string" ? label : undefined, nodeId);
         context.workspace.addLog(`helia added json → ${entry.cid}`);
         return { cid: entry.cid, bytes: entry.bytes, label: entry.label };
+    },
+};
+
+// ── helia_add_dag_json ──
+
+export const heliaAddDagJsonCommand: CommandDefinition = {
+    id: "helia_add_dag_json",
+    description:
+        "Add an IPLD block encoded as `dag-json`. Unlike `helia_add_json`, embedded `{ \"/\": \"<cid>\" }` " +
+        "objects are treated as CID links and are traversable via `helia_get_dag` paths.",
+    tags: ["helia", "ipfs", "ipld", "add"],
+    rbac: ["orchestrator", "builder"],
+    args: {
+        nodeId: NODE_ID_ARG,
+        value: { name: "value", type: "object", description: "IPLD-shaped value (objects/arrays/scalars; CID links use { \"/\": \"<cid>\" }).", required: true },
+        label: { name: "label", type: "string", description: "Optional label.", required: false },
+    },
+    output: "JSON object { cid, bytes, codec: 'dag-json', label? }.",
+    outputSchema: { type: "object", additionalProperties: true },
+    execute: async (args, context) => {
+        const { nodeId, value, label } = args;
+        const entry = await heliaService.addDagJson(value, typeof label === "string" ? label : undefined, nodeId);
+        context.workspace.addLog(`helia added dag-json → ${entry.cid}`);
+        return { cid: entry.cid, bytes: entry.bytes, codec: entry.codec, label: entry.label };
+    },
+};
+
+// ── helia_add_dag_cbor ──
+
+export const heliaAddDagCborCommand: CommandDefinition = {
+    id: "helia_add_dag_cbor",
+    description:
+        "Add an IPLD block encoded as `dag-cbor` (compact binary IPLD). Supports CID links via " +
+        "`{ \"/\": \"<cid>\" }` shape (or CID instances when called programmatically).",
+    tags: ["helia", "ipfs", "ipld", "add"],
+    rbac: ["orchestrator", "builder"],
+    args: {
+        nodeId: NODE_ID_ARG,
+        value: { name: "value", type: "object", description: "IPLD-shaped value to encode as dag-cbor.", required: true },
+        label: { name: "label", type: "string", description: "Optional label.", required: false },
+    },
+    output: "JSON object { cid, codec: 'dag-cbor', label? }.",
+    outputSchema: { type: "object", additionalProperties: true },
+    execute: async (args, context) => {
+        const { nodeId, value, label } = args;
+        const entry = await heliaService.addDagCbor(value, typeof label === "string" ? label : undefined, nodeId);
+        context.workspace.addLog(`helia added dag-cbor → ${entry.cid}`);
+        return { cid: entry.cid, codec: entry.codec, label: entry.label };
+    },
+};
+
+// ── helia_add_bytes ──
+
+export const heliaAddBytesCommand: CommandDefinition = {
+    id: "helia_add_bytes",
+    description:
+        "Add raw binary bytes to IPFS via UnixFS. Accepts either a base64 string or an array of byte values. " +
+        "Returns the resulting CID. Useful for binary files (images, PDFs, archives, …).",
+    tags: ["helia", "ipfs", "add", "binary"],
+    rbac: ["orchestrator", "builder"],
+    args: {
+        nodeId: NODE_ID_ARG,
+        bytes: {
+            name: "bytes",
+            type: "string",
+            description: "Base64-encoded bytes (preferred). Mutually exclusive with `byteArray`.",
+            required: false,
+        },
+        byteArray: {
+            name: "byteArray",
+            type: "array",
+            description: "Array of byte values (0–255). Use only for small payloads.",
+            required: false,
+        },
+        label: { name: "label", type: "string", description: "Optional label / file name.", required: false },
+    },
+    output: "JSON object { cid, bytes, label? }.",
+    outputSchema: { type: "object", additionalProperties: true },
+    execute: async (args, context) => {
+        const { nodeId, bytes, byteArray, label } = args;
+        let buf: Uint8Array;
+        if (typeof bytes === "string" && bytes.length > 0) {
+            // base64 → Uint8Array (browser/runtime agnostic)
+            const cleaned = bytes.replace(/^data:[^;]*;base64,/, "");
+            const bin = atob(cleaned);
+            buf = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+        } else if (Array.isArray(byteArray)) {
+            buf = Uint8Array.from(byteArray.map((v) => Number(v) & 0xff));
+        } else {
+            throw new Error("Provide either `bytes` (base64) or `byteArray`");
+        }
+        const entry = await heliaService.addBytes(buf, typeof label === "string" ? label : undefined, nodeId);
+        context.workspace.addLog(`helia added bytes (${buf.byteLength}B) → ${entry.cid}`);
+        return { cid: entry.cid, bytes: entry.bytes, label: entry.label };
+    },
+};
+
+// ── helia_get_dag ──
+
+export const heliaGetDagCommand: CommandDefinition = {
+    id: "helia_get_dag",
+    description:
+        "Resolve and decode an IPLD block by CID. The codec is inferred from the CID (dag-cbor, dag-json, json, raw). " +
+        "Supports an optional `path` like `\"author/name\"` to traverse CID links transparently.",
+    tags: ["helia", "ipfs", "ipld", "get"],
+    rbac: ["orchestrator", "builder", "validator", "researcher"],
+    args: {
+        nodeId: NODE_ID_ARG,
+        cid: { name: "cid", type: "string", description: "CID to resolve.", required: true },
+        path: { name: "path", type: "string", description: "Optional IPLD path (slash-separated).", required: false },
+    },
+    output: "JSON object { cid, codec, path?, value }.",
+    outputSchema: { type: "object", additionalProperties: true },
+    execute: async (args, context) => {
+        const { nodeId, cid, path } = args;
+        if (typeof cid !== "string" || !cid.trim()) throw new Error("cid is required");
+        const pathStr = typeof path === "string" && path.trim() ? path.trim() : undefined;
+        const result = await heliaService.getDag(cid, pathStr, nodeId);
+        context.workspace.addLog(`helia get-dag ${cid.slice(0, 12)}…${pathStr ? `/${pathStr}` : ""} (${result.codec})`);
+        return { cid: result.cid, codec: result.codec, path: pathStr, value: result.value };
     },
 };
 
@@ -351,6 +472,10 @@ export const heliaCommands: CommandDefinition[] = [
     heliaSetLibp2pCommand,
     heliaAddTextCommand,
     heliaAddJsonCommand,
+    heliaAddDagJsonCommand,
+    heliaAddDagCborCommand,
+    heliaAddBytesCommand,
+    heliaGetDagCommand,
     heliaCatCommand,
     heliaPinCommand,
     heliaUnpinCommand,

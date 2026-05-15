@@ -18,6 +18,8 @@
     "@chainsafe/libp2p-gossipsub": "^14.1.2",
     "@chainsafe/libp2p-noise": "^17.0.0",
     "@chainsafe/libp2p-yamux": "^8.0.1",
+    "@helia/dag-cbor": "^5.1.1",
+    "@helia/dag-json": "^5.1.1",
     "@helia/json": "^5.1.1",
     "@helia/strings": "^5.1.1",
     "@helia/unixfs": "^7.2.1",
