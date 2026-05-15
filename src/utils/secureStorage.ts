@@ -85,7 +85,7 @@ export async function decryptData(encryptedJson: string, password: string): Prom
 
         const salt = base64ToUint8Array(data.salt);
         const iv = base64ToUint8Array(data.iv);
-        const ciphertext = base64ToArrayBuffer(data.ciphertext);
+        const ciphertext = base64ToUint8Array(data.ciphertext);
 
         // Derive key
         const key = await deriveKey(password, salt);
@@ -109,9 +109,12 @@ export async function decryptData(encryptedJson: string, password: string): Prom
 }
 
 // Helpers for Base64 conversion
-function arrayBufferToBase64(buffer: ArrayBufferLike): string {
+function arrayBufferToBase64(buffer: ArrayBufferLike | Uint8Array): string {
+    const bytes =
+        buffer instanceof Uint8Array
+            ? buffer
+            : new Uint8Array(buffer as ArrayBuffer);
     let binary = '';
-    const bytes = new Uint8Array(buffer);
     const len = bytes.byteLength;
     for (let i = 0; i < len; i++) {
         binary += String.fromCharCode(bytes[i]);
@@ -119,20 +122,16 @@ function arrayBufferToBase64(buffer: ArrayBufferLike): string {
     return btoa(binary);
 }
 
-function base64ToArrayBuffer(base64: string): ArrayBuffer {
+function base64ToUint8Array(base64: string): Uint8Array {
     const binary_string = atob(base64);
     const len = binary_string.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) {
         bytes[i] = binary_string.charCodeAt(i);
     }
-    return bytes.buffer;
+    return bytes;
 }
 
 function uint8ArrayToBase64(bytes: Uint8Array): string {
-    return arrayBufferToBase64(bytes.buffer);
-}
-
-function base64ToUint8Array(base64: string): Uint8Array {
-    return new Uint8Array(base64ToArrayBuffer(base64));
+    return arrayBufferToBase64(bytes);
 }
