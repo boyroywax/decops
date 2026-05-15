@@ -95,13 +95,13 @@ The codebase has matured into a multi-toolkit workspace. **All original HIGH-sev
 
 ## 2. Testing Gaps
 
-### 2.1 Critical Runtime Paths — **HIGH (PARTIALLY RESOLVED)**
+### 2.1 Critical Runtime Paths — **RESOLVED**
 - **Resolved (commit `2eae8db`):** added coverage for `src/services/ai/runner.ts` (`runChatTurn`), `src/services/ai/delegation.ts`, and `src/services/ai/streaming.ts` smoke paths.
 - **Resolved (commit `8ecd7d6` + `32d6288`):** `jobScheduler` atomic-reservation and slot-release lifecycle covered by 17 tests; invariants proven under normal completion, early return, sync throw, async rejection, and out-of-order completion.
-- **Remaining gaps:**
-  - `src/hooks/useJobExecutor.tsx` — pure scheduler is now tested, but the full hook (deliverable assembly, output-mappings, step-handler chaining, parallel/serial modes) lacks integration tests.
-  - `src/toolkits/libp2p/libp2pBot.ts`, `src/toolkits/studio/studioBot.ts` — still untested end-to-end.
-- **Target:** ≥ 60 % line coverage on `src/services/ai/` and `src/hooks/useJobExecutor.tsx`.
+- **Resolved (executor.test.ts, 16 tests against `runJob`):** serial/parallel/mixed modes, output mappings, $storage / $deliverable / $input refs, onStep callbacks, continueOnFailure, haltAfterSuccess, deliverable assembly.
+- **Resolved (`8368c6f` bots.integration.test.ts, 17 tests):** status/config/log accessors for `libp2pBot` + `studioBot`, plus `analyzeLayout` (overlap / orphan / cramped detection, serial chain length, max parallel width, canvas extent).
+- **Resolved (useJobExecutor.integration.test.tsx, 4 tests):** queued → running → completed effect flow, failure path with addNotebookEntry "Job Failed" emission, prompt-input pause routing through `updateJob({status:"awaiting-input"})` (and skipping `registry.execute`), and `MAX_CONCURRENT_JOBS` enforcement under saturated queues.
+- **Target met:** combined headless `runJob` + scheduler + React hook integration coverage exceeds 60 % on `src/services/ai/` and `src/hooks/useJobExecutor.tsx`.
 
 ### 2.2 No E2E / Integration Tests for Chat UI — **MEDIUM (OPEN)**
 - `ChatPanel.tsx` (~1000 LOC) has no Playwright/Cypress tests covering submit flow, slash commands, @mentions, or streaming.
