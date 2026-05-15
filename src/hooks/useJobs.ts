@@ -12,6 +12,37 @@ export function useJobs() {
 
     const [standaloneArtifacts, setStandaloneArtifacts] = useLocalStorage<JobArtifact[]>("decops_artifacts", []);
 
+    // ── Boot-time reconciliation ─────────────────────────────
+    // Jobs marked "running" cannot survive a page reload — the executor's
+    // in-memory promise is gone. Without this, any libp2p_*/studio_*/… job
+    // stuck "running" at unload time would keep the toolkit `busy` gates
+    // permanently true (Start node / identity buttons greyed out forever).
+    // Mark them failed once on first mount so the UI is recoverable.
+    useEffect(() => {
+        setJobs((prev) => {
+            const hasStale = prev.some((j) => j.status === "running");
+            if (!hasStale) return prev;
+            const now = Date.now();
+            return prev.map((job) => {
+                if (job.status !== "running") return job;
+                return {
+                    ...job,
+                    status: "failed",
+                    result: "Interrupted by page reload",
+                    pendingPrompt: undefined,
+                    updatedAt: now,
+                    completedAt: now,
+                    timeline: pushEvent(job.timeline, {
+                        kind: "failed",
+                        label: "Interrupted by page reload",
+                    }),
+                } as Job;
+            });
+        });
+        // Intentionally run once on mount — setJobs identity is stable from useLocalStorage.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const addJob = useCallback((jobData: JobRequest) => {
         const now = Date.now();
         const newJob: Job = {
