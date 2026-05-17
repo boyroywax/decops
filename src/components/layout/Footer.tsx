@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "@/types";
-import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor, Globe, Users, Radio, Boxes, Pin, Database, Layers } from "lucide-react";
+import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor, Globe, Users, Radio, Boxes, Pin, Database, Layers, Server, Workflow, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import type { ChatPosition } from "@/context/ThemeContext";
 import { ActionManager } from "@/components/actions/ActionManager";
 import { ArtifactsPanel } from "./ArtifactsPanel";
@@ -10,7 +10,10 @@ import { useLLM, type LivenessStatus } from "@/context/LLMContext";
 import { useEditorContext } from "@/toolkits/editor";
 import { useLibp2pMetrics } from "@/toolkits/libp2p";
 import { useHeliaMetrics } from "@/toolkits/helia";
+import { useKuboMetrics } from "@/toolkits/kubo";
 import { useOrbitdbMetrics } from "@/toolkits/orbitdb";
+import { useOrchestratorMetrics } from "@/toolkits/orchestrator";
+import "@/toolkits/orchestrator/styles/orchestrator.css";
 import "../../styles/components/footer.css";
 import "../../styles/components/llm-manager.css";
 
@@ -64,7 +67,18 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
     const { api: editorApi, queueArtifact } = useEditorContext();
     const libp2pMetrics = useLibp2pMetrics();
     const heliaMetrics = useHeliaMetrics();
+    const kuboMetrics = useKuboMetrics();
     const orbitdbMetrics = useOrbitdbMetrics();
+    const orchestratorMetrics = useOrchestratorMetrics();
+
+    const [lohkCollapsed, setLohkCollapsed] = useState<boolean>(() => {
+        try { return localStorage.getItem("decops:footer-lohk-collapsed") === "1"; }
+        catch { return false; }
+    });
+    useEffect(() => {
+        try { localStorage.setItem("decops:footer-lohk-collapsed", lohkCollapsed ? "1" : "0"); }
+        catch { /* ignore */ }
+    }, [lohkCollapsed]);
 
     const handleOpenLibp2p = useCallback(() => {
         setView("libp2p");
@@ -76,10 +90,20 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
         heliaMetrics.acknowledgeEntries();
     }, [setView, heliaMetrics]);
 
+    const handleOpenKubo = useCallback(() => {
+        setView("kubo");
+        kuboMetrics.acknowledgeEntries();
+    }, [setView, kuboMetrics]);
+
     const handleOpenOrbitdb = useCallback(() => {
         setView("orbitdb");
         orbitdbMetrics.acknowledgeDbs();
     }, [setView, orbitdbMetrics]);
+
+    const handleOpenOrchestrator = useCallback(() => {
+        setView("orchestrator");
+        orchestratorMetrics.acknowledgeDrift();
+    }, [setView, orchestratorMetrics]);
 
     const handleOpenInEditor = useCallback((artifact: JobArtifact) => {
         // If editor is already mounted, load directly
@@ -238,6 +262,20 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
                 <div className="footer__metrics" aria-label="libp2p metrics">
                     <button
                         type="button"
+                        className="footer__lohk-toggle"
+                        onClick={() => setLohkCollapsed((v) => !v)}
+                        title={lohkCollapsed ? "Show L.O.H.K metrics" : "Hide L.O.H.K metrics"}
+                        aria-expanded={!lohkCollapsed}
+                    >
+                        {lohkCollapsed ? <ChevronRight size={11} /> : <ChevronLeft size={11} />}
+                    </button>
+
+                    <div
+                        className={`footer__lohk-group${lohkCollapsed ? " footer__lohk-group--collapsed" : ""}`}
+                        aria-hidden={lohkCollapsed}
+                    >
+                    <button
+                        type="button"
                         className={`footer__metric footer__metric--libp2p${libp2pMetrics.newPubsubMessages > 0 ? " footer__metric--alert" : ""}`}
                         onClick={handleOpenLibp2p}
                         title={[
@@ -293,6 +331,31 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
 
                     <button
                         type="button"
+                        className={`footer__metric footer__metric--kubo${kuboMetrics.newEntries > 0 ? " footer__metric--alert" : ""}`}
+                        onClick={handleOpenKubo}
+                        title={[
+                            `Kubo (remote IPFS) — ${kuboMetrics.connectedNodes}/${kuboMetrics.totalNodes} node(s) connected`,
+                            `${kuboMetrics.totalEntries} CID(s) tracked`,
+                            `${kuboMetrics.pinnedCount} pinned`,
+                        ].join(" · ")}
+                    >
+                        <Server size={11} />
+                        <span className="footer__metric-value">
+                            {kuboMetrics.connectedNodes}
+                            {kuboMetrics.totalNodes > kuboMetrics.connectedNodes && (
+                                <span className="footer__metric-total">/{kuboMetrics.totalNodes}</span>
+                            )}
+                        </span>
+                        <span className="footer__metric-sep" aria-hidden="true">·</span>
+                        <Pin size={11} />
+                        <span className="footer__metric-value">{kuboMetrics.pinnedCount}</span>
+                        {kuboMetrics.newEntries > 0 && (
+                            <span className="footer__metric-pulse" aria-hidden="true" />
+                        )}
+                    </button>
+
+                    <button
+                        type="button"
                         className={`footer__metric footer__metric--orbitdb${orbitdbMetrics.newDbs > 0 ? " footer__metric--alert" : ""}`}
                         onClick={handleOpenOrbitdb}
                         title={[
@@ -312,6 +375,40 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
                         <Layers size={11} />
                         <span className="footer__metric-value">{orbitdbMetrics.openDbs}</span>
                         {orbitdbMetrics.newDbs > 0 && (
+                            <span className="footer__metric-pulse" aria-hidden="true" />
+                        )}
+                    </button>
+                    </div>
+
+                    <button
+                        type="button"
+                        className={`footer__metric footer__metric--orchestrator${orchestratorMetrics.pendingDrift > 0 ? " footer__metric--alert" : ""}`}
+                        onClick={handleOpenOrchestrator}
+                        title={[
+                            `Orchestrator \u2014 ${orchestratorMetrics.healthyStacks}/${orchestratorMetrics.totalStacks} stack(s) healthy`,
+                            orchestratorMetrics.driftedStacks > 0
+                                ? `${orchestratorMetrics.driftedStacks} stack(s) drifted`
+                                : "no drift",
+                            orchestratorMetrics.activeManifestName
+                                ? `Active manifest: ${orchestratorMetrics.activeManifestName}`
+                                : "No manifest linked to active stack",
+                        ].join(" \u00b7 ")}
+                    >
+                        <Workflow size={11} />
+                        <span className="footer__metric-value">
+                            {orchestratorMetrics.healthyStacks}
+                            {orchestratorMetrics.totalStacks > orchestratorMetrics.healthyStacks && (
+                                <span className="footer__metric-total">/{orchestratorMetrics.totalStacks}</span>
+                            )}
+                        </span>
+                        {orchestratorMetrics.driftedStacks > 0 && (
+                            <>
+                                <span className="footer__metric-sep" aria-hidden="true">·</span>
+                                <AlertTriangle size={11} />
+                                <span className="footer__metric-value">{orchestratorMetrics.driftedStacks}</span>
+                            </>
+                        )}
+                        {orchestratorMetrics.pendingDrift > 0 && (
                             <span className="footer__metric-pulse" aria-hidden="true" />
                         )}
                     </button>

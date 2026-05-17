@@ -20,7 +20,9 @@ import { jobsModule } from "./jobs";
 import { imageGenModule } from "@/toolkits/image-gen";
 import { libp2pModule } from "@/toolkits/libp2p";
 import { heliaModule } from "@/toolkits/helia";
+import { kuboModule } from "@/toolkits/kubo";
 import { orbitdbModule } from "@/toolkits/orbitdb";
+import { orchestratorModule } from "@/toolkits/orchestrator";
 import { workspaceMgmtModule } from "./workspace-mgmt";
 import { loggingModule } from "./logging";
 
@@ -48,7 +50,9 @@ export const builtinModules: ToolkitModule[] = [
   imageGenModule,
   libp2pModule,
   heliaModule,
+  kuboModule,
   orbitdbModule,
+  orchestratorModule,
   workspaceMgmtModule,
   // Capability toolkits
   webCrawlerModule,
@@ -70,7 +74,9 @@ export {
   imageGenModule,
   libp2pModule,
   heliaModule,
+  kuboModule,
   orbitdbModule,
+  orchestratorModule,
   workspaceMgmtModule,
   webCrawlerModule,
   ocrModule,
