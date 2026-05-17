@@ -1,0 +1,499 @@
+/* Kubo IPFS Connector toolkit styles — shares the libp2p look & feel */
+
+.kubo-view {
+    --kubo-accent: #06b6d4;
+    --kubo-accent-soft: rgba(6, 182, 212, 0.15);
+}
+
+.kubo-view .libp2p-header {
+    border-bottom-color: rgba(6, 182, 212, 0.2);
+}
+
+.kubo-control-row,
+.kubo-auth-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 8px 4px;
+}
+
+.kubo-auth-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.kubo-auth-input-wrap .libp2p-input {
+    padding-right: 26px;
+    width: 100%;
+}
+.kubo-auth-reveal {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #9ca3af);
+    cursor: pointer;
+    padding: 2px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.kubo-auth-reveal:hover { color: var(--text-primary, #f3f4f6); }
+
+.kubo-auth-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-left: 4px;
+    border-radius: 50%;
+    background: #06b6d4;
+    box-shadow: 0 0 4px #06b6d4;
+}
+
+.kubo-error {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+}
+.kubo-error__code {
+    margin: 4px 0 0;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: 4px;
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-x: auto;
+    color: #fca5a5;
+}
+.kubo-error__hint {
+    font-size: 11px;
+    opacity: 0.8;
+}
+.kubo-error__list {
+    margin: 4px 0 0;
+    padding-left: 18px;
+    font-size: 11px;
+    line-height: 1.5;
+}
+.kubo-error__list li { margin-bottom: 2px; }
+.kubo-error__list code,
+.kubo-error__hint code {
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 2px;
+    padding: 0 3px;
+    font-size: 10.5px;
+}
+
+.kubo-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 140px;
+}
+
+.kubo-field--grow {
+    flex: 1 1 280px;
+}
+
+.kubo-field > label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted, rgba(226, 232, 240, 0.55));
+    font-family: "DM Mono", monospace;
+}
+
+.kubo-actions {
+    display: flex;
+    gap: 6px;
+}
+
+/* Peer-bar uses neutral libp2p-panel surface, accent only on the id text */
+.kubo-peer-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--rgba-white-02, rgba(255, 255, 255, 0.02));
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
+    border-radius: 6px;
+    font-family: "DM Mono", monospace;
+    font-size: 11px;
+}
+
+.kubo-peer-bar__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-muted, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 10px;
+}
+
+.kubo-peer-bar__id {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--kubo-accent);
+}
+
+.kubo-peer-bar__meta {
+    color: var(--text-muted, #94a3b8);
+    font-size: 10px;
+}
+
+.kubo-body {
+    display: grid;
+    grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.2fr);
+    gap: 12px;
+}
+
+@media (max-width: 900px) {
+    .kubo-body { grid-template-columns: 1fr; }
+}
+
+/* Match libp2p-panel exactly: same border, bg, radius, padding; head reads as an inline h3 */
+.kubo-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
+    background: var(--rgba-white-02, rgba(255, 255, 255, 0.02));
+    border-radius: 6px;
+}
+
+.kubo-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted, #94a3b8);
+    font-family: "DM Mono", monospace;
+}
+
+.kubo-panel__body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0;
+}
+
+.kubo-mode-toggle {
+    display: flex;
+    gap: 4px;
+}
+
+.kubo-textarea {
+    font-family: "DM Mono", monospace;
+    font-size: 11px;
+    resize: vertical;
+    min-height: 80px;
+}
+
+.kubo-cat-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+}
+
+.kubo-cat-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.kubo-file-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.kubo-pin-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-secondary, rgba(226, 232, 240, 0.7));
+    font-family: "DM Mono", monospace;
+    cursor: pointer;
+    user-select: none;
+}
+
+.kubo-pin-toggle input[type="checkbox"] {
+    accent-color: var(--kubo-accent);
+}
+
+.kubo-entries,
+.kubo-pins {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.kubo-entries__empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-ghost, rgba(226, 232, 240, 0.45));
+    font-size: 11px;
+    font-family: "DM Mono", monospace;
+}
+
+.kubo-entry {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+    border-radius: 4px;
+    background: var(--bg-surface, rgba(0, 0, 0, 0.15));
+    font-family: "DM Mono", monospace;
+}
+
+.kubo-entry__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.kubo-entry__cid {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    color: var(--kubo-accent);
+}
+
+.kubo-entry__badge {
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 1px solid var(--border-medium, rgba(255, 255, 255, 0.12));
+    background: var(--bg-surface, rgba(255, 255, 255, 0.04));
+    color: var(--text-secondary, rgba(226, 232, 240, 0.7));
+}
+
+.kubo-entry__badge--added {
+    border-color: rgba(0, 229, 160, 0.45);
+    color: #00e5a0;
+    background: rgba(0, 229, 160, 0.08);
+}
+
+.kubo-entry__badge--fetched {
+    border-color: rgba(56, 189, 248, 0.45);
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+}
+
+.kubo-entry__badge--pinned {
+    border-color: rgba(6, 182, 212, 0.55);
+    color: var(--kubo-accent);
+    background: rgba(6, 182, 212, 0.1);
+}
+
+.kubo-entry__meta {
+    display: flex;
+    gap: 10px;
+    font-size: 10px;
+    color: var(--text-muted, rgba(226, 232, 240, 0.55));
+}
+
+.kubo-entry__label {
+    color: var(--kubo-accent);
+}
+
+.kubo-entry__preview {
+    margin: 0;
+    padding: 6px 8px;
+    background: var(--bg-input, rgba(0, 0, 0, 0.35));
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.04));
+    border-radius: 3px;
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--text-secondary, rgba(226, 232, 240, 0.8));
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 110px;
+    overflow: auto;
+}
+
+.kubo-entry__actions {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.kubo-pin-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+    border-radius: 4px;
+    background: var(--bg-surface, rgba(0, 0, 0, 0.15));
+    font-family: "DM Mono", monospace;
+}
+
+.kubo-log {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0;
+    max-height: 180px;
+    overflow-y: auto;
+    font-family: "DM Mono", monospace;
+    font-size: 11px;
+}
+
+.kubo-log__row {
+    display: flex;
+    gap: 8px;
+    padding: 2px 0;
+    color: var(--text-secondary, rgba(226, 232, 240, 0.75));
+}
+
+.kubo-log__row--error { color: var(--color-danger, #f472b6); }
+
+.kubo-log__time {
+    color: var(--text-ghost, rgba(226, 232, 240, 0.4));
+    flex-shrink: 0;
+}
+
+/* Footer metric — cyan theme for kubo */
+.footer__metric--kubo {
+    border-color: rgba(6, 182, 212, 0.35) !important;
+    color: #06b6d4 !important;
+}
+
+.footer__metric--kubo:hover {
+    background: rgba(6, 182, 212, 0.1) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Light theme
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .kubo-view {
+    --kubo-accent: #0e7490;
+    --kubo-accent-soft: rgba(14, 116, 144, 0.12);
+}
+
+[data-theme="light"] .kubo-view .libp2p-header {
+    border-bottom-color: rgba(14, 116, 144, 0.2);
+}
+
+[data-theme="light"] .kubo-peer-bar {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .kubo-entry__badge--added {
+    border-color: rgba(5, 150, 105, 0.5);
+    color: #047857;
+    background: rgba(5, 150, 105, 0.1);
+}
+
+[data-theme="light"] .kubo-entry__badge--fetched {
+    border-color: rgba(2, 132, 199, 0.5);
+    color: #0369a1;
+    background: rgba(2, 132, 199, 0.1);
+}
+
+[data-theme="light"] .kubo-entry__badge--pinned {
+    border-color: rgba(14, 116, 144, 0.5);
+    color: #0e7490;
+    background: rgba(14, 116, 144, 0.1);
+}
+
+[data-theme="light"] .footer__metric--kubo {
+    border-color: rgba(14, 116, 144, 0.4) !important;
+    color: #0e7490 !important;
+}
+
+[data-theme="light"] .footer__metric--kubo:hover {
+    background: rgba(14, 116, 144, 0.08) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Solar theme
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .kubo-view {
+    --kubo-accent: #0c7489;
+    --kubo-accent-soft: rgba(12, 116, 137, 0.15);
+}
+
+[data-theme="solar"] .kubo-view .libp2p-header {
+    border-bottom-color: rgba(12, 116, 137, 0.22);
+}
+
+[data-theme="solar"] .kubo-peer-bar {
+    background: #fefaf0;
+    border-color: rgba(120, 80, 20, 0.12);
+    box-shadow: 0 1px 3px rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .kubo-panel {
+    background: #fefaf0;
+    border-color: rgba(120, 80, 20, 0.12);
+    box-shadow: 0 1px 3px rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .kubo-panel__head {
+    color: #504030;
+}
+
+[data-theme="solar"] .kubo-entry,
+[data-theme="solar"] .kubo-pin-row {
+    background: rgba(120, 80, 20, 0.04);
+    border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .kubo-entry__badge {
+    background: rgba(120, 80, 20, 0.06);
+    border-color: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .kubo-entry__badge--pinned {
+    border-color: rgba(12, 116, 137, 0.45);
+    color: #0c7489;
+    background: rgba(12, 116, 137, 0.1);
+}
+
+[data-theme="solar"] .kubo-entry__preview {
+    background: rgba(120, 80, 20, 0.05);
+    border-color: rgba(120, 80, 20, 0.1);
+}
+
+[data-theme="solar"] .kubo-log__row--error { color: #c0392b; }
+
+[data-theme="solar"] .footer__metric--kubo {
+    border-color: rgba(12, 116, 137, 0.4) !important;
+    color: #0c7489 !important;
+}
+
+[data-theme="solar"] .footer__metric--kubo:hover {
+    background: rgba(12, 116, 137, 0.1) !important;
+}

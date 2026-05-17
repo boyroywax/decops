@@ -17,6 +17,7 @@ const VIEW_TO_PATH: Record<string, string> = {
   editor: "/editor",
   libp2p: "/libp2p",
   helia: "/helia",
+  kubo: "/kubo",
   orbitdb: "/orbitdb",
 };
 
@@ -35,6 +36,7 @@ const PATH_TO_VIEW: Record<string, ViewId> = {
   editor: "editor",
   libp2p: "libp2p",
   helia: "helia",
+  kubo: "kubo",
   orbitdb: "orbitdb",
 };
 

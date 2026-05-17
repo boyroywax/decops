@@ -32,7 +32,9 @@ export type ViewId =
   | "studio"
   | "libp2p"
   | "helia"
+  | "kubo"
   | "orbitdb"
+  | "orchestrator"
   | "system";
 
 /** Navigation context for hierarchical drill-down: Ecosystem → Network → Group → Agent → Channel */
@@ -183,7 +185,9 @@ export type ToolkitId =
   | "logging"
   | "libp2p"
   | "helia"
+  | "kubo"
   | "orbitdb"
+  | "orchestrator"
   // Capability toolkits (external)
   | "web-crawler"
   | "ocr"

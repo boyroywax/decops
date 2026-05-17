@@ -41,6 +41,7 @@
     "dompurify": "^3.3.1",
     "helia": "^6.1.4",
     "immer": "^11.1.4",
+    "kubo-rpc-client": "^7.0.0",
     "libp2p": "^3.2.4",
     "lucide-react": "^0.564.0",
     "marked": "^17.0.2",
