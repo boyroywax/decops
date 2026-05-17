@@ -24,7 +24,7 @@
  */
 
 import { useEffect } from "react";
-import { Bot, Waypoints } from "lucide-react";
+import { Bot, Boxes, Database, Network, Server, Waypoints } from "lucide-react";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import { Libp2pChatBanner } from "./libp2p/components/Libp2pChatBanner";
 import { HeliaChatBanner } from "./helia/components/HeliaChatBanner";
@@ -65,10 +65,10 @@ export function useToolkitChatAgents(): void {
         disposers.push(
             useChatAgentsStore.getState().register({
                 id: "libp2p",
-                name: "libp2p Bot",
+                name: "libp2p",
                 description:
                     "Direct line to the libp2p sub-agent — start nodes, dial peers, manage pubsub, identities.",
-                icon: Bot,
+                icon: Network,
                 gradient: ["#38bdf8", "#a78bfa"],
                 banner: Libp2pChatBanner,
                 placeholder:
@@ -98,10 +98,10 @@ export function useToolkitChatAgents(): void {
         disposers.push(
             useChatAgentsStore.getState().register({
                 id: "helia",
-                name: "Helia Bot",
+                name: "Helia",
                 description:
                     "Direct line to the Helia (IPFS) sub-agent — start nodes, add/fetch CIDs, pin blocks.",
-                icon: Bot,
+                icon: Boxes,
                 gradient: ["#f59e0b", "#fb923c"],
                 banner: HeliaChatBanner,
                 placeholder:
@@ -124,10 +124,10 @@ export function useToolkitChatAgents(): void {
         disposers.push(
             useChatAgentsStore.getState().register({
                 id: "kubo-bot",
-                name: "Kubo Bot",
+                name: "Kubo",
                 description:
                     "Direct line to the Kubo (remote IPFS) sub-agent — pin CIDs, add files, fetch content over RPC.",
-                icon: Bot,
+                icon: Server,
                 gradient: ["#06b6d4", "#0e7490"],
                 banner: KuboChatBanner,
                 placeholder:
@@ -150,10 +150,10 @@ export function useToolkitChatAgents(): void {
         disposers.push(
             useChatAgentsStore.getState().register({
                 id: "orbitdb",
-                name: "OrbitDB Bot",
+                name: "OrbitDB",
                 description:
                     "Direct line to the OrbitDB sub-agent — open databases, write entries, query documents.",
-                icon: Bot,
+                icon: Database,
                 gradient: ["#a855f7", "#c084fc"],
                 banner: OrbitdbChatBanner,
                 placeholder:
