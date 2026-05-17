@@ -620,8 +620,8 @@ export function HeliaView(_props: HeliaViewProps) {
                 <div className="helia-log">
                     {log.length === 0
                         ? <div className="helia-entries__empty">No activity yet.</div>
-                        : log.map((l) => (
-                            <div key={l.ts} className={`helia-log__row${l.level === "error" ? " helia-log__row--error" : ""}`}>
+                        : log.map((l, i) => (
+                            <div key={`${l.ts}-${i}`} className={`helia-log__row${l.level === "error" ? " helia-log__row--error" : ""}`}>
                                 <span className="helia-log__time">{new Date(l.ts).toLocaleTimeString()}</span>
                                 <span className="helia-log__msg">{l.msg}</span>
                             </div>

@@ -23,7 +23,107 @@ import type {
     OrbitdbEntry,
 } from "./types/orbitdb";
 
+/**
+ * Resolve the OrbitDB identity id for the currently logged-in user.
+ *
+ * OrbitDB derives a deterministic identity from the `id` string we pass to
+ * `createOrbitDB`, so reusing the user's DID across nodes / sessions yields
+ * the same identity & public key for that user.
+ */
+export function getUserOrbitdbIdentityId(): string | undefined {
+    try {
+        const did = localStorage.getItem("user_did");
+        if (did && did.trim()) return did.trim();
+        const userStr = localStorage.getItem("user");
+        if (userStr) {
+            const user = JSON.parse(userStr) as { did?: string; id?: string; email?: string };
+            if (user.did) return user.did;
+            if (user.id) return `user:${user.id}`;
+            if (user.email) return `user:${user.email}`;
+        }
+    } catch {
+        /* localStorage / JSON unavailable — fall through */
+    }
+    return undefined;
+}
+
+/**
+ * Probe whether IndexedDB is usable in this context.
+ *
+ * In partitioned / iframed pages (e.g. coder.com workspaces, third-party
+ * cookie blocking, private browsing) Chrome will throw
+ * `UnknownError: Internal error.` on first IDB open. Opening a tiny
+ * throw-away database surfaces this synchronously so we can pick a
+ * memory-backed keystore instead of letting OrbitDB explode.
+ */
+async function probeIndexedDB(): Promise<boolean> {
+    if (typeof indexedDB === "undefined") return false;
+    return await new Promise<boolean>((resolve) => {
+        let settled = false;
+        const finish = (ok: boolean) => {
+            if (settled) return;
+            settled = true;
+            resolve(ok);
+        };
+        try {
+            const name = `__orbitdb_probe_${Math.random().toString(36).slice(2, 8)}`;
+            const req = indexedDB.open(name, 1);
+            req.onerror = () => finish(false);
+            req.onblocked = () => finish(false);
+            req.onsuccess = () => {
+                try { req.result.close(); } catch { /* ignore */ }
+                try { indexedDB.deleteDatabase(name); } catch { /* ignore */ }
+                finish(true);
+            };
+            // Some partitioned contexts hang the request indefinitely.
+            setTimeout(() => finish(false), 1500);
+        } catch {
+            finish(false);
+        }
+    });
+}
+
 type ManagerListener = (state: OrbitdbManagerSnapshot) => void;
+
+/**
+ * Walk the `cause` chain of an Error and return the deepest non-empty message.
+ * OrbitDB wraps the original IndexedDB failure inside `NotOpenError`, which
+ * itself wraps a DOMException ("UnknownError: Internal error.").
+ */
+function innerCauseMessage(err: unknown): string {
+    let cur: unknown = err;
+    let last = "";
+    for (let i = 0; i < 6 && cur; i++) {
+        if (cur instanceof Error) {
+            if (cur.message) last = cur.message;
+            cur = (cur as { cause?: unknown }).cause;
+        } else if (typeof cur === "object" && cur && "message" in (cur as Record<string, unknown>)) {
+            const m = (cur as { message?: unknown }).message;
+            if (typeof m === "string" && m) last = m;
+            cur = (cur as { cause?: unknown }).cause;
+        } else {
+            break;
+        }
+    }
+    return last;
+}
+
+/**
+ * Build a user-facing message for a failed `orbitdb.start()`.
+ * Surfaces the underlying cause (otherwise drowned by OrbitDB's
+ * generic "Database failed to open") and appends remediation hints for
+ * known transient IndexedDB failures.
+ */
+function formatStartError(err: unknown): string {
+    const top = err instanceof Error ? err.message : String(err);
+    const cause = innerCauseMessage(err);
+    if (!cause || cause === top) return top;
+    let msg = `${top} — ${cause}`;
+    if (/internal error|unknown error/i.test(cause)) {
+        msg += " (IndexedDB failure — try reloading the page or clearing site data for OrbitDB storage)";
+    }
+    return msg;
+}
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface OrbitdbLike {
@@ -115,9 +215,14 @@ class OrbitdbNode {
     private error?: string;
     private startedAt?: string;
     private orbitdb: OrbitdbLike | null = null;
+    /** Cached `@orbitdb/core` module — populated on start; reused by openDatabase. */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private orbitdbMod: any | null = null;
     /** Open database handles, keyed by address. */
     private dbHandles = new Map<string, DatabaseLike>();
     private startPromise: Promise<void> | null = null;
+    /** True when running with a non-persistent in-memory keystore. */
+    private usingMemoryKeystore = false;
     private onChange: () => void;
 
     constructor(id: string, label: string, heliaNodeId: string | null, onChange: () => void) {
@@ -144,6 +249,7 @@ class OrbitdbNode {
             heliaNodeId: this.heliaNodeId,
             peerId,
             identityId: this.orbitdb?.identity?.id ?? null,
+            usingMemoryKeystore: this.usingMemoryKeystore || undefined,
             databases: this.databases.slice(),
         };
     }
@@ -226,15 +332,48 @@ class OrbitdbNode {
                 // ── 2) Dynamic import — keep the bundle slim ──────────────
                 const orbitdbMod = await import("@orbitdb/core");
                 const { createOrbitDB } = orbitdbMod as unknown as {
-                    createOrbitDB: (params: { ipfs: unknown; id?: string; directory?: string }) => Promise<OrbitdbLike>;
+                    createOrbitDB: (params: {
+                        ipfs: unknown;
+                        id?: string;
+                        directory?: string;
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        identities?: any;
+                    }) => Promise<OrbitdbLike>;
                 };
 
-                const orbitdb = await createOrbitDB({
-                    ipfs,
-                    id: opts.identityId,
-                    directory: opts.directory ?? `./orbitdb-${this.id}`,
-                });
+                // OrbitDB persists keystore / identities under `directory` via `level`
+                // (browser-level → IndexedDB). Strip any `./` prefix so the resulting
+                // IndexedDB database names are stable & predictable. Sanitize the
+                // identity id so DID strings (with `:` etc.) don't trip up downstream
+                // path-joining.
+                const directory = (opts.directory ?? `orbitdb-${this.id}`).replace(/^\.\//, "");
+                const rawId = opts.identityId ?? getUserOrbitdbIdentityId();
+                const identityId = rawId ? rawId.trim() || undefined : undefined;
+
+                // Probe IndexedDB availability first. In partitioned / iframed
+                // contexts (e.g. coder.com workspaces) Chrome may refuse IDB
+                // writes with `UnknownError: Internal error.` — fall back to
+                // in-memory keystore so the toolkit still works (identity will
+                // not persist across reloads).
+                const idbOk = await probeIndexedDB();
+                this.usingMemoryKeystore = !idbOk;
+                if (!idbOk) {
+                    logError(
+                        "orbitdb.start.idb-unavailable",
+                        new Error("IndexedDB unavailable — using in-memory keystore"),
+                        { nodeId: this.id },
+                        { warn: true },
+                    );
+                }
+
+                const orbitdb = await this.createOrbitDBWithRetry(
+                    createOrbitDB,
+                    orbitdbMod as Record<string, unknown>,
+                    { ipfs, id: identityId, directory },
+                    !idbOk,
+                );
                 this.orbitdb = orbitdb;
+                this.orbitdbMod = orbitdbMod;
 
                 this.startedAt = new Date().toISOString();
                 this.setStatus("running");
@@ -248,15 +387,132 @@ class OrbitdbNode {
                     }
                 }
             } catch (err) {
-                const msg = err instanceof Error ? err.message : String(err);
+                const msg = formatStartError(err);
                 logError("orbitdb.start", err, { nodeId: this.id });
                 this.setStatus("error", msg);
-                throw err;
+                const out = new Error(msg);
+                if (err instanceof Error) (out as { cause?: unknown }).cause = err;
+                throw out;
             } finally {
                 this.startPromise = null;
             }
         })();
         return this.startPromise;
+    }
+
+    /**
+     * Open the OrbitDB instance, with a single retry to absorb transient
+     * IndexedDB hiccups (Chrome occasionally throws `UnknownError: Internal
+     * error.` on first open, especially during HMR / multiple opens in the
+     * same tick). If `forceMemory` is set (or the retry still fails with an
+     * IDB-style error), falls back to an in-memory keystore.
+     */
+    private async createOrbitDBWithRetry(
+        createOrbitDB: (params: {
+            ipfs: unknown;
+            id?: string;
+            directory?: string;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            identities?: any;
+        }) => Promise<OrbitdbLike>,
+        orbitdbMod: Record<string, unknown>,
+        params: { ipfs: unknown; id?: string; directory?: string },
+        forceMemory: boolean,
+    ): Promise<OrbitdbLike> {
+        if (forceMemory) {
+            return await this.createOrbitDBWithMemoryKeystore(createOrbitDB, orbitdbMod, params);
+        }
+        try {
+            return await createOrbitDB(params);
+        } catch (err) {
+            const inner = innerCauseMessage(err);
+            if (!/internal error|unknown error|invalidstate|aborterror|quota/i.test(inner)) {
+                throw err;
+            }
+            logError(
+                "orbitdb.start.retry",
+                err,
+                { nodeId: this.id, directory: params.directory, cause: inner },
+                { warn: true },
+            );
+            await new Promise((r) => setTimeout(r, 250));
+            try {
+                return await createOrbitDB(params);
+            } catch (retryErr) {
+                logError(
+                    "orbitdb.start.memory-fallback",
+                    retryErr,
+                    { nodeId: this.id, cause: innerCauseMessage(retryErr) },
+                    { warn: true },
+                );
+                this.usingMemoryKeystore = true;
+                return await this.createOrbitDBWithMemoryKeystore(createOrbitDB, orbitdbMod, params);
+            }
+        }
+    }
+
+    /**
+     * Construct an OrbitDB instance whose keystore lives in process memory.
+     * Used when IndexedDB is unavailable (storage partitioning, iframed
+     * contexts, private browsing). The identity is regenerated per session
+     * but the user-supplied `id` keeps the derived public key stable so
+     * peers can still verify signatures within the same session.
+     */
+    private async createOrbitDBWithMemoryKeystore(
+        createOrbitDB: (params: {
+            ipfs: unknown;
+            id?: string;
+            directory?: string;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            identities?: any;
+        }) => Promise<OrbitdbLike>,
+        orbitdbMod: Record<string, unknown>,
+        params: { ipfs: unknown; id?: string; directory?: string },
+    ): Promise<OrbitdbLike> {
+        /* eslint-disable @typescript-eslint/no-explicit-any */
+        const KeyStore = (orbitdbMod as any).KeyStore as
+            | ((opts: { storage: unknown }) => Promise<unknown>)
+            | undefined;
+        const Identities = (orbitdbMod as any).Identities as
+            | ((opts: { ipfs?: unknown; keystore?: unknown }) => Promise<unknown>)
+            | undefined;
+        const MemoryStorage = (orbitdbMod as any).MemoryStorage as
+            | (() => Promise<unknown>)
+            | undefined;
+        /* eslint-enable @typescript-eslint/no-explicit-any */
+        if (!KeyStore || !Identities || !MemoryStorage) {
+            throw new Error(
+                "OrbitDB memory fallback unavailable — missing KeyStore / Identities / MemoryStorage exports",
+            );
+        }
+        const storage = await MemoryStorage();
+        const keystore = await KeyStore({ storage });
+        const identities = await Identities({ ipfs: params.ipfs, keystore });
+        return await createOrbitDB({ ...params, identities });
+    }
+
+    /**
+     * Build a heads/entry/index storage triple backed by in-memory storage,
+     * suitable for passing to `orbitdb.open()` when IndexedDB is unusable.
+     */
+    private async buildMemoryStorages(): Promise<Record<string, unknown>> {
+        const mod = this.orbitdbMod ?? (await import("@orbitdb/core"));
+        if (!this.orbitdbMod) this.orbitdbMod = mod;
+        /* eslint-disable @typescript-eslint/no-explicit-any */
+        const MemoryStorage = (mod as any).MemoryStorage as (() => Promise<unknown>) | undefined;
+        const LRUStorage = (mod as any).LRUStorage as ((o?: { size?: number }) => Promise<unknown>) | undefined;
+        const ComposedStorage = (mod as any).ComposedStorage as ((a: unknown, b: unknown) => Promise<unknown>) | undefined;
+        /* eslint-enable @typescript-eslint/no-explicit-any */
+        if (!MemoryStorage) return {};
+        const make = async () =>
+            LRUStorage && ComposedStorage
+                ? await ComposedStorage(await LRUStorage({ size: 1000 }), await MemoryStorage())
+                : await MemoryStorage();
+        return {
+            headsStorage: await make(),
+            entryStorage: await make(),
+            indexStorage: await make(),
+        };
     }
 
     async stop(): Promise<void> {
@@ -279,7 +535,9 @@ class OrbitdbNode {
             logError("orbitdb.stop", err, { nodeId: this.id }, { warn: true });
         }
         this.orbitdb = null;
+        this.orbitdbMod = null;
         this.startedAt = undefined;
+        this.usingMemoryKeystore = false;
         this.setStatus("stopped");
     }
 
@@ -301,7 +559,7 @@ class OrbitdbNode {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let DatabaseFactory: any | undefined;
         if (opts.type === "documents" && opts.indexBy && opts.indexBy !== "_id") {
-            const mod = await import("@orbitdb/core");
+            const mod = this.orbitdbMod ?? (await import("@orbitdb/core"));
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const Documents = (mod as any).Documents as ((params: { indexBy: string }) => unknown);
             if (typeof Documents === "function") {
@@ -309,12 +567,63 @@ class OrbitdbNode {
             }
         }
 
-        const db = await orbitdb.open(addressOrName, {
-            type: opts.type ?? "events",
-            meta: opts.meta,
-            sync: opts.sync,
-            ...(DatabaseFactory ? { Database: DatabaseFactory } : {}),
-        });
+        // When running with a memory keystore, IndexedDB is unavailable in
+        // this context — so the database's heads/entry/index storages must
+        // also be in-memory (defaults are LevelStorage → IDB).
+        const extraStorages: Record<string, unknown> = this.usingMemoryKeystore
+            ? await this.buildMemoryStorages()
+            : {};
+
+        let db: DatabaseLike;
+        try {
+            db = await orbitdb.open(addressOrName, {
+                type: opts.type ?? "events",
+                meta: opts.meta,
+                sync: opts.sync,
+                ...(DatabaseFactory ? { Database: DatabaseFactory } : {}),
+                ...extraStorages,
+            });
+        } catch (err) {
+            const inner = innerCauseMessage(err);
+            // If level/IDB blew up, retry with in-memory storages so the
+            // database can still be opened (non-persistent across reloads).
+            if (
+                !this.usingMemoryKeystore &&
+                /internal error|unknown error|invalidstate|aborterror|quota|notopen/i.test(inner)
+            ) {
+                logError(
+                    "orbitdb.openDatabase.memory-fallback",
+                    err,
+                    { nodeId: this.id, addressOrName, cause: inner },
+                    { warn: true },
+                );
+                const memoryStorages = await this.buildMemoryStorages();
+                try {
+                    db = await orbitdb.open(addressOrName, {
+                        type: opts.type ?? "events",
+                        meta: opts.meta,
+                        sync: opts.sync,
+                        ...(DatabaseFactory ? { Database: DatabaseFactory } : {}),
+                        ...memoryStorages,
+                    });
+                } catch (retryErr) {
+                    const top2 = retryErr instanceof Error ? retryErr.message : String(retryErr);
+                    const inner2 = innerCauseMessage(retryErr);
+                    const msg2 = inner2 && inner2 !== top2 ? `${top2} — ${inner2}` : top2;
+                    logError("orbitdb.openDatabase", retryErr, { nodeId: this.id, addressOrName, type: opts.type });
+                    const out = new Error(msg2);
+                    if (retryErr instanceof Error) (out as { cause?: unknown }).cause = retryErr;
+                    throw out;
+                }
+            } else {
+                const top = err instanceof Error ? err.message : String(err);
+                const msg = inner && inner !== top ? `${top} — ${inner}` : top;
+                logError("orbitdb.openDatabase", err, { nodeId: this.id, addressOrName, type: opts.type });
+                const out = new Error(msg);
+                if (err instanceof Error) (out as { cause?: unknown }).cause = err;
+                throw out;
+            }
+        }
         const address = db.address.toString();
         this.dbHandles.set(address, db);
 

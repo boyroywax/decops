@@ -49,6 +49,10 @@ export interface OrbitdbSnapshot {
     peerId: string | null;
     /** OrbitDB identity id (public key fingerprint), when running. */
     identityId: string | null;
+    /** True when running with a non-persistent in-memory keystore
+     *  (IndexedDB was unavailable in this context — identity will
+     *  be regenerated on next start). */
+    usingMemoryKeystore?: boolean;
     /** Open / known databases for this node. */
     databases: OrbitdbDbInfo[];
 }

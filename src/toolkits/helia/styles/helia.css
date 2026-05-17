@@ -32,7 +32,7 @@
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: rgba(226, 232, 240, 0.55);
+    color: var(--text-muted, rgba(226, 232, 240, 0.55));
     font-family: "DM Mono", monospace;
 }
 
@@ -41,20 +41,21 @@
     gap: 6px;
 }
 
+/* Peer-bar uses neutral libp2p-panel surface, accent only on the id text */
 .helia-peer-bar {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 10px;
-    background: rgba(245, 158, 11, 0.05);
-    border: 1px solid rgba(245, 158, 11, 0.18);
-    border-radius: 4px;
+    padding: 8px 12px;
+    background: var(--rgba-white-02, rgba(255, 255, 255, 0.02));
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
+    border-radius: 6px;
     font-family: "DM Mono", monospace;
     font-size: 11px;
 }
 
 .helia-peer-bar__label {
-    color: rgba(226, 232, 240, 0.6);
+    color: var(--text-muted, #94a3b8);
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 10px;
@@ -80,27 +81,30 @@
     }
 }
 
+/* Match libp2p-panel exactly: same border, bg, radius, padding; head reads as an inline h3 */
 .helia-panel {
     display: flex;
     flex-direction: column;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
+    background: var(--rgba-white-02, rgba(255, 255, 255, 0.02));
     border-radius: 6px;
-    background: rgba(255, 255, 255, 0.02);
-    overflow: hidden;
-    margin-bottom: 8px;
 }
 
 .helia-panel__head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(255, 255, 255, 0.03);
-    font-size: 11px;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: none;
+    font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: rgba(226, 232, 240, 0.7);
+    color: var(--text-muted, #94a3b8);
     font-family: "DM Mono", monospace;
 }
 
@@ -108,7 +112,7 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 10px;
+    padding: 0;
 }
 
 .helia-mode-toggle {
@@ -136,7 +140,7 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 8px;
+    padding: 0;
     max-height: 480px;
     overflow-y: auto;
 }
@@ -144,7 +148,7 @@
 .helia-entries__empty {
     padding: 16px;
     text-align: center;
-    color: rgba(226, 232, 240, 0.45);
+    color: var(--text-ghost, rgba(226, 232, 240, 0.45));
     font-size: 11px;
     font-family: "DM Mono", monospace;
 }
@@ -154,9 +158,9 @@
     flex-direction: column;
     gap: 4px;
     padding: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
     border-radius: 4px;
-    background: rgba(0, 0, 0, 0.15);
+    background: var(--bg-surface, rgba(0, 0, 0, 0.15));
     font-family: "DM Mono", monospace;
 }
 
@@ -183,9 +187,9 @@
     border-radius: 999px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.04);
-    color: rgba(226, 232, 240, 0.7);
+    border: 1px solid var(--border-medium, rgba(255, 255, 255, 0.12));
+    background: var(--bg-surface, rgba(255, 255, 255, 0.04));
+    color: var(--text-secondary, rgba(226, 232, 240, 0.7));
 }
 
 .helia-entry__badge--added {
@@ -202,7 +206,7 @@
 
 .helia-entry__codec {
     font-size: 9px;
-    color: rgba(226, 232, 240, 0.5);
+    color: var(--text-ghost, rgba(226, 232, 240, 0.5));
     text-transform: lowercase;
 }
 
@@ -210,7 +214,7 @@
     display: flex;
     gap: 10px;
     font-size: 10px;
-    color: rgba(226, 232, 240, 0.55);
+    color: var(--text-muted, rgba(226, 232, 240, 0.55));
 }
 
 .helia-entry__label {
@@ -220,12 +224,12 @@
 .helia-entry__preview {
     margin: 0;
     padding: 6px 8px;
-    background: rgba(0, 0, 0, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: var(--bg-input, rgba(0, 0, 0, 0.35));
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.04));
     border-radius: 3px;
     font-size: 10px;
     line-height: 1.4;
-    color: rgba(226, 232, 240, 0.8);
+    color: var(--text-secondary, rgba(226, 232, 240, 0.8));
     white-space: pre-wrap;
     word-break: break-word;
     max-height: 110px;
@@ -242,7 +246,7 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 6px 10px;
+    padding: 0;
     max-height: 180px;
     overflow-y: auto;
     font-family: "DM Mono", monospace;
@@ -253,13 +257,13 @@
     display: flex;
     gap: 8px;
     padding: 2px 0;
-    color: rgba(226, 232, 240, 0.75);
+    color: var(--text-secondary, rgba(226, 232, 240, 0.75));
 }
 
-.helia-log__row--error { color: #f472b6; }
+.helia-log__row--error { color: var(--color-danger, #f472b6); }
 
 .helia-log__time {
-    color: rgba(226, 232, 240, 0.4);
+    color: var(--text-ghost, rgba(226, 232, 240, 0.4));
     flex-shrink: 0;
 }
 
@@ -271,4 +275,112 @@
 
 .footer__metric--helia:hover {
     background: rgba(245, 158, 11, 0.1) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Light theme — softer warm amber accent over neutral surfaces
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .helia-view {
+    --helia-accent: #b45309;
+    --helia-accent-soft: rgba(180, 83, 9, 0.12);
+}
+
+[data-theme="light"] .helia-view .libp2p-header {
+    border-bottom-color: rgba(180, 83, 9, 0.18);
+}
+
+[data-theme="light"] .helia-peer-bar {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .helia-entry__badge--added {
+    border-color: rgba(5, 150, 105, 0.5);
+    color: #047857;
+    background: rgba(5, 150, 105, 0.1);
+}
+
+[data-theme="light"] .helia-entry__badge--fetched {
+    border-color: rgba(2, 132, 199, 0.5);
+    color: #0369a1;
+    background: rgba(2, 132, 199, 0.1);
+}
+
+[data-theme="light"] .footer__metric--helia {
+    border-color: rgba(180, 83, 9, 0.4) !important;
+    color: #b45309 !important;
+}
+
+[data-theme="light"] .footer__metric--helia:hover {
+    background: rgba(180, 83, 9, 0.08) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Solar theme — warm parchment-toned amber accent
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .helia-view {
+    --helia-accent: #b8860b;
+    --helia-accent-soft: rgba(184, 134, 11, 0.15);
+}
+
+[data-theme="solar"] .helia-view .libp2p-header {
+    border-bottom-color: rgba(184, 134, 11, 0.2);
+}
+
+[data-theme="solar"] .helia-peer-bar {
+    background: #fefaf0;
+    border-color: rgba(120, 80, 20, 0.12);
+    box-shadow: 0 1px 3px rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .helia-panel {
+    background: #fefaf0;
+    border-color: rgba(120, 80, 20, 0.12);
+    box-shadow: 0 1px 3px rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .helia-panel__head {
+    color: #504030;
+}
+
+[data-theme="solar"] .helia-entry {
+    background: rgba(120, 80, 20, 0.04);
+    border-color: rgba(120, 80, 20, 0.12);
+}
+
+[data-theme="solar"] .helia-entry__badge {
+    background: rgba(120, 80, 20, 0.06);
+    border-color: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .helia-entry__badge--added {
+    border-color: rgba(46, 125, 50, 0.4);
+    color: #2e7d32;
+    background: rgba(46, 125, 50, 0.1);
+}
+
+[data-theme="solar"] .helia-entry__badge--fetched {
+    border-color: rgba(15, 118, 110, 0.4);
+    color: #0f766e;
+    background: rgba(15, 118, 110, 0.1);
+}
+
+[data-theme="solar"] .helia-entry__preview {
+    background: rgba(120, 80, 20, 0.05);
+    border-color: rgba(120, 80, 20, 0.1);
+}
+
+[data-theme="solar"] .helia-log__row--error {
+    color: #c0392b;
+}
+
+[data-theme="solar"] .footer__metric--helia {
+    border-color: rgba(184, 134, 11, 0.4) !important;
+    color: #b8860b !important;
+}
+
+[data-theme="solar"] .footer__metric--helia:hover {
+    background: rgba(184, 134, 11, 0.1) !important;
 }

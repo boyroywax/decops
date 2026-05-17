@@ -15,6 +15,7 @@ import {
 import { useOrbitdb } from "../OrbitdbContext";
 import { orbitdbService } from "../service";
 import { heliaService } from "@/toolkits/helia/service";
+import { useAuth } from "@/context/AuthContext";
 import type { HeliaManagerSnapshot } from "@/toolkits/helia/types/helia";
 import type { OrbitdbDbType } from "../types/orbitdb";
 import { useJobsContext } from "@/context/JobsContext";
@@ -36,6 +37,7 @@ const DB_TYPES: Array<{ id: OrbitdbDbType; label: string; description: string }>
 export function OrbitdbView(_props: OrbitdbViewProps) {
     const { snapshot, nodes, activeId, setActive, removeNode } = useOrbitdb();
     const { addJob, jobs } = useJobsContext();
+    const { user } = useAuth();
 
     // Live helia snapshot for the selector.
     const [heliaState, setHeliaState] = useState<HeliaManagerSnapshot>(() => heliaService.snapshot());
@@ -329,12 +331,26 @@ export function OrbitdbView(_props: OrbitdbViewProps) {
                         <div>
                             <span className="libp2p-meta-key">Identity:</span>{" "}
                             <span className="libp2p-meta-value">
-                                {snapshot.identityId ? `${snapshot.identityId.slice(0, 24)}…` : "—"}
+                                {snapshot.identityId ? `${snapshot.identityId.slice(0, 32)}…` : "—"}
                             </span>
                             {snapshot.identityId && (
                                 <button className="libp2p-icon-btn" onClick={() => copy(snapshot.identityId!)} title="Copy identity id">
                                     <Copy size={10} />
                                 </button>
+                            )}
+                            {user?.did && snapshot.identityId === user.did && (
+                                <span
+                                    className="libp2p-badge libp2p-badge--ok"
+                                    title={`Derived from logged-in user ${user.profile?.name ?? user.email}`}
+                                    style={{ marginLeft: 6 }}
+                                >
+                                    user
+                                </span>
+                            )}
+                            {!isRunning && user?.did && (
+                                <span className="libp2p-meta-key" style={{ marginLeft: 6 }}>
+                                    (will use {user.did.slice(0, 18)}… on start)
+                                </span>
                             )}
                         </div>
                         <div>
@@ -556,8 +572,8 @@ export function OrbitdbView(_props: OrbitdbViewProps) {
                         <div className="libp2p-empty">No activity yet.</div>
                     ) : (
                         <div className="libp2p-log">
-                            {log.map((l) => (
-                                <div key={l.ts} className={`libp2p-log-line libp2p-log-line--${l.level}`}>
+                            {log.map((l, i) => (
+                                <div key={`${l.ts}-${i}`} className={`libp2p-log-line libp2p-log-line--${l.level}`}>
                                     <span className="libp2p-log-time">
                                         {new Date(l.ts).toLocaleTimeString()}
                                     </span>{" "}

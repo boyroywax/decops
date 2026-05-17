@@ -3,6 +3,15 @@
 .orbitdb-view {
     --orbitdb-accent: #a855f7;
     --orbitdb-accent-2: #c084fc;
+    --orbitdb-bg: rgba(168, 85, 247, 0.06);
+    --orbitdb-bg-active: rgba(168, 85, 247, 0.15);
+    --orbitdb-border: rgba(168, 85, 247, 0.2);
+    --orbitdb-border-active: rgba(168, 85, 247, 0.45);
+    --orbitdb-text: var(--text-primary, #e5e7eb);
+    --orbitdb-text-muted: var(--text-secondary, #9ca3af);
+    --orbitdb-entry-bg: rgba(0, 0, 0, 0.2);
+    --orbitdb-entry-text: var(--text-primary, #d1d5db);
+    --orbitdb-entry-border: rgba(255, 255, 255, 0.04);
 }
 
 .orbitdb-view .libp2p-status--ai {
@@ -20,16 +29,16 @@
     align-items: center;
     gap: 8px;
     padding: 6px 8px;
-    background: rgba(168, 85, 247, 0.06);
-    border: 1px solid rgba(168, 85, 247, 0.2);
+    background: var(--orbitdb-bg);
+    border: 1px solid var(--orbitdb-border);
     border-radius: 6px;
     font-size: 11px;
     cursor: pointer;
 }
 
 .orbitdb-db--active {
-    background: rgba(168, 85, 247, 0.15);
-    border-color: rgba(168, 85, 247, 0.45);
+    background: var(--orbitdb-bg-active);
+    border-color: var(--orbitdb-border-active);
 }
 
 .orbitdb-db__type {
@@ -46,36 +55,36 @@
 
 .orbitdb-db__name {
     font-weight: 600;
-    color: #e5e7eb;
+    color: var(--orbitdb-text);
 }
 
 .orbitdb-db__addr {
-    color: #9ca3af;
+    color: var(--orbitdb-text-muted);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 10px;
 }
 
 .orbitdb-db__count {
     margin-left: auto;
-    color: #c084fc;
+    color: var(--orbitdb-accent);
     font-variant-numeric: tabular-nums;
 }
 
 .orbitdb-entry-list {
     max-height: 260px;
     overflow: auto;
-    border: 1px solid rgba(168, 85, 247, 0.2);
+    border: 1px solid var(--orbitdb-border);
     border-radius: 6px;
     padding: 6px;
-    background: rgba(0, 0, 0, 0.2);
+    background: var(--orbitdb-entry-bg);
 }
 
 .orbitdb-entry {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 11px;
     padding: 4px 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    color: #d1d5db;
+    border-bottom: 1px solid var(--orbitdb-entry-border);
+    color: var(--orbitdb-entry-text);
     white-space: pre-wrap;
     word-break: break-all;
 }
@@ -83,8 +92,54 @@
 .orbitdb-entry:last-child { border-bottom: none; }
 
 .orbitdb-entry__key {
-    color: var(--orbitdb-accent-2);
+    color: var(--orbitdb-accent);
     font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Light theme overrides — cool neutral palette
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="light"] .orbitdb-view {
+    --orbitdb-accent: #7c3aed;
+    --orbitdb-accent-2: #8b5cf6;
+    --orbitdb-bg: rgba(124, 58, 237, 0.05);
+    --orbitdb-bg-active: rgba(124, 58, 237, 0.12);
+    --orbitdb-border: rgba(124, 58, 237, 0.18);
+    --orbitdb-border-active: rgba(124, 58, 237, 0.4);
+    --orbitdb-text: #1f2937;
+    --orbitdb-text-muted: #6b7280;
+    --orbitdb-entry-bg: rgba(124, 58, 237, 0.03);
+    --orbitdb-entry-text: #1f2937;
+    --orbitdb-entry-border: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .orbitdb-db__type {
+    background: rgba(124, 58, 237, 0.12);
+    color: #7c3aed;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Solar theme overrides — warm parchment palette
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme="solar"] .orbitdb-view {
+    --orbitdb-accent: #8b4789;
+    --orbitdb-accent-2: #a05a9c;
+    --orbitdb-bg: rgba(139, 71, 137, 0.07);
+    --orbitdb-bg-active: rgba(139, 71, 137, 0.16);
+    --orbitdb-border: rgba(139, 71, 137, 0.22);
+    --orbitdb-border-active: rgba(139, 71, 137, 0.45);
+    --orbitdb-text: #3b2e1a;
+    --orbitdb-text-muted: #8a7968;
+    --orbitdb-entry-bg: rgba(139, 71, 137, 0.04);
+    --orbitdb-entry-text: #3b2e1a;
+    --orbitdb-entry-border: rgba(120, 80, 20, 0.1);
+}
+
+[data-theme="solar"] .orbitdb-db__type {
+    background: rgba(139, 71, 137, 0.14);
+    color: #8b4789;
 }
 
 /* Footer metric — purple theme for orbitdb */
@@ -96,3 +151,272 @@
 .footer__metric--orbitdb:hover {
     background: rgba(168, 85, 247, 0.1) !important;
 }
+
+[data-theme="light"] .footer__metric--orbitdb {
+    border-color: rgba(124, 58, 237, 0.35) !important;
+    color: #7c3aed !important;
+}
+
+[data-theme="light"] .footer__metric--orbitdb:hover {
+    background: rgba(124, 58, 237, 0.08) !important;
+}
+
+[data-theme="solar"] .footer__metric--orbitdb {
+    border-color: rgba(139, 71, 137, 0.4) !important;
+    color: #8b4789 !important;
+}
+
+[data-theme="solar"] .footer__metric--orbitdb:hover {
+    background: rgba(139, 71, 137, 0.1) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Shared layout classes used by OrbitdbView (and HeliaView) that were never
+ * defined in libp2p.css. Scoped to .libp2p-view to be safe.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+.libp2p-view .libp2p-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 12px 16px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.libp2p-view .libp2p-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
+    background: var(--rgba-white-02, rgba(255, 255, 255, 0.02));
+    border-radius: 6px;
+}
+
+.libp2p-view .libp2p-section-title {
+    margin: 0;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted, #94a3b8);
+    background: transparent;
+    border: none;
+    padding: 0;
+    text-align: left;
+    cursor: default;
+    font-family: inherit;
+    font-weight: 600;
+}
+
+button.libp2p-section-title {
+    cursor: pointer;
+}
+button.libp2p-section-title:hover {
+    color: var(--text-primary, #e2e8f0);
+}
+
+.libp2p-view .libp2p-section-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.libp2p-view .libp2p-select {
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border-medium, rgba(255, 255, 255, 0.12));
+    background: var(--bg-input, rgba(0, 0, 0, 0.3));
+    color: var(--text-primary, #e2e8f0);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.libp2p-view .libp2p-select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Start = libp2p's bright-green primary; Stop = libp2p's magenta danger. */
+.libp2p-view .libp2p-btn--start {
+    background: rgba(0, 229, 160, 0.08);
+    border-color: rgba(0, 229, 160, 0.5);
+    color: #00e5a0;
+}
+.libp2p-view .libp2p-btn--start:hover:not(:disabled) {
+    background: rgba(0, 229, 160, 0.18);
+}
+.libp2p-view .libp2p-btn--stop {
+    background: rgba(244, 114, 182, 0.08);
+    border-color: rgba(244, 114, 182, 0.5);
+    color: #f472b6;
+}
+.libp2p-view .libp2p-btn--stop:hover:not(:disabled) {
+    background: rgba(244, 114, 182, 0.18);
+}
+
+.libp2p-view .libp2p-empty {
+    padding: 12px;
+    text-align: center;
+    color: var(--text-ghost, rgba(226, 232, 240, 0.45));
+    font-size: 11px;
+    font-style: italic;
+}
+
+/* Errors share the .libp2p-alert magenta palette for a single, consistent danger color. */
+.libp2p-view .libp2p-error {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background: rgba(244, 114, 182, 0.08);
+    border: 1px solid rgba(244, 114, 182, 0.4);
+    color: #f472b6;
+    font-size: 12px;
+}
+
+.libp2p-view .libp2p-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    font-family: "DM Mono", monospace;
+}
+
+.libp2p-view .libp2p-meta-key {
+    color: var(--text-muted, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 10px;
+}
+
+.libp2p-view .libp2p-meta-value {
+    color: var(--text-primary, #e2e8f0);
+}
+
+.libp2p-view .libp2p-tab-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-ghost, #64748b);
+    display: inline-block;
+    flex-shrink: 0;
+}
+.libp2p-view .libp2p-tab-dot--running { background: #22c55e; box-shadow: 0 0 4px rgba(34, 197, 94, 0.6); }
+.libp2p-view .libp2p-tab-dot--starting,
+.libp2p-view .libp2p-tab-dot--stopping { background: #f59e0b; }
+.libp2p-view .libp2p-tab-dot--error { background: #ef4444; }
+.libp2p-view .libp2p-tab-dot--stopped { background: var(--text-ghost, #64748b); }
+
+.libp2p-view .libp2p-tab--add {
+    color: var(--text-muted, #94a3b8);
+    border-style: dashed;
+}
+
+.libp2p-view .libp2p-log {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 180px;
+    overflow-y: auto;
+    font-family: "DM Mono", monospace;
+    font-size: 11px;
+}
+
+.libp2p-view .libp2p-log-line {
+    display: flex;
+    gap: 8px;
+    padding: 2px 0;
+    color: var(--text-secondary, rgba(226, 232, 240, 0.75));
+}
+
+.libp2p-view .libp2p-log-line--error {
+    color: #f472b6;
+}
+
+.libp2p-view .libp2p-log-time {
+    color: var(--text-ghost, rgba(226, 232, 240, 0.4));
+    flex-shrink: 0;
+}
+
+/* ─── Solar theme adjustments for shared classes ────────────────────────── */
+
+[data-theme="solar"] .libp2p-view .libp2p-section {
+    background: #fefaf0;
+    border-color: rgba(120, 80, 20, 0.12);
+    box-shadow: 0 1px 3px rgba(120, 80, 20, 0.06);
+}
+
+[data-theme="solar"] .libp2p-view .libp2p-select {
+    background: #fefaf0;
+    border-color: rgba(120, 80, 20, 0.2);
+    color: #3b2e1a;
+}
+
+[data-theme="solar"] .libp2p-view .libp2p-btn--start {
+    background: rgba(46, 125, 50, 0.12);
+    border-color: rgba(46, 125, 50, 0.4);
+    color: #2e7d32;
+}
+[data-theme="solar"] .libp2p-view .libp2p-btn--start:hover:not(:disabled) {
+    background: rgba(46, 125, 50, 0.2);
+}
+[data-theme="solar"] .libp2p-view .libp2p-btn--stop {
+    background: rgba(192, 57, 43, 0.12);
+    border-color: rgba(192, 57, 43, 0.4);
+    color: #c0392b;
+}
+[data-theme="solar"] .libp2p-view .libp2p-btn--stop:hover:not(:disabled) {
+    background: rgba(192, 57, 43, 0.2);
+}
+
+[data-theme="solar"] .libp2p-view .libp2p-error {
+    background: rgba(192, 57, 43, 0.1);
+    border-color: rgba(192, 57, 43, 0.3);
+    color: #c0392b;
+}
+
+[data-theme="solar"] .libp2p-view .libp2p-log-line--error {
+    color: #c0392b;
+}
+
+/* ─── Light theme adjustments for shared classes ────────────────────────── */
+
+[data-theme="light"] .libp2p-view .libp2p-section {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .libp2p-view .libp2p-select {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.15);
+    color: #1a1a2e;
+}
+
+[data-theme="light"] .libp2p-view .libp2p-btn--start {
+    background: rgba(5, 150, 105, 0.1);
+    border-color: rgba(5, 150, 105, 0.35);
+    color: #047857;
+}
+[data-theme="light"] .libp2p-view .libp2p-btn--start:hover:not(:disabled) {
+    background: rgba(5, 150, 105, 0.18);
+}
+[data-theme="light"] .libp2p-view .libp2p-btn--stop {
+    background: rgba(220, 38, 38, 0.08);
+    border-color: rgba(220, 38, 38, 0.35);
+    color: #dc2626;
+}
+[data-theme="light"] .libp2p-view .libp2p-btn--stop:hover:not(:disabled) {
+    background: rgba(220, 38, 38, 0.16);
+}
+
+[data-theme="light"] .libp2p-view .libp2p-error {
+    background: rgba(220, 38, 38, 0.06);
+    border-color: rgba(220, 38, 38, 0.25);
+    color: #dc2626;
+}
+
