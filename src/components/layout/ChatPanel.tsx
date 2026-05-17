@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { X, LayoutTemplate, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, Clapperboard, Edit3, Eye, Send, Square, Check, Bot } from "lucide-react";
+import { X, LayoutTemplate, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, ChevronDown, ChevronRight, Clapperboard, Edit3, Eye, Send, Square, Check, Bot } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "@/services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "@/services/ai";
@@ -92,6 +92,14 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const [streamingText, setStreamingText] = useState<string | null>(null);
     const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallDisplay[]>([]);
     const [botMenuOpen, setBotMenuOpen] = useState(false);
+    const [lohkExpanded, setLohkExpanded] = useState<boolean>(() => {
+        try { return localStorage.getItem("decops:bot-menu-lohk-collapsed") !== "1"; }
+        catch { return true; }
+    });
+    useEffect(() => {
+        try { localStorage.setItem("decops:bot-menu-lohk-collapsed", lohkExpanded ? "0" : "1"); }
+        catch { /* ignore */ }
+    }, [lohkExpanded]);
     const [pendingCommand, setPendingCommand] = useState<{ command: CommandDefinition; initialArgs: Record<string, any>; convoId: string; msgs: ChatMessage[] } | null>(null);
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionIndex, setMentionIndex] = useState(0);
@@ -905,21 +913,64 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             <div className="chat-panel__bot-menu-dropdown">
                                 <div className="chat-panel__bot-menu-title">BOT THEMES</div>
                                 
-                                {Object.values(availableAgents).map(agent => (
-                                    <button
-                                        key={agent.id}
-                                        type="button"
-                                        className={`chat-panel__bot-menu-item${activeAgent?.id === agent.id ? " chat-panel__bot-menu-item--active" : ""}`}
-                                        onClick={() => {
-                                            useChatAgentsStore.getState().setActive(agent.id);
-                                            setBotMenuOpen(false);
-                                        }}
-                                    >
-                                        <GradientIcon icon={agent.icon as any} size={14} gradient={agent.gradient ?? ["#38bdf8", "#a78bfa"]} />
-                                        <span style={{flex: 1}}>{agent.name}</span>
-                                        {activeAgent?.id === agent.id && <Check size={12} />}
-                                    </button>
-                                ))}
+                                {(() => {
+                                    const LOHK_IDS = ["libp2p", "helia", "kubo-bot", "orbitdb"];
+                                    const ORCHESTRATOR_ID = "orchestrator-bot";
+                                    const all = Object.values(availableAgents);
+                                    const orchestrator = all.find(a => a.id === ORCHESTRATOR_ID);
+                                    const lohkChildren = LOHK_IDS
+                                        .map(id => all.find(a => a.id === id))
+                                        .filter((a): a is NonNullable<typeof a> => Boolean(a));
+                                    const others = all.filter(a => a.id !== ORCHESTRATOR_ID && !LOHK_IDS.includes(a.id));
+                                    const renderAgentButton = (agent: typeof all[number], nested = false) => (
+                                        <button
+                                            key={agent.id}
+                                            type="button"
+                                            className={`chat-panel__bot-menu-item${nested ? " chat-panel__bot-menu-item--nested" : ""}${activeAgent?.id === agent.id ? " chat-panel__bot-menu-item--active" : ""}`}
+                                            onClick={() => {
+                                                useChatAgentsStore.getState().setActive(agent.id);
+                                                setBotMenuOpen(false);
+                                            }}
+                                        >
+                                            <GradientIcon icon={agent.icon as any} size={14} gradient={agent.gradient ?? ["#38bdf8", "#a78bfa"]} />
+                                            <span style={{flex: 1}}>{agent.name}</span>
+                                            {activeAgent?.id === agent.id && <Check size={12} />}
+                                        </button>
+                                    );
+                                    return (
+                                        <>
+                                            {orchestrator && (
+                                                <div className="chat-panel__bot-menu-group">
+                                                    <div className={`chat-panel__bot-menu-item chat-panel__bot-menu-item--parent${activeAgent?.id === orchestrator.id ? " chat-panel__bot-menu-item--active" : ""}`}>
+                                                        <button
+                                                            type="button"
+                                                            className="chat-panel__bot-menu-chevron"
+                                                            onClick={(e) => { e.stopPropagation(); setLohkExpanded(v => !v); }}
+                                                            title={lohkExpanded ? "Collapse L.O.H.K bots" : "Expand L.O.H.K bots"}
+                                                            aria-expanded={lohkExpanded}
+                                                        >
+                                                            {lohkExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="chat-panel__bot-menu-item-main"
+                                                            onClick={() => {
+                                                                useChatAgentsStore.getState().setActive(orchestrator.id);
+                                                                setBotMenuOpen(false);
+                                                            }}
+                                                        >
+                                                            <GradientIcon icon={orchestrator.icon as any} size={14} gradient={orchestrator.gradient ?? ["#38bdf8", "#a78bfa"]} />
+                                                            <span style={{flex: 1}}>{orchestrator.name}</span>
+                                                            {activeAgent?.id === orchestrator.id && <Check size={12} />}
+                                                        </button>
+                                                    </div>
+                                                    {lohkExpanded && lohkChildren.map(a => renderAgentButton(a, true))}
+                                                </div>
+                                            )}
+                                            {others.map(a => renderAgentButton(a, false))}
+                                        </>
+                                    );
+                                })()}
                                 
                                 <div className="chat-panel__bot-menu-divider" />
                                 
