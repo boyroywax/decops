@@ -24,7 +24,7 @@
  */
 
 import { useEffect } from "react";
-import { Bot } from "lucide-react";
+import { Bot, Waypoints } from "lucide-react";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import { Libp2pChatBanner } from "./libp2p/components/Libp2pChatBanner";
 import { HeliaChatBanner } from "./helia/components/HeliaChatBanner";
@@ -176,10 +176,10 @@ export function useToolkitChatAgents(): void {
         disposers.push(
             useChatAgentsStore.getState().register({
                 id: "orchestrator-bot",
-                name: "Orchestrator Bot",
+                name: "Orchestrator",
                 description:
                     "Drives the four L.O.H.K toolkits toward declared desired state via manifest artifacts.",
-                icon: Bot,
+                icon: Waypoints,
                 gradient: ["#10b981", "#059669"],
                 banner: OrchestratorChatBanner,
                 placeholder:
