@@ -7,12 +7,19 @@ export type { OrchestratorManager, OrchestratorNode } from "./service";
 export type {
     OrchestratorStatus,
     OrchestratorTarget,
-    OrchestratorNodeSpec,
     OrchestratorManifest,
+    OrchestratorManifestMetadata,
+    OrchestratorManifestSpec,
+    OrchestratorManifestStatus,
+    OrchestratorLibp2pSpec,
+    OrchestratorHeliaSpec,
+    OrchestratorOrbitdbSpec,
+    OrchestratorKuboSpec,
     OrchestratorOperationResult,
     OrchestratorSnapshot,
     OrchestratorManagerSnapshot,
 } from "./types/orchestrator";
+export { ORCHESTRATOR_API_VERSION, ORCHESTRATOR_KIND } from "./types/orchestrator";
 
 export { OrchestratorProvider, useOrchestrator } from "./OrchestratorContext";
 export { OrchestratorView } from "./components/OrchestratorView";

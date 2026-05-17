@@ -1,41 +1,49 @@
 /**
  * Orchestrator Service — drives the four L.O.H.K toolkits (libp2p, helia,
- * orbitdb, kubo) toward a desired state described by a manifest stored as
+ * orbitdb, kubo) toward a kubectl-style desired-state manifest stored as
  * a workspace artifact.
  *
  * Architecture mirrors the canonical toolkit-service pattern (helia / kubo
  * / orbitdb): one {@link OrchestratorManager} singleton owns N
- * {@link OrchestratorNode} instances, each persisted to localStorage and
- * mirrored into React via `snapshot()` + `subscribe()`.
+ * {@link OrchestratorNode} instances (a.k.a. profiles / stacks), each
+ * persisted to localStorage and mirrored into React via `snapshot()` +
+ * `subscribe()`.
  *
- * Heavy lifting:
- *   - The orchestrator does NOT own libp2p/helia/orbitdb/kubo state. It
- *     orchestrates them via their public service APIs.
- *   - The manifest is NEVER stored in this service. Only an
- *     `manifestArtifactId` reference is persisted. Manifest content is
- *     read on-demand from the artifacts subsystem at apply / reconcile
- *     time, via an artifact provider injected by the React layer.
+ * The orchestrator does NOT own libp2p/helia/orbitdb/kubo state. It only
+ * orchestrates them via their public service APIs. The manifest is NEVER
+ * stored inside this service — only an `manifestArtifactId` reference is
+ * persisted; manifest content is read on demand from the artifacts
+ * subsystem via an artifact provider injected by the React layer.
  */
 
 import type { JobArtifact } from "@/types";
 import { libp2pService } from "@/toolkits/libp2p";
+import type { Libp2pStartOptions } from "@/toolkits/libp2p";
 import { heliaService } from "@/toolkits/helia";
 import { orbitdbService } from "@/toolkits/orbitdb";
 import { kuboService } from "@/toolkits/kubo";
+import {
+    ORCHESTRATOR_API_VERSION,
+    ORCHESTRATOR_KIND,
+} from "./types/orchestrator";
 import type {
     OrchestratorStatus,
     OrchestratorSnapshot,
     OrchestratorManagerSnapshot,
     OrchestratorManifest,
     OrchestratorOperationResult,
-    OrchestratorNodeSpec,
     OrchestratorTarget,
+    OrchestratorLibp2pSpec,
+    OrchestratorHeliaSpec,
+    OrchestratorOrbitdbSpec,
+    OrchestratorKuboSpec,
 } from "./types/orchestrator";
 
 type ManagerListener = (state: OrchestratorManagerSnapshot) => void;
 
 const NODES_STORAGE_KEY = "decops:orchestrator-nodes:v1";
 const RESULT_LIMIT = 200;
+const DEFAULT_NAMESPACE = "default";
 
 interface PersistedNode {
     id: string;
@@ -82,16 +90,23 @@ function savePersistedManager(state: PersistedManager): void {
     } catch { /* quota / private mode */ }
 }
 
+/**
+ * Parse a manifest artifact body into a validated {@link OrchestratorManifest}.
+ *
+ * Accepts the canonical kubectl-style shape only:
+ *
+ *     { apiVersion, kind, metadata: { name, ... }, spec: { ... }, status? }
+ */
 function parseManifest(content: string | undefined): OrchestratorManifest | null {
     if (!content) return null;
     try {
         const parsed = JSON.parse(content);
         if (!parsed || typeof parsed !== "object") return null;
-        if (typeof parsed.version !== "string" && typeof parsed.version !== "number") return null;
-        const m = parsed as OrchestratorManifest;
-        if (typeof m.version !== "string") m.version = String(m.version);
-        if (typeof m.name !== "string") m.name = "(unnamed)";
-        return m;
+        if (parsed.apiVersion !== ORCHESTRATOR_API_VERSION) return null;
+        if (parsed.kind !== ORCHESTRATOR_KIND) return null;
+        if (!parsed.metadata || typeof parsed.metadata.name !== "string") return null;
+        if (!parsed.spec || typeof parsed.spec !== "object") return null;
+        return parsed as OrchestratorManifest;
     } catch { return null; }
 }
 
@@ -324,10 +339,12 @@ class OrchestratorManager {
         }
         const manifest = parseManifest(artifact.content);
         if (!manifest) {
-            throw new Error(`Manifest artifact is not a valid OrchestratorManifest JSON.`);
+            throw new Error(
+                `Manifest artifact is not a valid ${ORCHESTRATOR_KIND} (apiVersion ${ORCHESTRATOR_API_VERSION}).`,
+            );
         }
-        node.manifestName = manifest.name;
-        node.manifestVersion = manifest.version;
+        node.manifestName = manifest.metadata.name;
+        node.manifestVersion = manifest.apiVersion;
         return manifest;
     }
 
@@ -335,9 +352,9 @@ class OrchestratorManager {
 
     /**
      * Apply the manifest: bring each declared sub-node to its desired state.
-     * Strategy: for each target group (libp2p, helia, orbitdb, kubo) ensure
-     * a runtime node exists with a matching label, then optionally start /
-     * connect it.
+     * For each target group (libp2p, helia, orbitdb, kubo) ensure a runtime
+     * node exists with a matching label, then optionally start / connect it
+     * with the spec's typed options.
      */
     async applyManifest(id?: string): Promise<OrchestratorOperationResult[]> {
         const node = this.getNode(id);
@@ -346,10 +363,10 @@ class OrchestratorManager {
             const manifest = this.readManifest(id);
             const results: OrchestratorOperationResult[] = [];
 
-            await this.applyTarget("libp2p", manifest.libp2p, results);
-            await this.applyTarget("helia", manifest.helia, results);
-            await this.applyTarget("orbitdb", manifest.orbitdb, results);
-            await this.applyTarget("kubo", manifest.kubo, results);
+            await this.applyLibp2p(manifest.spec.libp2p, results);
+            await this.applyHelia(manifest.spec.helia, results);
+            await this.applyOrbitdb(manifest.spec.orbitdb, results);
+            await this.applyKubo(manifest.spec.kubo, results);
 
             for (const r of results) node.pushResult(r);
             node.lastAppliedAt = nowIso();
@@ -363,46 +380,19 @@ class OrchestratorManager {
         }
     }
 
-    private async applyTarget(
-        target: OrchestratorTarget,
-        specs: OrchestratorNodeSpec[] | undefined,
+    private async applyLibp2p(
+        specs: OrchestratorLibp2pSpec[] | undefined,
         results: OrchestratorOperationResult[],
     ): Promise<void> {
-        if (!specs || specs.length === 0) return;
+        if (!specs) return;
         for (const spec of specs) {
             try {
-                const r = await this.applyOneSpec(target, spec);
-                results.push(r);
-            } catch (err) {
-                results.push({
-                    target,
-                    specId: spec.id,
-                    action: "failed",
-                    ok: false,
-                    error: err instanceof Error ? err.message : String(err),
-                    at: nowIso(),
-                });
-            }
-        }
-    }
-
-    private async applyOneSpec(
-        target: OrchestratorTarget,
-        spec: OrchestratorNodeSpec,
-    ): Promise<OrchestratorOperationResult> {
-        const label = spec.label ?? spec.id;
-        const findByLabel = <T extends { label: string; nodeId: string }>(arr: T[]) =>
-            arr.find((n) => n.label === label) ?? null;
-
-        let runtimeNodeId: string | undefined;
-        let action: OrchestratorOperationResult["action"] = "noop";
-
-        switch (target) {
-            case "libp2p": {
                 const snap = libp2pService.snapshot();
-                let existing = findByLabel(snap.nodes as Array<{ label: string; nodeId: string }>);
+                let existing = snap.nodes.find((n) => n.label === spec.name) ?? null;
+                let runtimeNodeId: string;
+                let action: OrchestratorOperationResult["action"] = "noop";
                 if (!existing) {
-                    runtimeNodeId = libp2pService.addNode(label);
+                    runtimeNodeId = libp2pService.addNode(spec.name);
                     action = "created";
                 } else {
                     runtimeNodeId = existing.nodeId;
@@ -410,23 +400,47 @@ class OrchestratorManager {
                 if (spec.autoStart) {
                     const ns = libp2pService.snapshot().nodes.find((n) => n.nodeId === runtimeNodeId);
                     if (ns && ns.status !== "running" && ns.status !== "starting") {
-                        await libp2pService.start({}, runtimeNodeId);
+                        const opts: Libp2pStartOptions = {
+                            bootstrap: spec.bootstrap,
+                            disabledBootstrap: spec.disabledBootstrap,
+                            services: spec.services,
+                            discovery: spec.discovery,
+                            transports: spec.transports,
+                            pubsubDiscoveryTopic: spec.pubsubDiscoveryTopic,
+                            pnetKey: spec.pnetKey,
+                        };
+                        await libp2pService.start(opts, runtimeNodeId);
                         action = "started";
                     }
                 }
-                break;
+                results.push({ target: "libp2p", specId: spec.name, runtimeNodeId, action, ok: true, at: nowIso() });
+            } catch (err) {
+                results.push({
+                    target: "libp2p", specId: spec.name, action: "failed", ok: false,
+                    error: err instanceof Error ? err.message : String(err), at: nowIso(),
+                });
             }
-            case "helia": {
+        }
+    }
+
+    private async applyHelia(
+        specs: OrchestratorHeliaSpec[] | undefined,
+        results: OrchestratorOperationResult[],
+    ): Promise<void> {
+        if (!specs) return;
+        for (const spec of specs) {
+            try {
                 const snap = heliaService.snapshot();
-                let existing = findByLabel(snap.nodes as Array<{ label: string; nodeId: string }>);
+                let existing = snap.nodes.find((n) => n.label === spec.name) ?? null;
+                let runtimeNodeId: string;
+                let action: OrchestratorOperationResult["action"] = "noop";
                 if (!existing) {
-                    const libp2pSpecId = spec.bindings?.libp2p;
                     let libp2pRuntimeId: string | null = null;
-                    if (libp2pSpecId) {
-                        const lp = libp2pService.snapshot().nodes.find((n) => n.label === libp2pSpecId);
+                    if (spec.libp2pRef) {
+                        const lp = libp2pService.snapshot().nodes.find((n) => n.label === spec.libp2pRef);
                         libp2pRuntimeId = lp?.nodeId ?? null;
                     }
-                    runtimeNodeId = heliaService.addNode(label, libp2pRuntimeId);
+                    runtimeNodeId = heliaService.addNode(spec.name, libp2pRuntimeId);
                     action = "created";
                 } else {
                     runtimeNodeId = existing.nodeId;
@@ -434,23 +448,46 @@ class OrchestratorManager {
                 if (spec.autoStart) {
                     const ns = heliaService.snapshot().nodes.find((n) => n.nodeId === runtimeNodeId);
                     if (ns && ns.status !== "running" && ns.status !== "starting") {
-                        await heliaService.start({}, runtimeNodeId);
+                        let libp2pRuntimeId: string | undefined;
+                        if (spec.libp2pRef) {
+                            const lp = libp2pService.snapshot().nodes.find((n) => n.label === spec.libp2pRef);
+                            libp2pRuntimeId = lp?.nodeId;
+                        }
+                        await heliaService.start({
+                            libp2pNodeId: libp2pRuntimeId,
+                            newLibp2pLabel: spec.newLibp2pLabel,
+                        }, runtimeNodeId);
                         action = "started";
                     }
                 }
-                break;
+                results.push({ target: "helia", specId: spec.name, runtimeNodeId, action, ok: true, at: nowIso() });
+            } catch (err) {
+                results.push({
+                    target: "helia", specId: spec.name, action: "failed", ok: false,
+                    error: err instanceof Error ? err.message : String(err), at: nowIso(),
+                });
             }
-            case "orbitdb": {
+        }
+    }
+
+    private async applyOrbitdb(
+        specs: OrchestratorOrbitdbSpec[] | undefined,
+        results: OrchestratorOperationResult[],
+    ): Promise<void> {
+        if (!specs) return;
+        for (const spec of specs) {
+            try {
                 const snap = orbitdbService.snapshot();
-                let existing = findByLabel(snap.nodes as Array<{ label: string; nodeId: string }>);
+                let existing = snap.nodes.find((n) => n.label === spec.name) ?? null;
+                let runtimeNodeId: string;
+                let action: OrchestratorOperationResult["action"] = "noop";
                 if (!existing) {
-                    const heliaSpecId = spec.bindings?.helia;
                     let heliaRuntimeId: string | null = null;
-                    if (heliaSpecId) {
-                        const hn = heliaService.snapshot().nodes.find((n) => n.label === heliaSpecId);
+                    if (spec.heliaRef) {
+                        const hn = heliaService.snapshot().nodes.find((n) => n.label === spec.heliaRef);
                         heliaRuntimeId = hn?.nodeId ?? null;
                     }
-                    runtimeNodeId = orbitdbService.addNode(label, heliaRuntimeId);
+                    runtimeNodeId = orbitdbService.addNode(spec.name, heliaRuntimeId);
                     action = "created";
                 } else {
                     runtimeNodeId = existing.nodeId;
@@ -458,19 +495,42 @@ class OrchestratorManager {
                 if (spec.autoStart) {
                     const ns = orbitdbService.snapshot().nodes.find((n) => n.nodeId === runtimeNodeId);
                     if (ns && ns.status !== "running" && ns.status !== "starting") {
-                        await orbitdbService.start({}, runtimeNodeId);
+                        let heliaRuntimeId: string | undefined;
+                        if (spec.heliaRef) {
+                            const hn = heliaService.snapshot().nodes.find((n) => n.label === spec.heliaRef);
+                            heliaRuntimeId = hn?.nodeId;
+                        }
+                        await orbitdbService.start({
+                            heliaNodeId: heliaRuntimeId,
+                            identityId: spec.identityId,
+                            directory: spec.directory,
+                        }, runtimeNodeId);
                         action = "started";
                     }
                 }
-                break;
+                results.push({ target: "orbitdb", specId: spec.name, runtimeNodeId, action, ok: true, at: nowIso() });
+            } catch (err) {
+                results.push({
+                    target: "orbitdb", specId: spec.name, action: "failed", ok: false,
+                    error: err instanceof Error ? err.message : String(err), at: nowIso(),
+                });
             }
-            case "kubo": {
+        }
+    }
+
+    private async applyKubo(
+        specs: OrchestratorKuboSpec[] | undefined,
+        results: OrchestratorOperationResult[],
+    ): Promise<void> {
+        if (!specs) return;
+        for (const spec of specs) {
+            try {
                 const snap = kuboService.snapshot();
-                let existing = findByLabel(snap.nodes as Array<{ label: string; nodeId: string }>);
+                let existing = snap.nodes.find((n) => n.label === spec.name) ?? null;
+                let runtimeNodeId: string;
+                let action: OrchestratorOperationResult["action"] = "noop";
                 if (!existing) {
-                    const endpoint =
-                        typeof spec.config?.url === "string" ? (spec.config!.url as string) : undefined;
-                    runtimeNodeId = kuboService.addNode(label, endpoint);
+                    runtimeNodeId = kuboService.addNode(spec.name, spec.url);
                     action = "created";
                 } else {
                     runtimeNodeId = existing.nodeId;
@@ -478,22 +538,22 @@ class OrchestratorManager {
                 if (spec.autoStart) {
                     const ns = kuboService.snapshot().nodes.find((n) => n.nodeId === runtimeNodeId);
                     if (ns && ns.status !== "connected" && ns.status !== "connecting") {
-                        await kuboService.connect({}, runtimeNodeId);
+                        await kuboService.connect({
+                            url: spec.url,
+                            authorization: spec.authorization,
+                            timeoutMs: spec.timeoutMs,
+                        }, runtimeNodeId);
                         action = "connected";
                     }
                 }
-                break;
+                results.push({ target: "kubo", specId: spec.name, runtimeNodeId, action, ok: true, at: nowIso() });
+            } catch (err) {
+                results.push({
+                    target: "kubo", specId: spec.name, action: "failed", ok: false,
+                    error: err instanceof Error ? err.message : String(err), at: nowIso(),
+                });
             }
         }
-
-        return {
-            target,
-            specId: spec.id,
-            runtimeNodeId,
-            action,
-            ok: true,
-            at: nowIso(),
-        };
     }
 
     /**
@@ -507,10 +567,10 @@ class OrchestratorManager {
             const manifest = this.readManifest(id);
             const results: OrchestratorOperationResult[] = [];
 
-            this.reconcileTarget("libp2p", manifest.libp2p, results, libp2pService.snapshot().nodes);
-            this.reconcileTarget("helia", manifest.helia, results, heliaService.snapshot().nodes);
-            this.reconcileTarget("orbitdb", manifest.orbitdb, results, orbitdbService.snapshot().nodes);
-            this.reconcileTarget("kubo", manifest.kubo, results, kuboService.snapshot().nodes);
+            this.reconcileTarget("libp2p", manifest.spec.libp2p, results, libp2pService.snapshot().nodes);
+            this.reconcileTarget("helia", manifest.spec.helia, results, heliaService.snapshot().nodes);
+            this.reconcileTarget("orbitdb", manifest.spec.orbitdb, results, orbitdbService.snapshot().nodes);
+            this.reconcileTarget("kubo", manifest.spec.kubo, results, kuboService.snapshot().nodes);
 
             for (const r of results) node.pushResult(r);
             node.lastReconcileAt = nowIso();
@@ -526,18 +586,17 @@ class OrchestratorManager {
 
     private reconcileTarget(
         target: OrchestratorTarget,
-        specs: OrchestratorNodeSpec[] | undefined,
+        specs: Array<{ name: string; autoStart?: boolean }> | undefined,
         results: OrchestratorOperationResult[],
         runtimeNodes: Array<{ label: string; nodeId: string; status: string }>,
     ): void {
         if (!specs) return;
         for (const spec of specs) {
-            const label = spec.label ?? spec.id;
-            const existing = runtimeNodes.find((n) => n.label === label) ?? null;
+            const existing = runtimeNodes.find((n) => n.label === spec.name) ?? null;
             if (!existing) {
                 results.push({
-                    target, specId: spec.id, action: "failed", ok: false,
-                    message: `Missing runtime node (expected label "${label}")`,
+                    target, specId: spec.name, action: "failed", ok: false,
+                    message: `Missing runtime node (expected label "${spec.name}")`,
                     at: nowIso(),
                 });
                 continue;
@@ -548,7 +607,7 @@ class OrchestratorManager {
                     : existing.status === "running";
                 if (!desiredOk) {
                     results.push({
-                        target, specId: spec.id, runtimeNodeId: existing.nodeId,
+                        target, specId: spec.name, runtimeNodeId: existing.nodeId,
                         action: "failed", ok: false,
                         message: `Expected ${target === "kubo" ? "connected" : "running"}, got "${existing.status}"`,
                         at: nowIso(),
@@ -557,7 +616,7 @@ class OrchestratorManager {
                 }
             }
             results.push({
-                target, specId: spec.id, runtimeNodeId: existing.nodeId,
+                target, specId: spec.name, runtimeNodeId: existing.nodeId,
                 action: "noop", ok: true,
                 at: nowIso(),
             });
@@ -565,34 +624,63 @@ class OrchestratorManager {
     }
 
     /**
-     * Build a manifest from the current live state across all 4 toolkits.
+     * Build a kubectl-style manifest from the current live state across all
+     * four toolkits. The result is ready to be saved as a JSON artifact.
      */
-    exportManifest(name = "Exported Stack"): OrchestratorManifest {
-        const libp2p: OrchestratorNodeSpec[] = libp2pService.snapshot().nodes.map((n) => ({
-            id: n.label, label: n.label,
+    exportManifest(name = "Exported Stack", namespace = DEFAULT_NAMESPACE): OrchestratorManifest {
+        const libp2p: OrchestratorLibp2pSpec[] = libp2pService.snapshot().nodes.map((n) => ({
+            name: n.label,
             autoStart: n.status === "running" || n.status === "starting",
         }));
-        const helia: OrchestratorNodeSpec[] = heliaService.snapshot().nodes.map((n) => ({
-            id: n.label, label: n.label,
-            autoStart: n.status === "running" || n.status === "starting",
-        }));
-        const orbitdb: OrchestratorNodeSpec[] = orbitdbService.snapshot().nodes.map((n) => ({
-            id: n.label, label: n.label,
-            autoStart: n.status === "running" || n.status === "starting",
-        }));
-        const kubo: OrchestratorNodeSpec[] = kuboService.snapshot().nodes.map((n) => ({
-            id: n.label, label: n.label,
+        const helia: OrchestratorHeliaSpec[] = heliaService.snapshot().nodes.map((n) => {
+            // Best-effort libp2p binding by matching the runtime libp2p node id.
+            const lp = libp2pService.snapshot().nodes.find((l) => l.nodeId === n.libp2pNodeId);
+            return {
+                name: n.label,
+                autoStart: n.status === "running" || n.status === "starting",
+                ...(lp ? { libp2pRef: lp.label } : {}),
+            };
+        });
+        const orbitdb: OrchestratorOrbitdbSpec[] = orbitdbService.snapshot().nodes.map((n) => {
+            const hn = heliaService.snapshot().nodes.find((h) => h.nodeId === n.heliaNodeId);
+            return {
+                name: n.label,
+                autoStart: n.status === "running" || n.status === "starting",
+                ...(hn ? { heliaRef: hn.label } : {}),
+                ...(n.identityId ? { identityId: n.identityId } : {}),
+            };
+        });
+        const kubo: OrchestratorKuboSpec[] = kuboService.snapshot().nodes.map((n) => ({
+            name: n.label,
             autoStart: n.status === "connected" || n.status === "connecting",
-            config: { url: n.endpoint },
+            ...(n.endpoint ? { url: n.endpoint } : {}),
         }));
+
         const now = nowIso();
         return {
-            version: "1",
-            name,
-            description: "Manifest exported from current decops state.",
-            libp2p, helia, orbitdb, kubo,
-            createdAt: now,
-            updatedAt: now,
+            apiVersion: ORCHESTRATOR_API_VERSION,
+            kind: ORCHESTRATOR_KIND,
+            metadata: {
+                name,
+                namespace,
+                labels: {
+                    "decops.io/toolkit": "orchestrator",
+                    "decops.io/exported": "true",
+                },
+                annotations: {
+                    "decops.io/exported-at": now,
+                    "decops.io/description": "Manifest exported from current decops state.",
+                },
+            },
+            spec: {
+                libp2p, helia, orbitdb, kubo,
+            },
+            status: {
+                phase: "healthy",
+                lastAppliedAt: now,
+                lastReconcileAt: now,
+                observedResults: [],
+            },
         };
     }
 
@@ -602,22 +690,23 @@ class OrchestratorManager {
      */
     saveManifestToArtifact(manifest: OrchestratorManifest, id?: string): string {
         const provider = this.requireArtifactProvider();
+        const name = manifest.metadata.name;
         const artifactId = `orchestrator-manifest-${Date.now()}`;
         const artifact: JobArtifact = {
             id: artifactId,
-            name: `${manifest.name}.manifest.json`,
+            name: `${name}.manifest.json`,
             type: "json",
             content: JSON.stringify(manifest, null, 2),
             tags: ["orchestrator", "manifest"],
             createdAt: Date.now(),
-            description: manifest.description,
+            description: manifest.metadata.annotations?.["decops.io/description"],
             source: "command",
         };
         provider.importArtifact(artifact);
         this.setManifestArtifact(id, artifactId);
         const node = this.getNode(id);
-        node.manifestName = manifest.name;
-        node.manifestVersion = manifest.version;
+        node.manifestName = name;
+        node.manifestVersion = manifest.apiVersion;
         this.emit();
         return artifactId;
     }

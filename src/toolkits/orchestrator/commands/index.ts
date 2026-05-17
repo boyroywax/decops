@@ -181,7 +181,7 @@ export const orchestratorSaveManifestToArtifactCommand: CommandDefinition = {
             typeof args.name === "string" ? args.name : undefined,
         );
         const artifactId = orchestratorService.saveManifestToArtifact(manifest, args.nodeId);
-        context.workspace.addLog(`orchestrator: saved manifest "${manifest.name}" as artifact ${artifactId}`);
+        context.workspace.addLog(`orchestrator: saved manifest "${manifest.metadata.name}" as artifact ${artifactId}`);
         return { artifactId, manifest } as unknown as Record<string, unknown>;
     },
 };

@@ -80,7 +80,7 @@ export function OrchestratorView() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `${manifest.name.replace(/\s+/g, "-").toLowerCase()}.manifest.json`;
+            a.download = `${manifest.metadata.name.replace(/\s+/g, "-").toLowerCase()}.manifest.json`;
             a.click();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
         } catch (e) {
