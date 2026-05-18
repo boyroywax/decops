@@ -24,12 +24,13 @@
  */
 
 import { useEffect } from "react";
-import { Bot, Boxes, Database, Network, Server, Waypoints } from "lucide-react";
+import { Bot, Boxes, Database, HardDrive, Network, Server, Waypoints } from "lucide-react";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import { Libp2pChatBanner } from "./libp2p/components/Libp2pChatBanner";
 import { HeliaChatBanner } from "./helia/components/HeliaChatBanner";
 import { KuboChatBanner } from "./kubo/components/KuboChatBanner";
 import { OrbitdbChatBanner } from "./orbitdb/components/OrbitdbChatBanner";
+import { OrbitdbServerChatBanner } from "./orbitdb-server/components/OrbitdbServerChatBanner";
 import { OrchestratorChatBanner } from "./orchestrator/components/OrchestratorChatBanner";
 
 // ── Step 1: Bot chat-delegation registration (must run before any chat) ──
@@ -38,6 +39,7 @@ import "./libp2p/libp2pBot";
 import "./helia/heliaBot";
 import "./kubo/kuboBot";
 import "./orbitdb/orbitdbBot";
+import "./orbitdb-server/orbitdbServerBot";
 import "./orchestrator/orchestratorBot";
 
 // ── Step 2: Toolkit UI registration ──
@@ -47,6 +49,7 @@ import "./libp2p/register";
 import "./helia/register";
 import "./kubo/register";
 import "./orbitdb/register";
+import "./orbitdb-server/register";
 import "./orchestrator/register";
 import "./architect/register";
 
@@ -168,6 +171,32 @@ export function useToolkitChatAgents(): void {
                     { label: "Open KV db", prompt: 'Open a key-value database named "todos"' },
                     { label: "Add event", prompt: 'Open an events log named "audit" and add { actor: "me", action: "login" }' },
                     { label: "Query docs", prompt: 'Open a documents database named "items" and query for documents where status equals active' },
+                ],
+            }),
+        );
+
+        // OrbitDB Server chat agent — remote orbitdb-server over HTTP RPC
+        disposers.push(
+            useChatAgentsStore.getState().register({
+                id: "orbitdb-server",
+                name: "OrbitDB Server",
+                description:
+                    "Direct line to a remote orbitdb-server — open databases, write entries, manage pnet, dial peers.",
+                icon: HardDrive,
+                gradient: ["#ec4899", "#a855f7"],
+                banner: OrbitdbServerChatBanner,
+                placeholder:
+                    "Tell the orbitdb-server bot what to do (connect, open a documents db, append events, check pnet…)",
+                toolkitIds: ["orbitdb-server", "libp2p", "infrastructure", "jobs"],
+                workspace: {
+                    view: "orbitdb-server",
+                    sideChatFooterPanel: "none",
+                },
+                quickActions: [
+                    { label: "Connect localhost", prompt: "Connect to the orbitdb-server at http://127.0.0.1:3000" },
+                    { label: "Open KV db", prompt: 'Open a keyvalue database named "settings" on the remote orbitdb-server' },
+                    { label: "Append event", prompt: 'Open an events log named "audit" on the orbitdb-server and append { actor: "me", action: "login" }' },
+                    { label: "Pnet status", prompt: "Report the pnet status of the active orbitdb-server" },
                 ],
             }),
         );

@@ -34,6 +34,7 @@ export type ViewId =
   | "helia"
   | "kubo"
   | "orbitdb"
+  | "orbitdb-server"
   | "orchestrator"
   | "system";
 
@@ -187,6 +188,7 @@ export type ToolkitId =
   | "helia"
   | "kubo"
   | "orbitdb"
+  | "orbitdb-server"
   | "orchestrator"
   // Capability toolkits (external)
   | "web-crawler"

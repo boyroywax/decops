@@ -101,42 +101,75 @@ export default defineConfig({
         // doesn't send CORS headers. Set VITE_KUBO_PROXY_TARGET in your
         // environment (e.g. `https://kubo.ipfs.dvln.net`) and point the
         // toolkit at  http://localhost:5173/kubo-proxy/api/v0  to bypass CORS.
-        proxy: process.env.VITE_KUBO_PROXY_TARGET
-            ? {
-                "/kubo-proxy": {
+        //
+        // Likewise, set VITE_ORBITDB_SERVER_PROXY_TARGET (e.g.
+        // `https://orbitdb.dvln.net`) to expose a remote orbitdb-server at
+        // http://localhost:5173/orbitdb-server-proxy/api/v0 .
+        proxy: (() => {
+            const entries: Record<string, any> = {};
+            if (process.env.VITE_KUBO_PROXY_TARGET) {
+                entries["/kubo-proxy"] = {
                     target: process.env.VITE_KUBO_PROXY_TARGET,
                     changeOrigin: true,
                     secure: true,
-                    // Strip the /kubo-proxy prefix. If the user pasted the bare
-                    // /kubo-proxy URL without /api/v0, transparently insert it
-                    // so kubo-rpc-client's default endpoints (which may emit
-                    // either /id or /api/v0/id depending on options) all work.
-                    rewrite: (p) => {
+                    rewrite: (p: string) => {
                         const stripped = p.replace(/^\/kubo-proxy/, "");
                         if (stripped === "" || stripped === "/") return "/api/v0";
                         if (stripped.startsWith("/api/")) return stripped;
                         return `/api/v0${stripped}`;
                     },
-                    configure: (proxy) => {
-                        proxy.on("proxyReq", (proxyReq, req) => {
+                    configure: (proxy: any) => {
+                        proxy.on("proxyReq", (proxyReq: any, req: any) => {
                             // eslint-disable-next-line no-console
                             console.log(
                                 `[kubo-proxy] → ${req.method} ${proxyReq.path}  auth=${proxyReq.getHeader("authorization") ? "present" : "MISSING"}`,
                             );
                         });
-                        proxy.on("proxyRes", (proxyRes, req) => {
+                        proxy.on("proxyRes", (proxyRes: any, req: any) => {
                             // eslint-disable-next-line no-console
                             console.log(
                                 `[kubo-proxy] ← ${proxyRes.statusCode} ${req.method} ${req.url}`,
                             );
                         });
-                        proxy.on("error", (err, _req, _res) => {
+                        proxy.on("error", (err: any) => {
                             // eslint-disable-next-line no-console
                             console.error(`[kubo-proxy] error:`, err);
                         });
                     },
-                },
+                };
             }
-            : undefined,
+            if (process.env.VITE_ORBITDB_SERVER_PROXY_TARGET) {
+                entries["/orbitdb-server-proxy"] = {
+                    target: process.env.VITE_ORBITDB_SERVER_PROXY_TARGET,
+                    changeOrigin: true,
+                    secure: true,
+                    rewrite: (p: string) => {
+                        const stripped = p.replace(/^\/orbitdb-server-proxy/, "");
+                        if (stripped === "" || stripped === "/") return "/api/v0";
+                        if (stripped.startsWith("/api/")) return stripped;
+                        return `/api/v0${stripped}`;
+                    },
+                    configure: (proxy: any) => {
+                        proxy.on("proxyReq", (proxyReq: any, req: any) => {
+                            // eslint-disable-next-line no-console
+                            console.log(
+                                `[orbitdb-server-proxy] → ${req.method} ${proxyReq.path}  auth=${proxyReq.getHeader("authorization") ? "present" : "MISSING"}`,
+                            );
+                        });
+                        proxy.on("proxyRes", (proxyRes: any, req: any) => {
+                            // eslint-disable-next-line no-console
+                            console.log(
+                                `[orbitdb-server-proxy] ← ${proxyRes.statusCode} ${req.method} ${req.url}`,
+                            );
+                        });
+                        proxy.on("error", (err: any) => {
+                            // eslint-disable-next-line no-console
+                            console.error(`[orbitdb-server-proxy] error:`, err);
+                        });
+                    },
+                };
+            }
+            return Object.keys(entries).length > 0 ? entries : undefined;
+        })(),
     }
 })

@@ -914,7 +914,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                                 <div className="chat-panel__bot-menu-title">BOT THEMES</div>
                                 
                                 {(() => {
-                                    const LOHK_IDS = ["libp2p", "helia", "kubo-bot", "orbitdb"];
+                                    const LOHK_IDS = ["libp2p", "helia", "kubo-bot", "orbitdb", "orbitdb-server"];
                                     const ORCHESTRATOR_ID = "orchestrator-bot";
                                     const all = Object.values(availableAgents);
                                     const orchestrator = all.find(a => a.id === ORCHESTRATOR_ID);

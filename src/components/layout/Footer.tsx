@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "@/types";
-import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor, Globe, Users, Radio, Boxes, Pin, Database, Layers, Server, Workflow, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor, Globe, Users, Radio, Boxes, Pin, Database, Layers, Server, HardDrive, Workflow, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import type { ChatPosition } from "@/context/ThemeContext";
 import { ActionManager } from "@/components/actions/ActionManager";
 import { ArtifactsPanel } from "./ArtifactsPanel";
@@ -12,6 +12,7 @@ import { useLibp2pMetrics } from "@/toolkits/libp2p";
 import { useHeliaMetrics } from "@/toolkits/helia";
 import { useKuboMetrics } from "@/toolkits/kubo";
 import { useOrbitdbMetrics } from "@/toolkits/orbitdb";
+import { useOrbitdbServerMetrics } from "@/toolkits/orbitdb-server";
 import { useOrchestratorMetrics } from "@/toolkits/orchestrator";
 import "@/toolkits/orchestrator/styles/orchestrator.css";
 import "../../styles/components/footer.css";
@@ -69,6 +70,7 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
     const heliaMetrics = useHeliaMetrics();
     const kuboMetrics = useKuboMetrics();
     const orbitdbMetrics = useOrbitdbMetrics();
+    const orbitdbServerMetrics = useOrbitdbServerMetrics();
     const orchestratorMetrics = useOrchestratorMetrics();
 
     const [lohkCollapsed, setLohkCollapsed] = useState<boolean>(() => {
@@ -99,6 +101,11 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
         setView("orbitdb");
         orbitdbMetrics.acknowledgeDbs();
     }, [setView, orbitdbMetrics]);
+
+    const handleOpenOrbitdbServer = useCallback(() => {
+        setView("orbitdb-server");
+        orbitdbServerMetrics.acknowledgeDatabases();
+    }, [setView, orbitdbServerMetrics]);
 
     const handleOpenOrchestrator = useCallback(() => {
         setView("orchestrator");
@@ -375,6 +382,34 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
                         <Layers size={11} />
                         <span className="footer__metric-value">{orbitdbMetrics.openDbs}</span>
                         {orbitdbMetrics.newDbs > 0 && (
+                            <span className="footer__metric-pulse" aria-hidden="true" />
+                        )}
+                    </button>
+
+                    <button
+                        type="button"
+                        className={`footer__metric footer__metric--orbitdb-server${orbitdbServerMetrics.newDatabases > 0 ? " footer__metric--alert" : ""}`}
+                        onClick={handleOpenOrbitdbServer}
+                        title={[
+                            `OrbitDB Server — ${orbitdbServerMetrics.connectedNodes}/${orbitdbServerMetrics.totalNodes} node(s) connected`,
+                            `${orbitdbServerMetrics.totalDatabases} database(s) tracked`,
+                            `${orbitdbServerMetrics.swarmPeers} swarm peer(s)`,
+                            orbitdbServerMetrics.privateNodes > 0
+                                ? `${orbitdbServerMetrics.privateNodes} pnet-private node(s)`
+                                : "no pnet nodes",
+                        ].join(" · ")}
+                    >
+                        <HardDrive size={11} />
+                        <span className="footer__metric-value">
+                            {orbitdbServerMetrics.connectedNodes}
+                            {orbitdbServerMetrics.totalNodes > orbitdbServerMetrics.connectedNodes && (
+                                <span className="footer__metric-total">/{orbitdbServerMetrics.totalNodes}</span>
+                            )}
+                        </span>
+                        <span className="footer__metric-sep" aria-hidden="true">·</span>
+                        <Layers size={11} />
+                        <span className="footer__metric-value">{orbitdbServerMetrics.totalDatabases}</span>
+                        {orbitdbServerMetrics.newDatabases > 0 && (
                             <span className="footer__metric-pulse" aria-hidden="true" />
                         )}
                     </button>

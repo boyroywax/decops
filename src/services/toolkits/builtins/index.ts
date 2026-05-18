@@ -22,6 +22,7 @@ import { libp2pModule } from "@/toolkits/libp2p";
 import { heliaModule } from "@/toolkits/helia";
 import { kuboModule } from "@/toolkits/kubo";
 import { orbitdbModule } from "@/toolkits/orbitdb";
+import { orbitdbServerModule } from "@/toolkits/orbitdb-server";
 import { orchestratorModule } from "@/toolkits/orchestrator";
 import { workspaceMgmtModule } from "./workspace-mgmt";
 import { loggingModule } from "./logging";
@@ -52,6 +53,7 @@ export const builtinModules: ToolkitModule[] = [
   heliaModule,
   kuboModule,
   orbitdbModule,
+  orbitdbServerModule,
   orchestratorModule,
   workspaceMgmtModule,
   // Capability toolkits
@@ -76,6 +78,7 @@ export {
   heliaModule,
   kuboModule,
   orbitdbModule,
+  orbitdbServerModule,
   orchestratorModule,
   workspaceMgmtModule,
   webCrawlerModule,
