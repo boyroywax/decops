@@ -9,7 +9,7 @@
 import { useMemo, useState } from "react";
 import {
     CheckCircle, XCircle, Loader, Clock, SkipForward,
-    Database, Package, Layers, ChevronRight, AlertTriangle, Keyboard, Wrench, FileText, FlipHorizontal,
+    Database, Package, Layers, ChevronRight, AlertTriangle, Keyboard, Wrench, FileText,
 } from "lucide-react";
 import { useJobsContext } from "@/context/JobsContext";
 import type { Job, JobStep } from "@/types";
@@ -392,10 +392,6 @@ export function JobProgressCard({ jobId, toolCalls = [] }: JobProgressCardProps)
                                 <span>{job.result.length > 160 ? job.result.slice(0, 160) + "…" : job.result}</span>
                             </div>
                         )}
-                    </div>
-
-                    <div className="jpc__flip-hint jpc__flip-hint--back">
-                        <FlipHorizontal size={10} /> Tap to return to compact view
                     </div>
                 </div>
             </div>
