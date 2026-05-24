@@ -28,7 +28,46 @@ export const libp2pModule: ToolkitModule = {
     },
 
     commands: libp2pCommands,
-    tools: [],
+    // Curated direct LLM tools — networking hot path. Identity management,
+    // contact book, node lifecycle and hangup/clear stay registry-only.
+    tools: [
+        {
+            id: "libp2p.start",
+            name: "Start libp2p Node",
+            description: "Start the active libp2p node.",
+            commandId: "libp2p_start",
+        },
+        {
+            id: "libp2p.dial",
+            name: "Dial Peer",
+            description: "Dial a remote peer by multiaddr.",
+            commandId: "libp2p_dial",
+        },
+        {
+            id: "libp2p.ping",
+            name: "Ping Peer",
+            description: "Ping a connected peer and return the round-trip time.",
+            commandId: "libp2p_ping",
+        },
+        {
+            id: "libp2p.listPeers",
+            name: "List Peers",
+            description: "List currently connected peers.",
+            commandId: "libp2p_list_peers",
+        },
+        {
+            id: "libp2p.pubsubSubscribe",
+            name: "Subscribe to Topic",
+            description: "Subscribe to a gossipsub topic.",
+            commandId: "libp2p_pubsub_subscribe",
+        },
+        {
+            id: "libp2p.pubsubPublish",
+            name: "Publish to Topic",
+            description: "Publish a message to a gossipsub topic.",
+            commandId: "libp2p_pubsub_publish",
+        },
+    ],
 
     agents: [
         {

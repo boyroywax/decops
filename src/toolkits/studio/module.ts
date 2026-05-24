@@ -92,33 +92,47 @@ export const studioModule: ToolkitModule = {
     studioAutoLayoutCommand,
   ],
   tools: [
+    // Curated direct LLM tools — Studio canvas hot path. Step/resource/
+    // trigger CRUD (studio_add_step, studio_add_input, studio_add_storage,
+    // studio_add_trigger, etc.) and deletion ops stay registry-only and
+    // reach the agent via create_job.
     {
-      id: "studio_bot_delegate",
-      name: "Delegate to Studio Bot",
+      id: "studio.createJob",
+      name: "Create Job",
       description:
-        "Send a natural language instruction to the Studio Bot sub-agent. It will plan, execute, and layout studio operations automatically.",
-      inputSchema: {
-        instruction: {
-          type: "string",
-          description:
-            "Natural language instruction for the Studio Bot (e.g. 'build a 3-step research pipeline')",
-          required: true,
-        },
-      },
+        "Build a new Studio job definition on the canvas. Returns the created job's id.",
+      commandId: "studio_create_job",
     },
     {
-      id: "studio_bot_analyze",
-      name: "Analyze Canvas Layout",
-      description:
-        "Run a layout analysis on the current Studio canvas to detect overlaps, orphans, and positioning issues.",
-      inputSchema: {},
+      id: "studio.runJob",
+      name: "Run Job",
+      description: "Execute the current job definition on the canvas as a real job.",
+      commandId: "studio_run_job",
     },
     {
-      id: "studio_bot_auto_layout",
+      id: "studio.saveJob",
+      name: "Save Job",
+      description: "Persist the current canvas as a saved job definition.",
+      commandId: "studio_save_job",
+    },
+    {
+      id: "studio.loadJob",
+      name: "Load Job",
+      description: "Load a saved job definition onto the canvas.",
+      commandId: "studio_load_job",
+    },
+    {
+      id: "studio.getState",
+      name: "Get Canvas State",
+      description: "Return the current Studio canvas state (steps, resources, triggers).",
+      commandId: "studio_get_state",
+    },
+    {
+      id: "studio.autoLayout",
       name: "Auto-Layout Canvas",
       description:
         "Recompute all step positions to fix overlapping/stacking issues.",
-      inputSchema: {},
+      commandId: "studio_auto_layout",
     },
   ],
   agents: [

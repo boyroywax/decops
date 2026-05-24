@@ -36,7 +36,22 @@ export const imageGenModule: ToolkitModule = {
     clearImageCacheCommand,
     generateIconCommand,
   ],
-  tools: [],
+  // Curated direct LLM tools — image generation hot path. Cache management
+  // and bulk batch-portrait generation stay registry-only.
+  tools: [
+    {
+      id: "imagegen.generateImage",
+      name: "Generate Image",
+      description: "Generate an image from a text prompt.",
+      commandId: "generate_image",
+    },
+    {
+      id: "imagegen.generateIcon",
+      name: "Generate Icon",
+      description: "Generate a small icon/avatar from a text prompt.",
+      commandId: "generate_icon",
+    },
+  ],
 
   jobs: [
     {

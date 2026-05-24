@@ -29,7 +29,47 @@ export const kuboModule: ToolkitModule = {
     },
 
     commands: kuboCommands,
-    tools: [],
+    // Curated direct LLM tools — remote Kubo hot path. Connection management
+    // (add/remove/rename/set_endpoint), swarm management and bulk listing stay
+    // registry-only and reach the agent via create_job.
+    tools: [
+        {
+            id: "kubo.connect",
+            name: "Connect to Kubo",
+            description: "Connect to a remote Kubo (go-ipfs) daemon by URL.",
+            commandId: "kubo_connect",
+        },
+        {
+            id: "kubo.id",
+            name: "Get Node Identity",
+            description: "Return the remote Kubo node's peer identity.",
+            commandId: "kubo_id",
+        },
+        {
+            id: "kubo.addText",
+            name: "Add Text",
+            description: "Add a UTF-8 string via the remote Kubo daemon and return its CID.",
+            commandId: "kubo_add_text",
+        },
+        {
+            id: "kubo.cat",
+            name: "Fetch CID",
+            description: "Fetch the content of a CID via the remote Kubo daemon.",
+            commandId: "kubo_cat",
+        },
+        {
+            id: "kubo.pin",
+            name: "Pin CID",
+            description: "Pin a CID on the remote Kubo daemon.",
+            commandId: "kubo_pin",
+        },
+        {
+            id: "kubo.listPins",
+            name: "List Pins",
+            description: "List pinned CIDs on the remote Kubo daemon.",
+            commandId: "kubo_list_pins",
+        },
+    ],
 
     agents: [
         {

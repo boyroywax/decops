@@ -29,7 +29,41 @@ export const orchestratorModule: ToolkitModule = {
     },
 
     commands: orchestratorCommands,
-    tools: [],
+    // Curated direct LLM tools — manifest control plane. Node lifecycle and
+    // artifact persistence (save_manifest_to_artifact / load_manifest /
+    // clear_results / rename) stay registry-only.
+    tools: [
+        {
+            id: "orchestrator.setManifest",
+            name: "Set Manifest",
+            description: "Load a manifest into the active orchestrator profile.",
+            commandId: "orchestrator_set_manifest",
+        },
+        {
+            id: "orchestrator.applyManifest",
+            name: "Apply Manifest",
+            description: "Apply the current manifest across libp2p / helia / orbitdb / kubo.",
+            commandId: "orchestrator_apply_manifest",
+        },
+        {
+            id: "orchestrator.reconcile",
+            name: "Reconcile",
+            description: "Reconcile current state against the manifest and report drift.",
+            commandId: "orchestrator_reconcile",
+        },
+        {
+            id: "orchestrator.exportManifest",
+            name: "Export Manifest",
+            description: "Export the live state into a new manifest object.",
+            commandId: "orchestrator_export_manifest",
+        },
+        {
+            id: "orchestrator.status",
+            name: "Status",
+            description: "Inspect the current orchestrator status and last apply/reconcile results.",
+            commandId: "orchestrator_status",
+        },
+    ],
 
     agents: [
         {

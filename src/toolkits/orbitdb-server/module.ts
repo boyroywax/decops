@@ -29,7 +29,47 @@ export const orbitdbServerModule: ToolkitModule = {
     },
 
     commands: orbitdbServerCommands,
-    tools: [],
+    // Curated direct LLM tools — remote orbitdb-server hot path. Node
+    // lifecycle, swarm management, identity inspection and pnet status stay
+    // registry-only.
+    tools: [
+        {
+            id: "orbitdbServer.connect",
+            name: "Connect to Server",
+            description: "Connect to a remote orbitdb-server endpoint by URL.",
+            commandId: "orbitdb_server_connect",
+        },
+        {
+            id: "orbitdbServer.createDb",
+            name: "Create Database",
+            description: "Create a new database on the remote orbitdb-server.",
+            commandId: "orbitdb_server_create_db",
+        },
+        {
+            id: "orbitdbServer.listDbs",
+            name: "List Databases",
+            description: "List databases on the remote orbitdb-server.",
+            commandId: "orbitdb_server_list_dbs",
+        },
+        {
+            id: "orbitdbServer.put",
+            name: "Put Entry",
+            description: "Insert/replace an entry in a remote database.",
+            commandId: "orbitdb_server_put",
+        },
+        {
+            id: "orbitdbServer.get",
+            name: "Get Entry",
+            description: "Read an entry from a remote database.",
+            commandId: "orbitdb_server_get",
+        },
+        {
+            id: "orbitdbServer.query",
+            name: "Query Documents",
+            description: "Query documents in a remote documents-type database.",
+            commandId: "orbitdb_server_query",
+        },
+    ],
 
     agents: [
         {

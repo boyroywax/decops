@@ -33,7 +33,52 @@ export const orbitdbModule: ToolkitModule = {
     },
 
     commands: orbitdbCommands,
-    tools: [],
+    // Curated direct LLM tools — database hot path. Node lifecycle, identity
+    // management, drop/close and helia binding stay registry-only.
+    tools: [
+        {
+            id: "orbitdb.start",
+            name: "Start OrbitDB Node",
+            description: "Start the active OrbitDB node.",
+            commandId: "orbitdb_start",
+        },
+        {
+            id: "orbitdb.open",
+            name: "Open Database",
+            description: "Open an OrbitDB database by name (events, keyvalue, or documents).",
+            commandId: "orbitdb_open",
+        },
+        {
+            id: "orbitdb.listDbs",
+            name: "List Databases",
+            description: "List databases currently opened on the active node.",
+            commandId: "orbitdb_list_dbs",
+        },
+        {
+            id: "orbitdb.put",
+            name: "Put Document",
+            description: "Insert/replace a document in a documents-type database.",
+            commandId: "orbitdb_put",
+        },
+        {
+            id: "orbitdb.kvPut",
+            name: "KV Put",
+            description: "Set a key in a keyvalue-type database.",
+            commandId: "orbitdb_kv_put",
+        },
+        {
+            id: "orbitdb.kvGet",
+            name: "KV Get",
+            description: "Read a key from a keyvalue-type database.",
+            commandId: "orbitdb_kv_get",
+        },
+        {
+            id: "orbitdb.logAdd",
+            name: "Log Add",
+            description: "Append an entry to an events-type log database.",
+            commandId: "orbitdb_log_add",
+        },
+    ],
 
     agents: [
         {

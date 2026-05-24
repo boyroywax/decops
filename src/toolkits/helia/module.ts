@@ -31,7 +31,47 @@ export const heliaModule: ToolkitModule = {
     },
 
     commands: heliaCommands,
-    tools: [],
+    // Curated direct LLM tools — IPFS content hot path. Node lifecycle
+    // (add/remove/rename/set_libp2p/clear) stays registry-only — use
+    // create_job for those.
+    tools: [
+        {
+            id: "helia.start",
+            name: "Start Helia Node",
+            description: "Start the active Helia node (creates a libp2p instance if needed).",
+            commandId: "helia_start",
+        },
+        {
+            id: "helia.addText",
+            name: "Add Text to IPFS",
+            description: "Add a UTF-8 string to IPFS and return its CID.",
+            commandId: "helia_add_text",
+        },
+        {
+            id: "helia.addJson",
+            name: "Add JSON to IPFS",
+            description: "Add a JSON value to IPFS and return its CID.",
+            commandId: "helia_add_json",
+        },
+        {
+            id: "helia.cat",
+            name: "Fetch CID",
+            description: "Fetch the content of a CID as text.",
+            commandId: "helia_cat",
+        },
+        {
+            id: "helia.pin",
+            name: "Pin CID",
+            description: "Pin a CID to keep it locally.",
+            commandId: "helia_pin",
+        },
+        {
+            id: "helia.listEntries",
+            name: "List Entries",
+            description: "List recently added/fetched CIDs on the active node.",
+            commandId: "helia_list_entries",
+        },
+    ],
 
     agents: [
         {
