@@ -142,12 +142,25 @@ export async function chatWithAgent(
         }).join(", ")}. You can only use commands from these toolkits. If you need a capability from a disabled toolkit, ask the operator to enable it.`
       : "",
     tools.length > 0
-      ? `\nYou have ${tools.length} tools available. When responding to a user's prompt, you must follow this methodology:
-    - First understand the user's intent and briefly acknowledge what will be attempted.
-    - For operational work, default to queue_new_job and package related commands into one multi-step job instead of calling leaf commands one-by-one.
-    - Use direct leaf command tools only for narrow inspection, a single atomic action, or recovery when a broader job is not appropriate.
-    - After queueing a job, inspect the output, summarize what happened, and if needed start another refined job cycle.
-- If an error occurs, reapproach the prompt and attempt to restart the understanding process unless you need more/missing information from the user.`
+      ? `\nYou have ${tools.length} tools available. You MUST follow the Reasoning Protocol on every turn:
+
+Begin EVERY turn with a single fenced \`\`\`thinking block in this exact format (before any tool call, before any prose):
+
+\`\`\`thinking
+Confidence: high|medium|low — one short sentence on how clearly you understand the request.
+Needs tools: yes|no — one short sentence on why.
+Plan: one short sentence. If "Needs tools: yes", name the next job or command (prefer queue_new_job to bundle related work; use a leaf command only for one atomic action or inspection).
+\`\`\`
+
+Then either (a) call exactly one tool, or (b) reply directly if no tools are needed.
+
+After every tool result, your very next output MUST be a second \`\`\`thinking block:
+\`\`\`thinking
+Assess: one short sentence — did the result match the plan? Cite the key field.
+Next: one short sentence — call another tool (name it) OR finalize the answer.
+\`\`\`
+
+If a tool errors or returns unexpected output, the Assess line MUST start with "ERROR:" or "UNEXPECTED:" and Next MUST describe a corrective plan (different args, different command, or ask the user). Re-approach with the new information — do not blindly retry. Never invent tool results. Keep each line under 140 characters.`
       : "",
     `\nYou are chatting directly with a human operator who manages this workspace.`,
     `Respond concisely and in-character. Keep responses under 200 words. Use markdown formatting when appropriate.`,

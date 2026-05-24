@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMessage, WorkspaceContext } from "@/services/ai";
 import { parseActions } from "./utils";
 import ActionCard from "./ActionCard";
+import { ThinkingCard } from "./ThinkingCard";
 import { JobProgressCard } from "./JobProgressCard";
 import { MarkdownContent } from "@/components/shared/MarkdownContent";
 import { useJobsContext } from "@/context/JobsContext";
@@ -80,7 +81,7 @@ function ToolCallCard({ tc }: { tc: NonNullable<ChatMessage["toolCalls"]>[number
 export default function MessageBubble({ msg, context, setView, isStreaming, onStopPromptAction }: MessageBubbleProps) {
     const { jobs } = useJobsContext();
     const isUser = msg.role === "user";
-    const { cleanText, actions } = parseActions(msg.content);
+    const { cleanText, actions, thinking } = parseActions(msg.content);
     const architect = useArchitectContext();
     const canUseLiveArchitect = !!msg.architectCard?.live && !!architect;
     const [showOlderJobs, setShowOlderJobs] = useState(false);
@@ -170,11 +171,27 @@ export default function MessageBubble({ msg, context, setView, isStreaming, onSt
                     />
                 ) : isUser ? (
                     <span style={{ whiteSpace: "pre-wrap" }}>{cleanText}</span>
-                ) : cleanText ? (
-                    <MarkdownContent content={cleanText} />
-                ) : isStreaming && !msg.toolCalls?.length ? (
-                    <span className="mb-streaming-cursor">●</span>
-                ) : null}
+                ) : (
+                    <>
+                        {thinking.length > 0 && (
+                            <div className="thinking-section">
+                                {thinking.map((t, i) => (
+                                    <ThinkingCard
+                                        key={i}
+                                        thinking={t}
+                                        isLatest={i === thinking.length - 1}
+                                        isStreaming={!!isStreaming && i === thinking.length - 1 && !cleanText}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                        {cleanText
+                            ? <MarkdownContent content={cleanText} />
+                            : isStreaming && !msg.toolCalls?.length && thinking.length === 0
+                                ? <span className="mb-streaming-cursor">●</span>
+                                : null}
+                    </>
+                )}
 
                 {isStreaming && cleanText && <span className="mb-streaming-cursor">▊</span>}
 
