@@ -16,6 +16,11 @@
 import { CommandDefinition } from "@/services/commands/types";
 import { TOOLKITS } from "@/services/toolkits";
 import { registry } from "@/services/commands/registry";
+import { libp2pService } from "@/toolkits/libp2p/service";
+import { heliaService } from "@/toolkits/helia/service";
+import { kuboService } from "@/toolkits/kubo/service";
+import { orbitdbService } from "@/toolkits/orbitdb/service";
+import { orbitdbServerService } from "@/toolkits/orbitdb-server/service";
 
 /** Commands that must never be invoked via create_job (system / security). */
 const SYSTEM_RESERVED = new Set<string>([
@@ -234,7 +239,8 @@ type WorkspaceQuerySection =
   | "jobs"
   | "ecosystem"
   | "artifacts"
-  | "toolkits";
+  | "toolkits"
+  | "stack";
 
 const ALL_SECTIONS: WorkspaceQuerySection[] = [
   "summary",
@@ -246,6 +252,7 @@ const ALL_SECTIONS: WorkspaceQuerySection[] = [
   "ecosystem",
   "artifacts",
   "toolkits",
+  "stack",
 ];
 
 function countBy<T>(items: T[], key: (item: T) => string | undefined): Record<string, number> {
@@ -255,6 +262,16 @@ function countBy<T>(items: T[], key: (item: T) => string | undefined): Record<st
     out[k] = (out[k] ?? 0) + 1;
   }
   return out;
+}
+
+/** Defensively snapshot a singleton service — returns null if the service
+ *  throws (uninitialized / SSR / test stub). */
+function safeSnapshot<T>(fn: () => T): T | null {
+  try {
+    return fn();
+  } catch {
+    return null;
+  }
 }
 
 export const queryWorkspaceCommand: CommandDefinition = {
@@ -268,7 +285,7 @@ export const queryWorkspaceCommand: CommandDefinition = {
       name: "sections",
       type: "array",
       description:
-        "Sections to include. One or more of: summary, agents, channels, groups, messages, jobs, ecosystem, artifacts, toolkits. Defaults to all.",
+        "Sections to include. One or more of: summary, agents, channels, groups, messages, jobs, ecosystem, artifacts, toolkits, stack. Defaults to all. The 'stack' section returns libp2p / helia / kubo / orbitdb / orbitdb-server node inventories.",
       required: false,
     },
     messageLimit: {
@@ -313,6 +330,11 @@ export const queryWorkspaceCommand: CommandDefinition = {
     const result: Record<string, unknown> = {};
 
     if (want("summary")) {
+      const libp2pNodes = safeSnapshot(() => libp2pService.snapshot())?.nodes ?? [];
+      const heliaNodes = safeSnapshot(() => heliaService.snapshot())?.nodes ?? [];
+      const kuboNodes = safeSnapshot(() => kuboService.snapshot())?.nodes ?? [];
+      const orbitdbNodes = safeSnapshot(() => orbitdbService.snapshot())?.nodes ?? [];
+      const orbitdbServerNodes = safeSnapshot(() => orbitdbServerService.snapshot())?.nodes ?? [];
       result.summary = {
         agentCount: agents.length,
         channelCount: channels.length,
@@ -330,6 +352,18 @@ export const queryWorkspaceCommand: CommandDefinition = {
         queuePaused: context.jobs.isPaused,
         activeChannel: context.workspace.activeChannel ?? null,
         activeNetworkId,
+        stack: {
+          libp2pNodes: libp2pNodes.length,
+          libp2pRunning: libp2pNodes.filter((n) => n.status === "running").length,
+          heliaNodes: heliaNodes.length,
+          heliaRunning: heliaNodes.filter((n) => n.status === "running").length,
+          kuboNodes: kuboNodes.length,
+          kuboConnected: kuboNodes.filter((n) => n.status === "connected").length,
+          orbitdbNodes: orbitdbNodes.length,
+          orbitdbRunning: orbitdbNodes.filter((n) => n.status === "running").length,
+          orbitdbServerNodes: orbitdbServerNodes.length,
+          orbitdbServerConnected: orbitdbServerNodes.filter((n) => n.status === "connected").length,
+        },
       };
     }
 
@@ -442,6 +476,128 @@ export const queryWorkspaceCommand: CommandDefinition = {
         count: TOOLKITS.length,
         byCategory: countBy(TOOLKITS, (tk) => tk.category),
         byStatus: countBy(TOOLKITS, (tk) => tk.status),
+      };
+    }
+
+    if (want("stack")) {
+      const libp2pSnap = safeSnapshot(() => libp2pService.snapshot());
+      const heliaSnap = safeSnapshot(() => heliaService.snapshot());
+      const kuboSnap = safeSnapshot(() => kuboService.snapshot());
+      const orbitdbSnap = safeSnapshot(() => orbitdbService.snapshot());
+      const orbitdbServerSnap = safeSnapshot(() => orbitdbServerService.snapshot());
+
+      const libp2pNodes = (libp2pSnap?.nodes ?? []) as Array<{
+        nodeId: string; label: string; status: string; peerId: string | null;
+        listenAddrs?: string[]; multiaddrs?: string[];
+        peers?: unknown[]; topics?: string[];
+      }>;
+      const heliaNodes = (heliaSnap?.nodes ?? []) as Array<{
+        nodeId: string; label: string; status: string; peerId: string | null;
+        libp2pNodeId: string | null; entries?: unknown[];
+      }>;
+      const kuboNodes = (kuboSnap?.nodes ?? []) as Array<{
+        nodeId: string; label: string; status: string; endpoint: string;
+        peer?: { id?: string } | null; entries?: unknown[]; pinnedCount?: number; totalBytes?: number;
+      }>;
+      const orbitdbNodes = (orbitdbSnap?.nodes ?? []) as Array<{
+        nodeId: string; label: string; status: string; peerId: string | null;
+        heliaNodeId: string | null; identityId: string | null;
+        databases?: Array<{ address: string; name: string; type: string }>;
+      }>;
+      const orbitdbServerNodes = (orbitdbServerSnap?.nodes ?? []) as Array<{
+        nodeId: string; label: string; status: string; endpoint: string;
+        peer?: { id?: string } | null;
+        databases?: Array<{ address?: string; name?: string; type?: string }>;
+        swarmPeers?: unknown[];
+      }>;
+
+      result.stack = {
+        libp2p: {
+          activeId: libp2pSnap?.activeId ?? null,
+          count: libp2pNodes.length,
+          running: libp2pNodes.filter((n) => n.status === "running").length,
+          byStatus: countBy(libp2pNodes, (n) => n.status),
+          nodes: libp2pNodes.map((n) => ({
+            id: n.nodeId,
+            label: n.label,
+            status: n.status,
+            peerId: n.peerId,
+            multiaddrCount: n.multiaddrs?.length ?? 0,
+            listenAddrCount: n.listenAddrs?.length ?? 0,
+            peerCount: n.peers?.length ?? 0,
+            topicCount: n.topics?.length ?? 0,
+          })),
+        },
+        helia: {
+          activeId: heliaSnap?.activeId ?? null,
+          count: heliaNodes.length,
+          running: heliaNodes.filter((n) => n.status === "running").length,
+          byStatus: countBy(heliaNodes, (n) => n.status),
+          nodes: heliaNodes.map((n) => ({
+            id: n.nodeId,
+            label: n.label,
+            status: n.status,
+            peerId: n.peerId,
+            libp2pNodeId: n.libp2pNodeId,
+            entryCount: n.entries?.length ?? 0,
+          })),
+        },
+        kubo: {
+          activeId: kuboSnap?.activeId ?? null,
+          count: kuboNodes.length,
+          connected: kuboNodes.filter((n) => n.status === "connected").length,
+          byStatus: countBy(kuboNodes, (n) => n.status),
+          nodes: kuboNodes.map((n) => ({
+            id: n.nodeId,
+            label: n.label,
+            status: n.status,
+            endpoint: n.endpoint,
+            peerId: n.peer?.id ?? null,
+            entryCount: n.entries?.length ?? 0,
+            pinnedCount: n.pinnedCount ?? 0,
+            totalBytes: n.totalBytes ?? 0,
+          })),
+        },
+        orbitdb: {
+          activeId: orbitdbSnap?.activeId ?? null,
+          count: orbitdbNodes.length,
+          running: orbitdbNodes.filter((n) => n.status === "running").length,
+          byStatus: countBy(orbitdbNodes, (n) => n.status),
+          nodes: orbitdbNodes.map((n) => ({
+            id: n.nodeId,
+            label: n.label,
+            status: n.status,
+            peerId: n.peerId,
+            heliaNodeId: n.heliaNodeId,
+            identityId: n.identityId,
+            databaseCount: n.databases?.length ?? 0,
+            databases: (n.databases ?? []).map((d) => ({
+              address: d.address,
+              name: d.name,
+              type: d.type,
+            })),
+          })),
+        },
+        orbitdbServer: {
+          activeId: orbitdbServerSnap?.activeId ?? null,
+          count: orbitdbServerNodes.length,
+          connected: orbitdbServerNodes.filter((n) => n.status === "connected").length,
+          byStatus: countBy(orbitdbServerNodes, (n) => n.status),
+          nodes: orbitdbServerNodes.map((n) => ({
+            id: n.nodeId,
+            label: n.label,
+            status: n.status,
+            endpoint: n.endpoint,
+            peerId: n.peer?.id ?? null,
+            databaseCount: n.databases?.length ?? 0,
+            swarmPeerCount: n.swarmPeers?.length ?? 0,
+            databases: (n.databases ?? []).map((d) => ({
+              address: d.address,
+              name: d.name,
+              type: d.type,
+            })),
+          })),
+        },
       };
     }
 

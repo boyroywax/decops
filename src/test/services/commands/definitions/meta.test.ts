@@ -153,7 +153,7 @@ describe("meta commands", () => {
       ];
       return {
         ...base,
-        workspace: { ...base.workspace, agents, channels, groups, messages } as CommandContext["workspace"],
+        workspace: { ...base.workspace, agents, channels, groups, messages } as unknown as CommandContext["workspace"],
         jobs: {
           ...(base.jobs as object),
           getQueue: () => queue,
@@ -209,6 +209,34 @@ describe("meta commands", () => {
       };
       expect(out.jobs.byStatus).toMatchObject({ completed: 1, running: 1, queued: 1 });
       expect(out.jobs.byType).toMatchObject({ list_agents: 2, send_message: 1 });
+    });
+
+    it("returns a stack section with all five IPFS-stack services", async () => {
+      const ctx = makeRichContext();
+      const out = (await queryWorkspaceCommand.execute({ sections: ["stack"] }, ctx)) as {
+        stack: Record<string, { count: number; nodes: unknown[] }>;
+      };
+      expect(out.stack).toBeDefined();
+      // Every service exposed — even when zero nodes are configured the
+      // shape is present so agents can rely on a stable schema.
+      for (const key of ["libp2p", "helia", "kubo", "orbitdb", "orbitdbServer"]) {
+        expect(out.stack[key], `missing stack.${key}`).toBeDefined();
+        expect(typeof out.stack[key].count).toBe("number");
+        expect(Array.isArray(out.stack[key].nodes)).toBe(true);
+      }
+    });
+
+    it("includes a stack rollup in the summary section", async () => {
+      const ctx = makeRichContext();
+      const out = (await queryWorkspaceCommand.execute({ sections: ["summary"] }, ctx)) as {
+        summary: { stack: Record<string, number> };
+      };
+      expect(out.summary.stack).toBeDefined();
+      expect(typeof out.summary.stack.libp2pNodes).toBe("number");
+      expect(typeof out.summary.stack.heliaNodes).toBe("number");
+      expect(typeof out.summary.stack.kuboNodes).toBe("number");
+      expect(typeof out.summary.stack.orbitdbNodes).toBe("number");
+      expect(typeof out.summary.stack.orbitdbServerNodes).toBe("number");
     });
   });
 });
