@@ -42,7 +42,33 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
                 let serialized: string | null = null;
                 if (typeof window !== "undefined") {
                     serialized = JSON.stringify(valueToStore);
-                    window.localStorage.setItem(key, serialized);
+                    try {
+                        window.localStorage.setItem(key, serialized);
+                    } catch (writeErr) {
+                        // Quota or other write failure. If the new value is an
+                        // array, try once with the most recent half — useful
+                        // for unbounded job/artifact lists. If that still
+                        // fails, drop persistence for this write so the React
+                        // tree stays alive (state updates in-memory).
+                        const isQuota = writeErr instanceof DOMException
+                            && (writeErr.name === "QuotaExceededError"
+                                || writeErr.name === "NS_ERROR_DOM_QUOTA_REACHED");
+                        if (isQuota && Array.isArray(valueToStore) && valueToStore.length > 1) {
+                            const trimmed = valueToStore.slice(0, Math.max(1, Math.floor(valueToStore.length / 2)));
+                            try {
+                                const trimmedSerialized = JSON.stringify(trimmed);
+                                window.localStorage.setItem(key, trimmedSerialized);
+                                serialized = trimmedSerialized;
+                                console.warn(`useLocalStorage: "${key}" exceeded quota — trimmed from ${valueToStore.length} to ${trimmed.length} items.`);
+                            } catch (trimErr) {
+                                console.warn(`useLocalStorage: "${key}" quota recovery failed; persistence disabled this write.`, trimErr);
+                                serialized = null;
+                            }
+                        } else {
+                            console.warn(`useLocalStorage: failed to write "${key}".`, writeErr);
+                            serialized = null;
+                        }
+                    }
                 }
 
                 // Update local state

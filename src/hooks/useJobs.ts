@@ -2,6 +2,28 @@ import { useState, useCallback, useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import type { Job, JobStatus, JobArtifact, JobRequest, JobEvent, EntityInput } from "@/types";
 
+/** Hard cap on persisted job history. Without this, jobs accumulate
+ *  forever and eventually bust the 5MB localStorage quota — which used
+ *  to crash the React tree and black-screen the app. When the cap is
+ *  exceeded we drop the OLDEST completed/failed jobs first; active
+ *  jobs (queued/running/paused) are always kept. */
+const MAX_PERSISTED_JOBS = 200;
+
+function trimJobs(jobs: Job[]): Job[] {
+    if (jobs.length <= MAX_PERSISTED_JOBS) return jobs;
+    const isActive = (j: Job) =>
+        j.status === "queued" || j.status === "running" || j.status === "awaiting-input";
+    const active = jobs.filter(isActive);
+    const inactive = jobs.filter((j) => !isActive(j));
+    // Newest-first ordering is preserved by addJob (prepend). Keep the
+    // newest inactive jobs to fill the remaining slots after actives.
+    const remaining = Math.max(0, MAX_PERSISTED_JOBS - active.length);
+    const keptInactive = inactive.slice(0, remaining);
+    // Reconstitute in original order (newer first).
+    const kept = new Set([...active, ...keptInactive].map((j) => j.id));
+    return jobs.filter((j) => kept.has(j.id));
+}
+
 /** Push a lifecycle event onto a job's timeline (immutable). */
 function pushEvent(existing: JobEvent[] | undefined, event: Omit<JobEvent, "timestamp">): JobEvent[] {
     return [...(existing || []), { ...event, timestamp: Date.now() }];
@@ -21,9 +43,10 @@ export function useJobs() {
     useEffect(() => {
         setJobs((prev) => {
             const hasStale = prev.some((j) => j.status === "running");
-            if (!hasStale) return prev;
+            const oversized = prev.length > MAX_PERSISTED_JOBS;
+            if (!hasStale && !oversized) return prev;
             const now = Date.now();
-            return prev.map((job) => {
+            const fixed = prev.map((job) => {
                 if (job.status !== "running") return job;
                 return {
                     ...job,
@@ -38,6 +61,7 @@ export function useJobs() {
                     }),
                 } as Job;
             });
+            return trimJobs(fixed);
         });
         // Intentionally run once on mount — setJobs identity is stable from useLocalStorage.
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -54,7 +78,7 @@ export function useJobs() {
             timeline: [{ timestamp: now, kind: "created", label: `Job created` }],
             ...jobData,
         };
-        setJobs((prev) => [newJob, ...prev]);
+        setJobs((prev) => trimJobs([newJob, ...prev]));
         return newJob;
     }, []);
 

@@ -17,10 +17,25 @@ function loadEntries(): NotebookEntry[] {
 export function useNotebook() {
     const [entries, setEntries] = useState<NotebookEntry[]>(loadEntries);
 
-    // Persist to localStorage on change (exclude icon as it can't be serialized if it's a ReactNode)
+    // Persist to localStorage on change (exclude icon as it can't be serialized if it's a ReactNode).
+    // setItem can throw QuotaExceededError if the notebook grows large; we catch it
+    // here so the React tree does not unmount (which previously caused a black screen).
     useEffect(() => {
-        const serializableEntries = entries.map(({ icon, ...rest }) => rest);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableEntries));
+        try {
+            const serializableEntries = entries.map(({ icon, ...rest }) => rest);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableEntries));
+        } catch (err) {
+            console.warn(`useNotebook: failed to persist ${entries.length} entries — clearing oldest and retrying.`, err);
+            try {
+                // Drop to half size and retry once; if it still fails, give up
+                // silently — in-memory state remains usable until reload.
+                const trimmed = entries.slice(0, Math.max(1, Math.floor(entries.length / 2)));
+                const serializableTrimmed = trimmed.map(({ icon, ...rest }) => rest);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableTrimmed));
+            } catch (err2) {
+                console.warn("useNotebook: trim+retry also failed; persistence disabled for this session.", err2);
+            }
+        }
     }, [entries]);
 
     const addEntry = useCallback((entry: Omit<NotebookEntry, "id" | "timestamp">) => {
