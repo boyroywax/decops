@@ -179,6 +179,16 @@ export async function runChatTurn(
   const allToolCalls: ToolCallDisplay[] = [];
   let fullText = "";
 
+  // Anti-fabrication rail. Models occasionally emit a ```thinking block
+  // declaring `Needs tools: yes` followed by prose that NARRATES a tool
+  // call without ever emitting a structured tool_use. The user sees the
+  // chat say "Running X..." but nothing actually executes. Detect this
+  // mismatch and force a retry with a corrective system reminder.
+  // Capped so a stubborn model can't burn the round budget.
+  const FABRICATION_RETRY_BUDGET = 2;
+  let fabricationRetries = 0;
+  const declaredToolsRegex = /```thinking[\s\S]*?Needs tools:\s*yes\b/i;
+
   try {
     for (let round = 0; round < maxRounds; round++) {
       if (callbacks.signal?.aborted) {
@@ -297,8 +307,30 @@ export async function runChatTurn(
 
       fullText += roundText;
 
-      // ───── No tools requested → done ─────
+      // ───── No tools requested → done (with anti-fabrication check) ─────
       if (toolUseBlocks.length === 0) {
+        if (
+          wantsTools &&
+          fabricationRetries < FABRICATION_RETRY_BUDGET &&
+          declaredToolsRegex.test(roundText)
+        ) {
+          // Model said it needed tools but didn't actually call one.
+          // Push its assistant turn so it sees its own previous output,
+          // then a corrective user message, and let the loop continue.
+          fabricationRetries++;
+          if (rawAssistantContent && Array.isArray(rawAssistantContent) && rawAssistantContent.length > 0) {
+            apiMessages.push({ role: "assistant", content: rawAssistantContent });
+          } else if (roundText) {
+            apiMessages.push({ role: "assistant", content: roundText });
+          }
+          apiMessages.push({
+            role: "user",
+            content: `[SYSTEM GUARDRAIL] Your previous turn declared "Needs tools: yes" but did NOT emit a structured tool_use block — nothing actually executed. Writing prose about a tool does not invoke it. Retry now: either (a) emit the real tool_use call immediately after a corrected \`\`\`thinking block, or (b) if you cannot or should not use a tool, output a \`\`\`thinking block with "Needs tools: no" and answer the user directly from the workspace state in your system prompt. Do NOT narrate tool calls again.`,
+          });
+          callbacks.onRoundEnd?.(round);
+          continue;
+        }
+
         callbacks.onRoundEnd?.(round);
         return {
           text: fullText || "[No response]",

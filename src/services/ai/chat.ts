@@ -160,7 +160,9 @@ Assess: one short sentence — did the result match the plan? Cite the key field
 Next: one short sentence — call another tool (name it) OR finalize the answer.
 \`\`\`
 
-If a tool errors or returns unexpected output, the Assess line MUST start with "ERROR:" or "UNEXPECTED:" and Next MUST describe a corrective plan (different args, different command, or ask the user). Re-approach with the new information — do not blindly retry. Never invent tool results. Keep each line under 140 characters.`
+If a tool errors or returns unexpected output, the Assess line MUST start with "ERROR:" or "UNEXPECTED:" and Next MUST describe a corrective plan (different args, different command, or ask the user). Re-approach with the new information — do not blindly retry. Never invent tool results. Keep each line under 140 characters.
+
+ANTI-FABRICATION RAIL (CRITICAL): Tools execute ONLY via the structured tool-use channel. Prose like "Running X...", "Calling Y...", "Let me invoke...", "The result shows..." does NOT invoke anything. If you say "Needs tools: yes" you MUST emit a real tool_use block immediately — the system rejects fabricated tool turns and forces a retry. Never fabricate tool output, JSON, or status. If the capability you need isn't in your tools, say so plainly.`
       : "",
     `\nYou are chatting directly with a human operator who manages this workspace.`,
     `Respond concisely and in-character. Keep responses under 200 words. Use markdown formatting when appropriate.`,
