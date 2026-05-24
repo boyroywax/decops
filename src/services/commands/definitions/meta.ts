@@ -21,6 +21,7 @@ import { heliaService } from "@/toolkits/helia/service";
 import { kuboService } from "@/toolkits/kubo/service";
 import { orbitdbService } from "@/toolkits/orbitdb/service";
 import { orbitdbServerService } from "@/toolkits/orbitdb-server/service";
+import { orchestratorService } from "@/toolkits/orchestrator/service";
 
 /** Commands that must never be invoked via create_job (system / security). */
 const SYSTEM_RESERVED = new Set<string>([
@@ -240,7 +241,8 @@ type WorkspaceQuerySection =
   | "ecosystem"
   | "artifacts"
   | "toolkits"
-  | "stack";
+  | "stack"
+  | "orchestrator";
 
 const ALL_SECTIONS: WorkspaceQuerySection[] = [
   "summary",
@@ -253,6 +255,7 @@ const ALL_SECTIONS: WorkspaceQuerySection[] = [
   "artifacts",
   "toolkits",
   "stack",
+  "orchestrator",
 ];
 
 function countBy<T>(items: T[], key: (item: T) => string | undefined): Record<string, number> {
@@ -285,7 +288,7 @@ export const queryWorkspaceCommand: CommandDefinition = {
       name: "sections",
       type: "array",
       description:
-        "Sections to include. One or more of: summary, agents, channels, groups, messages, jobs, ecosystem, artifacts, toolkits, stack. Defaults to all. The 'stack' section returns libp2p / helia / kubo / orbitdb / orbitdb-server node inventories.",
+        "Sections to include. One or more of: summary, agents, channels, groups, messages, jobs, ecosystem, artifacts, toolkits, stack, orchestrator. Defaults to all. The 'stack' section returns libp2p / helia / kubo / orbitdb / orbitdb-server node inventories; 'orchestrator' returns L.O.H.K. stack profiles, their linked manifest, status, drift, and recent operation results.",
       required: false,
     },
     messageLimit: {
@@ -335,6 +338,7 @@ export const queryWorkspaceCommand: CommandDefinition = {
       const kuboNodes = safeSnapshot(() => kuboService.snapshot())?.nodes ?? [];
       const orbitdbNodes = safeSnapshot(() => orbitdbService.snapshot())?.nodes ?? [];
       const orbitdbServerNodes = safeSnapshot(() => orbitdbServerService.snapshot())?.nodes ?? [];
+      const orchestratorNodes = safeSnapshot(() => orchestratorService.snapshot())?.nodes ?? [];
       result.summary = {
         agentCount: agents.length,
         channelCount: channels.length,
@@ -363,6 +367,12 @@ export const queryWorkspaceCommand: CommandDefinition = {
           orbitdbRunning: orbitdbNodes.filter((n) => n.status === "running").length,
           orbitdbServerNodes: orbitdbServerNodes.length,
           orbitdbServerConnected: orbitdbServerNodes.filter((n) => n.status === "connected").length,
+        },
+        orchestrator: {
+          stackCount: orchestratorNodes.length,
+          healthy: orchestratorNodes.filter((n) => n.status === "healthy").length,
+          drifted: orchestratorNodes.filter((n) => n.status === "drifted" || n.status === "error").length,
+          pendingDrift: orchestratorNodes.reduce((sum, n) => sum + (n.pendingDrift ?? 0), 0),
         },
       };
     }
@@ -598,6 +608,53 @@ export const queryWorkspaceCommand: CommandDefinition = {
             })),
           })),
         },
+      };
+    }
+
+    if (want("orchestrator")) {
+      const orchSnap = safeSnapshot(() => orchestratorService.snapshot());
+      const orchNodes = (orchSnap?.nodes ?? []) as Array<{
+        nodeId: string; label: string; status: string;
+        manifestArtifactId: string | null;
+        manifestName?: string; manifestVersion?: string;
+        error?: string;
+        lastAppliedAt?: string; lastReconcileAt?: string;
+        pendingDrift: number;
+        results: Array<{
+          target: string; specId: string; runtimeNodeId?: string;
+          action: string; ok: boolean; error?: string; at: string;
+        }>;
+      }>;
+      result.orchestrator = {
+        activeId: orchSnap?.activeId ?? null,
+        count: orchNodes.length,
+        byStatus: countBy(orchNodes, (n) => n.status),
+        healthy: orchNodes.filter((n) => n.status === "healthy").length,
+        drifted: orchNodes.filter((n) => n.status === "drifted" || n.status === "error").length,
+        pendingDrift: orchNodes.reduce((sum, n) => sum + (n.pendingDrift ?? 0), 0),
+        stacks: orchNodes.map((n) => ({
+          id: n.nodeId,
+          label: n.label,
+          status: n.status,
+          manifestArtifactId: n.manifestArtifactId,
+          manifestName: n.manifestName,
+          manifestVersion: n.manifestVersion,
+          error: n.error,
+          lastAppliedAt: n.lastAppliedAt,
+          lastReconcileAt: n.lastReconcileAt,
+          pendingDrift: n.pendingDrift,
+          resultCount: n.results.length,
+          failedResults: n.results.filter((r) => !r.ok).length,
+          recentResults: n.results.slice(0, 10).map((r) => ({
+            target: r.target,
+            specId: r.specId,
+            runtimeNodeId: r.runtimeNodeId,
+            action: r.action,
+            ok: r.ok,
+            error: r.error,
+            at: r.at,
+          })),
+        })),
       };
     }
 

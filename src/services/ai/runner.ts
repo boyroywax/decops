@@ -138,15 +138,17 @@ async function emitSyntheticTokenChunks(
 ): Promise<void> {
   if (!text || !callbacks.onToken) return;
 
-  const maxChunks = 80;
-  const chunkSize = Math.max(12, Math.ceil(text.length / maxChunks));
+  // Emit the response in a small number of chunks so the UI updates
+  // progressively, but WITHOUT artificial inter-chunk delays — the
+  // model response is already complete by the time we're here, so any
+  // sleep here is pure latency between a tool result and the agent's
+  // next action.
+  const maxChunks = 16;
+  const chunkSize = Math.max(64, Math.ceil(text.length / maxChunks));
 
   for (let i = 0; i < text.length; i += chunkSize) {
     if (callbacks.signal?.aborted) return;
     callbacks.onToken(text.slice(i, i + chunkSize));
-    if (i + chunkSize < text.length) {
-      await new Promise((resolve) => setTimeout(resolve, 8));
-    }
   }
 }
 
