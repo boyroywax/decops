@@ -28,7 +28,7 @@ import {
     getModelProvider,
 } from "@/services/ai/providers";
 import { runChatTurn } from "@/services/ai/runner";
-import { getAllTools } from "@/services/commands/tools";
+import { getAllCommandTools } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
 import { registerChatDelegation } from "@/services/ai/delegation";
 
@@ -71,7 +71,7 @@ const LIBP2P_COMMAND_IDS = new Set([
 ]);
 
 function getLibp2pTools() {
-    return getAllTools().filter((t) => LIBP2P_COMMAND_IDS.has(t.name));
+    return getAllCommandTools().filter((t) => LIBP2P_COMMAND_IDS.has(t.name));
 }
 
 // ── System prompt ──

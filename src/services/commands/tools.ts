@@ -59,14 +59,43 @@ const TOOL_JOB_TIMEOUT_MS = 12_000; // 12s default — most non-child-job comman
 const JOB_RUNNER_TIMEOUT_MS = 180_000; // 3 minute default for commands that spawn child jobs
 const DIRECT_TOOL_COMMANDS = new Set([
   "queue_new_job",
+  "create_job",
 ]);
 const TOOL_PRIORITY_ORDER = [
+  "create_job",
+  "list_available_commands",
+  "get_command_schema",
+  "list_toolkits",
   "queue_new_job",
   "list_queued_jobs",
   "delete_queued_job",
   "studio_create_job",
   "studio_run_job",
 ];
+
+/**
+ * The curated default tool surface. Every agent sees these tools, regardless
+ * of toolkit bindings. Agents discover other commands through
+ * `list_available_commands` and execute them via `create_job`, which keeps
+ * the LLM-facing tool count tiny (well under Anthropic's 128-tool cap) while
+ * preserving full access to the registry.
+ */
+const DEFAULT_AGENT_TOOL_IDS = new Set<string>([
+  // Meta / orchestration
+  "create_job",
+  "list_available_commands",
+  "get_command_schema",
+  // Workspace inspectors
+  "list_toolkits",
+  "list_agents",
+  "list_channels",
+  "list_queued_jobs",
+  // Toolkit management (always available so the model can request capability changes)
+  "list_agent_toolkits",
+  "set_agent_toolkits",
+  "enable_toolkit",
+  "disable_toolkit",
+]);
 
 /**
  * Pick the tool-call wait timeout for a given command.
@@ -324,11 +353,37 @@ export function commandToTool(cmd: CommandDefinition): AnthropicTool {
   };
 }
 
-/** Convert all registered commands to Anthropic tool schemas */
-export function getAllTools(): AnthropicTool[] {
+/**
+ * Convert every registered command to an Anthropic tool schema.
+ *
+ * This returns the full command surface and is intended for callers that
+ * need to look up specific commands (e.g. specialised toolkit bots that
+ * filter by a known command-id set). Most AI-facing call-sites should use
+ * `getAllTools()` (curated default surface) or `getToolsForAgent()` instead.
+ */
+export function getAllCommandTools(): AnthropicTool[] {
   const cmds = registry
     .getAll()
     .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id) && !cmd.hidden);
+  return capForAnthropic(prioritizeToolCommands(cmds)).map(commandToTool);
+}
+
+/**
+ * Return the curated DEFAULT tool surface for AI agents — the small set of
+ * always-available meta-tools, inspectors, and toolkit-management commands.
+ *
+ * Agents should use `create_job` (with `list_available_commands` /
+ * `get_command_schema` for discovery) to execute anything outside this set.
+ * This keeps the tool array tiny and avoids Anthropic's 128-tool ceiling.
+ */
+export function getAllTools(): AnthropicTool[] {
+  const cmds = registry
+    .getAll()
+    .filter(cmd =>
+      !EXCLUDED_COMMANDS.has(cmd.id) &&
+      !cmd.hidden &&
+      DEFAULT_AGENT_TOOL_IDS.has(cmd.id),
+    );
   return capForAnthropic(prioritizeToolCommands(cmds)).map(commandToTool);
 }
 
@@ -343,37 +398,28 @@ export function getToolsByTags(tags: string[]): AnthropicTool[] {
 
 /**
  * Get tools restricted to the union of the given toolkit IDs' commands,
- * plus a small set of always-available meta commands. Used by the workspace
- * chat to scope the AI's tool surface to whatever the active chat agent
- * declares it needs (keeps the request well under Anthropic's 128 cap and
- * keeps the model focused on relevant tools).
+ * plus the curated default tool surface (create_job, discovery, inspectors,
+ * toolkit management). Used by the workspace chat to scope the AI's tool
+ * surface to whatever the active chat agent declares it needs.
  *
- * If `toolkitIds` is empty/undefined, falls back to `getAllTools()`.
+ * If `toolkitIds` is empty/undefined, returns just the curated default set
+ * via `getAllTools()`.
  */
 export function getToolsByToolkitIds(toolkitIds: string[] | undefined): AnthropicTool[] {
   if (!toolkitIds || toolkitIds.length === 0) return getAllTools();
 
-  const allowed = new Set<string>();
+  const allowed = new Set<string>(DEFAULT_AGENT_TOOL_IDS);
   for (const id of toolkitIds) {
     const tk = TOOLKITS.find(t => t.id === id);
     if (tk) for (const cmdId of tk.commands) allowed.add(cmdId);
   }
-
-  // Always allow toolkit-management meta commands so the model can ask the
-  // operator to enable a missing toolkit instead of failing silently.
-  const META_COMMANDS = new Set([
-    "enable_toolkit",
-    "disable_toolkit",
-    "list_agent_toolkits",
-    "set_agent_toolkits",
-  ]);
 
   const cmds = registry
     .getAll()
     .filter(cmd =>
       !EXCLUDED_COMMANDS.has(cmd.id) &&
       !cmd.hidden &&
-      (allowed.has(cmd.id) || META_COMMANDS.has(cmd.id)),
+      allowed.has(cmd.id),
     );
   return capForAnthropic(prioritizeToolCommands(cmds)).map(commandToTool);
 }
@@ -383,23 +429,25 @@ export function getToolsByToolkitIds(toolkitIds: string[] | undefined): Anthropi
  *
  * Behavior:
  * - If the agent has NO toolkit bindings (toolkits is empty or undefined),
- *   returns ALL tools (backward-compatible — RBAC is the only gate).
- * - If the agent HAS toolkit bindings, returns ONLY tools whose command IDs
- *   appear in at least one enabled toolkit, PLUS always-available toolkit
- *   management commands (enable_toolkit, disable_toolkit, etc.).
+ *   returns only the curated default tool surface (create_job, discovery,
+ *   inspectors, toolkit management). The agent uses `list_available_commands`
+ *   + `create_job` to execute anything else.
+ * - If the agent HAS toolkit bindings, returns the curated default surface
+ *   PLUS tools whose command IDs appear in at least one enabled toolkit.
  *
- * This allows fine-grained per-agent command scoping for autonomous tasks.
+ * This allows fine-grained per-agent command scoping for autonomous tasks
+ * while always giving the model a working orchestration tool.
  */
 export function getToolsForAgent(agent: Agent): AnthropicTool[] {
   const bindings = agent.toolkits;
 
-  // No bindings → backward-compatible: all tools available (gated by RBAC only)
+  // No bindings → curated default tool surface only.
   if (!bindings || bindings.length === 0) {
     return getAllTools();
   }
 
-  // Build set of allowed command IDs from enabled toolkits
-  const allowedCommands = new Set<string>();
+  // Build set of allowed command IDs: curated defaults + every enabled toolkit's commands.
+  const allowedCommands = new Set<string>(DEFAULT_AGENT_TOOL_IDS);
 
   for (const binding of bindings) {
     const toolkit = TOOLKITS.find(t => t.id === binding.toolkitId);
@@ -410,20 +458,14 @@ export function getToolsForAgent(agent: Agent): AnthropicTool[] {
     }
   }
 
-  // Always allow meta-commands for toolkit management and introspection
-  const META_COMMANDS = new Set([
-    "enable_toolkit",
-    "disable_toolkit",
-    "list_agent_toolkits",
-    "set_agent_toolkits",
-  ]);
-
+  // META_COMMANDS already live inside DEFAULT_AGENT_TOOL_IDS, so allowedCommands
+  // is the complete gating set.
   const cmds = registry
     .getAll()
     .filter(cmd =>
       !EXCLUDED_COMMANDS.has(cmd.id) &&
       !cmd.hidden &&
-      (allowedCommands.has(cmd.id) || META_COMMANDS.has(cmd.id)),
+      allowedCommands.has(cmd.id),
     );
   return capForAnthropic(prioritizeToolCommands(cmds)).map(commandToTool);
 }

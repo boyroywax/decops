@@ -13,6 +13,7 @@ import {
   saveJobDefinitionCommand,
   deleteJobDefinitionCommand,
 } from "@/services/commands/definitions/jobs";
+import { metaCommands } from "@/services/commands/definitions/meta";
 
 export const jobsModule: ToolkitModule = {
   manifest: {
@@ -35,6 +36,8 @@ export const jobsModule: ToolkitModule = {
     updatedAt: "2025-01-01T00:00:00Z",
   },
   commands: [
+    // Meta tools — always available to every agent (curated default surface)
+    ...metaCommands,
     queueNewJobCommand,
     pauseQueueCommand,
     resumeQueueCommand,

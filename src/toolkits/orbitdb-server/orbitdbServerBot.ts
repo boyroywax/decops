@@ -19,7 +19,7 @@ import { DEFAULT_ORBITDB_SERVER_BOT_CONFIG } from "./types/orbitdbServerBot";
 import { getSelectedModel } from "@/services/ai/models";
 import { getModelProvider } from "@/services/ai/providers";
 import { runChatTurn } from "@/services/ai/runner";
-import { getAllTools } from "@/services/commands/tools";
+import { getAllCommandTools } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
 import { registerChatDelegation } from "@/services/ai/delegation";
 
@@ -51,7 +51,7 @@ const ORBITDB_SERVER_COMMAND_IDS = new Set([
 ]);
 
 function getOrbitdbServerTools() {
-    return getAllTools().filter((t) => ORBITDB_SERVER_COMMAND_IDS.has(t.name));
+    return getAllCommandTools().filter((t) => ORBITDB_SERVER_COMMAND_IDS.has(t.name));
 }
 
 // ── System prompt ──

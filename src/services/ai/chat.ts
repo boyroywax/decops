@@ -142,7 +142,9 @@ export async function chatWithAgent(
         }).join(", ")}. You can only use commands from these toolkits. If you need a capability from a disabled toolkit, ask the operator to enable it.`
       : "",
     tools.length > 0
-      ? `\nYou have ${tools.length} tools available. You MUST follow the Reasoning Protocol on every turn:
+      ? `\nYou have ${tools.length} tools available. Most actions go through the **create_job** meta-tool: discover commands via list_available_commands (optionally inspect with get_command_schema), then call create_job with the chosen commandId and args. Commands from your bound toolkits ALSO appear as direct tools — prefer those when available.
+
+You MUST follow the Reasoning Protocol on every turn:
 
 Begin EVERY turn with a single fenced \`\`\`thinking block in this exact format (before any tool call, before any prose):
 

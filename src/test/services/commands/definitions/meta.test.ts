@@ -1,0 +1,174 @@
+/**
+ * Tests for the meta command surface (create_job, list_available_commands,
+ * get_command_schema, list_toolkits) and the curated default tool set.
+ */
+import { describe, it, expect, beforeAll } from "vitest";
+import {
+  createJobCommand,
+  listAvailableCommandsCommand,
+  getCommandSchemaCommand,
+  listToolkitsCommand,
+} from "@/services/commands/definitions/meta";
+import { registry } from "@/services/commands/registry";
+import { getAllTools, getToolsForAgent } from "@/services/commands/tools";
+import { initializeRegistry } from "@/services/commands/init";
+import type { Agent } from "@/types";
+import type { CommandContext } from "@/services/commands/types";
+
+beforeAll(() => {
+  // Ensure all built-in toolkit commands (including meta) are registered.
+  initializeRegistry();
+});
+
+function makeContext(addJob: (j: unknown) => unknown): CommandContext {
+  // Cast through unknown — we only exercise the slice each meta command touches.
+  return {
+    workspace: {
+      agents: [], channels: [], groups: [], messages: [],
+      setAgents: () => {}, setChannels: () => {},
+      setGroups: () => {}, setMessages: () => {},
+      addLog: () => {},
+    },
+    auth: { user: null },
+    jobs: {
+      addJob: addJob as CommandContext["jobs"]["addJob"],
+    } as unknown as CommandContext["jobs"],
+    storage: {},
+    addDeliverable: () => {},
+    ecosystem: {} as CommandContext["ecosystem"],
+    system: {} as CommandContext["system"],
+  } as unknown as CommandContext;
+}
+
+describe("meta commands", () => {
+  describe("create_job", () => {
+    it("queues the named command and returns the spawned jobId", async () => {
+      const calls: Array<Record<string, unknown>> = [];
+      const ctx = makeContext((j) => {
+        calls.push(j as Record<string, unknown>);
+        return { id: "job-123", type: (j as Record<string, unknown>).type, status: "queued" };
+      });
+
+      const result = await createJobCommand.execute(
+        { commandId: "list_agents", args: { limit: 5 } },
+        ctx,
+      );
+
+      expect(calls).toHaveLength(1);
+      expect(calls[0]).toEqual({ type: "list_agents", request: { limit: 5 } });
+      expect(result).toMatchObject({ jobId: "job-123", queued: true });
+    });
+
+    it("rejects unknown commandIds with a discovery hint", async () => {
+      const ctx = makeContext(() => ({ id: "x" }));
+      await expect(
+        createJobCommand.execute({ commandId: "does_not_exist", args: {} }, ctx),
+      ).rejects.toThrow(/Unknown commandId/);
+    });
+
+    it("refuses recursive create_job invocations", async () => {
+      const ctx = makeContext(() => ({ id: "x" }));
+      await expect(
+        createJobCommand.execute({ commandId: "create_job", args: {} }, ctx),
+      ).rejects.toThrow(/not allowed/);
+    });
+
+    it("refuses system-reserved commands", async () => {
+      const ctx = makeContext(() => ({ id: "x" }));
+      await expect(
+        createJobCommand.execute({ commandId: "set_api_key", args: {} }, ctx),
+      ).rejects.toThrow(/not allowed/);
+    });
+  });
+
+  describe("list_available_commands", () => {
+    it("returns a non-empty array including registered commands", async () => {
+      const ctx = makeContext(() => ({ id: "x" }));
+      const out = (await listAvailableCommandsCommand.execute({}, ctx)) as {
+        count: number;
+        commands: Array<{ id: string }>;
+      };
+      expect(out.count).toBeGreaterThan(0);
+      expect(out.commands.some((c) => c.id === "list_agents")).toBe(true);
+      // Hidden / reserved commands are filtered out
+      expect(out.commands.some((c) => c.id === "set_api_key")).toBe(false);
+    });
+
+    it("filters by toolkitId", async () => {
+      const ctx = makeContext(() => ({ id: "x" }));
+      const out = (await listAvailableCommandsCommand.execute(
+        { toolkitId: "jobs" },
+        ctx,
+      )) as { commands: Array<{ id: string }> };
+      expect(out.commands.every((c) => c.id !== "list_agents")).toBe(true);
+      // create_job is intentionally excluded to prevent recursion; queue_new_job stays.
+      expect(out.commands.some((c) => c.id === "queue_new_job")).toBe(true);
+      expect(out.commands.some((c) => c.id === "create_job")).toBe(false);
+    });
+  });
+
+  describe("get_command_schema", () => {
+    it("returns the args schema for a known command", async () => {
+      const ctx = makeContext(() => ({ id: "x" }));
+      const out = (await getCommandSchemaCommand.execute(
+        { commandId: "create_job" },
+        ctx,
+      )) as { id: string; args: Array<{ name: string }> };
+      expect(out.id).toBe("create_job");
+      expect(out.args.map((a) => a.name)).toContain("commandId");
+    });
+  });
+
+  describe("list_toolkits", () => {
+    it("returns every registered toolkit", async () => {
+      const ctx = makeContext(() => ({ id: "x" }));
+      const out = (await listToolkitsCommand.execute({}, ctx)) as {
+        count: number;
+        toolkits: Array<{ id: string }>;
+      };
+      expect(out.count).toBeGreaterThan(0);
+      expect(out.toolkits.some((t) => t.id === "jobs")).toBe(true);
+    });
+  });
+});
+
+describe("default agent tool surface", () => {
+  it("getAllTools() returns a small curated set well under the 128-tool cap", () => {
+    const tools = getAllTools();
+    expect(tools.length).toBeGreaterThan(0);
+    expect(tools.length).toBeLessThan(20);
+
+    const names = new Set(tools.map((t) => t.name));
+    expect(names.has("create_job")).toBe(true);
+    expect(names.has("list_available_commands")).toBe(true);
+    expect(names.has("get_command_schema")).toBe(true);
+    expect(names.has("list_toolkits")).toBe(true);
+  });
+
+  it("getToolsForAgent(no bindings) returns just the curated default set", () => {
+    const agent = { id: "a1", toolkits: [] } as unknown as Agent;
+    const tools = getToolsForAgent(agent);
+    const names = new Set(tools.map((t) => t.name));
+    expect(names.has("create_job")).toBe(true);
+    // Should NOT include arbitrary toolkit commands when no bindings exist
+    expect(tools.length).toBeLessThan(20);
+  });
+
+  it("getToolsForAgent(with bindings) adds the toolkit's commands on top of defaults", () => {
+    const agent = {
+      id: "a2",
+      toolkits: [{ toolkitId: "jobs", enabledAt: new Date().toISOString() }],
+    } as unknown as Agent;
+    const tools = getToolsForAgent(agent);
+    const names = new Set(tools.map((t) => t.name));
+    expect(names.has("create_job")).toBe(true); // default
+    expect(names.has("queue_new_job")).toBe(true); // from jobs toolkit
+  });
+
+  it("create_job is registered in the global command registry", () => {
+    expect(registry.get("create_job")).toBeDefined();
+    expect(registry.get("list_available_commands")).toBeDefined();
+    expect(registry.get("get_command_schema")).toBeDefined();
+    expect(registry.get("list_toolkits")).toBeDefined();
+  });
+});

@@ -33,7 +33,7 @@ import { isParallelGroup, NODE_SPACING_X, NODE_SPACING_Y, NODE_WIDTH, NODE_HEIGH
 import { getSelectedModel } from "@/services/ai/models";
 import { getModelProvider } from "@/services/ai/providers";
 import { runChatTurn } from "@/services/ai/runner";
-import { getAllTools } from "@/services/commands/tools";
+import { getAllCommandTools } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
 import { registerChatDelegation } from "@/services/ai/delegation";
 
@@ -280,7 +280,7 @@ function getStudioTools() {
         "studio_auto_layout",
     ]);
 
-    return getAllTools().filter(t => studioCommandIds.has(t.name));
+    return getAllCommandTools().filter(t => studioCommandIds.has(t.name));
 }
 
 // ── Main Delegation Entry Point ──
