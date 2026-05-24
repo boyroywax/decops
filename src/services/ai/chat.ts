@@ -18,6 +18,7 @@ import {
 import { getChatDelegation } from "./delegation";
 import { runChatTurn } from "./runner";
 import type { ChatTurnMessage } from "./runner";
+import type { StreamCallbacks } from "./streaming";
 
 export interface ChatMessage {
   id?: string;
@@ -126,12 +127,87 @@ export async function chatWithAgent(
   const model = getAgentModel(agent.id);
   const provider = getModelProvider(model);
 
-  const role = ROLES.find(r => r.id === agent.role);
   const tools = commandContext && (provider === "anthropic" || provider === "openai")
     ? getToolsForAgent(agent)
     : [];
 
-  const systemPrompt = [
+  const systemPrompt = buildAgentChatSystemPrompt(agent, tools.length);
+
+  const messages: ChatTurnMessage[] = [
+    ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
+    { role: "user" as const, content: userMessage },
+  ];
+
+  const result = await runChatTurn(
+    {
+      model,
+      systemPrompt,
+      messages,
+      tools: tools.length > 0 ? tools : undefined,
+      commandContext,
+      maxRounds: tools.length > 0 ? 6 : 1,
+      maxTokens: 1500,
+    },
+    {
+      onToolCallComplete: onToolCall,
+    },
+  );
+  return { text: result.text, toolCalls: result.toolCalls };
+}
+
+/**
+ * Streaming variant of {@link chatWithAgent}. Mirrors
+ * `streamChatWithWorkspace` so the agent chat UI can render tokens,
+ * thinking blocks, and tool calls progressively instead of waiting
+ * for the entire turn to complete.
+ */
+export async function streamChatWithAgent(
+  agent: Agent,
+  userMessage: string,
+  history: ChatMessage[],
+  callbacks: StreamCallbacks,
+  commandContext?: CommandContext,
+): Promise<{ text: string; toolCalls: ToolCallDisplay[] }> {
+  const model = getAgentModel(agent.id);
+  const provider = getModelProvider(model);
+
+  const tools = commandContext && (provider === "anthropic" || provider === "openai")
+    ? getToolsForAgent(agent)
+    : [];
+
+  const systemPrompt = buildAgentChatSystemPrompt(agent, tools.length);
+
+  const messages: ChatTurnMessage[] = [
+    ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
+    { role: "user" as const, content: userMessage },
+  ];
+
+  const result = await runChatTurn(
+    {
+      model,
+      systemPrompt,
+      messages,
+      tools: tools.length > 0 ? tools : undefined,
+      commandContext,
+      maxRounds: tools.length > 0 ? 6 : 1,
+      maxTokens: 1500,
+      stream: provider === "anthropic" || provider === "openai" || provider === "openrouter",
+    },
+    {
+      onToken: callbacks.onToken,
+      onToolCallStart: callbacks.onToolCallStart,
+      onToolCallComplete: callbacks.onToolCallComplete,
+      onRoundEnd: callbacks.onRoundEnd,
+      signal: callbacks.signal,
+    },
+  );
+  return { text: result.text, toolCalls: result.toolCalls };
+}
+
+/** Shared system-prompt builder for direct user↔agent chats. */
+function buildAgentChatSystemPrompt(agent: Agent, toolCount: number): string {
+  const role = ROLES.find(r => r.id === agent.role);
+  return [
     `You are "${agent.name}", a ${role?.label || agent.role} agent in a decentralized mesh workspace.`,
     `Your DID: ${agent.did}`,
     agent.prompt ? `\nYour core directive:\n${agent.prompt}` : "",
@@ -141,8 +217,8 @@ export async function chatWithAgent(
           return tk ? `${tk.name} (${tk.commands.length} commands)` : b.toolkitId;
         }).join(", ")}. You can only use commands from these toolkits. If you need a capability from a disabled toolkit, ask the operator to enable it.`
       : "",
-    tools.length > 0
-      ? `\nYou have ${tools.length} tools available. Most actions go through the **create_job** meta-tool: discover commands via list_available_commands (optionally inspect with get_command_schema), then call create_job with the chosen commandId and args. Commands from your bound toolkits ALSO appear as direct tools — prefer those when available.
+    toolCount > 0
+      ? `\nYou have ${toolCount} tools available. Most actions go through the **create_job** meta-tool: discover commands via list_available_commands (optionally inspect with get_command_schema), then call create_job with the chosen commandId and args. Commands from your bound toolkits ALSO appear as direct tools — prefer those when available.
 
 You MUST follow the Reasoning Protocol on every turn:
 
@@ -169,27 +245,6 @@ ANTI-FABRICATION RAIL (CRITICAL): Tools execute ONLY via the structured tool-use
     `\nYou are chatting directly with a human operator who manages this workspace.`,
     `Respond concisely and in-character. Keep responses under 200 words. Use markdown formatting when appropriate.`,
   ].filter(Boolean).join("\n");
-
-  const messages: ChatTurnMessage[] = [
-    ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
-    { role: "user" as const, content: userMessage },
-  ];
-
-  const result = await runChatTurn(
-    {
-      model,
-      systemPrompt,
-      messages,
-      tools: tools.length > 0 ? tools : undefined,
-      commandContext,
-      maxRounds: tools.length > 0 ? 6 : 1,
-      maxTokens: 1500,
-    },
-    {
-      onToolCallComplete: onToolCall,
-    },
-  );
-  return { text: result.text, toolCalls: result.toolCalls };
 }
 
 export async function chatWithWorkspace(

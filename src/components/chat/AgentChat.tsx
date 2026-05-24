@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import type { Agent, Message } from "@/types";
-import { chatWithAgent } from "@/services/ai";
-import type { ChatMessage } from "@/services/ai";
+import { streamChatWithAgent } from "@/services/ai";
+import type { ChatMessage, ToolCallDisplay, StreamCallbacks, WorkspaceContext } from "@/services/ai";
 import { ROLES } from "@/constants";
-import { MessageSquare, Send, ChevronDown, ChevronUp } from "lucide-react";
-import { MarkdownContent } from "@/components/shared/MarkdownContent";
+import { MessageSquare, Send, ChevronDown, ChevronUp, Square } from "lucide-react";
+import MessageBubble from "@/components/chat/MessageBubble";
 import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
 import { useWorkspaceStore } from "@/stores";
 import { useAuth } from "@/context/AuthContext";
 import { useCommandCtx } from "@/context/CommandContextProvider";
+import { useJobsContext } from "@/context/JobsContext";
 import "../../styles/components/agent-chat.css";
 
 interface AgentChatProps {
@@ -29,12 +30,15 @@ export function AgentChat({ agent }: AgentChatProps) {
   const addMessage = useWorkspaceStore((s) => s.addMessage);
   const setMessages = useWorkspaceStore((s) => s.setMessages);
   const commandContext = useCommandCtx();
+  const { jobs, addJob } = useJobsContext();
 
   const channelId = directChannelId(agent.id);
   const userId = user?.did || "user";
 
-  // Hydrate chat history from persisted workspace messages
-  const history = useMemo<ChatMessage[]>(() => {
+  // Hydrate chat history from persisted workspace messages. Persistence
+  // only carries plain text — toolCalls / jobIds from previous turns
+  // are session-only and live in `liveTurns` below.
+  const persistedHistory = useMemo<ChatMessage[]>(() => {
     const out: ChatMessage[] = [];
     for (const m of messagesAll) {
       if (m.channelId !== channelId) continue;
@@ -44,33 +48,92 @@ export function AgentChat({ agent }: AgentChatProps) {
     return out;
   }, [messagesAll, channelId]);
 
+  // Rich session-only enrichments for assistant turns produced in THIS
+  // mount: tool calls and spawned job ids. Keyed by the workspace message
+  // id so we can match them onto the persisted history.
+  const [liveTurns, setLiveTurns] = useState<Record<string, {
+    toolCalls?: ToolCallDisplay[];
+    jobIds?: string[];
+  }>>({});
+
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [streamingText, setStreamingText] = useState<string | null>(null);
+  const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallDisplay[]>([]);
+  const [roundPhase, setRoundPhase] = useState<"idle" | "drafting">("idle");
+  const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const role = ROLES.find(r => r.id === agent.role);
 
+  // Build a minimal WorkspaceContext for MessageBubble — only `jobs` and
+  // `addJob` are actually dereferenced by ActionCard, and direct
+  // user↔agent chats rarely (if ever) emit ```action blocks.
+  const bubbleContext = useMemo<WorkspaceContext>(() => ({
+    agents: [],
+    channels: [],
+    groups: [],
+    messages: [],
+    networks: [],
+    bridges: [],
+    jobs,
+    addJob,
+  }), [jobs, addJob]);
+
+  // Render-ready history: persisted text + any session-only enrichments.
+  // We rebuild on every render so newly-completed turns immediately show
+  // their tool calls / job progress cards.
+  const history = useMemo<ChatMessage[]>(() => {
+    const out: ChatMessage[] = [];
+    let userMessageIdx = -1;
+    let lastMessageId: string | null = null;
+    for (const m of messagesAll) {
+      if (m.channelId !== channelId) continue;
+      out.push({ role: "user", content: m.content });
+      userMessageIdx = out.length - 1;
+      lastMessageId = m.id;
+      if (m.response) {
+        const enrich = liveTurns[m.id];
+        out.push({
+          role: "assistant",
+          content: m.response,
+          toolCalls: enrich?.toolCalls,
+          jobIds: enrich?.jobIds,
+        });
+      }
+    }
+    void userMessageIdx;
+    void lastMessageId;
+    return out;
+  }, [messagesAll, channelId, liveTurns]);
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [history.length, loading]);
+  }, [history.length, loading, streamingText, streamingToolCalls.length]);
 
   useEffect(() => {
     if (!collapsed) inputRef.current?.focus();
   }, [collapsed]);
 
-  // Re-focus the input once the agent finishes responding so the
-  // operator can keep typing without re-clicking the textbox.
   useEffect(() => {
     if (!loading && !collapsed) inputRef.current?.focus();
   }, [loading, collapsed]);
 
-  // Reset input when agent changes
   useEffect(() => {
     setInput("");
     setLoading(false);
+    setStreamingText(null);
+    setStreamingToolCalls([]);
+    abortRef.current?.abort();
+    abortRef.current = null;
   }, [agent.id]);
+
+  const stop = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+  }, []);
 
   const sendMessage = useCallback(async () => {
     const text = input.trim();
@@ -79,7 +142,6 @@ export function AgentChat({ agent }: AgentChatProps) {
     const msgId = crypto.randomUUID();
     const ts = Date.now();
 
-    // Optimistically persist the user's message with no response yet
     const pending: Message = {
       id: msgId,
       channelId,
@@ -93,34 +155,101 @@ export function AgentChat({ agent }: AgentChatProps) {
     addMessage(pending);
     setInput("");
     setLoading(true);
+    setStreamingText("");
+    setStreamingToolCalls([]);
+    setRoundPhase("idle");
 
-    // Snapshot the history that the model should see (excludes this in-flight turn)
-    const historyForModel = history;
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    // Snapshot the history the model should see (excludes this in-flight turn)
+    const historyForModel = persistedHistory;
+
+    const callbacks: StreamCallbacks = {
+      onToken: (token) => {
+        setRoundPhase("idle");
+        setStreamingText(prev => (prev ?? "") + token);
+      },
+      signal: controller.signal,
+      onToolCallStart: (name) => {
+        setRoundPhase("idle");
+        setStreamingToolCalls(prev => [
+          ...prev,
+          { name, input: {}, result: null, duration_ms: 0 },
+        ]);
+      },
+      onRoundEnd: () => {
+        setRoundPhase("drafting");
+      },
+      onToolCallComplete: (display) => {
+        setStreamingToolCalls(prev => {
+          const updated = [...prev];
+          let idx = -1;
+          for (let i = updated.length - 1; i >= 0; i--) {
+            if (updated[i].name === display.name && updated[i].duration_ms === 0) {
+              idx = i;
+              break;
+            }
+          }
+          if (idx >= 0) updated[idx] = display;
+          else updated.push(display);
+          return updated;
+        });
+      },
+    };
 
     try {
-      const { text: response } = await chatWithAgent(
+      const { text: response, toolCalls } = await streamChatWithAgent(
         agent,
         text,
         historyForModel,
+        callbacks,
         commandContext ?? undefined,
       );
+      const collectedJobIds = toolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!);
+      setLiveTurns(prev => ({
+        ...prev,
+        [msgId]: {
+          toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+          jobIds: collectedJobIds.length > 0 ? collectedJobIds : undefined,
+        },
+      }));
       setMessages((prev) =>
         prev.map((m) =>
           m.id === msgId ? { ...m, response, status: "delivered" } : m
         )
       );
-    } catch {
+    } catch (err) {
+      const aborted = err instanceof DOMException && err.name === "AbortError";
       setMessages((prev) =>
         prev.map((m) =>
           m.id === msgId
-            ? { ...m, response: "[Error: Failed to get response]", status: "delivered" }
+            ? {
+                ...m,
+                response: aborted ? "[Stopped]" : "[Error: Failed to get response]",
+                status: "delivered",
+              }
             : m
         )
       );
     } finally {
+      abortRef.current = null;
+      setStreamingText(null);
+      setStreamingToolCalls([]);
+      setRoundPhase("idle");
       setLoading(false);
     }
-  }, [input, loading, history, agent, channelId, userId, addMessage, setMessages, commandContext]);
+  }, [
+    input,
+    loading,
+    persistedHistory,
+    agent,
+    channelId,
+    userId,
+    addMessage,
+    setMessages,
+    commandContext,
+  ]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -160,22 +289,28 @@ export function AgentChat({ agent }: AgentChatProps) {
               </div>
             )}
             {history.map((msg, i) => (
-              <div
+              <MessageBubble
                 key={i}
-                className={`agent-chat__message agent-chat__message--${msg.role === "user" ? "user" : "agent"}`}
-              >
-                <div className="agent-chat__sender">
-                  {msg.role === "user" ? "You" : agent.name}
-                </div>
-                <div className="agent-chat__bubble">
-                  {msg.role === "user"
-                    ? <span style={{ whiteSpace: "pre-wrap" }}>{msg.content}</span>
-                    : <MarkdownContent content={msg.content} />
-                  }
-                </div>
-              </div>
+                msg={msg}
+                context={bubbleContext}
+              />
             ))}
-            {loading && (
+            {streamingText !== null && (
+              <MessageBubble
+                msg={{
+                  role: "assistant",
+                  content: streamingText || "",
+                  toolCalls: streamingToolCalls.length > 0 ? streamingToolCalls : undefined,
+                  jobIds: streamingToolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!),
+                }}
+                context={bubbleContext}
+                isStreaming
+              />
+            )}
+            {loading && streamingText !== null && roundPhase === "drafting" && !streamingText && (
+              <ThinkingIndicator name={agent.name} phase="working" toolName="processing tool results" />
+            )}
+            {loading && streamingText === null && (
               <ThinkingIndicator name={agent.name} phase="thinking" />
             )}
             <div ref={endRef} />
@@ -191,16 +326,27 @@ export function AgentChat({ agent }: AgentChatProps) {
               placeholder={`Message ${agent.name}...`}
               disabled={loading}
             />
-            <button
-              className="agent-chat__send-btn"
-              onClick={sendMessage}
-              disabled={!input.trim() || loading}
-            >
-              <Send size={12} /> Send
-            </button>
+            {loading ? (
+              <button
+                className="agent-chat__send-btn"
+                onClick={stop}
+                title="Stop the in-flight response"
+              >
+                <Square size={12} /> Stop
+              </button>
+            ) : (
+              <button
+                className="agent-chat__send-btn"
+                onClick={sendMessage}
+                disabled={!input.trim()}
+              >
+                <Send size={12} /> Send
+              </button>
+            )}
           </div>
         </>
       )}
     </div>
   );
 }
+

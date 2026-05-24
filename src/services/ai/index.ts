@@ -17,7 +17,7 @@ export {
 
 // Chat functions & types
 export {
-  callAgentAI, chatWithAgent, chatWithWorkspace,
+  callAgentAI, chatWithAgent, streamChatWithAgent, chatWithWorkspace,
 } from "./chat";
 export type { ChatMessage, ToolCallDisplay } from "./chat";
 
