@@ -6,9 +6,6 @@ import { useNotebook } from "@/hooks/useNotebook";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import { useArchitect, ArchitectProvider, ArchitectBanner, ArchitectWelcome } from "@/toolkits/architect";
 import { useEcosystem } from "@/hooks/useEcosystem";
-import { libp2pService } from "@/toolkits/libp2p";
-import { heliaService } from "@/toolkits/helia";
-import { orbitdbService } from "@/toolkits/orbitdb";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { Footer, type PanelMode } from "./Footer";
@@ -622,29 +619,16 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activateArchitectChatAgent, setView]);
 
-  // Subscribe to live p2p runtime singletons so the chat system prompt
-  // always carries the most recent libp2p/helia/orbitdb snapshot.
-  // NOTE: useState+subscribe (not useSyncExternalStore) because the
-  // service `snapshot()` methods return a fresh object on every call —
-  // useSyncExternalStore would treat that as a state change on every
-  // render and cause an infinite re-render loop / UI freeze.
-  const [libp2pState, setLibp2pState] = useState(() => libp2pService.snapshot());
-  const [heliaState, setHeliaState] = useState(() => heliaService.snapshot());
-  const [orbitdbState, setOrbitdbState] = useState(() => orbitdbService.snapshot());
-  useEffect(() => libp2pService.subscribe(setLibp2pState), []);
-  useEffect(() => heliaService.subscribe(setHeliaState), []);
-  useEffect(() => orbitdbService.subscribe(setOrbitdbState), []);
-
+  // NOTE: The live p2p runtime snapshot (libp2p/helia/orbitdb) is read
+  // from the service singletons inside ChatPanel at chat-send time —
+  // NOT mirrored into React state here. Libp2p pubsub flooding would
+  // otherwise rebuild this memo many times per second and cascade a
+  // re-render through ChatPanel → MessageBubbles → freezing the UI.
   const chatWorkspaceContext = useMemo(() => ({
     agents: workspace.agents, channels: workspace.channels, groups: workspace.groups,
     messages: workspace.messages, networks: ecosystem.networks, bridges: ecosystem.bridges,
     addJob, jobs,
-    p2p: {
-      libp2p: { activeId: libp2pState.activeId, nodes: libp2pState.nodes },
-      helia: { activeId: heliaState.activeId, nodes: heliaState.nodes },
-      orbitdb: { activeId: orbitdbState.activeId, nodes: orbitdbState.nodes },
-    },
-  }), [workspace.agents, workspace.channels, workspace.groups, workspace.messages, ecosystem.networks, ecosystem.bridges, addJob, jobs, libp2pState, heliaState, orbitdbState]);
+  }), [workspace.agents, workspace.channels, workspace.groups, workspace.messages, ecosystem.networks, ecosystem.bridges, addJob, jobs]);
 
   const isSideChat = chatPosition === "left" || chatPosition === "right";
 

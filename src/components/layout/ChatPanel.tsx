@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { X, LayoutTemplate, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, ChevronDown, ChevronRight, Clapperboard, Edit3, Eye, Send, Square, Check, Bot } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
-import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "@/services/ai";
-import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "@/services/ai";
-import { diffP2PContext } from "@/services/ai";
+import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent, diffP2PContext } from "@/services/ai";
+import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks, WorkspaceP2PContext } from "@/services/ai";
 import { useLLM } from "@/context/LLMContext";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
@@ -21,6 +20,9 @@ import { CommandPrompt } from "@/components/actions/CommandPrompt";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import { useStudioContext } from "@/toolkits/studio";
 import { useEditorContext } from "@/toolkits/editor";
+import { libp2pService } from "@/toolkits/libp2p";
+import { heliaService } from "@/toolkits/helia";
+import { orbitdbService } from "@/toolkits/orbitdb";
 import type { ChatPosition } from "@/context/ThemeContext";
 import type { ViewId, JobStep, Agent, Channel, Group } from "@/types";
 import { useConversations } from "@/hooks/useConversations";
@@ -324,79 +326,100 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         extensions: { studio: studioApi ?? undefined, editor: editorApi ?? undefined },
     });
 
-    // ── P2P runtime change notifications ────────────────────────────────
-    // The chat context's `p2p` snapshot is refreshed live from the
-    // libp2p/helia/orbitdb services. When the user manually starts/stops
-    // a node (or opens a database, etc.) outside the chat, drop a synthetic
-    // system-notice message into the active conversation so the agent
-    // sees the change on the next turn. Burst-collapse via a short
-    // debounce; suppressed while a chat run is streaming to avoid mid-stream
-    // mutations and to avoid notifying for agent-driven changes.
-    const prevP2PRef = useRef(context.p2p);
+    // ── P2P runtime: live refs + change notifications ───────────────────
+    // We do NOT mirror libp2p/helia/orbitdb snapshots into React state —
+    // pubsub flooding would re-render this entire panel many times per
+    // second and freeze the UI. Instead, we keep mutable refs updated
+    // from the service subscribe callbacks (no React work), read them at
+    // chat-send time to build the prompt's p2p section, and run change
+    // detection inside the subscribe callback (debounced).
+    const libp2pSnapRef = useRef(libp2pService.snapshot());
+    const heliaSnapRef = useRef(heliaService.snapshot());
+    const orbitdbSnapRef = useRef(orbitdbService.snapshot());
+    const prevP2PRef = useRef<WorkspaceP2PContext | undefined>(undefined);
     const pendingP2PChangesRef = useRef<string[]>([]);
     const p2pNotifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const loadingRef = useRef(loading);
+    const activeIdRef = useRef(activeId);
     useEffect(() => { loadingRef.current = loading; }, [loading]);
+    useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
 
-    useEffect(() => {
-        const next = context.p2p;
-        const prev = prevP2PRef.current;
-        // Always update the baseline so we diff against the latest seen
-        // snapshot, even if the user is mid-chat (we'll still buffer the
-        // changes via pendingP2PChangesRef).
-        prevP2PRef.current = next;
-        if (!next || !prev) return;
-        const changes = diffP2PContext(prev, next);
-        if (changes.length === 0) return;
-        pendingP2PChangesRef.current.push(...changes);
+    /** Build the current p2p context from refs. Called at chat-send time
+     *  and inside the change-detection callback. */
+    const readP2PContext = useCallback((): WorkspaceP2PContext => ({
+        libp2p: { activeId: libp2pSnapRef.current.activeId, nodes: libp2pSnapRef.current.nodes },
+        helia: { activeId: heliaSnapRef.current.activeId, nodes: heliaSnapRef.current.nodes },
+        orbitdb: { activeId: orbitdbSnapRef.current.activeId, nodes: orbitdbSnapRef.current.nodes },
+    }), []);
 
-        if (p2pNotifyTimerRef.current) clearTimeout(p2pNotifyTimerRef.current);
-        p2pNotifyTimerRef.current = setTimeout(() => {
-            p2pNotifyTimerRef.current = null;
-            // Defer while a chat run is in-flight — drained on next change
-            // once idle, or on the next idle render via the same buffer.
-            if (loadingRef.current) return;
-            const pending = pendingP2PChangesRef.current.splice(0);
-            if (pending.length === 0) return;
-            if (!activeId) return;
-            // De-duplicate consecutive identical lines (e.g. status flapping).
-            const seen = new Set<string>();
-            const deduped = pending.filter(l => (seen.has(l) ? false : (seen.add(l), true)));
-            const content = `[workspace update] ${deduped.join("; ")}`;
-            const notice: ChatMessage = {
-                id: makeId(),
-                role: "user",
-                content,
-                systemNotice: true,
-            };
-            updateConversation(activeId, [...messages, notice]);
-        }, 600);
-
-        return () => {
-            if (p2pNotifyTimerRef.current) {
-                clearTimeout(p2pNotifyTimerRef.current);
-                p2pNotifyTimerRef.current = null;
-            }
-        };
-    }, [context.p2p, activeId, messages, updateConversation]);
-
-    // Drain any buffered p2p changes once a chat run completes.
-    useEffect(() => {
-        if (loading) return;
-        if (!activeId) return;
+    const flushP2PNotices = useCallback(() => {
+        const id = activeIdRef.current;
+        if (!id) return;
         const pending = pendingP2PChangesRef.current.splice(0);
         if (pending.length === 0) return;
         const seen = new Set<string>();
         const deduped = pending.filter(l => (seen.has(l) ? false : (seen.add(l), true)));
         const content = `[workspace update] ${deduped.join("; ")}`;
-        const notice: ChatMessage = {
-            id: makeId(),
-            role: "user",
-            content,
-            systemNotice: true,
+        const notice: ChatMessage = { id: makeId(), role: "user", content, systemNotice: true };
+        // Functional-style: read latest messages from current state via
+        // updateConversation's closure-free pattern. We append to the
+        // active conversation as it exists right now in `conversations`.
+        setConversations(prev => prev.map(c =>
+            c.id === id
+                ? { ...c, messages: [...c.messages, notice], updatedAt: Date.now() }
+                : c
+        ));
+    }, [setConversations]);
+
+    const handleP2PChange = useCallback(() => {
+        const next = readP2PContext();
+        const prev = prevP2PRef.current;
+        prevP2PRef.current = next;
+        if (!prev) return; // baseline only — silent
+        const changes = diffP2PContext(prev, next);
+        if (changes.length === 0) return;
+        pendingP2PChangesRef.current.push(...changes);
+        if (p2pNotifyTimerRef.current) clearTimeout(p2pNotifyTimerRef.current);
+        p2pNotifyTimerRef.current = setTimeout(() => {
+            p2pNotifyTimerRef.current = null;
+            if (loadingRef.current) return; // drained later via the idle effect
+            flushP2PNotices();
+        }, 600);
+    }, [readP2PContext, flushP2PNotices]);
+
+    useEffect(() => {
+        // Establish baseline + subscribe. The subscribe callbacks only
+        // mutate refs and possibly schedule a debounced React update.
+        prevP2PRef.current = readP2PContext();
+        const unsubLibp2p = libp2pService.subscribe(s => {
+            libp2pSnapRef.current = s;
+            handleP2PChange();
+        });
+        const unsubHelia = heliaService.subscribe(s => {
+            heliaSnapRef.current = s;
+            handleP2PChange();
+        });
+        const unsubOrbit = orbitdbService.subscribe(s => {
+            orbitdbSnapRef.current = s;
+            handleP2PChange();
+        });
+        return () => {
+            unsubLibp2p();
+            unsubHelia();
+            unsubOrbit();
+            if (p2pNotifyTimerRef.current) {
+                clearTimeout(p2pNotifyTimerRef.current);
+                p2pNotifyTimerRef.current = null;
+            }
         };
-        updateConversation(activeId, [...messages, notice]);
-    }, [loading, activeId, messages, updateConversation]);
+    }, [readP2PContext, handleP2PChange]);
+
+    // Drain buffered p2p change notices once a chat run completes.
+    useEffect(() => {
+        if (loading) return;
+        if (pendingP2PChangesRef.current.length === 0) return;
+        flushP2PNotices();
+    }, [loading, flushP2PNotices]);
 
     useEffect(() => {
         const trackedConversationId = architectMessageRef.current.conversationId;
@@ -769,7 +792,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                 }
 
                 const { text: response, toolCalls } = await streamChatWithWorkspace(
-                    messageToSend, currentMessages, context, streamCallbacks, commandContext,
+                    messageToSend, currentMessages, { ...context, p2p: readP2PContext() }, streamCallbacks, commandContext,
                     activeAgent?.toolkitIds,
                 );
 
