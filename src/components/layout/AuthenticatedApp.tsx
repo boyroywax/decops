@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Compass } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import type { ViewId, NavContext, JobDefinition } from "@/types";
@@ -624,18 +624,16 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
 
   // Subscribe to live p2p runtime singletons so the chat system prompt
   // always carries the most recent libp2p/helia/orbitdb snapshot.
-  const libp2pState = useSyncExternalStore(
-    (cb) => libp2pService.subscribe(cb),
-    () => libp2pService.snapshot(),
-  );
-  const heliaState = useSyncExternalStore(
-    (cb) => heliaService.subscribe(cb),
-    () => heliaService.snapshot(),
-  );
-  const orbitdbState = useSyncExternalStore(
-    (cb) => orbitdbService.subscribe(cb),
-    () => orbitdbService.snapshot(),
-  );
+  // NOTE: useState+subscribe (not useSyncExternalStore) because the
+  // service `snapshot()` methods return a fresh object on every call —
+  // useSyncExternalStore would treat that as a state change on every
+  // render and cause an infinite re-render loop / UI freeze.
+  const [libp2pState, setLibp2pState] = useState(() => libp2pService.snapshot());
+  const [heliaState, setHeliaState] = useState(() => heliaService.snapshot());
+  const [orbitdbState, setOrbitdbState] = useState(() => orbitdbService.snapshot());
+  useEffect(() => libp2pService.subscribe(setLibp2pState), []);
+  useEffect(() => heliaService.subscribe(setHeliaState), []);
+  useEffect(() => orbitdbService.subscribe(setOrbitdbState), []);
 
   const chatWorkspaceContext = useMemo(() => ({
     agents: workspace.agents, channels: workspace.channels, groups: workspace.groups,
