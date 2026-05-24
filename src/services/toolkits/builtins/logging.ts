@@ -83,6 +83,7 @@ export const loggingModule: ToolkitModule = {
       name: "Query Logs",
       description:
         "Search the aggregated platform log by kit, channel, level, time range, tag, or CID.",
+      commandId: "log_query",
       inputSchema: {
         type: "object",
         properties: {
@@ -104,6 +105,7 @@ export const loggingModule: ToolkitModule = {
       id: "logging.publish",
       name: "Publish Log Entry",
       description: "Publish a structured log entry to the aggregator.",
+      commandId: "log_publish",
       inputSchema: {
         type: "object",
         properties: {

@@ -46,6 +46,11 @@ export const workspaceMgmtModule: ToolkitModule = {
     setApiKeyCommand,
     selectAiModelCommand,
   ],
+  // No curated direct LLM tools — workspace lifecycle ops are
+  // user-initiated. Agents that genuinely need them can still reach the
+  // safe ones (create / switch / export) via create_job. Sensitive ops
+  // (set_api_key, select_ai_model, reset_workspace) are already in
+  // SYSTEM_RESERVED / EXCLUDED and cannot be invoked through create_job.
   tools: [],
 
   collections: [

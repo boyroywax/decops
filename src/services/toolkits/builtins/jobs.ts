@@ -47,7 +47,28 @@ export const jobsModule: ToolkitModule = {
     saveJobDefinitionCommand,
     deleteJobDefinitionCommand,
   ],
-  tools: [],
+  // Curated direct LLM tools for agents bound to this toolkit. Anything not
+  // listed here is still reachable via create_job / list_available_commands.
+  tools: [
+    {
+      id: "jobs.queueNewJob",
+      name: "Queue New Job",
+      description: "Queue an arbitrary command as a job in the execution queue.",
+      commandId: "queue_new_job",
+    },
+    {
+      id: "jobs.listQueue",
+      name: "List Queued Jobs",
+      description: "Inspect the current job queue.",
+      commandId: "list_queued_jobs",
+    },
+    {
+      id: "jobs.deleteQueuedJob",
+      name: "Delete Queued Job",
+      description: "Cancel/remove a job from the queue by id.",
+      commandId: "delete_queued_job",
+    },
+  ],
 
   jobs: [
     {

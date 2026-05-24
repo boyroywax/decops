@@ -58,7 +58,28 @@ export const agentManagementModule: ToolkitModule = {
     setAgentToolkitsCommand,
     bulkDeleteCommand,
   ],
-  tools: [],
+  // Curated direct LLM tools. Long-tail commands (delete_agent, bulk_delete,
+  // ping_agent) stay registry-only — reachable via create_job.
+  tools: [
+    {
+      id: "agentMgmt.createAgent",
+      name: "Create Agent",
+      description: "Create a new AI agent in the current workspace.",
+      commandId: "create_agent",
+    },
+    {
+      id: "agentMgmt.updateAgentPrompt",
+      name: "Update Agent Prompt",
+      description: "Update an existing agent's system prompt.",
+      commandId: "update_agent_prompt",
+    },
+    {
+      id: "agentMgmt.listAgents",
+      name: "List Agents",
+      description: "List every agent in the workspace.",
+      commandId: "list_agents",
+    },
+  ],
 
   // ── Collections ────────────────────────────────
 

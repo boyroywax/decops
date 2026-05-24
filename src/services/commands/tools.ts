@@ -397,10 +397,50 @@ export function getToolsByTags(tags: string[]): AnthropicTool[] {
 }
 
 /**
- * Get tools restricted to the union of the given toolkit IDs' commands,
- * plus the curated default tool surface (create_job, discovery, inspectors,
- * toolkit management). Used by the workspace chat to scope the AI's tool
- * surface to whatever the active chat agent declares it needs.
+ * Resolve which command IDs a single toolkit contributes to the agent's
+ * direct LLM-facing tool surface.
+ *
+ * - If the toolkit's `tools[]` declares any entries with `commandId`,
+ *   ONLY those IDs are promoted (curated subset). Long-tail commands
+ *   stay reachable through `create_job` / `list_available_commands`.
+ * - Otherwise (toolkit hasn't been migrated to the curated model, or
+ *   intentionally exposes no direct tools), this returns an empty list.
+ *   The toolkit's commands remain registered and discoverable, but the
+ *   agent reaches them via `create_job`. This is what keeps the
+ *   Anthropic tool array under its 128-entry cap.
+ *
+ * Toolkits that have not yet declared any `tools[].commandId` can be
+ * found via `getUnmigratedToolkitsForAgentTools()` for migration guidance.
+ */
+function directToolCommandIds(toolkitId: string): string[] {
+  const tk = TOOLKITS.find((t) => t.id === toolkitId);
+  if (!tk) return [];
+  return (tk.tools || [])
+    .map((t) => t.commandId)
+    .filter((id): id is string => typeof id === "string" && id.length > 0);
+}
+
+/**
+ * Lists toolkit IDs that have commands registered but have not declared
+ * any `tools[].commandId` curated subset. Useful for migration tooling /
+ * developer warnings; not used at runtime.
+ */
+export function getUnmigratedToolkitsForAgentTools(): string[] {
+  return TOOLKITS.filter(
+    (t) =>
+      t.commands.length > 0 &&
+      (t.tools || []).every(
+        (tool) => typeof tool.commandId !== "string" || tool.commandId.length === 0,
+      ),
+  ).map((t) => t.id);
+}
+
+/**
+ * Get tools restricted to the union of the given toolkit IDs' curated
+ * direct tools, plus the curated default tool surface (create_job,
+ * discovery, inspectors, toolkit management). Used by the workspace chat
+ * to scope the AI's tool surface to whatever the active chat agent
+ * declares it needs.
  *
  * If `toolkitIds` is empty/undefined, returns just the curated default set
  * via `getAllTools()`.
@@ -410,8 +450,7 @@ export function getToolsByToolkitIds(toolkitIds: string[] | undefined): Anthropi
 
   const allowed = new Set<string>(DEFAULT_AGENT_TOOL_IDS);
   for (const id of toolkitIds) {
-    const tk = TOOLKITS.find(t => t.id === id);
-    if (tk) for (const cmdId of tk.commands) allowed.add(cmdId);
+    for (const cmdId of directToolCommandIds(id)) allowed.add(cmdId);
   }
 
   const cmds = registry
@@ -433,7 +472,8 @@ export function getToolsByToolkitIds(toolkitIds: string[] | undefined): Anthropi
  *   inspectors, toolkit management). The agent uses `list_available_commands`
  *   + `create_job` to execute anything else.
  * - If the agent HAS toolkit bindings, returns the curated default surface
- *   PLUS tools whose command IDs appear in at least one enabled toolkit.
+ *   PLUS each toolkit's curated direct-tool subset (see
+ *   `directToolCommandIds`).
  *
  * This allows fine-grained per-agent command scoping for autonomous tasks
  * while always giving the model a working orchestration tool.
@@ -446,20 +486,17 @@ export function getToolsForAgent(agent: Agent): AnthropicTool[] {
     return getAllTools();
   }
 
-  // Build set of allowed command IDs: curated defaults + every enabled toolkit's commands.
+  // Build set of allowed command IDs: curated defaults + each bound
+  // toolkit's direct-tool subset (curated tools[] if declared, else all
+  // toolkit.commands as a fallback).
   const allowedCommands = new Set<string>(DEFAULT_AGENT_TOOL_IDS);
 
   for (const binding of bindings) {
-    const toolkit = TOOLKITS.find(t => t.id === binding.toolkitId);
-    if (toolkit) {
-      for (const cmdId of toolkit.commands) {
-        allowedCommands.add(cmdId);
-      }
+    for (const cmdId of directToolCommandIds(binding.toolkitId)) {
+      allowedCommands.add(cmdId);
     }
   }
 
-  // META_COMMANDS already live inside DEFAULT_AGENT_TOOL_IDS, so allowedCommands
-  // is the complete gating set.
   const cmds = registry
     .getAll()
     .filter(cmd =>
@@ -473,6 +510,10 @@ export function getToolsForAgent(agent: Agent): AnthropicTool[] {
 /**
  * Get the set of allowed command IDs for an agent based on toolkit bindings.
  * Returns null if the agent has no bindings (meaning all commands are allowed).
+ *
+ * Note: this returns the FULL union of every command in every bound toolkit
+ * (not just the curated direct-tool subset), because it gates command
+ * execution (e.g. via `create_job`), not the direct LLM tool surface.
  */
 export function getCommandIdsForAgent(agent: Agent): Set<string> | null {
   const bindings = agent.toolkits;

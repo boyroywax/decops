@@ -69,7 +69,47 @@ export const infrastructureModule: ToolkitModule = {
     broadcastMessageCommand,
     listMessagesCommand,
   ],
-  tools: [],
+  // Curated direct LLM tools — the messaging hot path. Destructive /
+  // membership ops (delete_*, toggle_group_member, edit_channel) stay
+  // registry-only and route through create_job.
+  tools: [
+    {
+      id: "infra.createChannel",
+      name: "Create Channel",
+      description: "Create a new communication channel.",
+      commandId: "create_channel",
+    },
+    {
+      id: "infra.createGroup",
+      name: "Create Group",
+      description: "Create a new agent group.",
+      commandId: "create_group",
+    },
+    {
+      id: "infra.sendMessage",
+      name: "Send Message",
+      description: "Send a message to a channel as an agent.",
+      commandId: "send_message",
+    },
+    {
+      id: "infra.broadcastMessage",
+      name: "Broadcast Message",
+      description: "Broadcast a message to every member of a group.",
+      commandId: "broadcast_message",
+    },
+    {
+      id: "infra.listGroups",
+      name: "List Groups",
+      description: "List every group in the workspace.",
+      commandId: "list_groups",
+    },
+    {
+      id: "infra.listMessages",
+      name: "List Messages",
+      description: "List recent messages in a channel.",
+      commandId: "list_messages",
+    },
+  ],
 
   collections: [
     {

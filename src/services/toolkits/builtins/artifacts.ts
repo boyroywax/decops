@@ -42,7 +42,34 @@ export const artifactsModule: ToolkitModule = {
     searchArtifactsCommand,
     exportArtifactCommand,
   ],
-  tools: [],
+  // Curated direct LLM tools — content authoring + discovery. Delete /
+  // export / tag stay reachable via create_job.
+  tools: [
+    {
+      id: "artifacts.create",
+      name: "Create Artifact",
+      description: "Create a text artifact (markdown, code, JSON, plain text).",
+      commandId: "create_artifact",
+    },
+    {
+      id: "artifacts.edit",
+      name: "Edit Artifact",
+      description: "Edit the content of an existing artifact.",
+      commandId: "edit_artifact",
+    },
+    {
+      id: "artifacts.list",
+      name: "List Artifacts",
+      description: "List artifacts in the workspace, optionally filtered.",
+      commandId: "list_artifacts",
+    },
+    {
+      id: "artifacts.search",
+      name: "Search Artifacts",
+      description: "Full-text search across artifacts.",
+      commandId: "search_artifacts",
+    },
+  ],
 
   collections: [
     {

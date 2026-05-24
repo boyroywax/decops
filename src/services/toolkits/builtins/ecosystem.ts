@@ -65,7 +65,41 @@ export const ecosystemModule: ToolkitModule = {
     printTopologyCommand,
     resetWorkspaceCommand,
   ],
-  tools: [],
+  // Curated direct LLM tools — high-value network design + inspection.
+  // Destructive ops (destroy_network, delete_bridge, reset_workspace) and
+  // low-level edits (update_network) stay registry-only.
+  tools: [
+    {
+      id: "ecosystem.promptArchitect",
+      name: "Prompt Architect",
+      description: "Ask the architect to design a full mesh topology from a natural-language description.",
+      commandId: "prompt_architect",
+    },
+    {
+      id: "ecosystem.deployNetwork",
+      name: "Deploy Network",
+      description: "Deploy a previously-designed network (agents, channels, bridges) into the workspace.",
+      commandId: "deploy_network",
+    },
+    {
+      id: "ecosystem.createNetwork",
+      name: "Create Network",
+      description: "Create an empty network shell to populate manually.",
+      commandId: "create_network",
+    },
+    {
+      id: "ecosystem.listNetworks",
+      name: "List Networks",
+      description: "List every network in the workspace.",
+      commandId: "list_networks",
+    },
+    {
+      id: "ecosystem.printTopology",
+      name: "Print Topology",
+      description: "Render the current network topology graph.",
+      commandId: "print_topology",
+    },
+  ],
   agents: [
     {
       id: "architect-bot",

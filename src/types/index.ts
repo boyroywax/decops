@@ -212,6 +212,24 @@ export interface ToolkitTool {
   name: string;
   description: string;
   inputSchema?: Record<string, any>;
+  /**
+   * Optional command-registry ID this tool is backed by.
+   *
+   * When set, the tool is promoted to a *direct* LLM-facing tool for any
+   * agent bound to this toolkit (i.e. it appears in the Anthropic tool
+   * array alongside the curated default surface). When unset, the entry
+   * is descriptive metadata only — the underlying capability is still
+   * reachable through the `create_job` meta-tool.
+   *
+   * A toolkit that declares at least one `tools[].commandId` thereby
+   * defines its curated agent-facing surface; commands present in
+   * `toolkit.commands` but not in any `tools[].commandId` remain
+   * registry-only (reachable via `create_job` / `list_available_commands`).
+   *
+   * A toolkit with no `tools[].commandId` entries falls back to exposing
+   * every command in `toolkit.commands` as a direct tool (legacy behavior).
+   */
+  commandId?: string;
 }
 
 export interface ToolkitAgent {

@@ -31,12 +31,14 @@ export const webCrawlerModule: ToolkitModule = {
     updatedAt: "2025-01-01T00:00:00Z",
   },
   commands: [fetchUrlCommand, extractLinksCommand, crawlSiteCommand],
+  // All three commands are agent-facing — promote them all.
   tools: [
     {
       id: "fetch_url",
       name: "Fetch URL",
       description:
         "Load a single URL and extract its text content, metadata, and links.",
+      commandId: "fetch_url",
       inputSchema: {
         url: { type: "string", description: "The URL to fetch", required: true },
         format: {
@@ -51,6 +53,7 @@ export const webCrawlerModule: ToolkitModule = {
       name: "Crawl Site",
       description:
         "Recursively crawl a website starting from a root URL, following links up to a specified depth.",
+      commandId: "crawl_site",
       inputSchema: {
         url: { type: "string", description: "Root URL to start crawling", required: true },
         maxDepth: { type: "number", description: "Maximum link depth to follow", default: 2 },
@@ -62,22 +65,10 @@ export const webCrawlerModule: ToolkitModule = {
       name: "Extract Links",
       description:
         "Extract and categorize all links from a web page (internal, external, resources).",
+      commandId: "extract_links",
       inputSchema: {
         url: { type: "string", description: "URL to extract links from", required: true },
         filter: { type: "string", description: "Filter pattern for links (regex)", default: "" },
-      },
-    },
-    {
-      id: "screenshot_url",
-      name: "Screenshot URL",
-      description: "Capture a visual screenshot of a web page for analysis.",
-      inputSchema: {
-        url: { type: "string", description: "URL to screenshot", required: true },
-        viewport: {
-          type: "string",
-          description: "Viewport size: mobile, tablet, desktop",
-          default: "desktop",
-        },
       },
     },
   ],

@@ -10,7 +10,7 @@ import {
   listToolkitsCommand,
 } from "@/services/commands/definitions/meta";
 import { registry } from "@/services/commands/registry";
-import { getAllTools, getToolsForAgent } from "@/services/commands/tools";
+import { getAllTools, getToolsForAgent, getUnmigratedToolkitsForAgentTools } from "@/services/commands/tools";
 import { initializeRegistry } from "@/services/commands/init";
 import type { Agent } from "@/types";
 import type { CommandContext } from "@/services/commands/types";
@@ -163,6 +163,42 @@ describe("default agent tool surface", () => {
     const names = new Set(tools.map((t) => t.name));
     expect(names.has("create_job")).toBe(true); // default
     expect(names.has("queue_new_job")).toBe(true); // from jobs toolkit
+  });
+
+  it("getToolsForAgent honors the curated tools[] subset, not the full commands[]", () => {
+    // The jobs toolkit's `commands` array includes pause_queue / resume_queue /
+    // save_job_definition etc., but its curated `tools[]` exposes only the
+    // hot-path subset. Long-tail commands must stay registry-only.
+    const agent = {
+      id: "a3",
+      toolkits: [{ toolkitId: "jobs", enabledAt: new Date().toISOString() }],
+    } as unknown as Agent;
+    const tools = getToolsForAgent(agent);
+    const names = new Set(tools.map((t) => t.name));
+    expect(names.has("queue_new_job")).toBe(true); // curated → direct tool
+    expect(names.has("pause_queue")).toBe(false); // not curated → registry-only
+    expect(names.has("save_job_definition")).toBe(false); // not curated
+  });
+
+  it("getToolsForAgent on an unmigrated toolkit yields only the default surface", () => {
+    // A toolkit with no `tools[].commandId` entries contributes zero direct
+    // tools — agents reach its commands via create_job. This keeps us under
+    // Anthropic's 128-tool cap as more toolkits are added.
+    const unmigrated = getUnmigratedToolkitsForAgentTools();
+    if (unmigrated.length === 0) {
+      // Every toolkit has been migrated — skip.
+      return;
+    }
+    const agent = {
+      id: "a4",
+      toolkits: [{ toolkitId: unmigrated[0], enabledAt: new Date().toISOString() }],
+    } as unknown as Agent;
+    const defaults = new Set(getAllTools().map((t) => t.name));
+    const agentTools = getToolsForAgent(agent);
+    expect(agentTools.length).toBe(defaults.size);
+    for (const t of agentTools) {
+      expect(defaults.has(t.name)).toBe(true);
+    }
   });
 
   it("create_job is registered in the global command registry", () => {

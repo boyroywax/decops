@@ -36,7 +36,41 @@ export const autonomyModule: ToolkitModule = {
     updatedAt: "2025-01-01T00:00:00Z",
   },
   commands: [...autonomyCommands, groupDecideCommand],
-  tools: [],
+  // Curated direct LLM tools — the orchestration hot path. Long-tail
+  // task internals (escalate_task, propose_agent, execute_proposal) stay
+  // registry-only.
+  tools: [
+    {
+      id: "autonomy.delegateTask",
+      name: "Delegate Task",
+      description: "Hand off an autonomous goal to a capable agent with full context.",
+      commandId: "delegate_task",
+    },
+    {
+      id: "autonomy.assignTask",
+      name: "Assign Task",
+      description: "Assign an autonomous task to a specific agent and start execution.",
+      commandId: "assign_task",
+    },
+    {
+      id: "autonomy.taskStatus",
+      name: "Task Status",
+      description: "Inspect the current status / history of an autonomous task.",
+      commandId: "task_status",
+    },
+    {
+      id: "autonomy.listTasks",
+      name: "List Tasks",
+      description: "List autonomous tasks in the workspace.",
+      commandId: "list_tasks",
+    },
+    {
+      id: "autonomy.groupDecide",
+      name: "Group Decide",
+      description: "Run a consensus-building decision process among a group of agents.",
+      commandId: "group_decide",
+    },
+  ],
 
   tasks: [
     {
