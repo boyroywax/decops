@@ -624,11 +624,48 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   // NOT mirrored into React state here. Libp2p pubsub flooding would
   // otherwise rebuild this memo many times per second and cascade a
   // re-render through ChatPanel → MessageBubbles → freezing the UI.
-  const chatWorkspaceContext = useMemo(() => ({
-    agents: workspace.agents, channels: workspace.channels, groups: workspace.groups,
-    messages: workspace.messages, networks: ecosystem.networks, bridges: ecosystem.bridges,
-    addJob, jobs,
-  }), [workspace.agents, workspace.channels, workspace.groups, workspace.messages, ecosystem.networks, ecosystem.bridges, addJob, jobs]);
+  //
+  // Workspace-wide chat snapshot policy: the snapshot is captured only
+  // on demand — when the user sends a message, or when the agent calls
+  // `refreshChatContext()` (e.g. between tool rounds). Workspace state
+  // changes (new agents, channels, messages, jobs streaming events,
+  // etc.) do NOT rebuild this object, so ChatPanel + MessageBubbles
+  // are not forced to re-render while commands are executing. Commands
+  // were previously taking forever because every workspace mutation
+  // (including pubsub-driven message inserts) re-keyed this memo and
+  // cascaded a full chat re-render.
+  const workspaceRef = useRef(workspace);
+  workspaceRef.current = workspace;
+  const ecosystemRef = useRef(ecosystem);
+  ecosystemRef.current = ecosystem;
+  const jobsRef = useRef(jobs);
+  jobsRef.current = jobs;
+
+  const buildChatWorkspaceContext = useCallback(() => ({
+    agents: workspaceRef.current.agents,
+    channels: workspaceRef.current.channels,
+    groups: workspaceRef.current.groups,
+    messages: workspaceRef.current.messages,
+    networks: ecosystemRef.current.networks,
+    bridges: ecosystemRef.current.bridges,
+    addJob,
+    jobs: jobsRef.current,
+  }), [addJob]);
+
+  // Stored snapshot — initialised once, refreshed only by user-send
+  // (via the prop callback ChatPanel invokes) or agent request.
+  const [chatWorkspaceContext, setChatWorkspaceContext] = useState(buildChatWorkspaceContext);
+
+  /** Capture a fresh workspace snapshot, store it for UI consumers
+   *  (ActionCard, MessageBubble), and return it synchronously so the
+   *  caller can hand the SAME snapshot to the LLM in the same tick.
+   *  Called at user-message-send time, and exposable to the agent
+   *  as a tool when fresh state is needed mid-turn. */
+  const refreshChatContext = useCallback(() => {
+    const next = buildChatWorkspaceContext();
+    setChatWorkspaceContext(next);
+    return next;
+  }, [buildChatWorkspaceContext]);
 
   const isSideChat = chatPosition === "left" || chatPosition === "right";
 
@@ -638,6 +675,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     <div style={shouldHideChat ? { display: "none" } : undefined}>
       <ChatPanel
         context={chatWorkspaceContext}
+        refreshContext={refreshChatContext}
         ecosystem={ecosystem}
         onClose={() => { if (isSideChat) setSideChatVisible(false); else setFooterPanel("none"); }}
         addLog={addLog}

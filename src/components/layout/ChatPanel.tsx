@@ -34,6 +34,12 @@ import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {
     context: WorkspaceContext;
+    /** Refresh and return a fresh workspace snapshot. Called at user-
+     *  message-send time so the LLM receives the latest agents/channels/
+     *  messages/jobs without forcing ChatPanel to re-render whenever
+     *  workspace state changes between sends. Optional for backwards
+     *  compatibility with tests / callers that pass a static context. */
+    refreshContext?: () => WorkspaceContext;
     /** Live ecosystem snapshot. Accepts the full `useEcosystem()` return
      * (UseEcosystemReturn) or a partial fallback. Typed as the same narrow
      * input shape that `useCommandContext` consumes so callers don't have
@@ -50,7 +56,7 @@ interface ChatPanelProps {
     setView?: (v: ViewId) => void;
 }
 
-export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeight, isExpanded, onToggleExpand, position = "bottom", view, setView }: ChatPanelProps) {
+export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog, height, setHeight, isExpanded, onToggleExpand, position = "bottom", view, setView }: ChatPanelProps) {
     const { activeWorkspaceId } = useWorkspaceManager();
     const {
         conversations, setConversations,
@@ -791,8 +797,15 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                     messageToSend = text + editorSuffix;
                 }
 
+                // Refresh the workspace snapshot ONCE per user-send so the
+                // LLM sees the latest agents/channels/messages/jobs. Between
+                // sends the context prop is stable, which prevents React
+                // re-render cascades during long-running commands. Falls
+                // back to the static `context` prop when no refresh
+                // callback was supplied (tests, legacy callers).
+                const freshContext = refreshContext ? refreshContext() : context;
                 const { text: response, toolCalls } = await streamChatWithWorkspace(
-                    messageToSend, currentMessages, { ...context, p2p: readP2PContext() }, streamCallbacks, commandContext,
+                    messageToSend, currentMessages, { ...freshContext, p2p: readP2PContext() }, streamCallbacks, commandContext,
                     activeAgent?.toolkitIds,
                 );
 
@@ -825,7 +838,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
             if (activeRunIdRef.current === runId) activeRunIdRef.current = null;
             setLoading(false);
         }
-    }, [input, loading, activeId, conversations, context, addLog, updateConversation, commandContext, queueCommandAsJob, workspaceCtx, activeAgent]);
+    }, [input, loading, activeId, conversations, context, refreshContext, addLog, updateConversation, commandContext, queueCommandAsJob, workspaceCtx, activeAgent]);
 
     // Handle prompt modal submission
     const handlePromptSubmit = useCallback((commandId: string, args: Record<string, any>) => {
