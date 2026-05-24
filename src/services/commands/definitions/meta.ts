@@ -218,10 +218,242 @@ export const listToolkitsCommand: CommandDefinition = {
   },
 };
 
-/** Convenience export — the four meta commands as an array. */
+// ── query_workspace ───────────────────────────────────────────────────────
+//
+// Unified read-only snapshot of workspace metrics. Agents call this once
+// to orient themselves instead of chaining list_agents + list_channels +
+// list_queue + list_networks + … which would otherwise burn rounds and
+// blow context. The `sections` arg lets callers narrow the payload.
+
+type WorkspaceQuerySection =
+  | "summary"
+  | "agents"
+  | "channels"
+  | "groups"
+  | "messages"
+  | "jobs"
+  | "ecosystem"
+  | "artifacts"
+  | "toolkits";
+
+const ALL_SECTIONS: WorkspaceQuerySection[] = [
+  "summary",
+  "agents",
+  "channels",
+  "groups",
+  "messages",
+  "jobs",
+  "ecosystem",
+  "artifacts",
+  "toolkits",
+];
+
+function countBy<T>(items: T[], key: (item: T) => string | undefined): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const item of items) {
+    const k = key(item) ?? "unknown";
+    out[k] = (out[k] ?? 0) + 1;
+  }
+  return out;
+}
+
+export const queryWorkspaceCommand: CommandDefinition = {
+  id: "query_workspace",
+  description:
+    "Return a read-only snapshot of workspace metrics: agents, channels, groups, recent messages, job queue state, ecosystem networks/bridges, artifacts, and toolkit counts. Pass `sections` to narrow the payload (default: all). Use this to orient yourself before planning multi-step work.",
+  tags: ["meta", "query", "discovery", "metrics"],
+  rbac: ["orchestrator", "builder", "researcher", "curator", "validator"],
+  args: {
+    sections: {
+      name: "sections",
+      type: "array",
+      description:
+        "Sections to include. One or more of: summary, agents, channels, groups, messages, jobs, ecosystem, artifacts, toolkits. Defaults to all.",
+      required: false,
+    },
+    messageLimit: {
+      name: "messageLimit",
+      type: "number",
+      description: "Max recent messages to include when 'messages' section is requested. Default 20.",
+      required: false,
+      defaultValue: 20,
+    },
+    jobLimit: {
+      name: "jobLimit",
+      type: "number",
+      description: "Max jobs to include when 'jobs' section is requested. Default 20.",
+      required: false,
+      defaultValue: 20,
+    },
+  },
+  output: "Workspace snapshot object keyed by requested sections.",
+  outputSchema: { type: "object", additionalProperties: true },
+  execute: async (args, context) => {
+    const requested = Array.isArray(args.sections) && (args.sections as unknown[]).length > 0
+      ? (args.sections as string[]).filter((s): s is WorkspaceQuerySection =>
+          (ALL_SECTIONS as string[]).includes(s),
+        )
+      : ALL_SECTIONS;
+    const want = (s: WorkspaceQuerySection) => requested.includes(s);
+
+    const agents = context.workspace.getAgents?.() ?? context.workspace.agents;
+    const channels = context.workspace.getChannels?.() ?? context.workspace.channels;
+    const groups = context.workspace.getGroups?.() ?? context.workspace.groups;
+    const messages = context.workspace.getMessages?.() ?? context.workspace.messages;
+    const queue = context.jobs.getQueue();
+    const catalog = context.jobs.getCatalog();
+    const artifacts = context.jobs.allArtifacts ?? [];
+    const networks = context.ecosystem?.networks ?? [];
+    const bridges = context.ecosystem?.bridges ?? [];
+    const activeNetworkId = context.ecosystem?.activeNetworkId ?? null;
+
+    const messageLimit = Number(args.messageLimit ?? 20) || 20;
+    const jobLimit = Number(args.jobLimit ?? 20) || 20;
+
+    const result: Record<string, unknown> = {};
+
+    if (want("summary")) {
+      result.summary = {
+        agentCount: agents.length,
+        channelCount: channels.length,
+        groupCount: groups.length,
+        messageCount: messages.length,
+        queueDepth: queue.length,
+        runningJobs: queue.filter((j) => j.status === "running").length,
+        awaitingInputJobs: queue.filter((j) => j.status === "awaiting-input").length,
+        failedJobs: queue.filter((j) => j.status === "failed").length,
+        catalogCount: catalog.length,
+        artifactCount: artifacts.length,
+        networkCount: networks.length,
+        bridgeCount: bridges.length,
+        toolkitCount: TOOLKITS.length,
+        queuePaused: context.jobs.isPaused,
+        activeChannel: context.workspace.activeChannel ?? null,
+        activeNetworkId,
+      };
+    }
+
+    if (want("agents")) {
+      result.agents = {
+        count: agents.length,
+        byRole: countBy(agents, (a) => a.role),
+        byStatus: countBy(agents, (a) => a.runtimeStatus ?? a.status),
+        items: agents.map((a) => ({
+          id: a.id,
+          name: a.name,
+          role: a.role,
+          status: a.status,
+          runtimeStatus: a.runtimeStatus,
+          networkId: a.networkId,
+          toolkitCount: a.toolkits?.length ?? 0,
+          lastActivityAt: a.lastActivityAt,
+        })),
+      };
+    }
+
+    if (want("channels")) {
+      result.channels = {
+        count: channels.length,
+        items: channels.map((c) => ({
+          id: c.id,
+          from: c.from,
+          to: c.to,
+          type: c.type,
+          mode: c.mode,
+          networkId: c.networkId,
+        })),
+      };
+    }
+
+    if (want("groups")) {
+      result.groups = {
+        count: groups.length,
+        items: groups.map((g) => ({
+          id: g.id,
+          name: g.name,
+          memberCount: (g as { members?: unknown[] }).members?.length ?? 0,
+        })),
+      };
+    }
+
+    if (want("messages")) {
+      const recent = messages.slice(-messageLimit);
+      result.messages = {
+        total: messages.length,
+        returned: recent.length,
+        items: recent,
+      };
+    }
+
+    if (want("jobs")) {
+      const recent = queue.slice(-jobLimit);
+      result.jobs = {
+        queueDepth: queue.length,
+        paused: context.jobs.isPaused,
+        byStatus: countBy(queue, (j) => j.status),
+        byType: countBy(queue, (j) => j.type),
+        recent: recent.map((j) => ({
+          id: j.id,
+          type: j.type,
+          status: j.status,
+          createdAt: j.createdAt,
+          completedAt: (j as { completedAt?: number }).completedAt,
+        })),
+        catalogCount: catalog.length,
+        catalog: catalog.map((d) => ({ id: d.id, name: d.name, mode: d.mode })),
+      };
+    }
+
+    if (want("ecosystem")) {
+      result.ecosystem = {
+        activeNetworkId,
+        networkCount: networks.length,
+        bridgeCount: bridges.length,
+        networks: networks.map((n) => ({
+          id: n.id,
+          name: n.name,
+          memberCount: (n as { members?: unknown[] }).members?.length ?? 0,
+        })),
+        bridges: bridges.map((b) => ({
+          id: b.id,
+          fromNetworkId: b.fromNetworkId,
+          toNetworkId: b.toNetworkId,
+          fromAgentId: b.fromAgentId,
+          toAgentId: b.toAgentId,
+        })),
+      };
+    }
+
+    if (want("artifacts")) {
+      result.artifacts = {
+        count: artifacts.length,
+        byType: countBy(artifacts, (a) => (a as { type?: string }).type),
+        items: artifacts.slice(-jobLimit).map((a) => ({
+          id: a.id,
+          name: (a as { name?: string }).name,
+          type: (a as { type?: string }).type,
+          jobId: (a as { jobId?: string }).jobId,
+        })),
+      };
+    }
+
+    if (want("toolkits")) {
+      result.toolkits = {
+        count: TOOLKITS.length,
+        byCategory: countBy(TOOLKITS, (tk) => tk.category),
+        byStatus: countBy(TOOLKITS, (tk) => tk.status),
+      };
+    }
+
+    return result;
+  },
+};
+
+/** Convenience export — the meta commands as an array. */
 export const metaCommands: CommandDefinition[] = [
   createJobCommand,
   listAvailableCommandsCommand,
   getCommandSchemaCommand,
   listToolkitsCommand,
+  queryWorkspaceCommand,
 ];

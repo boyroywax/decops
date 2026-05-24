@@ -8,6 +8,7 @@ import {
   listAvailableCommandsCommand,
   getCommandSchemaCommand,
   listToolkitsCommand,
+  queryWorkspaceCommand,
 } from "@/services/commands/definitions/meta";
 import { registry } from "@/services/commands/registry";
 import { getAllTools, getToolsForAgent, getUnmigratedToolkitsForAgentTools } from "@/services/commands/tools";
@@ -128,6 +129,86 @@ describe("meta commands", () => {
       };
       expect(out.count).toBeGreaterThan(0);
       expect(out.toolkits.some((t) => t.id === "jobs")).toBe(true);
+    });
+  });
+
+  describe("query_workspace", () => {
+    function makeRichContext(): CommandContext {
+      const base = makeContext(() => ({ id: "x" }));
+      const agents = [
+        { id: "a1", name: "A1", role: "researcher", status: "active" },
+        { id: "a2", name: "A2", role: "builder", status: "active" },
+      ];
+      const channels = [{ id: "c1", from: "a1", to: "a2", type: "p2p", offset: 0, createdAt: "" }];
+      const groups = [{ id: "g1", name: "G1", members: ["a1", "a2"] }];
+      const messages = Array.from({ length: 30 }, (_, i) => ({ id: `m${i}`, body: `msg ${i}` }));
+      const queue = [
+        { id: "j1", type: "list_agents", status: "completed", createdAt: 1, completedAt: 2 },
+        { id: "j2", type: "list_agents", status: "running", createdAt: 3 },
+        { id: "j3", type: "send_message", status: "queued", createdAt: 4 },
+      ];
+      const networks = [{ id: "n1", name: "N1", members: ["a1"] }];
+      const bridges = [
+        { id: "b1", fromNetworkId: "n1", toNetworkId: "n2", fromAgentId: "a1", toAgentId: "a2", type: "p2p", offset: 0, createdAt: "" },
+      ];
+      return {
+        ...base,
+        workspace: { ...base.workspace, agents, channels, groups, messages } as CommandContext["workspace"],
+        jobs: {
+          ...(base.jobs as object),
+          getQueue: () => queue,
+          getCatalog: () => [],
+          allArtifacts: [],
+          isPaused: false,
+        } as unknown as CommandContext["jobs"],
+        ecosystem: { networks, bridges, activeNetworkId: "n1" } as unknown as CommandContext["ecosystem"],
+      } as CommandContext;
+    }
+
+    it("returns a summary section with rolled-up counts by default", async () => {
+      const ctx = makeRichContext();
+      const out = (await queryWorkspaceCommand.execute({}, ctx)) as Record<string, Record<string, unknown>>;
+      expect(out.summary).toMatchObject({
+        agentCount: 2,
+        channelCount: 1,
+        groupCount: 1,
+        messageCount: 30,
+        queueDepth: 3,
+        runningJobs: 1,
+        networkCount: 1,
+        bridgeCount: 1,
+        activeNetworkId: "n1",
+        queuePaused: false,
+      });
+    });
+
+    it("honors the sections filter", async () => {
+      const ctx = makeRichContext();
+      const out = (await queryWorkspaceCommand.execute({ sections: ["agents", "jobs"] }, ctx)) as Record<string, unknown>;
+      expect(out.agents).toBeDefined();
+      expect(out.jobs).toBeDefined();
+      expect(out.summary).toBeUndefined();
+      expect(out.channels).toBeUndefined();
+    });
+
+    it("respects messageLimit", async () => {
+      const ctx = makeRichContext();
+      const out = (await queryWorkspaceCommand.execute(
+        { sections: ["messages"], messageLimit: 5 },
+        ctx,
+      )) as { messages: { total: number; returned: number; items: unknown[] } };
+      expect(out.messages.total).toBe(30);
+      expect(out.messages.returned).toBe(5);
+      expect(out.messages.items).toHaveLength(5);
+    });
+
+    it("rolls up jobs by status and type", async () => {
+      const ctx = makeRichContext();
+      const out = (await queryWorkspaceCommand.execute({ sections: ["jobs"] }, ctx)) as {
+        jobs: { byStatus: Record<string, number>; byType: Record<string, number> };
+      };
+      expect(out.jobs.byStatus).toMatchObject({ completed: 1, running: 1, queued: 1 });
+      expect(out.jobs.byType).toMatchObject({ list_agents: 2, send_message: 1 });
     });
   });
 });

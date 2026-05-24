@@ -66,6 +66,7 @@ const TOOL_PRIORITY_ORDER = [
   "list_available_commands",
   "get_command_schema",
   "list_toolkits",
+  "query_workspace",
   "queue_new_job",
   "list_queued_jobs",
   "delete_queued_job",
@@ -85,6 +86,7 @@ const DEFAULT_AGENT_TOOL_IDS = new Set<string>([
   "create_job",
   "list_available_commands",
   "get_command_schema",
+  "query_workspace",
   // Workspace inspectors
   "list_toolkits",
   "list_agents",
