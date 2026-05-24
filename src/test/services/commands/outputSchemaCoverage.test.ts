@@ -14,16 +14,17 @@ describe("outputSchema coverage [§9.1]", () => {
         expect(missing, `missing outputSchema on:\n${missing.join("\n")}`).toEqual([]);
     });
 
-    it("every outputSchema is a JSON-Schema object form", () => {
+    it("every outputSchema is a JSON-Schema object or array form", () => {
         const bad: string[] = [];
+        const allowed = new Set(["object", "array"]);
         for (const mod of builtinModules) {
             for (const cmd of mod.commands ?? []) {
                 const s = cmd.outputSchema;
-                if (s && (typeof s !== "object" || (s as { type?: string }).type !== "object")) {
+                if (s && (typeof s !== "object" || !allowed.has((s as { type?: string }).type ?? ""))) {
                     bad.push(`${mod.manifest.id}/${cmd.id}`);
                 }
             }
         }
-        expect(bad, `non-object outputSchema on:\n${bad.join("\n")}`).toEqual([]);
+        expect(bad, `non-object/array outputSchema on:\n${bad.join("\n")}`).toEqual([]);
     });
 });

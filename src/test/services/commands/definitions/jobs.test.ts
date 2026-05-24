@@ -25,7 +25,11 @@ describe('Jobs Commands', () => {
     beforeEach(() => {
         mockQueue = [];
         mockCatalog = [];
-        mockAddJob = vi.fn((job) => mockQueue.push(job));
+        mockAddJob = vi.fn((job) => {
+            const queued = { id: 'job-1', ...job };
+            mockQueue.push(queued);
+            return queued;
+        });
         mockRemoveJob = vi.fn((id) => {
             const index = mockQueue.findIndex(j => j.id === id);
             if (index > -1) mockQueue.splice(index, 1);
@@ -57,7 +61,7 @@ describe('Jobs Commands', () => {
             const args = { type: 'test_cmd', request: { foo: 'bar' } };
             const result = await queueNewJobCommand.execute(args, context);
 
-            expect(result).toBe('Job queued');
+            expect(result).toEqual({ jobId: 'job-1', type: 'test_cmd', queued: true });
             expect(mockAddJob).toHaveBeenCalledWith({ type: 'test_cmd', request: { foo: 'bar' } });
         });
 
