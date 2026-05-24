@@ -391,7 +391,7 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
                         className={`footer__metric footer__metric--orbitdb-server${orbitdbServerMetrics.newDatabases > 0 ? " footer__metric--alert" : ""}`}
                         onClick={handleOpenOrbitdbServer}
                         title={[
-                            `OrbitDB Server — ${orbitdbServerMetrics.connectedNodes}/${orbitdbServerMetrics.totalNodes} node(s) connected`,
+                            `Lagrange — ${orbitdbServerMetrics.connectedNodes}/${orbitdbServerMetrics.totalNodes} node(s) connected`,
                             `${orbitdbServerMetrics.totalDatabases} database(s) tracked`,
                             `${orbitdbServerMetrics.swarmPeers} swarm peer(s)`,
                             orbitdbServerMetrics.privateNodes > 0

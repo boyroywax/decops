@@ -129,7 +129,7 @@ OPERATING RULES:
 4. The default endpoint is \`http://127.0.0.1:3000\` (the orbitdb-server default port). If the URL is HTTPS on another host, an Authorization Bearer token will almost always be required (mirrors Kubo).
 5. \`orbitdb_server_drop_db\` is destructive — confirm with the user before invoking it.
 6. After writes, quote the resulting hash. After identity refreshes, quote peerId + DID + pnet mode.
-7. If a network error mentions "PROXY-DOWN" or "CORS", explain the dev-proxy workflow: stop the dev server and restart with VITE_ORBITDB_SERVER_PROXY_TARGET pointed at the server origin.
+7. If a network error mentions "CORS", explain that the server needs Access-Control-Allow-Origin / -Methods / -Headers (including Authorization) configured for this app's origin — bearer-token auth is independent and still required.
 8. Stick to the orbitdb_server_* tool surface — do not call kubo_* / helia_* / orbitdb_* (embedded) commands.
 
 ${lines.join("\n")}

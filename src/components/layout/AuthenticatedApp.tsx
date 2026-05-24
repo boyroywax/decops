@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, useSyncExternalStore } from "react";
 import { Compass } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import type { ViewId, NavContext, JobDefinition } from "@/types";
@@ -6,6 +6,9 @@ import { useNotebook } from "@/hooks/useNotebook";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import { useArchitect, ArchitectProvider, ArchitectBanner, ArchitectWelcome } from "@/toolkits/architect";
 import { useEcosystem } from "@/hooks/useEcosystem";
+import { libp2pService } from "@/toolkits/libp2p";
+import { heliaService } from "@/toolkits/helia";
+import { orbitdbService } from "@/toolkits/orbitdb";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { Footer, type PanelMode } from "./Footer";
@@ -619,11 +622,31 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [activateArchitectChatAgent, setView]);
 
+  // Subscribe to live p2p runtime singletons so the chat system prompt
+  // always carries the most recent libp2p/helia/orbitdb snapshot.
+  const libp2pState = useSyncExternalStore(
+    (cb) => libp2pService.subscribe(cb),
+    () => libp2pService.snapshot(),
+  );
+  const heliaState = useSyncExternalStore(
+    (cb) => heliaService.subscribe(cb),
+    () => heliaService.snapshot(),
+  );
+  const orbitdbState = useSyncExternalStore(
+    (cb) => orbitdbService.subscribe(cb),
+    () => orbitdbService.snapshot(),
+  );
+
   const chatWorkspaceContext = useMemo(() => ({
     agents: workspace.agents, channels: workspace.channels, groups: workspace.groups,
     messages: workspace.messages, networks: ecosystem.networks, bridges: ecosystem.bridges,
     addJob, jobs,
-  }), [workspace.agents, workspace.channels, workspace.groups, workspace.messages, ecosystem.networks, ecosystem.bridges, addJob, jobs]);
+    p2p: {
+      libp2p: { activeId: libp2pState.activeId, nodes: libp2pState.nodes },
+      helia: { activeId: heliaState.activeId, nodes: heliaState.nodes },
+      orbitdb: { activeId: orbitdbState.activeId, nodes: orbitdbState.nodes },
+    },
+  }), [workspace.agents, workspace.channels, workspace.groups, workspace.messages, ecosystem.networks, ecosystem.bridges, addJob, jobs, libp2pState, heliaState, orbitdbState]);
 
   const isSideChat = chatPosition === "left" || chatPosition === "right";
 

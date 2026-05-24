@@ -4,7 +4,7 @@ import {
     Pause, Play, StopCircle, Timer, ChevronDown, ChevronUp,
     Terminal, FileText, Database, Package, Layers, GitFork,
     Search, Trash2, LayoutGrid, List, Circle,
-    ArrowRight, XCircle, MessageSquare, SkipForward,
+    ArrowRight, XCircle, MessageSquare, SkipForward, Settings,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { CopyableId } from "@/components/shared/CopyableId";
@@ -14,9 +14,12 @@ import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 import { StepRow, buildStepTree } from "@/components/actions/MonitorStepTree";
 import type { Job, JobEvent } from "@/types";
+import { TOOLKITS, toolkitRegistry } from "@/services/toolkits";
+import { useToolkitConfiguration } from "@/hooks/useToolkitConfiguration";
+import { ConfigurationItem } from "@/components/config/ConfigurationItem";
 import "../../styles/components/system-view.css";
 
-type SystemTab = "processes" | "queue" | "history";
+type SystemTab = "processes" | "queue" | "history" | "configuration";
 
 /** Format ms duration into a readable string */
 function formatDuration(ms: number): string {
@@ -439,8 +442,11 @@ export function SystemView() {
     const [activeTab, setActiveTab] = useState<SystemTab>("processes");
     const [historyFilter, setHistoryFilter] = useState("");
     const [historyStatus, setHistoryStatus] = useState<"all" | "completed" | "failed">("all");
+    const [configFilter, setConfigFilter] = useState("");
+    const [expandedConfigToolkit, setExpandedConfigToolkit] = useState<string | null>(null);
     const { jobs, isPaused, toggleQueuePause, stopJob, removeJob, clearJobs } = useJobsContext();
     const { automations, runs } = useAutomations();
+    const { getFieldValue, setFieldValue, resetFieldValue } = useToolkitConfiguration();
     const del = useDeleteConfirm();
 
     // Derived lists
@@ -493,10 +499,51 @@ export function SystemView() {
         [runs]
     );
 
+    const toolkitsWithConfig = useMemo(
+        () => TOOLKITS
+            .map((toolkit) => ({
+                toolkit,
+                module: toolkitRegistry.get(toolkit.id),
+            }))
+            .filter(
+                (entry) =>
+                    entry.module?.configuration &&
+                    entry.module.configuration.fields.length > 0,
+            ),
+        [],
+    );
+
+    const filteredToolkitsWithConfig = useMemo(() => {
+        const q = configFilter.trim().toLowerCase();
+        if (!q) return toolkitsWithConfig;
+
+        return toolkitsWithConfig.filter(({ toolkit, module }) => {
+            const fields = module?.configuration?.fields || [];
+            return (
+                toolkit.name.toLowerCase().includes(q) ||
+                toolkit.id.toLowerCase().includes(q) ||
+                fields.some(
+                    (field) =>
+                        field.key.toLowerCase().includes(q) ||
+                        field.label.toLowerCase().includes(q),
+                )
+            );
+        });
+    }, [toolkitsWithConfig, configFilter]);
+
+    const configFieldCount = useMemo(
+        () => toolkitsWithConfig.reduce(
+            (sum, { module }) => sum + (module?.configuration?.fields.length || 0),
+            0,
+        ),
+        [toolkitsWithConfig],
+    );
+
     const tabCounts = {
         processes: activeJobs.length + runningAutomations.length,
         queue: queuedJobs.length,
         history: historyJobs.length,
+        configuration: configFieldCount,
     };
 
     return (
@@ -558,7 +605,7 @@ export function SystemView() {
 
             {/* ── Tab Bar ── */}
             <div className="system-view__tabs">
-                {(["processes", "queue", "history"] as SystemTab[]).map(tab => (
+                {(["processes", "queue", "history", "configuration"] as SystemTab[]).map(tab => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -567,6 +614,7 @@ export function SystemView() {
                         {tab === "processes" && <Activity size={13} />}
                         {tab === "queue" && <Clock size={13} />}
                         {tab === "history" && <Terminal size={13} />}
+                        {tab === "configuration" && <Settings size={13} />}
                         {tab.charAt(0).toUpperCase() + tab.slice(1)}
                         {tabCounts[tab] > 0 && (
                             <span className={`system-view__tab-badge ${activeTab === tab ? "system-view__tab-badge--active" : ""}`}>
@@ -791,6 +839,81 @@ export function SystemView() {
                                         ))}
                                     </div>
                                 ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* ═══ CONFIGURATION TAB ═══ */}
+                {activeTab === "configuration" && (
+                    <div className="system-view__panel">
+                        <div className="system-view__history-toolbar">
+                            <div className="system-view__history-search">
+                                <Search size={13} />
+                                <input
+                                    type="text"
+                                    placeholder="Search toolkits or config fields..."
+                                    value={configFilter}
+                                    onChange={e => setConfigFilter(e.target.value)}
+                                    className="system-view__history-input"
+                                />
+                            </div>
+                            <span className="system-view__history-count">
+                                {toolkitsWithConfig.length} toolkits · {configFieldCount} fields
+                            </span>
+                        </div>
+
+                        {filteredToolkitsWithConfig.length === 0 ? (
+                            <div className="system-view__empty">
+                                <GradientIcon icon={Settings} size={40} gradient={["#64748b", "#94a3b8"]} />
+                                <div className="system-view__empty-title">No Matching Configuration</div>
+                                <div className="system-view__empty-desc">
+                                    Try a different search term or add configuration fields to a toolkit module.
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="system-view__config-list">
+                                {filteredToolkitsWithConfig.map(({ toolkit, module }) => {
+                                    if (!module?.configuration) return null;
+                                    const fields = module.configuration.fields;
+                                    const isExpanded = expandedConfigToolkit === toolkit.id;
+                                    const customizedCount = fields.filter((field) => {
+                                        const value = getFieldValue(toolkit.id, field);
+                                        return value !== undefined && value !== field.defaultValue;
+                                    }).length;
+
+                                    return (
+                                        <div key={toolkit.id} className="system-view__config-card">
+                                            <button
+                                                className="system-view__config-header"
+                                                onClick={() => setExpandedConfigToolkit(isExpanded ? null : toolkit.id)}
+                                            >
+                                                <div className="system-view__config-header-meta">
+                                                    <div className="system-view__config-name">{toolkit.name}</div>
+                                                    <div className="system-view__config-subtitle">
+                                                        {fields.length} fields
+                                                        {customizedCount > 0 && ` · ${customizedCount} customized`}
+                                                    </div>
+                                                </div>
+                                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                            </button>
+
+                                            {isExpanded && (
+                                                <div className="system-view__config-fields">
+                                                    {fields.map((field) => (
+                                                        <ConfigurationItem
+                                                            key={`${toolkit.id}:${field.key}`}
+                                                            field={field}
+                                                            value={getFieldValue(toolkit.id, field)}
+                                                            onChange={(value) => setFieldValue(toolkit.id, field.key, value)}
+                                                            onReset={() => resetFieldValue(toolkit.id, field)}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

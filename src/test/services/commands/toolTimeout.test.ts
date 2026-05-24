@@ -21,7 +21,7 @@ function makeCommand(overrides: Partial<CommandDefinition> & { id: string }): Co
 }
 
 describe("resolveToolTimeout", () => {
-    const DEFAULT = 30_000;
+    const DEFAULT = 12_000;
     const RUNNER = 180_000;
 
     const registered: string[] = [];

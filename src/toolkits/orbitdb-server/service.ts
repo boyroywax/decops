@@ -282,6 +282,8 @@ class OrbitdbServerNode {
 
     private classifyNetworkError(err: unknown, path: string): Error {
         const rawMsg = err instanceof Error ? err.message : String(err);
+        // See docs/adr/0005-cors-proxy-removal.md — the previous PROXY-DOWN
+        // branch was removed along with the /orbitdb-server-proxy route.
         const isFailedToFetch = err instanceof TypeError && /failed to fetch|network/i.test(rawMsg);
         let appOrigin = "";
         let endpointOrigin = this.endpoint;
@@ -291,21 +293,14 @@ class OrbitdbServerNode {
         } catch { /* keep defaults */ }
         const sameOrigin = !!appOrigin && appOrigin === endpointOrigin;
         const looksLikeCors = isFailedToFetch && !sameOrigin && /^https?:\/\//i.test(this.endpoint);
-        const looksLikeProxyDown = isFailedToFetch && sameOrigin && /\/orbitdb-server-proxy(\/|$)/.test(this.endpoint);
 
         let msg: string;
-        if (looksLikeProxyDown) {
-            msg =
-                `PROXY-DOWN: The dev proxy at ${this.endpoint} did not respond. ` +
-                `Most likely the dev server was started without the proxy env var. ` +
-                `Stop the dev server (Ctrl-C) and restart with:  VITE_ORBITDB_SERVER_PROXY_TARGET=https://orbitdb.dvln.net npm run dev  ` +
-                `then watch the dev-server terminal for "[orbitdb-server-proxy] →" log lines on the next request.`;
-        } else if (looksLikeCors) {
+        if (looksLikeCors) {
             msg =
                 `CORS / network blocked the request to ${this.endpoint}${path}. ` +
                 `The remote orbitdb-server is not allowing origin ${appOrigin}. ` +
-                `Either configure CORS on the server, or use the built-in dev proxy: stop dev server, restart with  ` +
-                `VITE_ORBITDB_SERVER_PROXY_TARGET=${endpointOrigin} npm run dev , then set the API URL to  ${appOrigin}/orbitdb-server-proxy .`;
+                `Configure CORS on the server (Access-Control-Allow-Origin / -Methods / -Headers including Authorization) and restart it. ` +
+                `Bearer-token auth is independent of CORS and still required.`;
         } else {
             msg = rawMsg;
         }

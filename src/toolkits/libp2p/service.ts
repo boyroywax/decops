@@ -154,6 +154,20 @@ export interface Libp2pStartOptions {
     pnetKey?: string;
 }
 
+function cloneStartOptions(opts: Libp2pStartOptions = {}): Libp2pStartOptions {
+    return {
+        ...(Array.isArray(opts.bootstrap) ? { bootstrap: [...opts.bootstrap] } : {}),
+        ...(Array.isArray(opts.disabledBootstrap) ? { disabledBootstrap: [...opts.disabledBootstrap] } : {}),
+        ...(opts.services ? { services: { ...opts.services } } : {}),
+        ...(opts.discovery ? { discovery: { ...opts.discovery } } : {}),
+        ...(opts.transports ? { transports: { ...opts.transports } } : {}),
+        ...(opts.enableWebRTC !== undefined ? { enableWebRTC: opts.enableWebRTC } : {}),
+        ...(opts.enableCircuitRelay !== undefined ? { enableCircuitRelay: opts.enableCircuitRelay } : {}),
+        ...(opts.pubsubDiscoveryTopic ? { pubsubDiscoveryTopic: opts.pubsubDiscoveryTopic } : {}),
+        ...(opts.pnetKey ? { pnetKey: opts.pnetKey } : {}),
+    };
+}
+
 export interface ManagerSnapshot {
     activeId: string | null;
     nodes: Libp2pSnapshot[];
@@ -240,6 +254,8 @@ class Libp2pNode {
     /** Cap on retained pubsub messages per node. */
     private static readonly PUBSUB_LOG_LIMIT = 200;
     private startPromise: Promise<void> | null = null;
+    /** Last explicit start options used for this node. */
+    private lastStartOptions: Libp2pStartOptions = {};
     /** Private key to use on next start (import or generate). */
     private privateKey: PrivateKey | null = null;
     /** Listener fired whenever this node's snapshot changes. */
@@ -306,6 +322,10 @@ class Libp2pNode {
             lastPubsubMessage: this.lastPubsubMessage,
             pubsubMessages: this.pubsubMessages.slice(),
         };
+    }
+
+    getLastStartOptions(): Libp2pStartOptions {
+        return cloneStartOptions(this.lastStartOptions);
     }
 
     private setStatus(status: Libp2pStatus, error?: string) {
@@ -409,6 +429,8 @@ class Libp2pNode {
     async start(opts: Libp2pStartOptions = {}): Promise<void> {
         if (this.status === "running") return;
         if (this.startPromise) return this.startPromise;
+
+        this.lastStartOptions = cloneStartOptions(opts);
 
         this.startPromise = (async () => {
             this.setStatus("starting");
@@ -829,6 +851,10 @@ class Libp2pManager {
         const node = this.nodes.get(target);
         if (!node) throw new Error(`libp2p node "${target}" not found`);
         return node;
+    }
+
+    getLastStartOptions(id?: string | null): Libp2pStartOptions {
+        return this.getNode(id).getLastStartOptions();
     }
 
     // Convenience proxies — use the active node by default.

@@ -175,18 +175,18 @@ export function useToolkitChatAgents(): void {
             }),
         );
 
-        // OrbitDB Server chat agent — remote orbitdb-server over HTTP RPC
+        // Lagrange chat agent — remote orbitdb-server (Voyager-compatible) over HTTP RPC
         disposers.push(
             useChatAgentsStore.getState().register({
                 id: "orbitdb-server",
-                name: "OrbitDB Server",
+                name: "Lagrange",
                 description:
-                    "Direct line to a remote orbitdb-server — open databases, write entries, manage pnet, dial peers.",
+                    "Direct line to Lagrange (remote orbitdb-server) — open databases, write entries, manage pnet, dial peers.",
                 icon: HardDrive,
                 gradient: ["#ec4899", "#a855f7"],
                 banner: OrbitdbServerChatBanner,
                 placeholder:
-                    "Tell the orbitdb-server bot what to do (connect, open a documents db, append events, check pnet…)",
+                    "Tell Lagrange what to do (connect, open a documents db, append events, check pnet…)",
                 toolkitIds: ["orbitdb-server", "libp2p", "infrastructure", "jobs"],
                 workspace: {
                     view: "orbitdb-server",

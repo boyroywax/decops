@@ -6,6 +6,19 @@
 
 import type { Agent, Channel, Group, Message, Network, Bridge, Job, JobRequest } from "@/types";
 import { TOOLKITS } from "@/services/toolkits";
+import type { Libp2pSnapshot } from "@/toolkits/libp2p";
+import type { HeliaSnapshot } from "@/toolkits/helia";
+import type { OrbitdbSnapshot } from "@/toolkits/orbitdb";
+
+/** Live snapshot of the workspace's p2p runtime singletons.
+ *  Built from libp2pService / heliaService / orbitdbService and injected
+ *  into the chat system prompt on every turn so the model always sees the
+ *  most recent state of nodes the user (or jobs) have started. */
+export interface WorkspaceP2PContext {
+  libp2p: { activeId: string | null; nodes: Libp2pSnapshot[] };
+  helia: { activeId: string | null; nodes: HeliaSnapshot[] };
+  orbitdb: { activeId: string | null; nodes: OrbitdbSnapshot[] };
+}
 
 export interface WorkspaceContext {
   agents: Agent[];
@@ -16,6 +29,55 @@ export interface WorkspaceContext {
   bridges: Bridge[];
   addJob?: (job: JobRequest) => void;
   jobs: Job[];
+  /** Live p2p runtime snapshot (libp2p / helia / orbitdb). Optional so
+   *  legacy callers that only carry workspace data still typecheck. */
+  p2p?: WorkspaceP2PContext;
+}
+
+function shortPeer(id: string | null | undefined): string {
+  if (!id) return "no-peer";
+  return id.length > 14 ? `${id.slice(0, 8)}…${id.slice(-4)}` : id;
+}
+
+function formatP2PSection(p2p: WorkspaceP2PContext): string {
+  const lib = p2p.libp2p.nodes;
+  const hel = p2p.helia.nodes;
+  const orb = p2p.orbitdb.nodes;
+
+  const libLines = lib.length > 0
+    ? lib.map(n => {
+      const active = n.nodeId === p2p.libp2p.activeId ? " [active]" : "";
+      const peers = n.peers?.length ?? 0;
+      const topics = n.topics?.length ?? 0;
+      return `  - [${n.status}] "${n.label}"${active} — peer ${shortPeer(n.peerId)}, peers=${peers}, topics=${topics}, pubsubMsgs=${n.pubsubMessageCount ?? 0}`;
+    }).join("\n")
+    : "  (none)";
+
+  const helLines = hel.length > 0
+    ? hel.map(n => {
+      const active = n.nodeId === p2p.helia.activeId ? " [active]" : "";
+      const entries = n.entries?.length ?? 0;
+      return `  - [${n.status}] "${n.label}"${active} — peer ${shortPeer(n.peerId)}, libp2p=${n.libp2pNodeId ?? "none"}, entries=${entries}, pinned=${n.pinnedCount ?? 0}, bytes=${n.totalBytes ?? 0}`;
+    }).join("\n")
+    : "  (none)";
+
+  const orbLines = orb.length > 0
+    ? orb.map(n => {
+      const active = n.nodeId === p2p.orbitdb.activeId ? " [active]" : "";
+      const dbs = (n.databases ?? []).map(d => `${d.name}(${d.type}${d.open ? ",open" : ""}${typeof d.count === "number" ? `,n=${d.count}` : ""})`).join(", ");
+      const dbSummary = dbs ? `dbs=[${dbs}]` : "dbs=[]";
+      return `  - [${n.status}] "${n.label}"${active} — peer ${shortPeer(n.peerId)}, helia=${n.heliaNodeId ?? "none"}, identity=${shortPeer(n.identityId)}, ${dbSummary}`;
+    }).join("\n")
+    : "  (none)";
+
+  return `
+P2P RUNTIME STATE (live):
+  Libp2p nodes (${lib.length}):
+${libLines}
+  Helia nodes (${hel.length}):
+${helLines}
+  OrbitDB nodes (${orb.length}):
+${orbLines}`;
 }
 
 export function buildWorkspaceSystemPrompt(ctx: WorkspaceContext): string {
@@ -78,6 +140,8 @@ export function buildWorkspaceSystemPrompt(ctx: WorkspaceContext): string {
     .map(t => `  - "${t.id}" (${t.name}): ${t.commands.length} commands — ${t.description.slice(0, 80)}`)
     .join("\n");
 
+  const p2pSection = ctx.p2p ? formatP2PSection(ctx.p2p) : "\nP2P RUNTIME STATE (live): (not provided)";
+
   return `You are the Mesh Workspace AI Assistant. You help the user manage their decentralized agent collaboration workspace.
 
 CURRENT WORKSPACE STATE:
@@ -104,6 +168,7 @@ ${jobSummary}
 
 Agent Toolkit Bindings:
 ${toolkitSummary}
+${p2pSection}
 ═══════════════════════
 
 HIERARCHY: Ecosystem (= Workspace) → Network → Group → Agent/Channel
@@ -301,9 +366,11 @@ After using studio_create_job, always call studio_auto_layout to ensure clean ca
 
 When responding to a user's prompt, you must follow this methodology:
 - First attempt to understand and extrapolate on the meaning of the user's prompt.
-- If the prompt is asking for an action to be conducted on the workspace, or within libp2p, define the action/s to call.
-- Then, queue the jobs that will direct those actions.
-- Finally, review the output of the job/s and return an analysis of the ran job.
+- Acknowledge the user's intent before acting so the response makes clear what will be attempted.
+- If the prompt is asking for an action to be conducted on the workspace, or within libp2p, define the action or actions needed.
+- Default to queue_new_job for operational work. Package related commands into one multi-step job instead of calling leaf commands one-by-one.
+- Use direct leaf command tools only for narrow inspection, a single atomic action, or recovery when a broader job is not appropriate.
+- After queueing a job, inspect the output of that job, summarize what happened, and if needed begin another refined job cycle.
 - If an error occurs, reapproach the prompt and attempt to restart the understanding process unless you need more/missing information from the user.
 
 Be concise, helpful, and in-character as a workspace management AI. Use markdown formatting for readability. Keep responses under 300 words unless the user asks for detailed analysis.`;

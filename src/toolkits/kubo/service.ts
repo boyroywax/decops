@@ -270,8 +270,12 @@ class KuboNode {
                 this.setStatus("connected");
             } catch (err) {
                 const rawMsg = err instanceof Error ? err.message : String(err);
-                // Browsers report opaque network failures as "TypeError: Failed to fetch".
-                // Distinguish cross-origin (real CORS) from same-origin (proxy not running).
+                // Browsers report opaque network failures (CORS preflight, DNS,
+                // mixed-content, etc.) as "TypeError: Failed to fetch". When the
+                // endpoint is cross-origin and HTTP(S), that almost always means
+                // the remote daemon isn't sending the right Access-Control-*
+                // headers for this origin. See docs/adr/0005-cors-proxy-removal.md
+                // for the daemon-side `ipfs config` recipe.
                 const isFailedToFetch =
                     err instanceof TypeError && /failed to fetch|network/i.test(rawMsg);
                 let appOrigin = "";
@@ -282,21 +286,13 @@ class KuboNode {
                 } catch { /* keep defaults */ }
                 const sameOrigin = !!appOrigin && appOrigin === endpointOrigin;
                 const looksLikeCors = isFailedToFetch && !sameOrigin && /^https?:\/\//i.test(this.endpoint);
-                const looksLikeProxyDown = isFailedToFetch && sameOrigin && /\/kubo-proxy(\/|$)/.test(this.endpoint);
 
                 let msg: string;
-                if (looksLikeProxyDown) {
-                    msg =
-                        `PROXY-DOWN: The dev proxy at ${this.endpoint} did not respond. ` +
-                        `Most likely the dev server was started without the proxy env var. ` +
-                        `Stop the dev server (Ctrl-C) and restart with:  VITE_KUBO_PROXY_TARGET=https://kubo.ipfs.dvln.net npm run dev  ` +
-                        `then watch the dev-server terminal for "[kubo-proxy] →" log lines on the next Connect attempt. ` +
-                        `If they print but show a 4xx/5xx, the upstream daemon rejected the request (check token & path).`;
-                } else if (looksLikeCors) {
+                if (looksLikeCors) {
                     msg =
                         `CORS / network blocked the request to ${this.endpoint}. The remote Kubo daemon is not allowing origin ${appOrigin}. ` +
-                        `Two options:  (A) On the daemon host run:  ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["${appOrigin || "https://your-app.example"}"]'  && ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["GET","POST","PUT"]'  then restart the daemon.  ` +
-                        `(B) Use the built-in dev proxy: stop dev server, restart with  VITE_KUBO_PROXY_TARGET=${endpointOrigin} npm run dev , then set the API URL above to  ${appOrigin}/kubo-proxy .`;
+                        `On the daemon host run:  ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["*"]'  && ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["GET","POST","PUT","OPTIONS"]'  && ipfs config --json API.HTTPHeaders.Access-Control-Allow-Headers '["Authorization","Content-Type","X-Requested-With"]'  then restart the daemon. ` +
+                        `Auth via API.Authorizations Bearer token still applies and is unaffected by CORS.`;
                 } else {
                     msg = rawMsg;
                 }
@@ -306,7 +302,6 @@ class KuboNode {
                     endpoint: this.endpoint,
                     sameOrigin,
                     cors: looksLikeCors,
-                    proxyDown: looksLikeProxyDown,
                 });
                 this.client = null;
                 this.peer = null;

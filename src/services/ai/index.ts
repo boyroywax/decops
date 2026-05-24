@@ -22,7 +22,8 @@ export {
 export type { ChatMessage, ToolCallDisplay } from "./chat";
 
 // Workspace context & prompt
-export type { WorkspaceContext } from "./prompts";
+export type { WorkspaceContext, WorkspaceP2PContext } from "./prompts";
+export { diffP2PContext } from "./p2pDiff";
 
 // Streaming
 export { streamChatWithWorkspace } from "./streaming";

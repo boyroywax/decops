@@ -36,8 +36,12 @@ export const queueNewJobCommand: CommandDefinition = {
         if (deliverables) jobPayload.deliverables = deliverables as JobDeliverable[];
         if (storageDefaults) jobPayload.storageDefaults = storageDefaults as Record<string, unknown>;
         if (parallelGroups) jobPayload.parallelGroups = parallelGroups as Array<{ id: string; label: string; stepIds: string[] }>;
-        context.jobs.addJob(jobPayload);
-        return "Job queued";
+        const queuedJob = context.jobs.addJob(jobPayload);
+        return {
+            jobId: queuedJob.id,
+            type: queuedJob.type,
+            queued: true,
+        };
     }
 };
 

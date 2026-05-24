@@ -81,6 +81,12 @@ export interface ChatAgentSubmitContext {
      * exactly once or the chat will stay in the loading state.
      */
     streamAssistantMessage?: () => ChatAgentStream;
+    /** AbortSignal fired when the user presses Stop in the chat panel. */
+    stopSignal?: AbortSignal;
+}
+
+export interface ChatAgentStopContext {
+    conversationId?: string;
 }
 
 export interface ChatAgent {
@@ -123,6 +129,11 @@ export interface ChatAgent {
      * its default workspace chat path); return false/undefined to fall through.
      */
     onSubmit?: (text: string, ctx: ChatAgentSubmitContext) => boolean | Promise<boolean>;
+    /**
+     * Optional hook fired when the operator presses Stop while this agent is active.
+     * Agents can use this to halt internal loops, timers, or external RPC polling.
+     */
+    onStop?: (ctx: ChatAgentStopContext) => void | Promise<void>;
     /**
      * Optional allowlist of toolkit IDs the workspace chat should expose to
      * the model when this chat agent is active. When omitted (or empty) the

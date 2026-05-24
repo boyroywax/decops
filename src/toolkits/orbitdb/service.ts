@@ -12,6 +12,7 @@
  */
 
 import { heliaService } from "@/toolkits/helia/service";
+import { libp2pService, type Libp2pStartOptions } from "@/toolkits/libp2p/service";
 import { logError } from "@/services/logging";
 import type {
     OrbitdbStatus,
@@ -117,12 +118,43 @@ function innerCauseMessage(err: unknown): string {
 function formatStartError(err: unknown): string {
     const top = err instanceof Error ? err.message : String(err);
     const cause = innerCauseMessage(err);
+    const joined = `${top} ${cause ?? ""}`;
+    if (/pubsub has not started/i.test(joined)) {
+        return (
+            "OrbitDB requires an active libp2p pubsub service, but the bound Helia node is attached to a libp2p node with pubsub disabled or not started. " +
+            "In the Libp2p toolkit, stop that node, enable 'Pubsub (gossipsub)' in Start options, and start it again; then restart Helia and OrbitDB."
+        );
+    }
+
     if (!cause || cause === top) return top;
+
     let msg = `${top} — ${cause}`;
     if (/internal error|unknown error/i.test(cause)) {
         msg += " (IndexedDB failure — try reloading the page or clearing site data for OrbitDB storage)";
     }
     return msg;
+}
+
+function isPubsubReady(ipfs: unknown): boolean {
+    try {
+        const libp2p = (ipfs as { libp2p?: { services?: { pubsub?: { isStarted?: () => boolean } } } })?.libp2p;
+        const pubsub = libp2p?.services?.pubsub;
+        if (!pubsub) return false;
+        if (typeof pubsub.isStarted === "function") return pubsub.isStarted();
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function withPubsubEnabled(opts: Libp2pStartOptions): Libp2pStartOptions {
+    return {
+        ...opts,
+        services: {
+            ...(opts.services ?? {}),
+            pubsub: true,
+        },
+    };
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -288,6 +320,51 @@ class OrbitdbNode {
         this.onChange();
     }
 
+    private async ensureHeliaPubsubReady(heliaNodeId: string): Promise<unknown> {
+        let heliaNode;
+        try {
+            heliaNode = heliaService.getNode(heliaNodeId);
+        } catch {
+            throw new Error(
+                `helia node "${heliaNodeId}" not found — pick another or leave the selection empty`,
+            );
+        }
+
+        if (heliaNode.snapshot().status !== "running") {
+            await heliaService.start({}, heliaNodeId);
+        }
+
+        let ipfs: any = (heliaService.getNode(heliaNodeId) as any)["helia"];
+        if (!ipfs) {
+            throw new Error("Failed to obtain a running helia (IPFS) instance");
+        }
+        if (isPubsubReady(ipfs)) return ipfs;
+
+        const libp2pNodeId = heliaNode.snapshot().libp2pNodeId;
+        if (!libp2pNodeId) {
+            throw new Error("libp2p pubsub is not started for the selected Helia node");
+        }
+
+        const recoveredOpts = withPubsubEnabled(libp2pService.getLastStartOptions(libp2pNodeId));
+        logError(
+            "orbitdb.start.pubsub-autorecover",
+            new Error("Restarting libp2p with pubsub enabled for OrbitDB"),
+            { nodeId: this.id, heliaNodeId, libp2pNodeId },
+            { warn: true },
+        );
+
+        await heliaService.stop(heliaNodeId);
+        await libp2pService.stop(libp2pNodeId);
+        await libp2pService.start(recoveredOpts, libp2pNodeId);
+        await heliaService.start({ libp2pNodeId }, heliaNodeId);
+
+        ipfs = (heliaService.getNode(heliaNodeId) as any)["helia"];
+        if (!ipfs || !isPubsubReady(ipfs)) {
+            throw new Error("libp2p pubsub could not be auto-started for the selected Helia node");
+        }
+        return ipfs;
+    }
+
     /**
      * Start the OrbitDB node by binding it to a Helia (IPFS) node.
      */
@@ -309,25 +386,10 @@ class OrbitdbNode {
                     throw new Error("No helia node available — create or start one first");
                 }
 
-                let heliaNode;
-                try {
-                    heliaNode = heliaService.getNode(this.heliaNodeId);
-                } catch {
-                    throw new Error(
-                        `helia node "${this.heliaNodeId}" not found — pick another or leave the selection empty`,
-                    );
-                }
-
-                if (heliaNode.snapshot().status !== "running") {
-                    await heliaService.start({}, this.heliaNodeId);
-                }
                 // The helia node exposes its underlying instance via a private field.
                 // Use the public service API to reach for the live helia instance.
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const ipfs: any = (heliaService.getNode(this.heliaNodeId) as any)["helia"];
-                if (!ipfs) {
-                    throw new Error("Failed to obtain a running helia (IPFS) instance");
-                }
+                const ipfs: any = await this.ensureHeliaPubsubReady(this.heliaNodeId);
 
                 // ── 2) Dynamic import — keep the bundle slim ──────────────
                 const orbitdbMod = await import("@orbitdb/core");

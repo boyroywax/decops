@@ -40,13 +40,13 @@ import {
   parseToolUseBlocks, buildToolResultMessages,
 } from "./providers";
 import type { ToolUseBlock, ProviderMessage } from "./providers";
-import { parseAnthropicSSE } from "./sse";
+import { parseAnthropicSSE, parseOpenAISSE } from "./sse";
 
 // ── Public types ──────────────────────────────────────────────────────────
 
 export interface ChatRunCallbacks {
-  /** Fired for each text token. Non-streaming providers emit the full
-   *  message as a single burst at the end of the round. */
+  /** Fired for each text token. Non-streaming providers emit synthetic
+   *  chunks so UI surfaces can still render progressive output. */
   onToken?: (token: string) => void;
   /** Fired when the model starts a tool call. `input` is empty during the
    *  streaming `content_block_start` event; the populated version arrives
@@ -132,6 +132,24 @@ function missingKeyMessage(): string {
   return "⚠️ No API key configured. Go to **LLM Manager → Providers** to add your API key.";
 }
 
+async function emitSyntheticTokenChunks(
+  text: string,
+  callbacks: ChatRunCallbacks,
+): Promise<void> {
+  if (!text || !callbacks.onToken) return;
+
+  const maxChunks = 80;
+  const chunkSize = Math.max(12, Math.ceil(text.length / maxChunks));
+
+  for (let i = 0; i < text.length; i += chunkSize) {
+    if (callbacks.signal?.aborted) return;
+    callbacks.onToken(text.slice(i, i + chunkSize));
+    if (i + chunkSize < text.length) {
+      await new Promise((resolve) => setTimeout(resolve, 8));
+    }
+  }
+}
+
 // ── Main entry point ──────────────────────────────────────────────────────
 
 export async function runChatTurn(
@@ -151,7 +169,10 @@ export async function runChatTurn(
 
   const provider = getModelProvider(model);
   const wantsTools = !!tools && tools.length > 0 && !!commandContext;
-  const useStream = stream && provider === "anthropic";
+  const supportsAnthropicStream = stream && provider === "anthropic";
+  // OpenAI/OpenRouter can stream text; we only stream when this round
+  // will not request tools (their tool_call deltas aren't parsed here).
+  const supportsOpenAIStream = stream && (provider === "openai" || provider === "openrouter");
 
   // Mutable working state.
   const apiMessages: ProviderMessage[] = [...messages];
@@ -167,6 +188,8 @@ export async function runChatTurn(
       let toolUseBlocks: ToolUseBlock[] = [];
       let rawAssistantContent: unknown = null;
       let roundText = "";
+      const useStream = supportsAnthropicStream;
+      const useOpenAIStream = supportsOpenAIStream && !wantsTools;
 
       // ───── Provider call ─────
       if (useStream) {
@@ -222,28 +245,54 @@ export async function runChatTurn(
           model, systemPrompt, apiMessages, maxTokens,
           wantsTools ? tools : undefined,
         );
-        const response = await fetch(req.url, {
-          method: "POST",
-          headers: req.headers,
-          body: JSON.stringify(req.body),
-          signal: callbacks.signal,
-        });
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
+        if (useOpenAIStream) {
+          // OpenAI/OpenRouter SSE — text-only streaming for tool-less rounds.
+          const streamingBody = { ...req.body, stream: true };
+          const response = await fetch(req.url, {
+            method: "POST",
+            headers: req.headers,
+            body: JSON.stringify(streamingBody),
+            signal: callbacks.signal,
+          });
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
+          }
+          const sse = await parseOpenAISSE(
+            response,
+            (delta) => {
+              roundText += delta;
+              callbacks.onToken?.(delta);
+            },
+            callbacks.signal,
+          );
+          if (!roundText) roundText = sse.text;
+          toolUseBlocks = [];
+          rawAssistantContent = null;
+        } else {
+          const response = await fetch(req.url, {
+            method: "POST",
+            headers: req.headers,
+            body: JSON.stringify(req.body),
+            signal: callbacks.signal,
+          });
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
+          }
+          const data = await response.json();
+
+          toolUseBlocks = wantsTools ? parseToolUseBlocks(model, data) : [];
+          roundText = parseProviderResponse(model, data);
+
+          // For the non-streaming path, emit synthetic chunks so the UI can
+          // still show progressive typing.
+          await emitSyntheticTokenChunks(roundText, callbacks);
+
+          rawAssistantContent = provider === "openai" || provider === "openrouter"
+            ? data.choices?.[0]?.message?.tool_calls
+            : data.content;
         }
-        const data = await response.json();
-
-        toolUseBlocks = wantsTools ? parseToolUseBlocks(model, data) : [];
-        roundText = parseProviderResponse(model, data);
-
-        // For the non-streaming path, surface the response as a single
-        // "token" so UI consumers don't need a separate code path.
-        if (roundText && callbacks.onToken) callbacks.onToken(roundText);
-
-        rawAssistantContent = provider === "openai" || provider === "openrouter"
-          ? data.choices?.[0]?.message?.tool_calls
-          : data.content;
       }
 
       fullText += roundText;
@@ -279,12 +328,14 @@ export async function runChatTurn(
         apiMessages.push({ role: "assistant", content: assistantForResults });
       }
 
-      const toolResults: { id: string; content: string; isError?: boolean }[] = [];
-      for (const block of toolUseBlocks) {
+      // Execute all tool calls in this round concurrently. Each call is
+      // already serialized internally through the job queue, so running
+      // them in parallel here only overlaps provider-bound waits and
+      // independent commands — it does not break job ordering semantics.
+      const toolResults: { id: string; content: string; isError?: boolean }[] = new Array(toolUseBlocks.length);
+      await Promise.all(toolUseBlocks.map(async (block, index) => {
         callbacks.onToolCallStart?.(block.name, block.input || {});
 
-        // Bot/caller intercept — short-circuit specific tools (identity
-        // guards, permission gates, etc.).
         const intercept = callbacks.interceptToolCall?.(block.name, block.input || {});
         if (intercept) {
           const display: ToolCallDisplay = {
@@ -296,12 +347,12 @@ export async function runChatTurn(
           };
           allToolCalls.push(display);
           callbacks.onToolCallComplete?.(display);
-          toolResults.push({
+          toolResults[index] = {
             id: block.id,
             content: intercept.content,
             isError: !!intercept.isError,
-          });
-          continue;
+          };
+          return;
         }
 
         const result = await executeToolCall(
@@ -322,14 +373,14 @@ export async function runChatTurn(
         allToolCalls.push(display);
         callbacks.onToolCallComplete?.(display);
 
-        toolResults.push({
+        toolResults[index] = {
           id: block.id,
           content: result.error
             ? JSON.stringify({ error: result.error })
             : JSON.stringify(result.result ?? { success: true }),
           isError: !!result.error,
-        });
-      }
+        };
+      }));
 
       if (useStream) {
         // SSE path: append the tool_result user message manually (we

@@ -270,7 +270,7 @@ export function OrbitdbServerView(_props: OrbitdbServerViewProps) {
             <div className="libp2p-header">
                 <div className="libp2p-header-title">
                     <HardDrive size={16} color="#ec4899" />
-                    <h2>OrbitDB Server</h2>
+                    <h2>Lagrange</h2>
                 </div>
                 <div className="libp2p-header-center">
                     <span className={`libp2p-status libp2p-status--${snapshot.status === "connected" ? "running" : snapshot.status === "connecting" ? "starting" : snapshot.status === "error" ? "error" : "stopped"}`}>
@@ -457,23 +457,15 @@ export function OrbitdbServerView(_props: OrbitdbServerViewProps) {
 
             {snapshot.error && (
                 <div className="libp2p-error orbitdb-server-error">
-                    {snapshot.error.startsWith("PROXY-DOWN") ? (
-                        <>
-                            <strong>Dev proxy not responding.</strong>
-                            <div>
-                                The API URL points at <code>/orbitdb-server-proxy</code> on this origin, but the dev server didn't forward the request.
-                            </div>
-                            <div className="orbitdb-server-error__hint">Stop the dev server (Ctrl-C) and restart it with:</div>
-                            <pre className="orbitdb-server-error__code">{`VITE_ORBITDB_SERVER_PROXY_TARGET=https://orbitdb.dvln.net npm run dev`}</pre>
-                        </>
-                    ) : snapshot.error.includes("CORS") ? (
+                    {snapshot.error.includes("CORS") ? (
                         <>
                             <strong>Connection blocked by CORS.</strong>
-                            <div>The remote server is not allowing this origin. Use the dev proxy:</div>
-                            <pre className="orbitdb-server-error__code">{`# stop and restart the dev server with:
-VITE_ORBITDB_SERVER_PROXY_TARGET=${snapshot.endpoint.replace(/\/$/, "")} npm run dev
-# then set the API URL above to:
-${typeof location !== "undefined" ? location.origin : ""}/orbitdb-server-proxy`}</pre>
+                            <div>
+                                The remote server is not allowing this origin. Configure CORS on the server
+                                (allow this origin, methods <code>GET/POST/PUT/DELETE/OPTIONS</code>, and the
+                                <code>Authorization</code> header) and restart it. Bearer-token auth is
+                                independent of CORS and still required.
+                            </div>
                         </>
                     ) : /unauthor|401/i.test(snapshot.error) ? (
                         <>

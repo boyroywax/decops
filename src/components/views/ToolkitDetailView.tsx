@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { ArchitectBotPanel } from "@/toolkits/architect";
+import { ConfigurationItem } from "@/components/config/ConfigurationItem";
+import { useToolkitConfiguration } from "@/hooks/useToolkitConfiguration";
 import "../../styles/components/toolkit-detail.css";
 
 /** Map toolkit icon names to actual Lucide components */
@@ -58,6 +60,7 @@ export function ToolkitDetailView({ toolkitId, agent, updateAgent, navigateTo }:
   const [crawlDepth, setCrawlDepth] = useState(2);
   const [crawlMaxPages, setCrawlMaxPages] = useState(10);
   const [crawlFormat, setCrawlFormat] = useState<"markdown" | "text" | "html">("markdown");
+  const { getFieldValue, setFieldValue, resetFieldValue } = useToolkitConfiguration();
   const toggleSection = (id: string) => setExpandedSection(prev => prev === id ? null : id);
 
   const PRIORITY_COLORS: Record<string, string> = {
@@ -641,15 +644,13 @@ export function ToolkitDetailView({ toolkitId, agent, updateAgent, navigateTo }:
           {expandedSection === 'config' && (
             <div className="toolkit-detail__tools">
               {module.configuration.fields.map(field => (
-                <div key={field.key} className="toolkit-detail__schema-row" style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <code className="toolkit-detail__schema-key">{field.key}</code>
-                  <span className="toolkit-detail__schema-type">{field.type}</span>
-                  <span className="toolkit-detail__schema-desc">{field.label}</span>
-                  {field.required && <span className="toolkit-detail__schema-required">required</span>}
-                  {field.defaultValue !== undefined && (
-                    <span className="toolkit-detail__schema-default">default: {String(field.defaultValue)}</span>
-                  )}
-                </div>
+                <ConfigurationItem
+                  key={field.key}
+                  field={field}
+                  value={getFieldValue(toolkitId, field)}
+                  onChange={(value) => setFieldValue(toolkitId, field.key, value)}
+                  onReset={() => resetFieldValue(toolkitId, field)}
+                />
               ))}
             </div>
           )}

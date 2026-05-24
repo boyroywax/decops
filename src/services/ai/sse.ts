@@ -130,3 +130,53 @@ export async function parseAnthropicSSE(
 
   return { contentBlocks, stopReason };
 }
+
+/**
+ * OpenAI-style SSE parser (used by OpenAI + OpenRouter chat completions).
+ * Streams only assistant text deltas. Tool-call streaming is not yet
+ * supported here — callers must fall back to the non-streaming path when
+ * they need tool use, which mirrors the existing runner contract.
+ */
+export async function parseOpenAISSE(
+  response: Response,
+  onText: (text: string) => void,
+  signal?: AbortSignal,
+): Promise<{ text: string }> {
+  const reader = response.body!.getReader();
+  if (signal) {
+    signal.addEventListener("abort", () => { reader.cancel(); }, { once: true });
+  }
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let full = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const payload = trimmed.slice(5).trim();
+        if (!payload || payload === "[DONE]") continue;
+        try {
+          const event = JSON.parse(payload);
+          const delta = event?.choices?.[0]?.delta?.content;
+          if (typeof delta === "string" && delta.length > 0) {
+            full += delta;
+            onText(delta);
+          }
+        } catch {
+          // skip malformed line
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return { text: full };
+}

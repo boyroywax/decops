@@ -8,7 +8,7 @@ import { orbitdbServerCommands } from "./commands";
 export const orbitdbServerModule: ToolkitModule = {
     manifest: {
         id: "orbitdb-server",
-        name: "OrbitDB Server Connector",
+        name: "Lagrange",
         description:
             "Connect to a remote orbitdb-server (OrbitDB v2 HTTP RPC API). Open databases, write / query " +
             "entries, append events, manage the libp2p swarm and the private-network (pnet) configuration.",
@@ -34,7 +34,7 @@ export const orbitdbServerModule: ToolkitModule = {
     agents: [
         {
             id: "orbitdb-server-bot",
-            name: "OrbitDB Server Bot",
+            name: "Lagrange Bot",
             description:
                 "Specialised AI sub-agent for remote orbitdb-server — open databases, write entries, query documents, manage pnet.",
             capabilities: [

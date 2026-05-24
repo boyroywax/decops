@@ -1,0 +1,132 @@
+.toolkit-config-item {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.1fr) minmax(180px, 1fr);
+  gap: var(--space-md);
+  align-items: start;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+}
+
+.toolkit-config-item__meta {
+  min-width: 0;
+}
+
+.toolkit-config-item__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.toolkit-config-item__key {
+  font-family: var(--font-mono);
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-2xs);
+}
+
+.toolkit-config-item__type {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: var(--text-3xs);
+  text-transform: lowercase;
+}
+
+.toolkit-config-item__required {
+  color: #ef4444;
+  font-size: var(--text-3xs);
+  font-weight: var(--font-medium);
+}
+
+.toolkit-config-item__label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.toolkit-config-item__description {
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.toolkit-config-item__control-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.toolkit-config-item__input {
+  width: 100%;
+  padding: 7px 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-xs);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.toolkit-config-item__input:focus {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.toolkit-config-item__checkbox-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.toolkit-config-item__checkbox {
+  width: 14px;
+  height: 14px;
+}
+
+.toolkit-config-item__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.toolkit-config-item__default {
+  color: var(--text-faint);
+  font-size: var(--text-3xs);
+  font-style: italic;
+}
+
+.toolkit-config-item__reset {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-faint);
+  font-size: var(--text-3xs);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toolkit-config-item__reset:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.toolkit-config-item__reset:hover:enabled {
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+}
+
+@media (max-width: 768px) {
+  .toolkit-config-item {
+    grid-template-columns: 1fr;
+  }
+}

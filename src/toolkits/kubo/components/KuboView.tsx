@@ -460,34 +460,17 @@ export function KuboView(_props: KuboViewProps) {
 
             {snapshot.error && (
                 <div className="libp2p-error kubo-error">
-                    {snapshot.error.startsWith("PROXY-DOWN") ? (
-                        <>
-                            <strong>Dev proxy not responding.</strong>
-                            <div>
-                                The API URL points at <code>/kubo-proxy</code> on this origin, but the dev server didn't forward the request.
-                                Almost always this means the dev server was started <em>without</em> the proxy env var.
-                            </div>
-                            <div className="kubo-error__hint">Stop the dev server (Ctrl-C in its terminal) and restart it with:</div>
-                            <pre className="kubo-error__code">{`VITE_KUBO_PROXY_TARGET=https://kubo.ipfs.dvln.net npm run dev`}</pre>
-                            <div className="kubo-error__hint">
-                                Then click Connect again and watch the dev-server terminal — you should see lines like
-                                {" "}<code>[kubo-proxy] → POST /api/v0/id  auth=present</code>{" "}
-                                followed by the upstream status. If they don't print, the env var still isn't being picked up.
-                            </div>
-                        </>
-                    ) : snapshot.error.includes("CORS") ? (
+                    {snapshot.error.includes("CORS") ? (
                         <>
                             <strong>Connection blocked by CORS.</strong>
-                            <div>The remote Kubo daemon is not allowing this origin. Pick one:</div>
-                            <div className="kubo-error__hint"><strong>Option A —</strong> fix it on the daemon host:</div>
-                            <pre className="kubo-error__code">{`ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["${typeof location !== "undefined" ? location.origin : "https://your-app.example"}"]'
-ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["GET","POST","PUT"]'
+                            <div>The remote Kubo daemon is not allowing this origin. Fix it on the daemon host:</div>
+                            <pre className="kubo-error__code">{`ipfs config --json API.HTTPHeaders.Access-Control-Allow-Origin '["*"]'
+ipfs config --json API.HTTPHeaders.Access-Control-Allow-Methods '["GET","POST","PUT","OPTIONS"]'
+ipfs config --json API.HTTPHeaders.Access-Control-Allow-Headers '["Authorization","Content-Type","X-Requested-With"]'
 # then restart the daemon`}</pre>
-                            <div className="kubo-error__hint"><strong>Option B —</strong> use the built-in dev proxy (no server access needed):</div>
-                            <pre className="kubo-error__code">{`# stop and restart the dev server with:
-VITE_KUBO_PROXY_TARGET=${snapshot.endpoint.replace(/\/$/, "")} npm run dev
-# then set the API URL above to:
-${typeof location !== "undefined" ? location.origin : ""}/kubo-proxy`}</pre>
+                            <div className="kubo-error__hint">
+                                Bearer-token auth via <code>API.Authorizations</code> is independent of CORS and still gates access.
+                            </div>
                         </>
                     ) : /unauthor|401/i.test(snapshot.error) ? (
                         <>

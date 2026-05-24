@@ -3,6 +3,7 @@ import { X, LayoutTemplate, AlignJustify, MessageCircle, ChevronsUp, ChevronsDow
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "@/services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "@/services/ai";
+import { diffP2PContext } from "@/services/ai";
 import { useLLM } from "@/context/LLMContext";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
@@ -90,6 +91,7 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
     const [streamingText, setStreamingText] = useState<string | null>(null);
+    const [roundPhase, setRoundPhase] = useState<"idle" | "drafting">("idle");
     const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallDisplay[]>([]);
     const [botMenuOpen, setBotMenuOpen] = useState(false);
     const [lohkExpanded, setLohkExpanded] = useState<boolean>(() => {
@@ -104,6 +106,11 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionIndex, setMentionIndex] = useState(0);
     const abortRef = useRef<AbortController | null>(null);
+    const runCounterRef = useRef(0);
+    const activeRunIdRef = useRef<number | null>(null);
+    const cancelledRunIdRef = useRef<number | null>(null);
+    const { user } = useAuth();
+    const jobs = useJobsContext();
     const architectMessageRef = useRef<{ conversationId: string | null; messageId: string | null }>({
         conversationId: null,
         messageId: null,
@@ -111,9 +118,89 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
 
     /** Cancel an in-progress streaming chat */
     const stopStreaming = useCallback(() => {
+        const activeRunId = activeRunIdRef.current;
+        if (activeRunId != null) cancelledRunIdRef.current = activeRunId;
+        const partialResponse = (streamingText || "").trim();
+        const partialToolCalls = streamingToolCalls;
+
         abortRef.current?.abort();
         abortRef.current = null;
-    }, []);
+        setLoading(false);
+        setStreamingText(null);
+        setStreamingToolCalls([]);
+        setRoundPhase("idle");
+
+        activeAgent?.onStop?.({ conversationId: activeId ?? undefined });
+
+        if (!activeId) return;
+
+        const activeJobs = jobs.jobs.filter(
+            j => j.status === "running" || j.status === "queued" || j.status === "awaiting-input",
+        );
+        const convoMessages = conversations.find(c => c.id === activeId)?.messages || [];
+        const latestMessage = convoMessages[convoMessages.length - 1];
+        const preferredJobId = latestMessage?.jobIds?.find((jid: string) => activeJobs.some(j => j.id === jid));
+        const selectedJob = activeJobs.find(j => j.id === preferredJobId) ?? activeJobs[0];
+        const cancelledContent = partialResponse
+            ? `${partialResponse}\n\n_Query cancelled by user._`
+            : "Query cancelled by user.";
+
+        updateConversation(activeId, [
+            ...convoMessages,
+            {
+                id: `stop-prompt-${makeId()}`,
+                role: "assistant",
+                content: cancelledContent,
+                toolCalls: partialToolCalls.length > 0 ? partialToolCalls : undefined,
+                jobIds: partialToolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!),
+                stopPrompt: selectedJob ? {
+                    jobId: selectedJob.id,
+                    jobName: selectedJob.type,
+                    jobDescription: selectedJob.request?.description,
+                } : undefined,
+            },
+        ]);
+    }, [activeAgent, activeId, conversations, jobs.jobs, streamingText, streamingToolCalls, updateConversation]);
+
+    const handleStopPromptAction = useCallback((choice: "finish" | "stop" | "stop-and-job", prompt: NonNullable<ChatMessage["stopPrompt"]>) => {
+        if (!activeId) return;
+        const convoMessages = conversations.find(c => c.id === activeId)?.messages || [];
+
+        if (choice === "finish") {
+            updateConversation(activeId, [
+                ...convoMessages,
+                {
+                    id: `stop-choice-${makeId()}`,
+                    role: "assistant",
+                    content: `Okay, I will let \`${prompt.jobName || prompt.jobId || "this job"}\` finish and you can continue with another request now.`,
+                    jobIds: prompt.jobId ? [prompt.jobId] : undefined,
+                },
+            ]);
+            return;
+        }
+
+        if (choice === "stop-and-job") {
+            if (prompt.jobId) jobs.stopJob(prompt.jobId);
+            updateConversation(activeId, [
+                ...convoMessages,
+                {
+                    id: `stop-choice-${makeId()}`,
+                    role: "assistant",
+                    content: `Stopped this query${prompt.jobName ? ` and requested stop for \`${prompt.jobName}\`` : ""}. You can send another message now.`,
+                },
+            ]);
+            return;
+        }
+
+        updateConversation(activeId, [
+            ...convoMessages,
+            {
+                id: `stop-choice-${makeId()}`,
+                role: "assistant",
+                content: `Stopped this query. You can send another message now.`,
+            },
+        ]);
+    }, [activeId, conversations, updateConversation]);
 
     // Smooth scroll for new messages / streaming updates
     useEffect(() => {
@@ -165,8 +252,6 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     }, [loading, showConvos]);
 
     // Build Commmand Context for CLI
-    const { user } = useAuth();
-    const jobs = useJobsContext();
     const sharedArchitect = useArchitectContext();
     const architect = sharedArchitect ?? {
         archPrompt: "",
@@ -238,6 +323,80 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         addLog: addLog || (() => { }) as (msg: string) => void,
         extensions: { studio: studioApi ?? undefined, editor: editorApi ?? undefined },
     });
+
+    // ── P2P runtime change notifications ────────────────────────────────
+    // The chat context's `p2p` snapshot is refreshed live from the
+    // libp2p/helia/orbitdb services. When the user manually starts/stops
+    // a node (or opens a database, etc.) outside the chat, drop a synthetic
+    // system-notice message into the active conversation so the agent
+    // sees the change on the next turn. Burst-collapse via a short
+    // debounce; suppressed while a chat run is streaming to avoid mid-stream
+    // mutations and to avoid notifying for agent-driven changes.
+    const prevP2PRef = useRef(context.p2p);
+    const pendingP2PChangesRef = useRef<string[]>([]);
+    const p2pNotifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const loadingRef = useRef(loading);
+    useEffect(() => { loadingRef.current = loading; }, [loading]);
+
+    useEffect(() => {
+        const next = context.p2p;
+        const prev = prevP2PRef.current;
+        // Always update the baseline so we diff against the latest seen
+        // snapshot, even if the user is mid-chat (we'll still buffer the
+        // changes via pendingP2PChangesRef).
+        prevP2PRef.current = next;
+        if (!next || !prev) return;
+        const changes = diffP2PContext(prev, next);
+        if (changes.length === 0) return;
+        pendingP2PChangesRef.current.push(...changes);
+
+        if (p2pNotifyTimerRef.current) clearTimeout(p2pNotifyTimerRef.current);
+        p2pNotifyTimerRef.current = setTimeout(() => {
+            p2pNotifyTimerRef.current = null;
+            // Defer while a chat run is in-flight — drained on next change
+            // once idle, or on the next idle render via the same buffer.
+            if (loadingRef.current) return;
+            const pending = pendingP2PChangesRef.current.splice(0);
+            if (pending.length === 0) return;
+            if (!activeId) return;
+            // De-duplicate consecutive identical lines (e.g. status flapping).
+            const seen = new Set<string>();
+            const deduped = pending.filter(l => (seen.has(l) ? false : (seen.add(l), true)));
+            const content = `[workspace update] ${deduped.join("; ")}`;
+            const notice: ChatMessage = {
+                id: makeId(),
+                role: "user",
+                content,
+                systemNotice: true,
+            };
+            updateConversation(activeId, [...messages, notice]);
+        }, 600);
+
+        return () => {
+            if (p2pNotifyTimerRef.current) {
+                clearTimeout(p2pNotifyTimerRef.current);
+                p2pNotifyTimerRef.current = null;
+            }
+        };
+    }, [context.p2p, activeId, messages, updateConversation]);
+
+    // Drain any buffered p2p changes once a chat run completes.
+    useEffect(() => {
+        if (loading) return;
+        if (!activeId) return;
+        const pending = pendingP2PChangesRef.current.splice(0);
+        if (pending.length === 0) return;
+        const seen = new Set<string>();
+        const deduped = pending.filter(l => (seen.has(l) ? false : (seen.add(l), true)));
+        const content = `[workspace update] ${deduped.join("; ")}`;
+        const notice: ChatMessage = {
+            id: makeId(),
+            role: "user",
+            content,
+            systemNotice: true,
+        };
+        updateConversation(activeId, [...messages, notice]);
+    }, [loading, activeId, messages, updateConversation]);
 
     useEffect(() => {
         const trackedConversationId = architectMessageRef.current.conversationId;
@@ -356,6 +515,9 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
     const send = useCallback(async () => {
         const text = input.trim();
         if (!text || loading) return;
+        const runId = ++runCounterRef.current;
+        activeRunIdRef.current = runId;
+        cancelledRunIdRef.current = null;
         setInput("");
         setMentionQuery(null);
 
@@ -385,8 +547,11 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
         // Non-slash, non-@mention messages are offered to the active agent's onSubmit.
         if (activeAgent?.onSubmit && !text.startsWith("/") && !/^@\w/.test(text)) {
             try {
+                const controller = new AbortController();
+                abortRef.current = controller;
                 const handled = await activeAgent.onSubmit(text, {
                     conversationId: currentId,
+                    stopSignal: controller.signal,
                     appendAssistantMessage: (content: string) => {
                         // Use the functional setter so we always read the latest
                         // conversation messages (including the user message we
@@ -433,15 +598,19 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                         };
                     },
                 });
+                if (cancelledRunIdRef.current === runId) return;
                 if (handled) {
                     addLog?.(`Chat[${activeAgent.id}]: "${text.slice(0, 40)}${text.length > 40 ? "…" : ""}"`);
                     setLoading(false);
+                    abortRef.current = null;
                     return;
                 }
             } catch (err) {
+                if (cancelledRunIdRef.current === runId) return;
                 const errMsg = [...updatedMsgs, { role: "assistant" as const, content: `${activeAgent.name} error: ${err instanceof Error ? err.message : String(err)}` }];
                 updateConversation(currentId, errMsg);
                 setLoading(false);
+                abortRef.current = null;
                 return;
             }
         }
@@ -552,14 +721,23 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
 
                 const streamCallbacks: StreamCallbacks = {
                     onToken: (token) => {
+                        setRoundPhase(prev => prev === "idle" ? prev : "idle");
                         setStreamingText(prev => (prev ?? "") + token);
                     },
                     signal: controller.signal,
                     onToolCallStart: (name) => {
+                        setRoundPhase("idle");
                         setStreamingToolCalls(prev => [
                             ...prev,
                             { name, input: {}, result: null, duration_ms: 0 },
                         ]);
+                    },
+                    onRoundEnd: () => {
+                        // Provider just finished a round. If there are pending
+                        // tool calls we'll soon see onToolCallComplete; show a
+                        // brief "drafting" hint so the UI doesn't look frozen
+                        // while the next provider round spins up.
+                        setRoundPhase("drafting");
                     },
                     onToolCallComplete: (display: ToolCallDisplay) => {
                         setStreamingToolCalls(prev => {
@@ -595,9 +773,12 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                     activeAgent?.toolkitIds,
                 );
 
+                if (cancelledRunIdRef.current === runId) return;
+
                 abortRef.current = null;
                 setStreamingText(null);
                 setStreamingToolCalls([]);
+                setRoundPhase("idle");
 
                 // Collect jobIds from tool calls for inline progress tracking
                 const collectedJobIds = toolCalls
@@ -614,9 +795,11 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                 addLog?.(`Chat: "${text.slice(0, 40)}${text.length > 40 ? "…" : ""}"`);
             }
         } catch (err) {
+            if (cancelledRunIdRef.current === runId) return;
             const errMsg = [...updatedMsgs, { role: "assistant" as const, content: `Error: ${err instanceof Error ? err.message : String(err)}` }];
             updateConversation(currentId, errMsg);
         } finally {
+            if (activeRunIdRef.current === runId) activeRunIdRef.current = null;
             setLoading(false);
         }
     }, [input, loading, activeId, conversations, context, addLog, updateConversation, commandContext, queueCommandAsJob, workspaceCtx, activeAgent]);
@@ -816,7 +999,14 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                     )}
                     {messages.map((m, i) => (
                         <div key={i}>
-                            <MessageBubble msg={m} context={context} setView={setView} />
+                            {m.systemNotice ? (
+                                <div className="chat-panel__system-notice" role="status" aria-live="polite">
+                                    <span className="chat-panel__system-notice-dot" aria-hidden />
+                                    <span className="chat-panel__system-notice-text">{m.content.replace(/^\[workspace update\]\s*/, "")}</span>
+                                </div>
+                            ) : (
+                                <MessageBubble msg={m} context={context} setView={setView} onStopPromptAction={handleStopPromptAction} />
+                            )}
                             {editorActive && editorApi && m.role === "assistant" && m.content.includes("```") && (
                                 <button
                                     className="chat-panel__apply-editor-btn"
@@ -841,8 +1031,14 @@ export function ChatPanel({ context, ecosystem, onClose, addLog, height, setHeig
                             }}
                             context={context}
                             setView={setView}
+                            onStopPromptAction={handleStopPromptAction}
                             isStreaming
                         />
+                    )}
+                    {streamingText !== null && roundPhase === "drafting" && !streamingText && (
+                        <div className="chat-panel__loading">
+                            <ThinkingIndicator phase="working" toolName="processing tool results" />
+                        </div>
                     )}
                     {loading && streamingText === null && (
                         <div className="chat-panel__loading">

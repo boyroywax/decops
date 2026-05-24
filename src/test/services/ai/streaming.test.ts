@@ -180,14 +180,22 @@ describe("streamChatWithWorkspace", () => {
         expect(opts.maxRounds).toBe(8);
     });
 
-    it("enables stream:true ONLY for the anthropic provider", async () => {
+    it("enables stream:true for anthropic, openai, and openrouter; false for others", async () => {
         (getModelProvider as any).mockReturnValueOnce("openai");
         await streamChatWithWorkspace("msg", [], {} as any, { onToken: vi.fn() });
-        expect((runChatTurn as any).mock.calls[0][0].stream).toBe(false);
+        expect((runChatTurn as any).mock.calls[0][0].stream).toBe(true);
 
         (getModelProvider as any).mockReturnValueOnce("anthropic");
         await streamChatWithWorkspace("msg", [], {} as any, { onToken: vi.fn() });
         expect((runChatTurn as any).mock.calls[1][0].stream).toBe(true);
+
+        (getModelProvider as any).mockReturnValueOnce("openrouter");
+        await streamChatWithWorkspace("msg", [], {} as any, { onToken: vi.fn() });
+        expect((runChatTurn as any).mock.calls[2][0].stream).toBe(true);
+
+        (getModelProvider as any).mockReturnValueOnce("google");
+        await streamChatWithWorkspace("msg", [], {} as any, { onToken: vi.fn() });
+        expect((runChatTurn as any).mock.calls[3][0].stream).toBe(false);
     });
 
     it("forwards onToken/onToolCallStart/onToolCallComplete/signal to runner", async () => {

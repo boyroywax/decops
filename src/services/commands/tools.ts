@@ -55,8 +55,18 @@ interface PendingToolJob {
 
 const pendingToolJobs = new Map<string, PendingToolJob>();
 
-const TOOL_JOB_TIMEOUT_MS = 30_000; // 30 second default timeout
+const TOOL_JOB_TIMEOUT_MS = 12_000; // 12s default — most non-child-job commands complete in <2s; long-running ones declare spawnsChildJobs or timeoutMs
 const JOB_RUNNER_TIMEOUT_MS = 180_000; // 3 minute default for commands that spawn child jobs
+const DIRECT_TOOL_COMMANDS = new Set([
+  "queue_new_job",
+]);
+const TOOL_PRIORITY_ORDER = [
+  "queue_new_job",
+  "list_queued_jobs",
+  "delete_queued_job",
+  "studio_create_job",
+  "studio_run_job",
+];
 
 /**
  * Pick the tool-call wait timeout for a given command.
@@ -227,6 +237,60 @@ function capForAnthropic(cmds: CommandDefinition[]): CommandDefinition[] {
   return kept;
 }
 
+function prioritizeToolCommands(cmds: CommandDefinition[]): CommandDefinition[] {
+  return [...cmds].sort((a, b) => {
+    const aIndex = TOOL_PRIORITY_ORDER.indexOf(a.id);
+    const bIndex = TOOL_PRIORITY_ORDER.indexOf(b.id);
+    const aPriority = aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex;
+    const bPriority = bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex;
+    if (aPriority !== bPriority) return aPriority - bPriority;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+function isReadOnlyToolCommand(cmd: CommandDefinition): boolean {
+  const tags = new Set(cmd.tags || []);
+  return tags.has("query") || tags.has("read") || tags.has("inspect");
+}
+
+function shouldAutoWrapToolCommand(toolName: string): boolean {
+  const def = registry.get(toolName);
+  if (!def) return false;
+  if (DIRECT_TOOL_COMMANDS.has(toolName)) return false;
+  if (def.spawnsChildJobs) return false;
+  return !isReadOnlyToolCommand(def);
+}
+
+async function queueJobAndWait(
+  jobType: string,
+  jobRequest: Record<string, unknown>,
+  context: CommandContext,
+  timeoutMs: number,
+): Promise<{ jobId?: string; result: unknown }> {
+  const queued = await registry.execute(
+    "queue_new_job",
+    {
+      type: jobType,
+      request: jobRequest,
+      steps: [{ commandId: jobType, args: jobRequest }],
+      mode: "serial",
+    },
+    context,
+  );
+
+  const jobId =
+    queued && typeof queued === "object" && "jobId" in (queued as Record<string, unknown>)
+      ? String((queued as Record<string, unknown>).jobId)
+      : undefined;
+
+  if (!jobId) {
+    return { jobId: undefined, result: queued ?? { success: true } };
+  }
+
+  const result = await watchChildJob(jobId, timeoutMs);
+  return { jobId, result };
+}
+
 // ── Conversion ─────────────────────────────────────
 
 /** Convert a single CommandDefinition to an Anthropic tool schema */
@@ -265,7 +329,7 @@ export function getAllTools(): AnthropicTool[] {
   const cmds = registry
     .getAll()
     .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id) && !cmd.hidden);
-  return capForAnthropic(cmds).map(commandToTool);
+  return capForAnthropic(prioritizeToolCommands(cmds)).map(commandToTool);
 }
 
 /** Get tools filtered by tags (e.g. only "agent" + "query" tools) */
@@ -274,7 +338,7 @@ export function getToolsByTags(tags: string[]): AnthropicTool[] {
     .getAll()
     .filter(cmd => !EXCLUDED_COMMANDS.has(cmd.id) && !cmd.hidden)
     .filter(cmd => tags.some(t => cmd.tags.includes(t)));
-  return capForAnthropic(cmds).map(commandToTool);
+  return capForAnthropic(prioritizeToolCommands(cmds)).map(commandToTool);
 }
 
 /**
@@ -311,7 +375,7 @@ export function getToolsByToolkitIds(toolkitIds: string[] | undefined): Anthropi
       !cmd.hidden &&
       (allowed.has(cmd.id) || META_COMMANDS.has(cmd.id)),
     );
-  return capForAnthropic(cmds).map(commandToTool);
+  return capForAnthropic(prioritizeToolCommands(cmds)).map(commandToTool);
 }
 
 /**
@@ -361,7 +425,7 @@ export function getToolsForAgent(agent: Agent): AnthropicTool[] {
       !cmd.hidden &&
       (allowedCommands.has(cmd.id) || META_COMMANDS.has(cmd.id)),
     );
-  return capForAnthropic(cmds).map(commandToTool);
+  return capForAnthropic(prioritizeToolCommands(cmds)).map(commandToTool);
 }
 
 /**
@@ -403,6 +467,46 @@ export async function executeToolCall(
     // Safety guard
     if (EXCLUDED_COMMANDS.has(toolName)) {
       throw new Error(`Command "${toolName}" is not available for AI tool use.`);
+    }
+
+    // Some orchestration commands should execute directly. In particular,
+    // queue_new_job is already a job factory and wrapping it in another job
+    // produces redundant single-step jobs around the real work.
+    if (DIRECT_TOOL_COMMANDS.has(toolName)) {
+      const queued = await registry.execute(toolName, toolInput, context);
+      const jobId =
+        queued && typeof queued === "object" && "jobId" in (queued as Record<string, unknown>)
+          ? String((queued as Record<string, unknown>).jobId)
+          : undefined;
+      const result = jobId ? await watchChildJob(jobId, resolveToolTimeout(toolName)) : queued;
+      const duration_ms = Math.round(performance.now() - start);
+      return {
+        tool_use_id: toolUseId,
+        name: toolName,
+        input: toolInput,
+        result: result ?? { success: true },
+        duration_ms,
+        jobId,
+      };
+    }
+
+    if (shouldAutoWrapToolCommand(toolName)) {
+      const jobRequest = { ...toolInput, _toolUseId: toolUseId };
+      const { jobId, result } = await queueJobAndWait(
+        toolName,
+        jobRequest,
+        context,
+        resolveToolTimeout(toolName),
+      );
+      const duration_ms = Math.round(performance.now() - start);
+      return {
+        tool_use_id: toolUseId,
+        name: toolName,
+        input: toolInput,
+        result: result ?? { success: true },
+        duration_ms,
+        jobId,
+      };
     }
 
     // Queue the tool call as a job

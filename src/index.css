@@ -37,6 +37,7 @@
 @import './styles/components/dry-run-report.css';
 @import './styles/components/delete-confirm.css';
 @import './styles/components/system-view.css';
+@import './styles/components/toolkit-config.css';
 @import './styles/components/agent-runtime.css';
 @import './toolkits/studio/styles/studio-bot.css';
 
