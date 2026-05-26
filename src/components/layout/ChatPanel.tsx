@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { X, LayoutTemplate, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, ChevronDown, ChevronRight, Clapperboard, Edit3, Eye, Send, Square, Check, Bot } from "lucide-react";
+import { X, LayoutTemplate, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, ChevronDown, ChevronRight, Clapperboard, Edit3, Eye, Send, Square, Check, Bot, Brain } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent, diffP2PContext } from "@/services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks, WorkspaceP2PContext } from "@/services/ai";
@@ -9,6 +9,7 @@ import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
 import { useStreamingChatState } from "@/components/chat/useStreamingChatState";
 import { makeId } from "@/components/chat/utils";
 import { extractEditorPreviewContent, EDITOR_DOC_BEGIN, EDITOR_DOC_END } from "@/components/chat/editorPreview";
+import { MemoriesPanel } from "@/components/chat/MemoriesPanel";
 import type { Conversation } from "@/components/chat/types";
 import { useCommandContext } from "@/hooks/useCommandContext";
 import type { EcosystemInput } from "@/hooks/useCommandContext";
@@ -71,6 +72,8 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
         endRef, inputRef, initialScrollDone,
         updateConversation, createNewChat, switchTo, deleteConvo,
     } = useConversations(activeWorkspaceId);
+
+    const [showMemories, setShowMemories] = useState(false);
 
     const activeAgent = useActiveChatAgent();
     const availableAgents = useChatAgentsStore(s => s.agents);
@@ -919,7 +922,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                     <span className="chat-panel__separator">│</span>
                     {/* Conversations toggle */}
                     <button
-                        onClick={() => setShowConvos(!showConvos)}
+                        onClick={() => { setShowConvos(!showConvos); if (!showConvos) setShowMemories(false); }}
                         className={`chat-panel__convos-toggle${showConvos ? " chat-panel__convos-toggle--active" : ""}`}
                     >
                         <AlignJustify size={9} />
@@ -927,6 +930,16 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                         {conversations.length > 0 && (
                             <span className={`chat-panel__convos-count${showConvos ? " chat-panel__convos-count--active" : ""}`}>{conversations.length}</span>
                         )}
+                    </button>
+                    {/* Memories toggle */}
+                    <button
+                        onClick={() => { setShowMemories(!showMemories); if (!showMemories) setShowConvos(false); }}
+                        className={`chat-panel__convos-toggle${showMemories ? " chat-panel__convos-toggle--active" : ""}`}
+                        title="Collective memory"
+                        data-testid="chat-panel-memories-toggle"
+                    >
+                        <Brain size={9} />
+                        Memories
                     </button>
                 </div>
                 <div className="chat-panel__header-right">
@@ -950,7 +963,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                 </div>
             </div>
 
-            {/* Body: either conversations list or chat */}
+            {/* Body: conversations list, memories panel, or chat */}
             {showConvos ? (
                 /* Conversations list */
                 <div className="chat-panel__convos-list">
@@ -984,6 +997,9 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                         </div>
                     ))}
                 </div>
+            ) : showMemories ? (
+                /* Memories panel */
+                <MemoriesPanel workspaceId={activeWorkspaceId} />
             ) : (
                 /* Chat messages */
                 <div className="chat-panel__messages" data-testid="chat-panel-messages">
@@ -1087,7 +1103,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
             )}
 
             {/* Input (always visible) */}
-            {!showConvos && (
+            {!showConvos && !showMemories && (
                 <div className="chat-panel__input-area">
                     {/* @mention autocomplete picker */}
                     {mentionQuery !== null && mentionCandidates.length > 0 && (

@@ -10,6 +10,8 @@ export interface CollectiveMemoryEntry {
   conversationId?: string;
   scope: "workspace" | "global";
   importance: number;
+  /** When true, the entry is excluded from recall/auto-injection but kept in the store. */
+  disabled?: boolean;
   metadata?: Record<string, unknown>;
 }
 
@@ -165,6 +167,8 @@ export function recallCollectiveMemory(input: RecallInput = {}): CollectiveMemor
       }
     }
 
+    if (entry.disabled) return false;
+
     if (queryTerms.length === 0) return true;
     const haystack = `${entry.content} ${(entry.tags || []).join(" ")}`.toLowerCase();
     return queryTerms.some(t => haystack.includes(t));
@@ -181,6 +185,36 @@ export function recallCollectiveMemory(input: RecallInput = {}): CollectiveMemor
 
 export function listCollectiveMemory(limit = 20, workspaceId?: string): CollectiveMemoryEntry[] {
   return recallCollectiveMemory({ limit, workspaceId, includeGlobal: true });
+}
+
+/**
+ * List every entry (including disabled ones) for UI display.
+ * Sorted by most-recently-updated first.
+ */
+export function listAllCollectiveMemory(workspaceId?: string): CollectiveMemoryEntry[] {
+  const state = loadState();
+  const filtered = state.entries.filter((entry) => {
+    if (!workspaceId) return true;
+    if (entry.scope === "global") return true;
+    return entry.workspaceId === workspaceId;
+  });
+  return filtered.sort((a, b) =>
+    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  );
+}
+
+/** Enable or disable a memory entry without deleting it. */
+export function setCollectiveMemoryDisabled(id: string, disabled: boolean): CollectiveMemoryEntry | null {
+  const state = loadState();
+  let updated: CollectiveMemoryEntry | null = null;
+  const nextEntries = state.entries.map(e => {
+    if (e.id !== id) return e;
+    updated = { ...e, disabled, updatedAt: nowIso() };
+    return updated;
+  });
+  if (!updated) return null;
+  saveState({ version: 1, entries: nextEntries });
+  return updated;
 }
 
 export function forgetCollectiveMemory(id: string): boolean {
