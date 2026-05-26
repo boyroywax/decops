@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { X, LayoutTemplate, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, ChevronDown, ChevronRight, Clapperboard, Edit3, Eye, Send, Square, Check, Bot, Brain } from "lucide-react";
+import { X, LayoutTemplate, MessageCircle, ChevronDown, ChevronRight, Clapperboard, Edit3, Eye, Send, Square, Check, Bot } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "@/services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "@/services/ai";
@@ -11,6 +11,8 @@ import { makeId } from "@/components/chat/utils";
 import { extractEditorPreviewContent, EDITOR_DOC_BEGIN, EDITOR_DOC_END } from "@/components/chat/editorPreview";
 import { MemoriesPanel } from "@/components/chat/MemoriesPanel";
 import { ChatMentionPicker } from "@/components/chat/ChatMentionPicker";
+import { ChatPanelHeader } from "@/components/chat/ChatPanelHeader";
+import { ConversationsList } from "@/components/chat/ConversationsList";
 import { useChatMentions } from "@/hooks/chat/useChatMentions";
 import { useChatScroll } from "@/hooks/chat/useChatScroll";
 import type { Conversation } from "@/components/chat/types";
@@ -777,87 +779,28 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
             </div>
 
             {/* Header */}
-            <div className="chat-panel__header">
-                <div className="chat-panel__header-left">
-                    <span className="chat-panel__title">WORKSPACE CHAT</span>
-                    <span className="chat-panel__separator">│</span>
-                    {/* Conversations toggle */}
-                    <button
-                        onClick={() => { setShowConvos(!showConvos); if (!showConvos) setShowMemories(false); }}
-                        className={`chat-panel__convos-toggle${showConvos ? " chat-panel__convos-toggle--active" : ""}`}
-                    >
-                        <AlignJustify size={9} />
-                        Conversations
-                        {conversations.length > 0 && (
-                            <span className={`chat-panel__convos-count${showConvos ? " chat-panel__convos-count--active" : ""}`}>{conversations.length}</span>
-                        )}
-                    </button>
-                    {/* Memories toggle */}
-                    <button
-                        onClick={() => { setShowMemories(!showMemories); if (!showMemories) setShowConvos(false); }}
-                        className={`chat-panel__convos-toggle${showMemories ? " chat-panel__convos-toggle--active" : ""}`}
-                        title="Collective memory"
-                        data-testid="chat-panel-memories-toggle"
-                    >
-                        <Brain size={9} />
-                        Memories
-                    </button>
-                </div>
-                <div className="chat-panel__header-right">
-                    <button
-                        onClick={createNewChat}
-                        className="chat-panel__new-btn"
-                        title="New conversation"
-                    >+ New</button>
-                    {!isSide && (
-                        <button
-                            onClick={onToggleExpand}
-                            className="chat-panel__expand-btn"
-                            title={isExpanded ? "Collapse panel" : "Expand panel"}
-                        >{isExpanded ? <ChevronsDown size={14} /> : <ChevronsUp size={14} />}</button>
-                    )}
-                    <button
-                        onClick={onClose}
-                        className="chat-panel__close-btn"
-                        title="Close chat"
-                    ><X size={14} /></button>
-                </div>
-            </div>
+            <ChatPanelHeader
+                conversationsCount={conversations.length}
+                showConvos={showConvos}
+                showMemories={showMemories}
+                isSide={isSide}
+                isExpanded={isExpanded}
+                onToggleConvos={() => { setShowConvos(!showConvos); if (!showConvos) setShowMemories(false); }}
+                onToggleMemories={() => { setShowMemories(!showMemories); if (!showMemories) setShowConvos(false); }}
+                onNew={createNewChat}
+                onToggleExpand={onToggleExpand}
+                onClose={onClose}
+            />
 
             {/* Body: conversations list, memories panel, or chat */}
             {showConvos ? (
-                /* Conversations list */
-                <div className="chat-panel__convos-list">
-                    {conversations.length === 0 && (
-                        <div className="chat-panel__empty-state">
-                            <div className="chat-panel__empty-text">No conversations yet</div>
-                            <button
-                                onClick={createNewChat}
-                                className="chat-panel__start-btn"
-                            >+ Start a conversation</button>
-                        </div>
-                    )}
-                    {conversations.map(c => (
-                        <div
-                            key={c.id}
-                            onClick={() => switchTo(c.id)}
-                            className={`chat-panel__convo-item${c.id === activeId ? " chat-panel__convo-item--active" : ""}`}
-                        >
-                            <div className="chat-panel__convo-info">
-                                <div className="chat-panel__convo-title">{c.title}</div>
-                                <div className="chat-panel__convo-meta">
-                                    <span>{c.messages.length} msgs</span>
-                                    <span>{new Date(c.updatedAt).toLocaleDateString()}</span>
-                                </div>
-                            </div>
-                            <button
-                                onClick={e => { e.stopPropagation(); deleteConvo(c.id); }}
-                                className="chat-panel__convo-delete"
-                                title="Delete conversation"
-                            ><X size={12} /></button>
-                        </div>
-                    ))}
-                </div>
+                <ConversationsList
+                    conversations={conversations}
+                    activeId={activeId}
+                    onSwitch={switchTo}
+                    onDelete={deleteConvo}
+                    onNew={createNewChat}
+                />
             ) : showMemories ? (
                 /* Memories panel */
                 <MemoriesPanel workspaceId={activeWorkspaceId} />
