@@ -1,16 +1,14 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Eye, MessageCircle, Send, Square, X } from "lucide-react";
-import { GradientIcon } from "@/components/shared/GradientIcon";
+import { Send, Square, X } from "lucide-react";
 import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "@/services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "@/services/ai";
 import { useLLM } from "@/context/LLMContext";
-import MessageBubble from "@/components/chat/MessageBubble";
-import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
 import { useStreamingChatState } from "@/components/chat/useStreamingChatState";
 import { makeId } from "@/components/chat/utils";
-import { extractEditorPreviewContent, EDITOR_DOC_BEGIN, EDITOR_DOC_END } from "@/components/chat/editorPreview";
+import { EDITOR_DOC_BEGIN, EDITOR_DOC_END } from "@/components/chat/editorPreview";
 import { MemoriesPanel } from "@/components/chat/MemoriesPanel";
 import { ChatMentionPicker } from "@/components/chat/ChatMentionPicker";
+import { ChatMessageList } from "@/components/chat/ChatMessageList";
 import { BotMenu } from "@/components/chat/BotMenu";
 import { ChatPanelHeader } from "@/components/chat/ChatPanelHeader";
 import { ConversationsList } from "@/components/chat/ConversationsList";
@@ -36,7 +34,6 @@ import { useConversations } from "@/hooks/useConversations";
 import { useChatResize } from "@/hooks/useChatResize";
 import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
 import { useActiveChatAgent, useChatAgentsStore } from "@/services/chat/agents";
-import { ChatAgentBanner } from "@/components/chat/ChatAgentBanner";
 import "../../styles/components/chat-panel.css";
 
 interface ChatPanelProps {
@@ -807,104 +804,21 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                 <MemoriesPanel workspaceId={activeWorkspaceId} />
             ) : (
                 /* Chat messages */
-                <div className="chat-panel__messages" data-testid="chat-panel-messages">
-                    <ChatAgentBanner />
-                    {activeAgent?.welcome && !loading && (
-                        (() => {
-                            const Welcome = activeAgent.welcome!;
-                            return (
-                                <div className="chat-panel__agent-welcome chat-panel__agent-welcome--inline">
-                                    <Welcome
-                                        onPrompt={(t: string) => {
-                                            setInput(t);
-                                            setTimeout(() => inputRef.current?.focus(), 0);
-                                        }}
-                                    />
-                                </div>
-                            );
-                        })()
-                    )}
-                    {messages.length === 0 && !loading && !activeAgent?.welcome && (
-                        <div className="chat-panel__chat-empty">
-                            <GradientIcon icon={MessageCircle} size={24} gradient={["#00e5a0", "#38bdf8"]} />
-                            <div className="chat-panel__chat-empty-title">
-                                {activeAgent ? activeAgent.name : "Workspace AI Assistant"}
-                            </div>
-                            <div className="chat-panel__chat-empty-desc">
-                                {activeAgent?.description ?? "Ask about your agents, channels, groups, topology — or request workspace actions."}
-                            </div>
-                            {activeAgent?.quickActions && activeAgent.quickActions.length > 0 && (
-                                <div className="chat-agent-quickactions">
-                                    {activeAgent.quickActions.map((qa, i) => (
-                                        <button
-                                            key={i}
-                                            type="button"
-                                            className="chat-agent-quickactions__chip"
-                                            onClick={() => {
-                                                if (qa.run) qa.run();
-                                                else if (qa.prompt) {
-                                                    setInput(qa.prompt);
-                                                    setTimeout(() => inputRef.current?.focus(), 0);
-                                                }
-                                            }}
-                                        >
-                                            {qa.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                    {messages.map((m, i) => (
-                        <div key={i}>
-                            {m.systemNotice ? (
-                                <div className="chat-panel__system-notice" role="status" aria-live="polite">
-                                    <span className="chat-panel__system-notice-dot" aria-hidden />
-                                    <span className="chat-panel__system-notice-text">{m.content.replace(/^\[workspace update\]\s*/, "")}</span>
-                                </div>
-                            ) : (
-                                <MessageBubble msg={m} context={context} setView={setView} onStopPromptAction={handleStopPromptAction} />
-                            )}
-                            {editorActive && editorApi && m.role === "assistant" && !!extractEditorPreviewContent(m.content) && (
-                                <button
-                                    className="chat-panel__apply-editor-btn"
-                                    onClick={() => {
-                                        const previewContent = extractEditorPreviewContent(m.content);
-                                        if (previewContent) proposeEdit(previewContent);
-                                    }}
-                                    title="Preview AI changes as inline diff in the editor"
-                                >
-                                    <Eye size={11} /> Preview in Editor
-                                </button>
-                            )}
-                        </div>
-                    ))}
-                    {streamState.streamingText !== null && (
-                        <MessageBubble
-                            msg={{
-                                role: "assistant",
-                                content: streamState.streamingText || "",
-                                toolCalls: streamState.streamingToolCalls.length > 0 ? streamState.streamingToolCalls : undefined,
-                                jobIds: streamState.streamingToolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!),
-                            }}
-                            context={context}
-                            setView={setView}
-                            onStopPromptAction={handleStopPromptAction}
-                            isStreaming
-                        />
-                    )}
-                    {streamState.streamingText !== null && streamState.roundPhase === "drafting" && !streamState.streamingText && (
-                        <div className="chat-panel__loading">
-                            <ThinkingIndicator phase="working" toolName="processing tool results" />
-                        </div>
-                    )}
-                    {loading && streamState.streamingText === null && (
-                        <div className="chat-panel__loading">
-                            <ThinkingIndicator phase="thinking" />
-                        </div>
-                    )}
-                    <div ref={endRef} />
-                </div>
+                <ChatMessageList
+                    messages={messages}
+                    loading={loading}
+                    context={context}
+                    setView={setView}
+                    handleStopPromptAction={handleStopPromptAction}
+                    activeAgent={activeAgent}
+                    setInput={setInput}
+                    inputRef={inputRef}
+                    editorActive={editorActive}
+                    editorApi={editorApi}
+                    proposeEdit={proposeEdit}
+                    streamState={streamState}
+                    endRef={endRef}
+                />
             )}
 
             {/* Input (always visible) */}
