@@ -8,6 +8,7 @@ import MessageBubble from "@/components/chat/MessageBubble";
 import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
 import { useStreamingChatState } from "@/components/chat/useStreamingChatState";
 import { makeId } from "@/components/chat/utils";
+import { extractEditorPreviewContent, EDITOR_DOC_BEGIN, EDITOR_DOC_END } from "@/components/chat/editorPreview";
 import type { Conversation } from "@/components/chat/types";
 import { useCommandContext } from "@/hooks/useCommandContext";
 import type { EcosystemInput } from "@/hooks/useCommandContext";
@@ -56,6 +57,9 @@ interface ChatPanelProps {
     view?: ViewId;
     setView?: (v: ViewId) => void;
 }
+
+// Editor "Preview in Editor" extraction helpers live in chat/editorPreview.ts
+// so they can be unit-tested in isolation.
 
 export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog, height, setHeight, isExpanded, onToggleExpand, position = "bottom", view, setView }: ChatPanelProps) {
     const { activeWorkspaceId } = useWorkspaceManager();
@@ -751,7 +755,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                 let messageToSend = text;
                 if (editorActive && editorApi) {
                     const editorState = editorApi.getState();
-                    const editorSuffix = `\n\nEDITOR MODE ACTIVE:\nYou are assisting with a file open in the Editor view. The user wants help editing it.\n\nCurrent file: "${editorState.docName}" (${editorState.fileType})\nFile content (${editorState.stats.lines} lines, ${editorState.stats.words} words):\n\`\`\`${editorState.fileType === "markdown" ? "md" : editorState.fileType}\n${editorState.content.length > 4000 ? editorState.content.substring(0, 4000) + "\n... (truncated)" : editorState.content}\n\`\`\`${!editorState.validation.valid ? `\nValidation Error: ${editorState.validation.error}` : ""}\n\nWhen helping with this file:\n- Provide COMPLETE updated file content in a fenced code block so the user can apply it.\n- Be precise with the format (${editorState.fileType}).\n- For small edits, show context around the change and the complete replacement.\n- Do NOT include explanatory text inside the code block, only the file content.`;
+                    const editorSuffix = `\n\nEDITOR MODE ACTIVE:\nYou are assisting with a file open in the Editor view. The user wants help editing it.\n\nCurrent file: "${editorState.docName}" (${editorState.fileType})\nFile content (${editorState.stats.lines} lines, ${editorState.stats.words} words):\n\`\`\`${editorState.fileType === "markdown" ? "md" : editorState.fileType}\n${editorState.content.length > 4000 ? editorState.content.substring(0, 4000) + "\n... (truncated)" : editorState.content}\n\`\`\`${!editorState.validation.valid ? `\nValidation Error: ${editorState.validation.error}` : ""}\n\nWhen helping with this file:\n- Provide the COMPLETE updated file content — never a partial diff or snippet.\n- Wrap the full intended document between these invisible markers on their own lines so the editor can apply it as one unit:\n  ${EDITOR_DOC_BEGIN}\n  \`\`\`${editorState.fileType === "markdown" ? "md" : editorState.fileType}\n  ...entire updated file content here...\n  \`\`\`\n  ${EDITOR_DOC_END}\n- The markers MUST appear exactly once each, on their own lines, with nothing else on those lines.\n- Put ONLY the file content inside the fenced code block (no explanatory prose, no diff hunks, no ellipses).\n- Be precise with the format (${editorState.fileType}).\n- You may include short prose before the begin marker or after the end marker for the user, but never between them.`;
                     messageToSend = text + editorSuffix;
                 }
 
@@ -1008,12 +1012,12 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                             ) : (
                                 <MessageBubble msg={m} context={context} setView={setView} onStopPromptAction={handleStopPromptAction} />
                             )}
-                            {editorActive && editorApi && m.role === "assistant" && m.content.includes("```") && (
+                            {editorActive && editorApi && m.role === "assistant" && !!extractEditorPreviewContent(m.content) && (
                                 <button
                                     className="chat-panel__apply-editor-btn"
                                     onClick={() => {
-                                        const match = m.content.match(/```(?:[\w]*)?\.?\n([\s\S]*?)```/);
-                                        if (match?.[1]) proposeEdit(match[1].trim());
+                                        const previewContent = extractEditorPreviewContent(m.content);
+                                        if (previewContent) proposeEdit(previewContent);
                                     }}
                                     title="Preview AI changes as inline diff in the editor"
                                 >
