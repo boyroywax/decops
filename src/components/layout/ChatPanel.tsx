@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { X, LayoutTemplate, MessageCircle, ChevronDown, ChevronRight, Clapperboard, Edit3, Eye, Send, Square, Check, Bot } from "lucide-react";
+import { Eye, MessageCircle, Send, Square, X } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "@/services/ai";
 import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "@/services/ai";
@@ -11,6 +11,7 @@ import { makeId } from "@/components/chat/utils";
 import { extractEditorPreviewContent, EDITOR_DOC_BEGIN, EDITOR_DOC_END } from "@/components/chat/editorPreview";
 import { MemoriesPanel } from "@/components/chat/MemoriesPanel";
 import { ChatMentionPicker } from "@/components/chat/ChatMentionPicker";
+import { BotMenu } from "@/components/chat/BotMenu";
 import { ChatPanelHeader } from "@/components/chat/ChatPanelHeader";
 import { ConversationsList } from "@/components/chat/ConversationsList";
 import { useChatMentions } from "@/hooks/chat/useChatMentions";
@@ -925,128 +926,18 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                             ["--agent-gradient-end" as any]: activeAgent.gradient?.[1] ?? "#a78bfa",
                         } : undefined}
                     >
-                    <div className="chat-panel__bot-menu-wrapper" style={{ position: 'relative', display: 'flex', alignSelf: 'stretch' }}>
-                        <button
-                            type="button"
-                            className={activeAgent ? "chat-panel__agent-input-badge" : studioActive ? "chat-panel__studio-input-badge" : editorActive ? "chat-panel__editor-input-badge" : "chat-panel__default-input-badge"}
-                            onClick={() => setBotMenuOpen(prev => !prev)}
-                            onBlur={(e) => {
-                                if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) {
-                                    setBotMenuOpen(false);
-                                }
-                            }}
-                            title="Switch Bot Theme"
-                        >
-                            {activeAgent?.icon ? (
-                                <GradientIcon
-                                    icon={activeAgent.icon as any}
-                                    size={13}
-                                    gradient={activeAgent.gradient ?? ["#38bdf8", "#a78bfa"]}
-                                />
-                            ) : studioActive ? (
-                                <Clapperboard size={13} />
-                            ) : editorActive ? (
-                                <Edit3 size={13} />
-                            ) : (
-                                <Bot size={13} style={{ color: 'var(--text-muted)' }} />
-                            )}
-                        </button>
-                        
-                        {botMenuOpen && (
-                            <div className="chat-panel__bot-menu-dropdown">
-                                <div className="chat-panel__bot-menu-title">BOT THEMES</div>
-                                
-                                {(() => {
-                                    const LOHK_IDS = ["libp2p", "helia", "kubo-bot", "orbitdb", "orbitdb-server"];
-                                    const ORCHESTRATOR_ID = "orchestrator-bot";
-                                    const all = Object.values(availableAgents);
-                                    const orchestrator = all.find(a => a.id === ORCHESTRATOR_ID);
-                                    const lohkChildren = LOHK_IDS
-                                        .map(id => all.find(a => a.id === id))
-                                        .filter((a): a is NonNullable<typeof a> => Boolean(a));
-                                    const others = all.filter(a => a.id !== ORCHESTRATOR_ID && !LOHK_IDS.includes(a.id));
-                                    const renderAgentButton = (agent: typeof all[number], nested = false) => (
-                                        <button
-                                            key={agent.id}
-                                            type="button"
-                                            className={`chat-panel__bot-menu-item${nested ? " chat-panel__bot-menu-item--nested" : ""}${activeAgent?.id === agent.id ? " chat-panel__bot-menu-item--active" : ""}`}
-                                            onClick={() => {
-                                                useChatAgentsStore.getState().setActive(agent.id);
-                                                setBotMenuOpen(false);
-                                            }}
-                                        >
-                                            <GradientIcon icon={agent.icon as any} size={14} gradient={agent.gradient ?? ["#38bdf8", "#a78bfa"]} />
-                                            <span style={{flex: 1}}>{agent.name}</span>
-                                            {activeAgent?.id === agent.id && <Check size={12} />}
-                                        </button>
-                                    );
-                                    return (
-                                        <>
-                                            {orchestrator && (
-                                                <div className="chat-panel__bot-menu-group">
-                                                    <div className={`chat-panel__bot-menu-item chat-panel__bot-menu-item--parent${activeAgent?.id === orchestrator.id ? " chat-panel__bot-menu-item--active" : ""}`}>
-                                                        <button
-                                                            type="button"
-                                                            className="chat-panel__bot-menu-chevron"
-                                                            onClick={(e) => { e.stopPropagation(); setLohkExpanded(v => !v); }}
-                                                            title={lohkExpanded ? "Collapse L.O.H.K bots" : "Expand L.O.H.K bots"}
-                                                            aria-expanded={lohkExpanded}
-                                                        >
-                                                            {lohkExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="chat-panel__bot-menu-item-main"
-                                                            onClick={() => {
-                                                                useChatAgentsStore.getState().setActive(orchestrator.id);
-                                                                setBotMenuOpen(false);
-                                                            }}
-                                                        >
-                                                            <GradientIcon icon={orchestrator.icon as any} size={14} gradient={orchestrator.gradient ?? ["#38bdf8", "#a78bfa"]} />
-                                                            <span style={{flex: 1}}>{orchestrator.name}</span>
-                                                            {activeAgent?.id === orchestrator.id && <Check size={12} />}
-                                                        </button>
-                                                    </div>
-                                                    {lohkExpanded && lohkChildren.map(a => renderAgentButton(a, true))}
-                                                </div>
-                                            )}
-                                            {others.map(a => renderAgentButton(a, false))}
-                                        </>
-                                    );
-                                })()}
-                                
-                                <div className="chat-panel__bot-menu-divider" />
-                                
-                                <button
-                                    type="button"
-                                    className={`chat-panel__bot-menu-item${(!activeAgent) ? " chat-panel__bot-menu-item--active" : ""}`}
-                                    onClick={() => {
-                                        useChatAgentsStore.getState().setActive(null);
-                                        setBotMenuOpen(false);
-                                    }}
-                                >
-                                    <Square size={14} className={(!activeAgent) ? "" : "chat-panel__bot-menu-item--disabled"} />
-                                    <span style={{flex: 1}} className={(!activeAgent) ? "" : "chat-panel__bot-menu-item--disabled"}>Deactivate</span>
-                                    {(!activeAgent) && <Check size={12} />}
-                                </button>
-
-                                {activeAgent && layoutOverrides[activeAgent.id] && (
-                                    <button
-                                        type="button"
-                                        className="chat-panel__bot-menu-item"
-                                        onClick={() => {
-                                            resetLayoutOverride(activeAgent.id);
-                                            setBotMenuOpen(false);
-                                        }}
-                                    >
-                                        <LayoutTemplate size={14} style={{ color: 'var(--text-muted)' }} />
-                                        <span style={{flex: 1}}>Default layout</span>
-                                    </button>
-                                )}
-
-                            </div>
-                        )}
-                    </div>
+                    <BotMenu
+                        activeAgent={activeAgent}
+                        availableAgents={availableAgents}
+                        studioActive={studioActive}
+                        editorActive={editorActive}
+                        botMenuOpen={botMenuOpen}
+                        setBotMenuOpen={setBotMenuOpen}
+                        lohkExpanded={lohkExpanded}
+                        setLohkExpanded={setLohkExpanded}
+                        hasLayoutOverride={!!(activeAgent && layoutOverrides[activeAgent.id])}
+                        onResetLayout={() => activeAgent && resetLayoutOverride(activeAgent.id)}
+                    />
                     {pinnedMentions.length > 0 && (
                         <div className="chat-panel__pinned-mentions" aria-label="Mentioned agents">
                             {pinnedMentions.map(m => {
