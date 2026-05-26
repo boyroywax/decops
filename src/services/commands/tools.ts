@@ -56,6 +56,22 @@ interface PendingToolJob {
 
 const pendingToolJobs = new Map<string, PendingToolJob>();
 
+/**
+ * Reset all module-level state. Pending tool-job promises that have not
+ * resolved by logout/workspace-switch are rejected so awaiters unblock
+ * cleanly. See §2.1 of MVP_AUDIT_AND_REFACTOR_PLAN.md.
+ */
+export function clearAll(): void {
+  for (const pending of pendingToolJobs.values()) {
+    try {
+      pending.reject(new Error("Runtime reset (logout or workspace switch)"));
+    } catch {
+      // ignore — caller may have already detached
+    }
+  }
+  pendingToolJobs.clear();
+}
+
 const TOOL_JOB_TIMEOUT_MS = 12_000; // 12s default — most non-child-job commands complete in <2s; long-running ones declare spawnsChildJobs or timeoutMs
 const JOB_RUNNER_TIMEOUT_MS = 180_000; // 3 minute default for commands that spawn child jobs
 const DIRECT_TOOL_COMMANDS = new Set([

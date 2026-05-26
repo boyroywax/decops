@@ -90,6 +90,8 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 
     useEffect(() => {
         setStoredValue(readValue());
+        // reason: re-sync once on mount; readValue is stable via useCallback and
+        // adding it would re-run on every render-fresh ref. §5.4.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 

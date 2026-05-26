@@ -193,14 +193,23 @@ export function listCollectiveMemory(limit = 20, workspaceId?: string): Collecti
  */
 export function listAllCollectiveMemory(workspaceId?: string): CollectiveMemoryEntry[] {
   const state = loadState();
-  const filtered = state.entries.filter((entry) => {
-    if (!workspaceId) return true;
-    if (entry.scope === "global") return true;
-    return entry.workspaceId === workspaceId;
-  });
-  return filtered.sort((a, b) =>
-    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-  );
+  const filtered = state.entries
+    .map((entry, idx) => ({ entry, idx }))
+    .filter(({ entry }) => {
+      if (!workspaceId) return true;
+      if (entry.scope === "global") return true;
+      return entry.workspaceId === workspaceId;
+    });
+  // Sort newest-first by updatedAt; on tie (same-ms insertion), the later-
+  // inserted entry wins so test ordering and UI insertion order match.
+  return filtered
+    .sort((a, b) => {
+      const delta =
+        new Date(b.entry.updatedAt).getTime() - new Date(a.entry.updatedAt).getTime();
+      if (delta !== 0) return delta;
+      return b.idx - a.idx;
+    })
+    .map(({ entry }) => entry);
 }
 
 /** Enable or disable a memory entry without deleting it. */

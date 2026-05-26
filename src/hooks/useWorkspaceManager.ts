@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import type { Workspace, WorkspaceMetadata, Ecosystem } from '@/types';
 import { generateEcosystemDID } from '@/utils/identity';
+import { resetRuntimeState } from '@/services/runtime';
 
 const STORAGE_PREFIX = 'decops_workspace_';
 const METADATA_KEY = 'decops_workspaces_metadata';
@@ -9,7 +10,23 @@ const ACTIVE_WORKSPACE_KEY = 'decops_active_workspace';
 
 export function useWorkspaceManager() {
     const [workspaces, setWorkspaces] = useLocalStorage<WorkspaceMetadata[]>(METADATA_KEY, []);
-    const [activeWorkspaceId, setActiveWorkspaceId] = useLocalStorage<string | null>(ACTIVE_WORKSPACE_KEY, null);
+    const [activeWorkspaceId, setActiveWorkspaceIdRaw] = useLocalStorage<string | null>(ACTIVE_WORKSPACE_KEY, null);
+
+    /**
+     * §2.1: wrap the raw setter so any workspace change resets module-level
+     * singletons (taskEngine / agentRuntime / commands.tools). Without this,
+     * switching workspaces would leave the previous workspace's tasks,
+     * inboxes, and pending tool-job promises live in memory.
+     */
+    const setActiveWorkspaceId = useCallback((next: string | null | ((prev: string | null) => string | null)) => {
+        setActiveWorkspaceIdRaw(prev => {
+            const resolved = typeof next === 'function' ? next(prev) : next;
+            if (resolved !== prev) {
+                resetRuntimeState();
+            }
+            return resolved;
+        });
+    }, [setActiveWorkspaceIdRaw]);
 
     // Ensure at least one workspace exists on first load
     useEffect(() => {

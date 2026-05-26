@@ -56,6 +56,15 @@ export function clearTasks(): void {
   activeTasks.clear();
 }
 
+/**
+ * Reset all module-level state. Called by `resetRuntimeState()` on logout
+ * and workspace-switch to prevent task leakage across users/workspaces.
+ * See §2.1 of MVP_AUDIT_AND_REFACTOR_PLAN.md.
+ */
+export function clearAll(): void {
+  activeTasks.clear();
+}
+
 // ── Task creation ──────────────────────────────────
 
 export function createTask(

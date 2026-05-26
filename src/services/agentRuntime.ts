@@ -23,6 +23,17 @@ const runtimeStates = new Map<string, AgentRuntimeState>();
 const inboxes = new Map<string, AgentInboxMessage[]>();
 const lifecycleLogs = new Map<string, AgentLifecycleEvent[]>();
 
+/**
+ * Reset all module-level state. Called by `resetRuntimeState()` on logout
+ * and workspace-switch so agent runtimes from a prior session do not leak
+ * across users/workspaces. See §2.1 of MVP_AUDIT_AND_REFACTOR_PLAN.md.
+ */
+export function clearAll(): void {
+  runtimeStates.clear();
+  inboxes.clear();
+  lifecycleLogs.clear();
+}
+
 // ── Lifecycle management ───────────────────────────
 
 /** Initialize runtime state for an agent */

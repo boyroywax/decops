@@ -146,6 +146,8 @@ export function useRouteSync(
       setViewRaw(urlView);
       setNavContext(urlCtx);
     }
+    // reason: mount-only initialization from the URL; setters are stable
+    // and pathname is read inside, so deps would just churn. §5.4.
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // State → URL: when view or navContext changes, update URL
@@ -157,6 +159,8 @@ export function useRouteSync(
       isInternalNav.current = true;
       navigate(targetPath, { replace: false });
     }
+    // reason: drives URL from state; navigate/location are stable across
+    // renders and intentionally excluded to avoid push-loops. §5.4.
   }, [view, navContext]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // URL → State: handle popstate (back/forward)
@@ -172,5 +176,8 @@ export function useRouteSync(
       setViewRaw(urlView);
       setNavContext(urlCtx);
     }
+    // reason: popstate handler reads `view`/`navContext` but they must NOT
+    // be in deps or the effect would re-fire on every state change and
+    // overwrite the user's in-flight navigation. §5.4.
   }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 }

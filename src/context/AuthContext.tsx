@@ -1,6 +1,7 @@
 import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
 import type { User, AuthState, EmailValidation } from '@/types';
 import { authService, emailRegistrationService, emailValidationService } from '@/services/credebl';
+import { resetRuntimeState } from '@/services/runtime';
 
 // Action types
 type AuthAction =
@@ -315,6 +316,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             localStorage.removeItem('user_did');
             localStorage.removeItem('access_token');
             localStorage.removeItem('user');
+            // §2.1: wipe module-level singletons so the next user's session
+            // does not inherit the prior user's tasks/inboxes/pending jobs.
+            resetRuntimeState();
             dispatch({ type: 'LOGOUT' });
         }
     };

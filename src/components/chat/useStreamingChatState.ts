@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ToolCallDisplay, StreamCallbacks } from "@/services/ai";
 
 /**
@@ -94,6 +94,23 @@ export function useStreamingChatState() {
 
   const onRoundEnd = useCallback(() => {
     setRoundPhase("drafting");
+  }, []);
+
+  /**
+   * §5.6: release the token accumulator and cancel any pending rAF when the
+   * host component unmounts. Without this, a rapid mount/unmount (e.g. tab
+   * switching during a stream) would leave the buffer + frame request alive
+   * past the component's lifecycle.
+   */
+  useEffect(() => {
+    return () => {
+      invalidatedRef.current = true;
+      tokenBufRef.current = "";
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+      }
+    };
   }, []);
 
   const buildCallbacks = useCallback((signal?: AbortSignal): StreamCallbacks => ({

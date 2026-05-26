@@ -324,6 +324,8 @@ export function LLMProvider({ children }: { children: ReactNode }) {
     ollamaInstances.forEach(inst => {
       checkOllamaLiveness(inst.id);
     });
+    // reason: mount-only one-shot probe; `checkLiveness` is stable and the
+    // key/ollama arrays would cause repeated probes on every render. §5.4.
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derived ──
