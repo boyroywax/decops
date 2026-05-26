@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { X, LayoutTemplate, AlignJustify, MessageCircle, ChevronsUp, ChevronsDown, ChevronDown, ChevronRight, Clapperboard, Edit3, Eye, Send, Square, Check, Bot, Brain } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
-import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent, diffP2PContext } from "@/services/ai";
-import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks, WorkspaceP2PContext } from "@/services/ai";
+import { chatWithWorkspace, streamChatWithWorkspace, getChatModel, chatWithAgent } from "@/services/ai";
+import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks } from "@/services/ai";
 import { useLLM } from "@/context/LLMContext";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
@@ -10,6 +10,9 @@ import { useStreamingChatState } from "@/components/chat/useStreamingChatState";
 import { makeId } from "@/components/chat/utils";
 import { extractEditorPreviewContent, EDITOR_DOC_BEGIN, EDITOR_DOC_END } from "@/components/chat/editorPreview";
 import { MemoriesPanel } from "@/components/chat/MemoriesPanel";
+import { ChatMentionPicker } from "@/components/chat/ChatMentionPicker";
+import { useChatMentions } from "@/hooks/chat/useChatMentions";
+import { useChatScroll } from "@/hooks/chat/useChatScroll";
 import type { Conversation } from "@/components/chat/types";
 import { useCommandContext } from "@/hooks/useCommandContext";
 import type { EcosystemInput } from "@/hooks/useCommandContext";
@@ -23,9 +26,7 @@ import { CommandPrompt } from "@/components/actions/CommandPrompt";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import { useStudioContext } from "@/toolkits/studio";
 import { useEditorContext } from "@/toolkits/editor";
-import { libp2pService } from "@/toolkits/libp2p";
-import { heliaService } from "@/toolkits/helia";
-import { orbitdbService } from "@/toolkits/orbitdb";
+import { useP2PChatNotifications } from "@/hooks/chat/useP2PChatNotifications";
 import type { ChatPosition } from "@/context/ThemeContext";
 import type { ViewId, JobStep, Agent, Channel, Group } from "@/types";
 import { useConversations } from "@/hooks/useConversations";
@@ -117,18 +118,6 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
         catch { /* ignore */ }
     }, [lohkExpanded]);
     const [pendingCommand, setPendingCommand] = useState<{ command: CommandDefinition; initialArgs: Record<string, any>; convoId: string; msgs: ChatMessage[] } | null>(null);
-    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
-    const [mentionIndex, setMentionIndex] = useState(0);
-    /**
-     * Mentions the user has "pinned" as badges in the input bar.
-     *
-     * Typing `@name` and confirming via the picker pushes a chip here
-     * instead of injecting `@name` text into the input. Chips persist
-     * across sends until the user removes them via the chip's `×`
-     * button (or hits Backspace on an empty input), so the same
-     * recipients can be addressed for multiple consecutive prompts.
-     */
-    const [pinnedMentions, setPinnedMentions] = useState<Array<{ type: "agent" | "group"; id: string; name: string }>>([]);
     const abortRef = useRef<AbortController | null>(null);
     const runCounterRef = useRef(0);
     const activeRunIdRef = useRef<number | null>(null);
@@ -224,27 +213,18 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
         ]);
     }, [activeId, conversations, updateConversation]);
 
-    // Smooth scroll for new messages / streaming updates
-    useEffect(() => {
-        if (initialScrollDone.current) {
-            endRef.current?.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [messages.length, loading, streamState.streamingText]);
-
-    useEffect(() => {
-        if (!showConvos && inputRef.current?.offsetParent !== null) {
-            inputRef.current?.focus();
-        }
-    }, [showConvos, activeId]);
-
-    // External focus requests (Cmd+K, libp2p Bot button, …) bump focusTick.
-    useEffect(() => {
-        if (focusTick > 0) {
-            // Defer to next paint so the chat panel has a chance to mount.
-            const t = setTimeout(() => inputRef.current?.focus(), 30);
-            return () => clearTimeout(t);
-        }
-    }, [focusTick]);
+    // Smooth scroll + input focus side effects (§2.2 extraction)
+    useChatScroll({
+        endRef,
+        inputRef,
+        initialScrollDone,
+        messagesLength: messages.length,
+        loading,
+        streamingText: streamState.streamingText,
+        showConvos,
+        activeId,
+        focusTick,
+    });
 
     // Fresh-conversation agents (Architect, …) start a brand-new conversation
     // on activation so their welcome panel speaks first on an empty stage.
@@ -264,14 +244,6 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
             }
         }
     }, [activeAgent?.id, activeAgent?.freshConversation, active, createNewChat]);
-
-    // Re-focus input after the assistant finishes responding so the
-    // operator can keep typing without re-clicking the textbox.
-    useEffect(() => {
-        if (!loading && !showConvos && inputRef.current?.offsetParent !== null) {
-            inputRef.current?.focus();
-        }
-    }, [loading, showConvos]);
 
     // Build Commmand Context for CLI
     const sharedArchitect = useArchitectContext();
@@ -301,45 +273,20 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
     // Get workspace entity data + setters via the workspace context (required for useCommandContext)
     const workspaceCtx = useWorkspaceContext();
 
-    // @mention autocomplete candidates
-    const mentionCandidates = useMemo(() => {
-        if (mentionQuery === null) return [];
-        const q = mentionQuery.toLowerCase();
-        const agents = (workspaceCtx.agents || []).map((a: Agent) => ({
-            type: "agent" as const, id: a.id as string, name: a.name as string,
-            detail: (a.title || a.role || "") as string,
-        }));
-        const groups = (workspaceCtx.groups || []).map((g: Group) => ({
-            type: "group" as const, id: g.id as string, name: g.name as string,
-            detail: `${g.governance} · ${g.members.length} members`,
-        }));
-        return [...agents, ...groups]
-            .filter(c => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q))
-            .slice(0, 8);
-    }, [mentionQuery, workspaceCtx.agents, workspaceCtx.groups]);
-
-    const insertMention = useCallback((candidate: { type: "agent" | "group"; id: string; name: string }) => {
-        const cursorPos = inputRef.current?.selectionStart ?? input.length;
-        const before = input.slice(0, cursorPos);
-        const after = input.slice(cursorPos);
-        // Strip the just-typed `@xxx` token — the chip replaces it.
-        const stripped = before.replace(/(^|\s)@(\w*)$/, (_full, lead) => lead || "");
-        // Collapse any duplicate whitespace that resulted from the strip.
-        const cleaned = (stripped + after).replace(/\s{2,}/g, " ").replace(/^\s+/, "");
-        setInput(cleaned);
-        setPinnedMentions(prev => {
-            const key = `${candidate.type}:${candidate.id}`;
-            if (prev.some(p => `${p.type}:${p.id}` === key)) return prev;
-            return [...prev, { type: candidate.type, id: candidate.id, name: candidate.name }];
-        });
-        setMentionQuery(null);
-        inputRef.current?.focus();
-    }, [input]);
-
-    const removePinnedMention = useCallback((key: string) => {
-        setPinnedMentions(prev => prev.filter(m => `${m.type}:${m.id}` !== key));
-        inputRef.current?.focus();
-    }, []);
+    // @mention autocomplete + pinned-chip state (§2.2 extraction)
+    const {
+        mentionQuery, setMentionQuery,
+        mentionIndex, setMentionIndex,
+        mentionCandidates,
+        pinnedMentions, setPinnedMentions,
+        insertMention, removePinnedMention,
+    } = useChatMentions({
+        input,
+        setInput,
+        inputRef,
+        agents: workspaceCtx.agents as Agent[],
+        groups: workspaceCtx.groups as Group[],
+    });
 
     // Determine which ecosystem object to use. 
     // If passed via props, use it. usage of useEcosystem inside ChatPanel would be wrong.
@@ -356,99 +303,13 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
     });
 
     // ── P2P runtime: live refs + change notifications ───────────────────
-    // We do NOT mirror libp2p/helia/orbitdb snapshots into React state —
-    // pubsub flooding would re-render this entire panel many times per
-    // second and freeze the UI. Instead, we keep mutable refs updated
-    // from the service subscribe callbacks (no React work), read them at
-    // chat-send time to build the prompt's p2p section, and run change
-    // detection inside the subscribe callback (debounced).
-    const libp2pSnapRef = useRef(libp2pService.snapshot());
-    const heliaSnapRef = useRef(heliaService.snapshot());
-    const orbitdbSnapRef = useRef(orbitdbService.snapshot());
-    const prevP2PRef = useRef<WorkspaceP2PContext | undefined>(undefined);
-    const pendingP2PChangesRef = useRef<string[]>([]);
-    const p2pNotifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const loadingRef = useRef(loading);
-    const activeIdRef = useRef(activeId);
-    useEffect(() => { loadingRef.current = loading; }, [loading]);
-    useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
-
-    /** Build the current p2p context from refs. Called at chat-send time
-     *  and inside the change-detection callback. */
-    const readP2PContext = useCallback((): WorkspaceP2PContext => ({
-        libp2p: { activeId: libp2pSnapRef.current.activeId, nodes: libp2pSnapRef.current.nodes },
-        helia: { activeId: heliaSnapRef.current.activeId, nodes: heliaSnapRef.current.nodes },
-        orbitdb: { activeId: orbitdbSnapRef.current.activeId, nodes: orbitdbSnapRef.current.nodes },
-    }), []);
-
-    const flushP2PNotices = useCallback(() => {
-        const id = activeIdRef.current;
-        if (!id) return;
-        const pending = pendingP2PChangesRef.current.splice(0);
-        if (pending.length === 0) return;
-        const seen = new Set<string>();
-        const deduped = pending.filter(l => (seen.has(l) ? false : (seen.add(l), true)));
-        const content = `[workspace update] ${deduped.join("; ")}`;
-        const notice: ChatMessage = { id: makeId(), role: "user", content, systemNotice: true };
-        // Functional-style: read latest messages from current state via
-        // updateConversation's closure-free pattern. We append to the
-        // active conversation as it exists right now in `conversations`.
-        setConversations(prev => prev.map(c =>
-            c.id === id
-                ? { ...c, messages: [...c.messages, notice], updatedAt: Date.now() }
-                : c
-        ));
-    }, [setConversations]);
-
-    const handleP2PChange = useCallback(() => {
-        const next = readP2PContext();
-        const prev = prevP2PRef.current;
-        prevP2PRef.current = next;
-        if (!prev) return; // baseline only — silent
-        const changes = diffP2PContext(prev, next);
-        if (changes.length === 0) return;
-        pendingP2PChangesRef.current.push(...changes);
-        if (p2pNotifyTimerRef.current) clearTimeout(p2pNotifyTimerRef.current);
-        p2pNotifyTimerRef.current = setTimeout(() => {
-            p2pNotifyTimerRef.current = null;
-            if (loadingRef.current) return; // drained later via the idle effect
-            flushP2PNotices();
-        }, 600);
-    }, [readP2PContext, flushP2PNotices]);
-
-    useEffect(() => {
-        // Establish baseline + subscribe. The subscribe callbacks only
-        // mutate refs and possibly schedule a debounced React update.
-        prevP2PRef.current = readP2PContext();
-        const unsubLibp2p = libp2pService.subscribe(s => {
-            libp2pSnapRef.current = s;
-            handleP2PChange();
-        });
-        const unsubHelia = heliaService.subscribe(s => {
-            heliaSnapRef.current = s;
-            handleP2PChange();
-        });
-        const unsubOrbit = orbitdbService.subscribe(s => {
-            orbitdbSnapRef.current = s;
-            handleP2PChange();
-        });
-        return () => {
-            unsubLibp2p();
-            unsubHelia();
-            unsubOrbit();
-            if (p2pNotifyTimerRef.current) {
-                clearTimeout(p2pNotifyTimerRef.current);
-                p2pNotifyTimerRef.current = null;
-            }
-        };
-    }, [readP2PContext, handleP2PChange]);
-
-    // Drain buffered p2p change notices once a chat run completes.
-    useEffect(() => {
-        if (loading) return;
-        if (pendingP2PChangesRef.current.length === 0) return;
-        flushP2PNotices();
-    }, [loading, flushP2PNotices]);
+    // Extracted into useP2PChatNotifications so ChatPanel doesn't carry
+    // the pubsub/debounce machinery inline. See §2.2 of the MVP audit.
+    const { readP2PContext } = useP2PChatNotifications({
+        activeId,
+        loading,
+        setConversations,
+    });
 
     useEffect(() => {
         const trackedConversationId = architectMessageRef.current.conversationId;
@@ -1106,23 +967,13 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
             {!showConvos && !showMemories && (
                 <div className="chat-panel__input-area">
                     {/* @mention autocomplete picker */}
-                    {mentionQuery !== null && mentionCandidates.length > 0 && (
-                        <div className="chat-panel__mention-picker">
-                            {mentionCandidates.map((c, i) => (
-                                <div
-                                    key={`${c.type}-${c.id}`}
-                                    className={`chat-panel__mention-item${i === mentionIndex ? " chat-panel__mention-item--active" : ""}`}
-                                    onMouseDown={e => { e.preventDefault(); insertMention(c); }}
-                                    onMouseEnter={() => setMentionIndex(i)}
-                                >
-                                    <span className={`chat-panel__mention-badge chat-panel__mention-badge--${c.type}`}>
-                                        {c.type === "agent" ? "A" : "G"}
-                                    </span>
-                                    <span className="chat-panel__mention-name">{c.name}</span>
-                                    <span className="chat-panel__mention-detail">{c.detail}</span>
-                                </div>
-                            ))}
-                        </div>
+                    {mentionQuery !== null && (
+                        <ChatMentionPicker
+                            candidates={mentionCandidates}
+                            activeIndex={mentionIndex}
+                            onHoverIndex={setMentionIndex}
+                            onPick={insertMention}
+                        />
                     )}
                     <div
                         className={`chat-panel__input-bar${activeAgent ? " chat-panel__input-bar--agent" : studioActive ? " chat-panel__input-bar--studio" : editorActive ? " chat-panel__input-bar--editor" : ""}`}
