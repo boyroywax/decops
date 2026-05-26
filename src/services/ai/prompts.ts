@@ -9,6 +9,7 @@ import { TOOLKITS } from "@/services/toolkits";
 import type { Libp2pSnapshot } from "@/toolkits/libp2p";
 import type { HeliaSnapshot } from "@/toolkits/helia";
 import type { OrbitdbSnapshot } from "@/toolkits/orbitdb";
+import type { CollectiveMemoryEntry } from "@/services/collectiveMemory";
 
 /** Live snapshot of the workspace's p2p runtime singletons.
  *  Built from libp2pService / heliaService / orbitdbService and injected
@@ -80,7 +81,10 @@ ${helLines}
 ${orbLines}`;
 }
 
-export function buildWorkspaceSystemPrompt(ctx: WorkspaceContext): string {
+export function buildWorkspaceSystemPrompt(
+  ctx: WorkspaceContext,
+  opts: { recalledMemory?: CollectiveMemoryEntry[]; isDarkAgent?: boolean } = {},
+): string {
   const agentSummary = ctx.agents.length > 0
     ? ctx.agents.map(a => `  - "${a.name}" (${a.role}, DID: ${a.did.slice(0, 24)}…)`).join("\n")
     : "  (none)";
@@ -142,6 +146,19 @@ export function buildWorkspaceSystemPrompt(ctx: WorkspaceContext): string {
 
   const p2pSection = ctx.p2p ? formatP2PSection(ctx.p2p) : "\nP2P RUNTIME STATE (live): (not provided)";
 
+  // ── Collective memory recall (auto-injected by streamChatWithWorkspace) ──
+  const recalled = opts.recalledMemory ?? [];
+  const isDarkAgent = opts.isDarkAgent === true;
+  const memorySection = isDarkAgent
+    ? `\n\nCOLLECTIVE MEMORY: (DISABLED — this agent is in DARK MODE; collective memory tools are not available and prior memories will not be auto-recalled.)`
+    : recalled.length > 0
+      ? `\n\nRELEVANT PRIOR MEMORY (auto-recalled for this turn — use it if useful, ignore if not):\n${recalled.map(e => {
+          const tagPart = e.tags && e.tags.length > 0 ? ` [${e.tags.join(", ")}]` : "";
+          const srcPart = e.sourceAgentName ? ` (from ${e.sourceAgentName})` : "";
+          return `  - {id:${e.id.slice(0, 8)}… imp:${e.importance}${tagPart}}${srcPart} — ${e.content.slice(0, 280)}${e.content.length > 280 ? "…" : ""}`;
+        }).join("\n")}`
+      : "\n\nRELEVANT PRIOR MEMORY: (none auto-recalled for this turn)";
+
   return `You are the Mesh Workspace AI Assistant. You help the user manage their decentralized agent collaboration workspace.
 
 CURRENT WORKSPACE STATE:
@@ -168,7 +185,7 @@ ${jobSummary}
 
 Agent Toolkit Bindings:
 ${toolkitSummary}
-${p2pSection}
+${p2pSection}${memorySection}
 ═══════════════════════
 
 HIERARCHY: Ecosystem (= Workspace) → Network → Group → Agent/Channel
@@ -223,6 +240,31 @@ Best practices for autonomous agents:
 3. Specialist agents (researchers, builders, curators) should have focused toolkit sets
 4. When proposing new agents via propose_agent, recommend appropriate toolkits
 5. When delegating tasks, verify the target agent has the necessary toolkits enabled
+
+COLLECTIVE MEMORY (Cross-Conversation Knowledge Base):
+The workspace ships a shared, persistent memory store every non-dark agent can read and write. Use it to remember durable facts that will outlive a single conversation — user preferences, decisions made, naming conventions, recurring intents, deployment IDs, important findings.
+
+Tools you have for memory:
+- **remember_collective_memory(content, tags?, importance?, scope?)** — Persist a single concise fact. \`content\` must be ≥3 chars and self-contained (don't write "see above"). Tag with 1–4 lowercase keywords. \`importance\` 1–5 (default 3); use 4–5 only for decisions/preferences the user explicitly stated. \`scope\` defaults to "workspace"; use "global" only for facts that apply across every workspace.
+- **recall_collective_memory(query?, tags?, limit?, includeGlobal?)** — Search for prior entries. Use when the user references something they "told you before" or asks about prior state, OR before a high-stakes action where prior decisions might apply. Defaults: limit=10, includeGlobal=true.
+- **list_collective_memory(limit?)** — Browse the most recent entries (no search).
+- **forget_collective_memory(id)** — Delete a stale or incorrect entry by id (from recall/list output).
+- **set_agent_memory_mode(agentId, mode)** — Toggle an agent between "collective" and "dark". Dark agents lose memory tools and are skipped by auto-recall.
+
+When to remember (write):
+- The user states a preference, naming convention, default value, or persistent choice ("always use X", "my main org is Y", "call the bridge node Z").
+- The user makes a decision that future turns/agents should respect ("approved deploying to Polygon", "the new researcher is named Linda").
+- A non-obvious fact is discovered (a peer ID, a config flag, an artifact ID, a workspace topology constraint) that would be expensive to re-derive.
+- After completing a multi-step job: store a one-line summary tagged with the job type so future related requests can build on it.
+Do NOT remember: pleasantries, transient tool output, easily re-derivable workspace state (already in your system prompt), or anything the user asks you to forget.
+
+When to recall (read):
+- The system prompt may already show a "RELEVANT PRIOR MEMORY" section auto-recalled for this turn — USE IT FIRST; if it answers the question, do not call recall again.
+- Call recall_collective_memory explicitly when (a) the user references prior context not shown above, (b) you're about to commit a non-trivial action and want to confirm no prior decision contradicts it, or (c) the auto-recall section was empty but the request is clearly about a past topic.
+- Prefer narrow queries (1–3 terms) and \`tags\` filters over broad ones; bump \`limit\` only if the first call returns nothing relevant.
+
+Dark mode:
+- An agent with \`isDarkAgent: true\` (controlled via the collective-memory toolkit binding) is intentionally isolated from shared memory. Don't try to write to memory on behalf of a dark agent, and don't expect auto-recall to populate for them. Use set_agent_memory_mode to flip an agent's mode when the user asks.
 
 JOB BUILDER:
 Jobs support these features:

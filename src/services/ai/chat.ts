@@ -10,6 +10,7 @@ import { getAllTools, getToolsForAgent } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContext } from "./prompts";
 import { buildWorkspaceSystemPrompt } from "./prompts";
+import { recallCollectiveMemory } from "@/services/collectiveMemory";
 import { getSelectedModel, getAgentModel } from "./models";
 import {
   getModelProvider,
@@ -261,7 +262,16 @@ export async function chatWithWorkspace(
 ): Promise<{ text: string; toolCalls: ToolCallDisplay[] }> {
   const model = getSelectedModel();
   const provider = getModelProvider(model);
-  let systemPrompt = buildWorkspaceSystemPrompt(ctx);
+  // Auto-recall the top relevant collective-memory entries for this turn
+  // so the model has cross-conversation context without having to call
+  // recall_collective_memory itself.
+  let recalledMemory: ReturnType<typeof recallCollectiveMemory> = [];
+  try {
+    recalledMemory = recallCollectiveMemory({ query: userMessage, limit: 5, includeGlobal: true });
+  } catch {
+    recalledMemory = [];
+  }
+  let systemPrompt = buildWorkspaceSystemPrompt(ctx, { recalledMemory });
 
   // Pluggable delegation: toolkits can register delegation checks
   const delegation = getChatDelegation(userMessage);
