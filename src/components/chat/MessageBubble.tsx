@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMessage, WorkspaceContext } from "@/services/ai";
 import { parseActions } from "./utils";
+import type { ParsedSegment } from "./types";
 import ActionCard from "./ActionCard";
 import { ThinkingCard } from "./ThinkingCard";
 import { JobProgressCard } from "./JobProgressCard";
@@ -78,10 +79,26 @@ function ToolCallCard({ tc }: { tc: NonNullable<ChatMessage["toolCalls"]>[number
     );
 }
 
+/** Index of the last thinking segment that should show the streaming
+ *  spinner — the last thinking block before trailing whitespace-only
+ *  text. Returns -1 when no thinking block is "active". */
+function findLastStreamingThought(segments: ParsedSegment[]): number {
+    for (let i = segments.length - 1; i >= 0; i--) {
+        if (segments[i].type === "thinking") return i;
+        const t = segments[i] as { type: "text"; text: string };
+        if (t.text?.trim()) return -1;
+    }
+    return -1;
+}
+
+function isTextSeg(seg: ParsedSegment): seg is { type: "text"; text: string } {
+    return seg.type === "text";
+}
+
 export default function MessageBubble({ msg, context, setView, isStreaming, onStopPromptAction }: MessageBubbleProps) {
     const { jobs } = useJobsContext();
     const isUser = msg.role === "user";
-    const { cleanText, actions, thinking } = parseActions(msg.content);
+    const { cleanText, actions, segments } = parseActions(msg.content);
     const architect = useArchitectContext();
     const canUseLiveArchitect = !!msg.architectCard?.live && !!architect;
     const [showOlderJobs, setShowOlderJobs] = useState(false);
@@ -173,23 +190,31 @@ export default function MessageBubble({ msg, context, setView, isStreaming, onSt
                     <span style={{ whiteSpace: "pre-wrap" }}>{cleanText}</span>
                 ) : (
                     <>
-                        {thinking.length > 0 && (
-                            <div className="thinking-section">
-                                {thinking.map((t, i) => (
-                                    <ThinkingCard
-                                        key={i}
-                                        thinking={t}
-                                        isLatest={i === thinking.length - 1}
-                                        isStreaming={!!isStreaming && i === thinking.length - 1 && !cleanText}
-                                    />
-                                ))}
+                        {/* Render segments in order: thinking cards interleaved
+                            with their surrounding prose so each thought appears
+                            inline where it was written, not stacked at the top. */}
+                        {segments.length > 0 ? (
+                            <div className="segments-section">
+                                {segments.map((seg, i) =>
+                                    isTextSeg(seg) ? (
+                                        seg.text.trim()
+                                            ? <MarkdownContent key={`c-${i}`} content={seg.text} />
+                                            : null
+                                    ) : (
+                                        <ThinkingCard
+                                            key={`t-${i}`}
+                                            thinking={seg.thinking}
+                                            isLatest={i === segments.length - 1 || (() => { const last = segments[segments.length - 1]; return i === segments.length - 2 && isTextSeg(last) && !last.text.trim(); })()}
+                                            isStreaming={!!isStreaming && i === findLastStreamingThought(segments)}
+                                        />
+                                    ),
+                                )}
                             </div>
-                        )}
-                        {cleanText
-                            ? <MarkdownContent content={cleanText} />
-                            : isStreaming && !msg.toolCalls?.length && thinking.length === 0
-                                ? <span className="mb-streaming-cursor">●</span>
-                                : null}
+                        ) : cleanText ? (
+                            <MarkdownContent content={cleanText} />
+                        ) : isStreaming && !msg.toolCalls?.length ? (
+                            <span className="mb-streaming-cursor">●</span>
+                        ) : null}
                     </>
                 )}
 
@@ -205,89 +230,6 @@ export default function MessageBubble({ msg, context, setView, isStreaming, onSt
                         ))}
                     </div>
                 )}
-
-                {msg.stopPrompt && (
-                    <div className="mb-stop-prompt">
-                        <div className="mb-stop-prompt__title">Do you want to finish this job?</div>
-                        <div className="mb-stop-prompt__job">{msg.stopPrompt.jobName || "Unnamed job"}</div>
-                        {msg.stopPrompt.jobDescription && (
-                            <div className="mb-stop-prompt__desc">{msg.stopPrompt.jobDescription}</div>
-                        )}
-                        <div className="mb-stop-prompt__actions">
-                            <button
-                                type="button"
-                                className="mb-stop-prompt__btn mb-stop-prompt__btn--finish"
-                                onClick={() => onStopPromptAction?.("finish", msg.stopPrompt!)}
-                            >
-                                Finish Job
-                            </button>
-                            <button
-                                type="button"
-                                className="mb-stop-prompt__btn mb-stop-prompt__btn--stop"
-                                onClick={() => onStopPromptAction?.("stop", msg.stopPrompt!)}
-                            >
-                                Stop Query
-                            </button>
-                            {msg.stopPrompt.jobId && (
-                                <button
-                                    type="button"
-                                    className="mb-stop-prompt__btn mb-stop-prompt__btn--stop-job"
-                                    onClick={() => onStopPromptAction?.("stop-and-job", msg.stopPrompt!)}
-                                >
-                                    Stop Query + Job
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {orderedJobIds.length > 0 && (
-                    <div className="job-progress-section">
-                        {latestJobId && (
-                            <JobProgressCard
-                                key={latestJobId}
-                                jobId={latestJobId}
-                                toolCalls={toolCallsByJobId.get(latestJobId)}
-                            />
-                        )}
-                        {olderJobIds.length > 0 && (
-                            <div className="job-progress-section__collapse">
-                                <button
-                                    type="button"
-                                    className="job-progress-section__toggle"
-                                    onClick={() => setShowOlderJobs(value => !value)}
-                                >
-                                    <span className="job-progress-section__toggle-text">
-                                        {showOlderJobs
-                                            ? `Hide older job ${olderJobIds.length === 1 ? "card" : "cards"}`
-                                            : `Show older job ${olderJobIds.length === 1 ? "card" : "cards"}`}
-                                    </span>
-                                    <span
-                                        className={`job-progress-section__counter job-progress-section__counter--${olderCounterTone}${isOlderCounterAnimating ? " job-progress-section__counter--animating" : ""}`}
-                                        aria-label={`${olderJobIds.length} older jobs`}
-                                    >
-                                        {olderJobIds.length}
-                                    </span>
-                                </button>
-                                {showOlderJobs && (
-                                    <div className="job-progress-section__older">
-                                        {olderJobIds.map(jobId => (
-                                            <JobProgressCard
-                                                key={jobId}
-                                                jobId={jobId}
-                                                toolCalls={toolCallsByJobId.get(jobId)}
-                                            />
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {actions.map((action, index) => (
-                    <ActionCard key={index} action={action} context={context} />
-                ))}
             </div>
         </div>
     );

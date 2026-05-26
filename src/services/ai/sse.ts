@@ -41,6 +41,12 @@ export async function parseAnthropicSSE(
   const contentBlocks: SSEContentBlock[] = [];
   let currentBlockIndex = -1;
   let currentToolInput = "";
+  // Track whether we're inside a native Anthropic thinking block.
+  // When the model uses its built-in thinking mode, the SSE stream emits
+  // content_block_start with type "thinking" and thinking_delta events.
+  // We wrap these in ```thinking fences so the downstream parseActions()
+  // extractor can surface them as ThinkingCard UI elements.
+  let inThinkingBlock = false;
 
   try {
     while (true) {
@@ -74,6 +80,11 @@ export async function parseAnthropicSSE(
                 };
                 currentToolInput = "";
                 callbacks.onToolUseStart({ id: block.id, name: block.name });
+              } else if (block.type === "thinking") {
+                // Native Anthropic thinking block — open a ```thinking
+                // fence so parseActions() can extract it downstream.
+                inThinkingBlock = true;
+                callbacks.onText("```thinking\n");
               }
               break;
             }
@@ -89,6 +100,10 @@ export async function parseAnthropicSSE(
               } else if (delta.type === "input_json_delta" && delta.partial_json) {
                 currentToolInput += delta.partial_json;
                 callbacks.onToolUseInput(delta.partial_json);
+              } else if (delta.type === "thinking_delta" && delta.thinking) {
+                // Native thinking delta — pass through as-is so it ends
+                // up inside the ```thinking fence we opened above.
+                callbacks.onText(delta.thinking);
               }
               break;
             }
@@ -102,6 +117,11 @@ export async function parseAnthropicSSE(
                   block.input = {};
                 }
                 currentToolInput = "";
+              }
+              if (inThinkingBlock) {
+                // Close the ```thinking fence.
+                callbacks.onText("\n```\n");
+                inThinkingBlock = false;
               }
               callbacks.onContentBlockStop();
               break;
@@ -125,6 +145,12 @@ export async function parseAnthropicSSE(
       }
     }
   } finally {
+    // If the stream ended mid-thinking, close the fence so the block
+    // is still parseable.
+    if (inThinkingBlock) {
+      callbacks.onText("\n```\n");
+      inThinkingBlock = false;
+    }
     reader.releaseLock();
   }
 
@@ -133,15 +159,22 @@ export async function parseAnthropicSSE(
 
 /**
  * OpenAI-style SSE parser (used by OpenAI + OpenRouter chat completions).
- * Streams only assistant text deltas. Tool-call streaming is not yet
- * supported here — callers must fall back to the non-streaming path when
- * they need tool use, which mirrors the existing runner contract.
+ * Streams text deltas immediately and accumulates tool_call deltas so the
+ * runner can execute tools without waiting for the full response.
  */
+export interface OpenAISSECallbacks {
+  onText: (text: string) => void;
+  /** Fired when a new tool_call delta arrives with a new index. */
+  onToolUseStart?: (block: { id: string; name: string }) => void;
+  /** Fired when tool_call function arguments delta arrives. */
+  onToolUseInput?: (json: string) => void;
+}
+
 export async function parseOpenAISSE(
   response: Response,
-  onText: (text: string) => void,
+  callbacks: OpenAISSECallbacks,
   signal?: AbortSignal,
-): Promise<{ text: string }> {
+): Promise<{ text: string; toolCalls: Array<{ id: string; name: string; arguments: string }> }> {
   const reader = response.body!.getReader();
   if (signal) {
     signal.addEventListener("abort", () => { reader.cancel(); }, { once: true });
@@ -149,6 +182,10 @@ export async function parseOpenAISSE(
   const decoder = new TextDecoder();
   let buffer = "";
   let full = "";
+  // Accumulate tool call deltas keyed by index.
+  const toolCallByIndex: Array<{ id: string; name: string; arguments: string }> = [];
+  // Track whether we've announced start for a given tool-call index.
+  const startedIndexes = new Set<number>();
 
   try {
     while (true) {
@@ -164,10 +201,33 @@ export async function parseOpenAISSE(
         if (!payload || payload === "[DONE]") continue;
         try {
           const event = JSON.parse(payload);
-          const delta = event?.choices?.[0]?.delta?.content;
-          if (typeof delta === "string" && delta.length > 0) {
-            full += delta;
-            onText(delta);
+          const delta = event?.choices?.[0]?.delta;
+          if (!delta) continue;
+          // Text content delta
+          if (typeof delta.content === "string" && delta.content.length > 0) {
+            full += delta.content;
+            callbacks.onText(delta.content);
+          }
+          // Tool call deltas — each delta may contain partial tool_calls
+          if (Array.isArray(delta.tool_calls)) {
+            for (const tc of delta.tool_calls) {
+              const idx = tc.index ?? 0;
+              if (!toolCallByIndex[idx]) {
+                toolCallByIndex[idx] = { id: "", name: "", arguments: "" };
+              }
+              const entry = toolCallByIndex[idx];
+              if (tc.id) entry.id = tc.id;
+              if (tc.function?.name) entry.name = tc.function.name;
+              if (tc.function?.arguments) {
+                entry.arguments += tc.function.arguments;
+                callbacks.onToolUseInput?.(tc.function.arguments);
+              }
+              // Fire onToolUseStart exactly once when both id and name exist.
+              if (entry.id && entry.name && !startedIndexes.has(idx)) {
+                startedIndexes.add(idx);
+                callbacks.onToolUseStart?.({ id: entry.id, name: entry.name });
+              }
+            }
           }
         } catch {
           // skip malformed line
@@ -178,5 +238,5 @@ export async function parseOpenAISSE(
     reader.releaseLock();
   }
 
-  return { text: full };
+  return { text: full, toolCalls: toolCallByIndex.filter(tc => tc.id && tc.name) };
 }

@@ -11,6 +11,7 @@ import type { CommandDefinition, CommandArg, CommandArgType, CommandContext } fr
 import type { Agent } from "@/types";
 import { TOOLKITS } from "@/services/toolkits";
 import { registry } from "./registry";
+import { COLLECTIVE_MEMORY_COMMAND_IDS } from "@/services/commands/definitions/collective-memory";
 
 // ── Anthropic Tool Schema Types ────────────────────
 
@@ -97,7 +98,12 @@ const DEFAULT_AGENT_TOOL_IDS = new Set<string>([
   "set_agent_toolkits",
   "enable_toolkit",
   "disable_toolkit",
+  // Collective memory (default-on for every non-dark agent)
+  ...COLLECTIVE_MEMORY_COMMAND_IDS,
 ]);
+
+const COLLECTIVE_MEMORY_TOOLKIT_ID = "collective-memory";
+const COLLECTIVE_MEMORY_COMMAND_ID_SET = new Set<string>(COLLECTIVE_MEMORY_COMMAND_IDS);
 
 /**
  * Pick the tool-call wait timeout for a given command.
@@ -451,6 +457,9 @@ export function getToolsByToolkitIds(toolkitIds: string[] | undefined): Anthropi
   if (!toolkitIds || toolkitIds.length === 0) return getAllTools();
 
   const allowed = new Set<string>(DEFAULT_AGENT_TOOL_IDS);
+  for (const cmdId of directToolCommandIds(COLLECTIVE_MEMORY_TOOLKIT_ID)) {
+    allowed.add(cmdId);
+  }
   for (const id of toolkitIds) {
     for (const cmdId of directToolCommandIds(id)) allowed.add(cmdId);
   }
@@ -482,18 +491,32 @@ export function getToolsByToolkitIds(toolkitIds: string[] | undefined): Anthropi
  */
 export function getToolsForAgent(agent: Agent): AnthropicTool[] {
   const bindings = agent.toolkits;
+  const isDarkAgent = agent.isDarkAgent === true;
+
+  const defaultIds = new Set<string>(DEFAULT_AGENT_TOOL_IDS);
+  if (isDarkAgent) {
+    for (const cmdId of COLLECTIVE_MEMORY_COMMAND_ID_SET) defaultIds.delete(cmdId);
+  }
 
   // No bindings → curated default tool surface only.
   if (!bindings || bindings.length === 0) {
-    return getAllTools();
+    const cmds = registry
+      .getAll()
+      .filter(cmd =>
+        !EXCLUDED_COMMANDS.has(cmd.id) &&
+        !cmd.hidden &&
+        defaultIds.has(cmd.id),
+      );
+    return capForAnthropic(prioritizeToolCommands(cmds)).map(commandToTool);
   }
 
   // Build set of allowed command IDs: curated defaults + each bound
   // toolkit's direct-tool subset (curated tools[] if declared, else all
   // toolkit.commands as a fallback).
-  const allowedCommands = new Set<string>(DEFAULT_AGENT_TOOL_IDS);
+  const allowedCommands = new Set<string>(defaultIds);
 
   for (const binding of bindings) {
+    if (isDarkAgent && binding.toolkitId === COLLECTIVE_MEMORY_TOOLKIT_ID) continue;
     for (const cmdId of directToolCommandIds(binding.toolkitId)) {
       allowedCommands.add(cmdId);
     }
@@ -519,16 +542,34 @@ export function getToolsForAgent(agent: Agent): AnthropicTool[] {
  */
 export function getCommandIdsForAgent(agent: Agent): Set<string> | null {
   const bindings = agent.toolkits;
-  if (!bindings || bindings.length === 0) return null;
+  const isDarkAgent = agent.isDarkAgent === true;
+
+  if (!bindings || bindings.length === 0) {
+    if (!isDarkAgent) return null;
+    const all = new Set<string>();
+    for (const cmd of registry.getAll()) {
+      if (!COLLECTIVE_MEMORY_COMMAND_ID_SET.has(cmd.id)) all.add(cmd.id);
+    }
+    return all;
+  }
+
+  const restrictiveBindings = bindings.filter(b => b.toolkitId !== COLLECTIVE_MEMORY_TOOLKIT_ID);
+  if (restrictiveBindings.length === 0 && !isDarkAgent) {
+    return null;
+  }
 
   const allowed = new Set<string>();
   for (const binding of bindings) {
+    if (isDarkAgent && binding.toolkitId === COLLECTIVE_MEMORY_TOOLKIT_ID) continue;
     const toolkit = TOOLKITS.find(t => t.id === binding.toolkitId);
     if (toolkit) {
       for (const cmdId of toolkit.commands) {
         allowed.add(cmdId);
       }
     }
+  }
+  if (!isDarkAgent) {
+    for (const cmdId of COLLECTIVE_MEMORY_COMMAND_ID_SET) allowed.add(cmdId);
   }
   return allowed;
 }

@@ -49,6 +49,12 @@ export const enableToolkitCommand: CommandDefinition = {
     // Check if already enabled
     const existing = agent.toolkits?.find((b: AgentToolkitBinding) => b.toolkitId === toolkitId);
     if (existing) {
+      // Collective-memory enable also exits dark mode even if already bound.
+      if (toolkitId === "collective-memory" && agent.isDarkAgent) {
+        workspace.setAgents((prev: Agent[]) =>
+          prev.map((a: Agent) => (a.id === agentId ? { ...a, isDarkAgent: false } : a)),
+        );
+      }
       return {
         status: "already_enabled",
         agentId: agent.id,
@@ -69,7 +75,11 @@ export const enableToolkitCommand: CommandDefinition = {
     workspace.setAgents((prev: Agent[]) =>
       prev.map((a: Agent) =>
         a.id === agentId
-          ? { ...a, toolkits: [...(a.toolkits || []), binding] }
+          ? {
+              ...a,
+              toolkits: [...(a.toolkits || []), binding],
+              ...(toolkitId === "collective-memory" ? { isDarkAgent: false } : {}),
+            }
           : a,
       ),
     );
@@ -123,7 +133,7 @@ export const disableToolkitCommand: CommandDefinition = {
     if (!toolkit) throw new Error(`Toolkit "${toolkitId}" not found`);
 
     const existing = agent.toolkits?.find((b: AgentToolkitBinding) => b.toolkitId === toolkitId);
-    if (!existing) {
+    if (!existing && toolkitId !== "collective-memory") {
       return {
         status: "not_enabled",
         agentId: agent.id,
@@ -133,11 +143,16 @@ export const disableToolkitCommand: CommandDefinition = {
       };
     }
 
-    // Remove binding
+    // Remove binding. Disabling collective-memory is the explicit path to
+    // dark-agent mode, so we mark the agent as dark even if no binding existed.
     workspace.setAgents((prev: Agent[]) =>
       prev.map((a: Agent) =>
         a.id === agentId
-          ? { ...a, toolkits: (a.toolkits || []).filter((b: AgentToolkitBinding) => b.toolkitId !== toolkitId) }
+          ? {
+              ...a,
+              toolkits: (a.toolkits || []).filter((b: AgentToolkitBinding) => b.toolkitId !== toolkitId),
+              ...(toolkitId === "collective-memory" ? { isDarkAgent: true } : {}),
+            }
           : a,
       ),
     );
@@ -147,7 +162,7 @@ export const disableToolkitCommand: CommandDefinition = {
     context.storage[`toolkit_${agent.name}_${toolkitId}`] = "disabled";
 
     return {
-      status: "disabled",
+      status: toolkitId === "collective-memory" ? "dark_mode_enabled" : "disabled",
       agentId: agent.id,
       agentName: agent.name,
       toolkitId: toolkit.id,
@@ -266,7 +281,13 @@ export const setAgentToolkitsCommand: CommandDefinition = {
 
     workspace.setAgents((prev: Agent[]) =>
       prev.map((a: Agent) =>
-        a.id === agentId ? { ...a, toolkits: bindings } : a,
+        a.id === agentId
+          ? {
+              ...a,
+              toolkits: bindings,
+              isDarkAgent: !validIds.includes("collective-memory" as ToolkitId),
+            }
+          : a,
       ),
     );
 

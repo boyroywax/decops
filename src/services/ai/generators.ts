@@ -48,7 +48,7 @@ Example output format (multi-network with bridge):
     const data = await response.json();
     if (data.error) throw new Error(data.error.message || "API error");
     const text = parseProviderResponse(model, data);
-    if (!text.trim() || text === "[No response]") throw new Error("Empty response from AI");
+    if (!text.trim()) throw new Error("Empty response from AI");
     const config = repairJSON(text);
     if (!config.agents || !Array.isArray(config.agents) || config.agents.length === 0) {
       throw new Error("Generated config has no agents");
@@ -227,7 +227,7 @@ Rules:
     const data = await response.json();
     if (data.error) throw new Error(data.error.message || "API error");
     const text = parseProviderResponse(model, data);
-    if (!text.trim() || text === "[No response]") throw new Error("Empty response from AI");
+    if (!text.trim()) throw new Error("Empty response from AI");
 
     // Parse the JSON (with sanitization for markdown fences etc.)
     let entity: AieosEntity;

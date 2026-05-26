@@ -11,7 +11,8 @@ import {
   queryWorkspaceCommand,
 } from "@/services/commands/definitions/meta";
 import { registry } from "@/services/commands/registry";
-import { getAllTools, getToolsForAgent, getUnmigratedToolkitsForAgentTools } from "@/services/commands/tools";
+import { getAllTools, getToolsForAgent, getUnmigratedToolkitsForAgentTools, getCommandIdsForAgent } from "@/services/commands/tools";
+import { COLLECTIVE_MEMORY_COMMAND_IDS } from "@/services/commands/definitions/collective-memory";
 import { initializeRegistry } from "@/services/commands/init";
 import type { Agent } from "@/types";
 import type { CommandContext } from "@/services/commands/types";
@@ -315,5 +316,56 @@ describe("default agent tool surface", () => {
     expect(registry.get("list_available_commands")).toBeDefined();
     expect(registry.get("get_command_schema")).toBeDefined();
     expect(registry.get("list_toolkits")).toBeDefined();
+  });
+
+  it("getToolsForAgent excludes collective-memory tools for dark agents", () => {
+    const agent = {
+      id: "a5",
+      isDarkAgent: true,
+      toolkits: [{ toolkitId: "collective-memory", enabledAt: new Date().toISOString() }],
+    } as unknown as Agent;
+
+    const tools = getToolsForAgent(agent);
+    const names = new Set(tools.map((t) => t.name));
+
+    for (const memoryCommandId of COLLECTIVE_MEMORY_COMMAND_IDS) {
+      expect(names.has(memoryCommandId)).toBe(false);
+    }
+    expect(names.has("create_job")).toBe(true);
+  });
+
+  it("getCommandIdsForAgent returns non-memory commands only for dark agents with no bindings", () => {
+    const agent = {
+      id: "a6",
+      isDarkAgent: true,
+      toolkits: [],
+    } as unknown as Agent;
+
+    const allowed = getCommandIdsForAgent(agent);
+    expect(allowed).not.toBeNull();
+
+    for (const memoryCommandId of COLLECTIVE_MEMORY_COMMAND_IDS) {
+      expect(allowed?.has(memoryCommandId)).toBe(false);
+    }
+    expect(allowed?.has("list_agents")).toBe(true);
+  });
+
+  it("getCommandIdsForAgent keeps non-memory toolkit commands in dark mode", () => {
+    const agent = {
+      id: "a7",
+      isDarkAgent: true,
+      toolkits: [
+        { toolkitId: "collective-memory", enabledAt: new Date().toISOString() },
+        { toolkitId: "jobs", enabledAt: new Date().toISOString() },
+      ],
+    } as unknown as Agent;
+
+    const allowed = getCommandIdsForAgent(agent);
+    expect(allowed).not.toBeNull();
+    expect(allowed?.has("queue_new_job")).toBe(true);
+
+    for (const memoryCommandId of COLLECTIVE_MEMORY_COMMAND_IDS) {
+      expect(allowed?.has(memoryCommandId)).toBe(false);
+    }
   });
 });

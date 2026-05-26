@@ -352,14 +352,23 @@
   to { transform: rotate(360deg); }
 }
 
-/* ── Thinking Card (inner thoughts) ── */
+/* ── Segments (interleaved thinking + prose) ── */
 
+.segments-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Legacy: kept for any edge-case direct usage */
 .thinking-section {
   display: flex;
   flex-direction: column;
   gap: 4px;
   margin-bottom: 8px;
 }
+
+/* ── Thinking Card (inner thoughts) ── */
 
 .thinking-card {
   border-radius: 6px;

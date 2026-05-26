@@ -106,7 +106,7 @@ describe("runChatTurn: end_turn (no tool calls)", () => {
         expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
-    it("returns the [No response] sentinel when the model emits empty text", async () => {
+    it("returns empty text when the model emits empty text", async () => {
         mockFetch.mockResolvedValueOnce(jsonResponse({ content: [] }));
         (parseProviderResponse as any).mockReturnValue("");
         (parseToolUseBlocks as any).mockReturnValue([]);
@@ -118,7 +118,7 @@ describe("runChatTurn: end_turn (no tool calls)", () => {
         });
 
         expect(result.reason).toBe("end_turn");
-        expect(result.text).toBe("[No response]");
+        expect(result.text).toBe("");
     });
 });
 
@@ -250,6 +250,62 @@ describe("runChatTurn: tool-use loop", () => {
         expect(result.reason).toBe("max_rounds");
         expect(result.toolCalls).toHaveLength(3);
         expect(executeToolCall).toHaveBeenCalledTimes(3);
+    });
+
+    it("retries when the model narrates a tool call without structured tool_use", async () => {
+        mockFetch
+            .mockResolvedValueOnce(jsonResponse({ content: [] }))
+            .mockResolvedValueOnce(jsonResponse({ content: [] }));
+
+        (parseToolUseBlocks as any)
+            .mockReturnValueOnce([])
+            .mockReturnValueOnce([]);
+
+        (parseProviderResponse as any)
+            .mockReturnValueOnce("I am running create_agent now.")
+            .mockReturnValueOnce("No tools needed. Done.");
+
+        const result = await runChatTurn({
+            model: "claude-3-opus",
+            systemPrompt: "x",
+            messages: [{ role: "user", content: "create one" }],
+            tools: [tool("create_agent")],
+            commandContext: makeCtx(),
+            maxRounds: 4,
+        });
+
+        expect(result.reason).toBe("end_turn");
+        expect(result.text).toBe("No tools needed. Done.");
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(executeToolCall).not.toHaveBeenCalled();
+    });
+
+    it("retries when the model fabricates tool results without structured tool_use", async () => {
+        mockFetch
+            .mockResolvedValueOnce(jsonResponse({ content: [] }))
+            .mockResolvedValueOnce(jsonResponse({ content: [] }));
+
+        (parseToolUseBlocks as any)
+            .mockReturnValueOnce([])
+            .mockReturnValueOnce([]);
+
+        (parseProviderResponse as any)
+            .mockReturnValueOnce("Tool create_agent completed successfully. Result: {\"id\":\"a1\"}")
+            .mockReturnValueOnce("I cannot verify that without invoking a tool.");
+
+        const result = await runChatTurn({
+            model: "claude-3-opus",
+            systemPrompt: "x",
+            messages: [{ role: "user", content: "create one" }],
+            tools: [tool("create_agent")],
+            commandContext: makeCtx(),
+            maxRounds: 4,
+        });
+
+        expect(result.reason).toBe("end_turn");
+        expect(result.text).toBe("I cannot verify that without invoking a tool.");
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(executeToolCall).not.toHaveBeenCalled();
     });
 });
 

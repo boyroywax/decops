@@ -184,6 +184,7 @@ export type ToolkitId =
   | "image-gen"
   | "workspace-mgmt"
   | "logging"
+  | "collective-memory"
   | "libp2p"
   | "helia"
   | "kubo"
@@ -325,6 +326,8 @@ export interface Agent {
   status: "active";
   networkId?: string;  // Which network this agent belongs to
   aieos: AieosEntity;  // AIEOS v1.2.0 portable entity spec (always created on agent init)
+  /** When true, the agent is isolated from collective shared memory. */
+  isDarkAgent?: boolean;
   recommendedModel?: string; // Suggested LLM model id (e.g. "claude-sonnet-4-20250514")
   toolkits?: AgentToolkitBinding[];  // Enabled toolkits for this agent
   // v1.2.0 — Agent runtime & autonomy fields

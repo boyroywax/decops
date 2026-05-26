@@ -7,12 +7,13 @@
  * hooks are instantiated; we accept them as props to avoid creating duplicate
  * stateful hook instances.
  */
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useJobsContext } from "@/context/JobsContext";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import { useCommandContext, type EcosystemInput, type ArchitectInput } from "@/hooks/useCommandContext";
 import type { CommandContext } from "@/services/commands/types";
+import { setArchitectCommandContext } from "@/toolkits/architect/hooks/useArchitect";
 import { useToolkitChatAgents } from "@/toolkits";
 
 function GlobalRegistrar() {
@@ -47,6 +48,13 @@ export function CommandContextProvider({
         addLog,
         extensions,
     });
+
+    // Bridge command context into architect hook so deployNetwork()
+    // can execute the deploy_network command via registry.execute().
+    useEffect(() => {
+        setArchitectCommandContext(value);
+        return () => { setArchitectCommandContext(null); };
+    }, [value]);
 
     return <Ctx.Provider value={value}><GlobalRegistrar />{children}</Ctx.Provider>;
 }

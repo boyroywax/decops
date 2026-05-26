@@ -6,6 +6,7 @@ import { ROLES } from "@/constants";
 import { MessageSquare, Send, ChevronDown, ChevronUp, Square } from "lucide-react";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
+import { useStreamingChatState } from "@/components/chat/useStreamingChatState";
 import { useWorkspaceStore } from "@/stores";
 import { useAuth } from "@/context/AuthContext";
 import { useCommandCtx } from "@/context/CommandContextProvider";
@@ -59,9 +60,7 @@ export function AgentChat({ agent }: AgentChatProps) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const [streamingText, setStreamingText] = useState<string | null>(null);
-  const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallDisplay[]>([]);
-  const [roundPhase, setRoundPhase] = useState<"idle" | "drafting">("idle");
+  const streamState = useStreamingChatState();
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -94,11 +93,14 @@ export function AgentChat({ agent }: AgentChatProps) {
       out.push({ role: "user", content: m.content });
       userMessageIdx = out.length - 1;
       lastMessageId = m.id;
-      if (m.response) {
-        const enrich = liveTurns[m.id];
+      // Show the assistant bubble if there's text OR tool calls
+      const enrich = liveTurns[m.id];
+      const hasText = !!m.response;
+      const hasToolCalls = enrich?.toolCalls && enrich.toolCalls.length > 0;
+      if (hasText || hasToolCalls) {
         out.push({
           role: "assistant",
-          content: m.response,
+          content: m.response || "",
           toolCalls: enrich?.toolCalls,
           jobIds: enrich?.jobIds,
         });
@@ -111,7 +113,7 @@ export function AgentChat({ agent }: AgentChatProps) {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [history.length, loading, streamingText, streamingToolCalls.length]);
+  }, [history.length, loading, streamState.streamingText, streamState.streamingToolCalls.length]);
 
   useEffect(() => {
     if (!collapsed) inputRef.current?.focus();
@@ -124,10 +126,9 @@ export function AgentChat({ agent }: AgentChatProps) {
   useEffect(() => {
     setInput("");
     setLoading(false);
-    setStreamingText(null);
-    setStreamingToolCalls([]);
     abortRef.current?.abort();
     abortRef.current = null;
+    streamState.clearStreaming();
   }, [agent.id]);
 
   const stop = useCallback(() => {
@@ -155,9 +156,7 @@ export function AgentChat({ agent }: AgentChatProps) {
     addMessage(pending);
     setInput("");
     setLoading(true);
-    setStreamingText("");
-    setStreamingToolCalls([]);
-    setRoundPhase("idle");
+    streamState.startStreaming();
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -165,38 +164,7 @@ export function AgentChat({ agent }: AgentChatProps) {
     // Snapshot the history the model should see (excludes this in-flight turn)
     const historyForModel = persistedHistory;
 
-    const callbacks: StreamCallbacks = {
-      onToken: (token) => {
-        setRoundPhase("idle");
-        setStreamingText(prev => (prev ?? "") + token);
-      },
-      signal: controller.signal,
-      onToolCallStart: (name) => {
-        setRoundPhase("idle");
-        setStreamingToolCalls(prev => [
-          ...prev,
-          { name, input: {}, result: null, duration_ms: 0 },
-        ]);
-      },
-      onRoundEnd: () => {
-        setRoundPhase("drafting");
-      },
-      onToolCallComplete: (display) => {
-        setStreamingToolCalls(prev => {
-          const updated = [...prev];
-          let idx = -1;
-          for (let i = updated.length - 1; i >= 0; i--) {
-            if (updated[i].name === display.name && updated[i].duration_ms === 0) {
-              idx = i;
-              break;
-            }
-          }
-          if (idx >= 0) updated[idx] = display;
-          else updated.push(display);
-          return updated;
-        });
-      },
-    };
+    const callbacks: StreamCallbacks = streamState.buildCallbacks(controller.signal);
 
     try {
       const { text: response, toolCalls } = await streamChatWithAgent(
@@ -214,9 +182,15 @@ export function AgentChat({ agent }: AgentChatProps) {
           jobIds: collectedJobIds.length > 0 ? collectedJobIds : undefined,
         },
       }));
+      // Persist the response. Store the text (even empty) so the
+      // history builder can still render tool-call cards attached to
+      // this assistant turn. Only skip if truly nothing to show.
+      const trimmed = response.trim();
       setMessages((prev) =>
         prev.map((m) =>
-          m.id === msgId ? { ...m, response, status: "delivered" } : m
+          m.id === msgId
+            ? { ...m, response: trimmed, status: "delivered" }
+            : m
         )
       );
     } catch (err) {
@@ -233,10 +207,9 @@ export function AgentChat({ agent }: AgentChatProps) {
         )
       );
     } finally {
+      streamState.flushPending();
       abortRef.current = null;
-      setStreamingText(null);
-      setStreamingToolCalls([]);
-      setRoundPhase("idle");
+      streamState.clearStreaming();
       setLoading(false);
     }
   }, [
@@ -295,22 +268,22 @@ export function AgentChat({ agent }: AgentChatProps) {
                 context={bubbleContext}
               />
             ))}
-            {streamingText !== null && (
+            {streamState.streamingText !== null && (
               <MessageBubble
                 msg={{
                   role: "assistant",
-                  content: streamingText || "",
-                  toolCalls: streamingToolCalls.length > 0 ? streamingToolCalls : undefined,
-                  jobIds: streamingToolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!),
+                  content: streamState.streamingText || "",
+                  toolCalls: streamState.streamingToolCalls.length > 0 ? streamState.streamingToolCalls : undefined,
+                  jobIds: streamState.streamingToolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!),
                 }}
                 context={bubbleContext}
                 isStreaming
               />
             )}
-            {loading && streamingText !== null && roundPhase === "drafting" && !streamingText && (
+            {loading && streamState.streamingText !== null && streamState.roundPhase === "drafting" && !streamState.streamingText && (
               <ThinkingIndicator name={agent.name} phase="working" toolName="processing tool results" />
             )}
-            {loading && streamingText === null && (
+            {loading && streamState.streamingText === null && (
               <ThinkingIndicator name={agent.name} phase="thinking" />
             )}
             <div ref={endRef} />

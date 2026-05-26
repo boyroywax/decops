@@ -6,6 +6,7 @@ import type { ChatMessage, ToolCallDisplay, WorkspaceContext, StreamCallbacks, W
 import { useLLM } from "@/context/LLMContext";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
+import { useStreamingChatState } from "@/components/chat/useStreamingChatState";
 import { makeId } from "@/components/chat/utils";
 import type { Conversation } from "@/components/chat/types";
 import { useCommandContext } from "@/hooks/useCommandContext";
@@ -98,9 +99,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
 
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
-    const [streamingText, setStreamingText] = useState<string | null>(null);
-    const [roundPhase, setRoundPhase] = useState<"idle" | "drafting">("idle");
-    const [streamingToolCalls, setStreamingToolCalls] = useState<ToolCallDisplay[]>([]);
+    const streamState = useStreamingChatState();
     const [botMenuOpen, setBotMenuOpen] = useState(false);
     const [lohkExpanded, setLohkExpanded] = useState<boolean>(() => {
         try { return localStorage.getItem("decops:bot-menu-lohk-collapsed") !== "1"; }
@@ -128,15 +127,13 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
     const stopStreaming = useCallback(() => {
         const activeRunId = activeRunIdRef.current;
         if (activeRunId != null) cancelledRunIdRef.current = activeRunId;
-        const partialResponse = (streamingText || "").trim();
-        const partialToolCalls = streamingToolCalls;
+        const partialResponse = (streamState.streamingText || "").trim();
+        const partialToolCalls = streamState.streamingToolCalls;
 
         abortRef.current?.abort();
         abortRef.current = null;
         setLoading(false);
-        setStreamingText(null);
-        setStreamingToolCalls([]);
-        setRoundPhase("idle");
+        streamState.clearStreaming();
 
         activeAgent?.onStop?.({ conversationId: activeId ?? undefined });
 
@@ -168,7 +165,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                 } : undefined,
             },
         ]);
-    }, [activeAgent, activeId, conversations, jobs.jobs, streamingText, streamingToolCalls, updateConversation]);
+    }, [activeAgent, activeId, conversations, jobs.jobs, streamState, updateConversation]);
 
     const handleStopPromptAction = useCallback((choice: "finish" | "stop" | "stop-and-job", prompt: NonNullable<ChatMessage["stopPrompt"]>) => {
         if (!activeId) return;
@@ -215,7 +212,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
         if (initialScrollDone.current) {
             endRef.current?.scrollIntoView({ behavior: "smooth" });
         }
-    }, [messages.length, loading, streamingText]);
+    }, [messages.length, loading, streamState.streamingText]);
 
     useEffect(() => {
         if (!showConvos && inputRef.current?.offsetParent !== null) {
@@ -533,9 +530,13 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
         });
 
         addLog?.(`CLI: Queued /${commandId} as job`);
+        const argKeys = Object.keys(args);
+        const argsSummary = argKeys.length > 0
+            ? `\n\nArgs provided: ${argKeys.join(", ")}`
+            : "";
         const successMsg = [...msgs, {
             role: "assistant" as const,
-            content: `📋 Command \`/${commandId}\` queued as a job.${Object.keys(args).length > 0 ? `\n\nArgs: \`${JSON.stringify(args, null, 2)}\`` : ""}`,
+            content: `📋 Command \`/${commandId}\` queued as a job.${argsSummary}`,
             jobIds: [newJob.id],
         }];
         updateConversation(convoId, successMsg);
@@ -598,13 +599,11 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                         // render via `streamingText` / `streamingToolCalls`).
                         let buffer = "";
                         let closed = false;
-                        setStreamingText("");
-                        setStreamingToolCalls([]);
+                        streamState.startStreaming();
                         const commit = (final: string) => {
                             if (closed) return;
                             closed = true;
-                            setStreamingText(null);
-                            setStreamingToolCalls([]);
+                            streamState.clearStreaming();
                             setConversations(prev => prev.map(c =>
                                 c.id === currentId
                                     ? { ...c, messages: [...c.messages, { role: "assistant" as const, content: final }], updatedAt: Date.now() }
@@ -615,12 +614,12 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                             append: (token: string) => {
                                 if (closed) return;
                                 buffer += token;
-                                setStreamingText(prev => (prev ?? "") + token);
+                                streamState.setStreamingText(prev => (prev ?? "") + token);
                             },
                             set: (next: string) => {
                                 if (closed) return;
                                 buffer = next;
-                                setStreamingText(next);
+                                streamState.setStreamingText(next);
                             },
                             done: (final?: string) => commit(final ?? buffer),
                             error: (msg: string) => commit(`${activeAgent.name} error: ${msg}`),
@@ -742,52 +741,11 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                 }
 
                 // Streaming chat
-                setStreamingText("");
-                setStreamingToolCalls([]);
+                streamState.startStreaming();
 
                 const controller = new AbortController();
                 abortRef.current = controller;
-
-                const streamCallbacks: StreamCallbacks = {
-                    onToken: (token) => {
-                        setRoundPhase(prev => prev === "idle" ? prev : "idle");
-                        setStreamingText(prev => (prev ?? "") + token);
-                    },
-                    signal: controller.signal,
-                    onToolCallStart: (name) => {
-                        setRoundPhase("idle");
-                        setStreamingToolCalls(prev => [
-                            ...prev,
-                            { name, input: {}, result: null, duration_ms: 0 },
-                        ]);
-                    },
-                    onRoundEnd: () => {
-                        // Provider just finished a round. If there are pending
-                        // tool calls we'll soon see onToolCallComplete; show a
-                        // brief "drafting" hint so the UI doesn't look frozen
-                        // while the next provider round spins up.
-                        setRoundPhase("drafting");
-                    },
-                    onToolCallComplete: (display: ToolCallDisplay) => {
-                        setStreamingToolCalls(prev => {
-                            const updated = [...prev];
-                            // Replace the last pending tool call with the completed one (polyfill for findLastIndex)
-                            let idx = -1;
-                            for (let i = updated.length - 1; i >= 0; i--) {
-                                if (updated[i].name === display.name && updated[i].duration_ms === 0) {
-                                    idx = i;
-                                    break;
-                                }
-                            }
-                            if (idx >= 0) {
-                                updated[idx] = display;
-                            } else {
-                                updated.push(display);
-                            }
-                            return updated;
-                        });
-                    },
-                };
+                const streamCallbacks: StreamCallbacks = streamState.buildCallbacks(controller.signal);
 
                 // Build editor context suffix if editor mode is active
                 let messageToSend = text;
@@ -812,21 +770,27 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                 if (cancelledRunIdRef.current === runId) return;
 
                 abortRef.current = null;
-                setStreamingText(null);
-                setStreamingToolCalls([]);
-                setRoundPhase("idle");
+                streamState.clearStreaming();
 
                 // Collect jobIds from tool calls for inline progress tracking
                 const collectedJobIds = toolCalls
                     .filter(tc => tc.jobId)
                     .map(tc => tc.jobId!);
 
-                const finalMsgs = [...updatedMsgs, {
-                    role: "assistant" as const,
-                    content: response,
-                    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-                    jobIds: collectedJobIds.length > 0 ? collectedJobIds : undefined,
-                }];
+                // Build the final conversation. If the model returned no
+                // visible text, skip the assistant bubble but still persist
+                // the conversation so prior context is not lost.
+                const trimmed = response.trim();
+                // Persist the assistant turn if there's text OR tool calls
+                const hasToolCalls = toolCalls.length > 0;
+                const finalMsgs = trimmed || hasToolCalls
+                    ? [...updatedMsgs, {
+                        role: "assistant" as const,
+                        content: trimmed,
+                        toolCalls: hasToolCalls ? toolCalls : undefined,
+                        jobIds: collectedJobIds.length > 0 ? collectedJobIds : undefined,
+                    }]
+                    : updatedMsgs;
                 updateConversation(currentId, finalMsgs);
                 addLog?.(`Chat: "${text.slice(0, 40)}${text.length > 40 ? "…" : ""}"`);
             }
@@ -835,10 +799,11 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
             const errMsg = [...updatedMsgs, { role: "assistant" as const, content: `Error: ${err instanceof Error ? err.message : String(err)}` }];
             updateConversation(currentId, errMsg);
         } finally {
+            streamState.flushPending();
             if (activeRunIdRef.current === runId) activeRunIdRef.current = null;
             setLoading(false);
         }
-    }, [input, loading, activeId, conversations, context, refreshContext, addLog, updateConversation, commandContext, queueCommandAsJob, workspaceCtx, activeAgent]);
+    }, [input, loading, activeId, conversations, context, refreshContext, addLog, updateConversation, commandContext, queueCommandAsJob, workspaceCtx, activeAgent, readP2PContext, streamState]);
 
     // Handle prompt modal submission
     const handlePromptSubmit = useCallback((commandId: string, args: Record<string, any>) => {
@@ -1057,13 +1022,13 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                             )}
                         </div>
                     ))}
-                    {streamingText !== null && (
+                    {streamState.streamingText !== null && (
                         <MessageBubble
                             msg={{
                                 role: "assistant",
-                                content: streamingText || "",
-                                toolCalls: streamingToolCalls.length > 0 ? streamingToolCalls : undefined,
-                                jobIds: streamingToolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!),
+                                content: streamState.streamingText || "",
+                                toolCalls: streamState.streamingToolCalls.length > 0 ? streamState.streamingToolCalls : undefined,
+                                jobIds: streamState.streamingToolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!),
                             }}
                             context={context}
                             setView={setView}
@@ -1071,12 +1036,12 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                             isStreaming
                         />
                     )}
-                    {streamingText !== null && roundPhase === "drafting" && !streamingText && (
+                    {streamState.streamingText !== null && streamState.roundPhase === "drafting" && !streamState.streamingText && (
                         <div className="chat-panel__loading">
                             <ThinkingIndicator phase="working" toolName="processing tool results" />
                         </div>
                     )}
-                    {loading && streamingText === null && (
+                    {loading && streamState.streamingText === null && (
                         <div className="chat-panel__loading">
                             <ThinkingIndicator phase="thinking" />
                         </div>
@@ -1258,7 +1223,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
                         }}
                         placeholder={activeAgent?.placeholder ?? (studioActive ? "Ask the AI to build on the Studio canvas..." : editorActive ? "Ask the AI to help edit your file..." : "Ask about your workspace — type @ to mention agents...")}
-                        disabled={loading && !streamingText}
+                        disabled={loading && !streamState.streamingText}
                         className={`chat-panel__input${studioActive ? " chat-panel__input--studio" : editorActive ? " chat-panel__input--editor" : ""}`}
                         data-testid="chat-panel-input"
                     />

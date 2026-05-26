@@ -1,7 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { ArchPhase, DeployProgress, MeshConfig, JobRequest, Job } from "@/types";
+import { registry } from "@/services/commands/registry";
+import type { CommandContext } from "@/services/commands/types";
 
-export function useArchitect(addLog: (msg: string) => void, addJob: (job: JobRequest) => Job | void, jobs?: Job[]) {
+// Shared ref so the command context can be injected from a component
+// inside CommandContextProvider without changing the useArchitect signature.
+let globalCommandContext: CommandContext | null = null;
+
+/** Called by ArchitectContextBridge to wire up the command context. */
+export function setArchitectCommandContext(ctx: CommandContext | null) {
+  globalCommandContext = ctx;
+}
+
+export function useArchitect(
+  addLog: (msg: string) => void,
+  addJob: (job: JobRequest) => Job | void,
+  jobs?: Job[],
+) {
   const [archPrompt, setArchPrompt] = useState("");
   const [archGenerating, setArchGenerating] = useState(false);
   const [archPreview, setArchPreview] = useState<MeshConfig | null>(null);
@@ -89,22 +104,38 @@ export function useArchitect(addLog: (msg: string) => void, addJob: (job: JobReq
   const deployNetwork = async () => {
     if (!archPreview) return;
     setArchPhase("deploying");
+    setDeployProgress({ step: "Deploying ecosystem...", count: 0, total: 100 });
 
-    if (addJob) {
-      addJob({
-        type: "deploy_network",
-        request: { config: archPreview }
-      });
+    try {
+      // Execute the deploy_network command through the registry so it
+      // builds the proper multi-step job pipeline (create_network,
+      // create_agent, create_channel, etc.) and queues it via addJob.
+      const ctx = globalCommandContext;
+      if (ctx) {
+        const result = await registry.execute(
+          "deploy_network",
+          { config: archPreview },
+          ctx,
+        );
+        addLog(`Architect: deploy_network executed — ${JSON.stringify(result ?? {}).slice(0, 120)}`);
+      } else {
+        // Fallback: no command context available — log error so the
+        // user knows deployment can't proceed from the UI alone.
+        addLog("Architect: deploy_network requires command context — invoke via an agent or the CLI");
+        setArchError("Deployment requires an active command context. Use the Architect agent chat or CLI to deploy.");
+        setArchPhase("preview");
+        return;
+      }
 
-      setDeployProgress({ step: "Queued for deployment...", count: 0, total: 100 });
-
+      setDeployProgress({ step: "Network Deployment Started", count: 100, total: 100 });
       setTimeout(() => {
         setArchPhase("done");
-        setDeployProgress({ step: "Network Deployment Started", count: 100, total: 100 });
       }, 1000);
-
-    } else {
-      console.error("No addJob function provided to useArchitect");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      addLog(`Architect deploy error: ${msg}`);
+      setArchError(msg);
+      setArchPhase("preview");
     }
   };
 

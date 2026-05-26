@@ -26,6 +26,7 @@ import { orbitdbServerModule } from "@/toolkits/orbitdb-server";
 import { orchestratorModule } from "@/toolkits/orchestrator";
 import { workspaceMgmtModule } from "./workspace-mgmt";
 import { loggingModule } from "./logging";
+import { collectiveMemoryModule } from "./collective-memory";
 
 // ── Capability toolkits (external integrations) ─
 import { webCrawlerModule } from "./web-crawler";
@@ -40,6 +41,7 @@ import { videoToTextModule } from "./video-to-text";
 export const builtinModules: ToolkitModule[] = [
   // Core platform toolkits (register first — others may depend on them)
   loggingModule,
+  collectiveMemoryModule,
   // Command-group toolkits
   agentManagementModule,
   infrastructureModule,
@@ -66,6 +68,7 @@ export const builtinModules: ToolkitModule[] = [
 // Re-export individual modules for targeted imports
 export {
   loggingModule,
+  collectiveMemoryModule,
   agentManagementModule,
   infrastructureModule,
   ecosystemModule,

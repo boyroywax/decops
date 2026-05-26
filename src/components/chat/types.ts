@@ -21,6 +21,14 @@ export interface ParsedThinking {
     isError: boolean;
 }
 
+/** A segment of parsed assistant output — either a thinking block or a
+ *  prose block. Segments are returned in document order so the renderer
+ *  can interleave them faithfully instead of dumping all thoughts at the
+ *  top. */
+export type ParsedSegment =
+  | { type: "thinking"; thinking: ParsedThinking }
+  | { type: "text"; text: string };
+
 export interface Conversation {
     id: string;
     title: string;

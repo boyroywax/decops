@@ -128,8 +128,17 @@ function isMissingKeyError(msg: string): boolean {
   );
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function missingKeyMessage(): string {
   return "⚠️ No API key configured. Go to **LLM Manager → Providers** to add your API key.";
+}
+
+/** Yield to the event loop so React can flush state updates. */
+function microYield(): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, 0));
 }
 
 async function emitSyntheticTokenChunks(
@@ -139,16 +148,17 @@ async function emitSyntheticTokenChunks(
   if (!text || !callbacks.onToken) return;
 
   // Emit the response in a small number of chunks so the UI updates
-  // progressively, but WITHOUT artificial inter-chunk delays — the
-  // model response is already complete by the time we're here, so any
-  // sleep here is pure latency between a tool result and the agent's
-  // next action.
+  // progressively. We yield to the event loop between chunks so React
+  // can flush each state update to the DOM — without this, all chunks
+  // land in a single microtask and the UI only sees the final state.
   const maxChunks = 16;
   const chunkSize = Math.max(64, Math.ceil(text.length / maxChunks));
 
   for (let i = 0; i < text.length; i += chunkSize) {
     if (callbacks.signal?.aborted) return;
     callbacks.onToken(text.slice(i, i + chunkSize));
+    // Yield so the UI can paint this chunk before the next one arrives.
+    await microYield();
   }
 }
 
@@ -172,8 +182,8 @@ export async function runChatTurn(
   const provider = getModelProvider(model);
   const wantsTools = !!tools && tools.length > 0 && !!commandContext;
   const supportsAnthropicStream = stream && provider === "anthropic";
-  // OpenAI/OpenRouter can stream text; we only stream when this round
-  // will not request tools (their tool_call deltas aren't parsed here).
+  // OpenAI/OpenRouter always stream via SSE — text tokens arrive immediately
+  // and tool_call deltas are parsed from the stream too.
   const supportsOpenAIStream = stream && (provider === "openai" || provider === "openrouter");
 
   // Mutable working state.
@@ -190,6 +200,41 @@ export async function runChatTurn(
   const FABRICATION_RETRY_BUDGET = 2;
   let fabricationRetries = 0;
   const declaredToolsRegex = /```thinking[\s\S]*?Needs tools:\s*yes\b/i;
+  const narratedToolVerbRegex = /\b(run(?:ning)?|call(?:ing)?|invoke(?:d|s|ing)?|use(?:d|s|ing)?|execut(?:e|ed|es|ing)|queue(?:d|s|ing)?|trigger(?:ed|s|ing)?)\b/i;
+  const fabricatedResultRegex = /\b(tool|command|job)\b[\s\S]{0,32}\b(returned|returns|result|results|output|completed|failed|succeeded|queued|created|deployed)\b|\b(result|output)\s*:\s*\{|\bjob[\s_-]?id\s*[:=]/i;
+  const toolNames = (tools || []).map(t => t.name).filter(Boolean);
+
+  const findMentionedToolName = (text: string): string | null => {
+    if (!text || toolNames.length === 0) return null;
+    const lowered = text.toLowerCase();
+    for (const name of toolNames) {
+      const pat = new RegExp(`\\b${escapeRegExp(name.toLowerCase())}\\b`, "i");
+      if (pat.test(lowered)) return name;
+    }
+    return null;
+  };
+
+  const detectNarratedToolName = (text: string): string | null => {
+    if (!text || !narratedToolVerbRegex.test(text)) return null;
+    return findMentionedToolName(text);
+  };
+
+  const detectFabricatedResultCue = (text: string): { reason: string; toolName?: string } | null => {
+    if (!text) return null;
+    const mentionedToolName = findMentionedToolName(text);
+
+    // Strongest signal: explicit tool name + result-oriented language.
+    if (mentionedToolName && /\b(returned|result|output|completed|failed|succeeded|queued|created|deployed)\b/i.test(text)) {
+      return { reason: `claimed result from tool "${mentionedToolName}"`, toolName: mentionedToolName };
+    }
+
+    // Secondary signal: generic tool/command/job result narration.
+    if (fabricatedResultRegex.test(text)) {
+      return { reason: "claimed tool/command/job results" };
+    }
+
+    return null;
+  };
 
   try {
     for (let round = 0; round < maxRounds; round++) {
@@ -201,7 +246,7 @@ export async function runChatTurn(
       let rawAssistantContent: unknown = null;
       let roundText = "";
       const useStream = supportsAnthropicStream;
-      const useOpenAIStream = supportsOpenAIStream && !wantsTools;
+      const useOpenAIStream = supportsOpenAIStream;
 
       // ───── Provider call ─────
       if (useStream) {
@@ -270,16 +315,36 @@ export async function runChatTurn(
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData?.error?.message || `API request failed (${response.status})`);
           }
+          // Collect tool_use blocks that were already streamed via SSE
+          // so we don't re-parse them from the final response.
+          const streamedToolUseIds = new Set<string>();
+          const sseToolUseBlocks: ToolUseBlock[] = [];
           const sse = await parseOpenAISSE(
             response,
-            (delta) => {
-              roundText += delta;
-              callbacks.onToken?.(delta);
+            {
+              onText: (delta) => {
+                roundText += delta;
+                callbacks.onToken?.(delta);
+              },
+              onToolUseStart: (block) => {
+                callbacks.onToolCallStart?.(block.name, {});
+              },
+              onToolUseInput: () => { /* accumulated internally */ },
             },
             callbacks.signal,
           );
           if (!roundText) roundText = sse.text;
-          toolUseBlocks = [];
+          // Convert streamed OpenAI tool calls to Anthropic-shaped blocks
+          // so the rest of the tool-execution loop works unchanged.
+          for (const tc of sse.toolCalls) {
+            if (tc.id && tc.name) {
+              let input: Record<string, unknown> = {};
+              try { input = JSON.parse(tc.arguments || "{}"); } catch { /* ignore */ }
+              sseToolUseBlocks.push({ type: "tool_use", id: tc.id, name: tc.name, input });
+              streamedToolUseIds.add(tc.id);
+            }
+          }
+          toolUseBlocks = sseToolUseBlocks;
           rawAssistantContent = null;
         } else {
           const response = await fetch(req.url, {
@@ -307,16 +372,19 @@ export async function runChatTurn(
         }
       }
 
-      fullText += roundText;
-
       // ───── No tools requested → done (with anti-fabrication check) ─────
       if (toolUseBlocks.length === 0) {
-        if (
+        const narratedToolName = detectNarratedToolName(roundText);
+        const fabricatedResultCue = detectFabricatedResultCue(roundText);
+        const needsFabricationRetry =
           wantsTools &&
           fabricationRetries < FABRICATION_RETRY_BUDGET &&
-          declaredToolsRegex.test(roundText)
+          (declaredToolsRegex.test(roundText) || !!narratedToolName || !!fabricatedResultCue);
+
+        if (
+          needsFabricationRetry
         ) {
-          // Model said it needed tools but didn't actually call one.
+          // Model said or implied it needed tools but didn't actually call one.
           // Push its assistant turn so it sees its own previous output,
           // then a corrective user message, and let the loop continue.
           fabricationRetries++;
@@ -327,15 +395,16 @@ export async function runChatTurn(
           }
           apiMessages.push({
             role: "user",
-            content: `[SYSTEM GUARDRAIL] Your previous turn declared "Needs tools: yes" but did NOT emit a structured tool_use block — nothing actually executed. Writing prose about a tool does not invoke it. Retry now: either (a) emit the real tool_use call immediately after a corrected \`\`\`thinking block, or (b) if you cannot or should not use a tool, output a \`\`\`thinking block with "Needs tools: no" and answer the user directly from the workspace state in your system prompt. Do NOT narrate tool calls again.`,
+            content: `[SYSTEM GUARDRAIL] Your previous turn ${narratedToolName ? `narrated calling tool "${narratedToolName}"` : fabricatedResultCue ? fabricatedResultCue.reason : `declared "Needs tools: yes"`} but did NOT emit a structured tool_use block — nothing actually executed. Writing prose about a tool does not invoke it. Retry now: either (a) emit the real tool_use call immediately after a corrected \`\`\`thinking block, or (b) if you cannot or should not use a tool, output a \`\`\`thinking block with "Needs tools: no" and answer the user directly from the workspace state in your system prompt. Do NOT narrate tool calls or results again.`,
           });
           callbacks.onRoundEnd?.(round);
           continue;
         }
 
+        if (roundText) fullText += roundText;
         callbacks.onRoundEnd?.(round);
         return {
-          text: fullText || "[No response]",
+          text: fullText,
           toolCalls: allToolCalls,
           reason: "end_turn",
         };
@@ -361,6 +430,8 @@ export async function runChatTurn(
         // the tool_use_ids match.
         apiMessages.push({ role: "assistant", content: assistantForResults });
       }
+
+      if (roundText) fullText += roundText;
 
       // Execute all tool calls in this round concurrently. Each call is
       // already serialized internally through the job queue, so running

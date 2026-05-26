@@ -127,7 +127,7 @@ export async function chatWithAgent(
   const model = getAgentModel(agent.id);
   const provider = getModelProvider(model);
 
-  const tools = commandContext && (provider === "anthropic" || provider === "openai")
+  const tools = commandContext && (provider === "anthropic" || provider === "openai" || provider === "openrouter")
     ? getToolsForAgent(agent)
     : [];
 
@@ -171,7 +171,7 @@ export async function streamChatWithAgent(
   const model = getAgentModel(agent.id);
   const provider = getModelProvider(model);
 
-  const tools = commandContext && (provider === "anthropic" || provider === "openai")
+  const tools = commandContext && (provider === "anthropic" || provider === "openai" || provider === "openrouter")
     ? getToolsForAgent(agent)
     : [];
 
@@ -240,7 +240,13 @@ Next: one short sentence — call another tool (name it) OR finalize the answer.
 
 If a tool errors or returns unexpected output, the Assess line MUST start with "ERROR:" or "UNEXPECTED:" and Next MUST describe a corrective plan (different args, different command, or ask the user). Re-approach with the new information — do not blindly retry. Never invent tool results. Keep each line under 140 characters.
 
-ANTI-FABRICATION RAIL (CRITICAL): Tools execute ONLY via the structured tool-use channel. Prose like "Running X...", "Calling Y...", "Let me invoke...", "The result shows..." does NOT invoke anything. If you say "Needs tools: yes" you MUST emit a real tool_use block immediately — the system rejects fabricated tool turns and forces a retry. Never fabricate tool output, JSON, or status. If the capability you need isn't in your tools, say so plainly.`
+ANTI-FABRICATION RAIL (CRITICAL): Tools execute ONLY via the structured tool-use channel. Prose like "Running X...", "Calling Y...", "Let me invoke...", "The result shows..." does NOT invoke anything. If you say "Needs tools: yes" you MUST emit a real tool_use block immediately — the system rejects fabricated tool turns and forces a retry. Never fabricate tool output, JSON, or status. If the capability you need isn't in your tools, say so plainly.
+
+COLLECTIVE MEMORY PROTOCOL (default-on unless this agent is explicitly set to dark mode):
+- Before planning non-trivial work, call \`recall_collective_memory\` with a focused query to load prior decisions/facts.
+- When you produce durable facts, decisions, IDs, endpoint details, or runbook steps, call \`remember_collective_memory\`.
+- Tag memories with concise topic tags so other agents can retrieve them.
+- If the operator requests isolation/privacy, switch to dark mode using \`set_agent_memory_mode\` with mode \`dark\` and stop writing shared memory.`
       : "",
     `\nYou are chatting directly with a human operator who manages this workspace.`,
     `Respond concisely and in-character. Keep responses under 200 words. Use markdown formatting when appropriate.`,
@@ -265,8 +271,8 @@ export async function chatWithWorkspace(
     maxRounds = delegation.maxRounds ?? 12;
   }
 
-  // Build tools from command registry (tool use supported for anthropic + openai)
-  const tools = commandContext && (provider === "anthropic" || provider === "openai") ? getAllTools() : [];
+  // Build tools from command registry (tool use supported for anthropic/openai/openrouter)
+  const tools = commandContext && (provider === "anthropic" || provider === "openai" || provider === "openrouter") ? getAllTools() : [];
 
   const messages: ChatTurnMessage[] = [
     ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),

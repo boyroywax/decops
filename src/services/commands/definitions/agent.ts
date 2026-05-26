@@ -1,6 +1,6 @@
 
 import { CommandDefinition } from "@/services/commands/types";
-import type { Agent } from "@/types";
+import type { Agent, ToolkitId } from "@/types";
 import { generateDID, generateKeyPair } from "@/utils/identity";
 import { createAieosEntity } from "@/utils/aieos";
 import { ROLES } from "@/constants";
@@ -51,6 +51,13 @@ export const createAgentCommand: CommandDefinition = {
             type: "array",
             description: "Batch mode: array of {name, role, prompt, networkId?} specs. Overrides individual args.",
             required: false,
+        },
+        darkAgent: {
+            name: "darkAgent",
+            type: "boolean",
+            description: "If true, create the agent in isolated dark-memory mode (no shared collective memory).",
+            required: false,
+            defaultValue: false,
         }
     },
     output: "JSON object containing the created agent's ID and details.",
@@ -74,11 +81,12 @@ export const createAgentCommand: CommandDefinition = {
         // Normalize: batch items or single spec
         const specs = args.items
             ? (Array.isArray(args.items) ? args.items : [args.items])
-            : [{ name: args.name, role: args.role, prompt: args.prompt, networkId: args.networkId }];
+            : [{ name: args.name, role: args.role, prompt: args.prompt, networkId: args.networkId, darkAgent: args.darkAgent }];
 
         const created: Agent[] = [];
         for (const spec of specs) {
             const { name, role, prompt, title } = spec;
+            const darkAgent = spec.darkAgent === true;
             // Drop unresolved $storage.* refs so we fall back to activeNetworkId
             // instead of persisting a literal placeholder string.
             const rawNetworkId = spec.networkId;
@@ -94,8 +102,12 @@ export const createAgentCommand: CommandDefinition = {
                 keys: generateKeyPair(),
                 createdAt: new Date().toISOString(),
                 status: "active" as const,
+                isDarkAgent: darkAgent,
                 networkId: networkId || context.ecosystem?.activeNetworkId || (context.ecosystem?.networks?.length === 1 ? context.ecosystem.networks[0].id : undefined),
                 aieos: createAieosEntity(name, role, prompt),
+                toolkits: darkAgent
+                    ? []
+                    : [{ toolkitId: "collective-memory" as ToolkitId, enabledAt: new Date().toISOString() }],
             };
 
             created.push(newAgent);

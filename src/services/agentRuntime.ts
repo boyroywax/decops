@@ -236,7 +236,7 @@ export async function processAgentRequest(
         index: 0,
         message: {
           role: "assistant",
-          content: text !== "[No response]" ? text : null,
+          content: text || null,
           tool_calls: toolUseBlocks.length > 0 ? toolUseBlocks.map(tb => ({
             id: tb.id,
             type: "function" as const,

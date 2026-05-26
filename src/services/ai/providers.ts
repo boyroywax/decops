@@ -242,16 +242,16 @@ export function parseProviderResponse(model: string, data: unknown): string {
   };
 
   if (provider === "openai" || provider === "openrouter") {
-    return d.choices?.[0]?.message?.content || "[No response]";
+    return d.choices?.[0]?.message?.content || "";
   }
   if (provider === "google") {
-    return d.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "[No response]";
+    return d.candidates?.[0]?.content?.parts?.map((p) => p.text || "").join("") || "";
   }
   if (provider === "ollama") {
-    return d.message?.content || "[No response]";
+    return d.message?.content || "";
   }
   // Anthropic
-  return d.content?.map((b) => b.text || "").join("") || "[No response]";
+  return d.content?.map((b) => b.text || "").join("") || "";
 }
 
 /** Normalized tool-use block (Anthropic-shaped). */
