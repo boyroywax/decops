@@ -703,6 +703,71 @@
   font-size: var(--text-xs);
 }
 
+/* ───────── Pinned mention chips inside the input bar ───────── */
+.chat-panel__pinned-mentions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 0 4px 6px;
+  max-width: 60%;
+}
+
+.chat-panel__pinned-mention {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+}
+
+.chat-panel__pinned-mention--agent {
+  background: rgba(0, 229, 160, 0.14);
+  border-color: rgba(0, 229, 160, 0.3);
+  color: var(--color-accent);
+}
+
+.chat-panel__pinned-mention--group {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+}
+
+.chat-panel__pinned-mention-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-panel__pinned-mention-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity var(--transition-fast), background var(--transition-fast);
+}
+
+.chat-panel__pinned-mention-remove:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.12);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * CHAT AGENT BANNER (sticky agent identity + custom banner content)
  * Active when a chat agent (Architect, libp2p, …) is in focus.

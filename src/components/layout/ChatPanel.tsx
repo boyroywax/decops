@@ -116,6 +116,16 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
     const [pendingCommand, setPendingCommand] = useState<{ command: CommandDefinition; initialArgs: Record<string, any>; convoId: string; msgs: ChatMessage[] } | null>(null);
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
     const [mentionIndex, setMentionIndex] = useState(0);
+    /**
+     * Mentions the user has "pinned" as badges in the input bar.
+     *
+     * Typing `@name` and confirming via the picker pushes a chip here
+     * instead of injecting `@name` text into the input. Chips persist
+     * across sends until the user removes them via the chip's `×`
+     * button (or hits Backspace on an empty input), so the same
+     * recipients can be addressed for multiple consecutive prompts.
+     */
+    const [pinnedMentions, setPinnedMentions] = useState<Array<{ type: "agent" | "group"; id: string; name: string }>>([]);
     const abortRef = useRef<AbortController | null>(null);
     const runCounterRef = useRef(0);
     const activeRunIdRef = useRef<number | null>(null);
@@ -305,19 +315,28 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
             .slice(0, 8);
     }, [mentionQuery, workspaceCtx.agents, workspaceCtx.groups]);
 
-    const insertMention = useCallback((candidate: { name: string }) => {
-        const cursorPos = inputRef.current?.selectionStart || input.length;
+    const insertMention = useCallback((candidate: { type: "agent" | "group"; id: string; name: string }) => {
+        const cursorPos = inputRef.current?.selectionStart ?? input.length;
         const before = input.slice(0, cursorPos);
         const after = input.slice(cursorPos);
-        const m = before.match(/(^|.*\s)@(\w*)$/);
-        if (m) {
-            const prefix = m[1];
-            const tag = `@${candidate.name.replace(/\s+/g, "_")}`;
-            setInput(prefix + tag + (after.startsWith(" ") ? "" : " ") + after);
-        }
+        // Strip the just-typed `@xxx` token — the chip replaces it.
+        const stripped = before.replace(/(^|\s)@(\w*)$/, (_full, lead) => lead || "");
+        // Collapse any duplicate whitespace that resulted from the strip.
+        const cleaned = (stripped + after).replace(/\s{2,}/g, " ").replace(/^\s+/, "");
+        setInput(cleaned);
+        setPinnedMentions(prev => {
+            const key = `${candidate.type}:${candidate.id}`;
+            if (prev.some(p => `${p.type}:${p.id}` === key)) return prev;
+            return [...prev, { type: candidate.type, id: candidate.id, name: candidate.name }];
+        });
         setMentionQuery(null);
         inputRef.current?.focus();
     }, [input]);
+
+    const removePinnedMention = useCallback((key: string) => {
+        setPinnedMentions(prev => prev.filter(m => `${m.type}:${m.id}` !== key));
+        inputRef.current?.focus();
+    }, []);
 
     // Determine which ecosystem object to use. 
     // If passed via props, use it. usage of useEcosystem inside ChatPanel would be wrong.
@@ -547,8 +566,21 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
     }, [jobs, addLog, updateConversation]);
 
     const send = useCallback(async () => {
-        const text = input.trim();
-        if (!text || loading) return;
+        const rawText = input.trim();
+        if (!rawText && pinnedMentions.length === 0) return;
+        if (loading) return;
+        // Combine pinned-mention chips with the typed text so the existing
+        // `@name` resolution logic downstream picks them up. Chips are NOT
+        // cleared on send — they persist into the next prompt unless the
+        // user removes them via the chip's `×` button.
+        const mentionPrefix = pinnedMentions
+            .map(m => `@${m.name.replace(/\s+/g, "_")}`)
+            .join(" ");
+        const startsWithSlash = rawText.startsWith("/");
+        const text = startsWithSlash || !mentionPrefix
+            ? rawText
+            : mentionPrefix + (rawText ? ` ${rawText}` : "");
+        if (!text.trim()) return;
         const runId = ++runCounterRef.current;
         activeRunIdRef.current = runId;
         cancelledRunIdRef.current = null;
@@ -807,7 +839,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
             if (activeRunIdRef.current === runId) activeRunIdRef.current = null;
             setLoading(false);
         }
-    }, [input, loading, activeId, conversations, context, refreshContext, addLog, updateConversation, commandContext, queueCommandAsJob, workspaceCtx, activeAgent, readP2PContext, streamState]);
+    }, [input, pinnedMentions, loading, activeId, conversations, context, refreshContext, addLog, updateConversation, commandContext, queueCommandAsJob, workspaceCtx, activeAgent, readP2PContext, streamState]);
 
     // Handle prompt modal submission
     const handlePromptSubmit = useCallback((commandId: string, args: Record<string, any>) => {
@@ -1205,6 +1237,31 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                             </div>
                         )}
                     </div>
+                    {pinnedMentions.length > 0 && (
+                        <div className="chat-panel__pinned-mentions" aria-label="Mentioned agents">
+                            {pinnedMentions.map(m => {
+                                const key = `${m.type}:${m.id}`;
+                                return (
+                                    <span
+                                        key={key}
+                                        className={`chat-panel__pinned-mention chat-panel__pinned-mention--${m.type}`}
+                                        title={`${m.type === "agent" ? "Agent" : "Group"}: ${m.name}`}
+                                    >
+                                        <span className="chat-panel__pinned-mention-label">@{m.name}</span>
+                                        <button
+                                            type="button"
+                                            className="chat-panel__pinned-mention-remove"
+                                            onMouseDown={e => { e.preventDefault(); removePinnedMention(key); }}
+                                            aria-label={`Remove ${m.name} mention`}
+                                            tabIndex={-1}
+                                        >
+                                            <X size={10} strokeWidth={2.5} />
+                                        </button>
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    )}
                     <input
                         ref={inputRef}
                         value={input}
@@ -1224,6 +1281,12 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                                 if (e.key === "Enter" || e.key === "Tab" || e.key === " ") { e.preventDefault(); insertMention(mentionCandidates[mentionIndex]); return; }
                                 if (e.key === "Escape") { e.preventDefault(); setMentionQuery(null); return; }
                             }
+                            // Backspace on an empty input pops the last pinned mention chip.
+                            if (e.key === "Backspace" && input.length === 0 && pinnedMentions.length > 0) {
+                                e.preventDefault();
+                                setPinnedMentions(prev => prev.slice(0, -1));
+                                return;
+                            }
                             if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
                         }}
                         placeholder={activeAgent?.placeholder ?? (studioActive ? "Ask the AI to build on the Studio canvas..." : editorActive ? "Ask the AI to help edit your file..." : "Ask about your workspace — type @ to mention agents...")}
@@ -1241,7 +1304,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                     ) : (
                         <button
                             onClick={send}
-                            disabled={!input.trim()}
+                            disabled={!input.trim() && pinnedMentions.length === 0}
                             className={`chat-panel__send-btn${isReady ? " chat-panel__send-btn--ready" : ""}`}
                             data-testid="chat-panel-send"
                         ><Send size={14} /></button>
