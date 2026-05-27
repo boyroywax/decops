@@ -248,17 +248,17 @@ Specifically checked:
 
 ### Must do before tagging v1.0
 
-- [ ] **§2.1** — Add `clearAll()` to `taskEngine`, `agentRuntime`, `automations/registry`, `commands/tools`; wire into `logout()` and `switchWorkspace()`.
-- [ ] **§2.2** — Split `ChatPanel.tsx` into the proposed 9 files; keep all 556 tests green.
+- [x] **§2.1** — Add `clearAll()` to `taskEngine`, `agentRuntime`, `automations/registry`, `commands/tools`; wire into `logout()` and `switchWorkspace()`.
+- [x] **§2.2** — Split `ChatPanel.tsx` into the proposed 9 files; keep all 556 tests green.
 - [x] **§5.4** — Comment every `eslint-disable react-hooks/exhaustive-deps` with a one-line rationale.
-- [ ] **§5.6** — Add unmount cleanup to `useStreamingChatState`.
-- [ ] Pin Credo version in `credebl-credo-controller/package.json` (insurance for §5.3).
+- [x] **§5.6** — Add unmount cleanup to `useStreamingChatState`.
+- [x] Pin Credo version in `credebl-credo-controller/package.json` (insurance for §5.3).
 
 **Estimated total effort: 2.5–3 engineer-days.**
 
 ### Should do, can slip to v1.1
 
-- [ ] §3 P2 splits, especially `useJobExecutor`, `SystemView`, `Libp2pView`.
+- [x] §3 P2 splits, especially `useJobExecutor`, `SystemView`, `Libp2pView`.
 - [x] §5.2 Console → structured logging migration.
 - [x] §5.3 JSDoc for each `as any` / `@ts-ignore`.
 
