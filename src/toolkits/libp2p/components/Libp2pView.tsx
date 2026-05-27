@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
     Globe, Power, PowerOff, Link2, Trash2,
-    Wifi, WifiOff, RefreshCw, Copy, AlertTriangle, Activity,
+    Wifi, WifiOff, Copy, AlertTriangle, Activity,
     Plus, X, KeyRound, Download, Upload, Sparkles, BookUser,
     Settings2, Check, Square, Bot, Network, Lock, Unlock, UserPlus,
 } from "lucide-react";
@@ -26,6 +26,7 @@ import { Libp2pCollectionsModal, type CollectionsTab } from "./Libp2pCollections
 import { Libp2pNetworksModal } from "./Libp2pNetworksModal";
 import { useLibp2pCollections, decryptIdentity, encryptIdentity, decryptPnetKey } from "../utils/collections";
 import { PubsubPanel } from "./PubsubPanel";
+import { ActivityPanel } from "./panels/ActivityPanel";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import { useCommandCtx } from "@/context/CommandContextProvider";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
@@ -1559,33 +1560,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
             />
 
             {/* ── Activity log ── */}
-            <section className="libp2p-panel">
-                <h3>
-                    Activity
-                    <button
-                        className="libp2p-icon-btn libp2p-icon-btn--right"
-                        title="Clear"
-                        onClick={() => setLog([])} aria-label="Clear"
-                        disabled={log.length === 0}
-                    >
-                        <RefreshCw size={12} />
-                    </button>
-                </h3>
-                {log.length === 0 ? (
-                    <p className="libp2p-muted">Activity will appear here.</p>
-                ) : (
-                    <ul className="libp2p-log">
-                        {log.map((entry) => (
-                            <li key={entry.ts} className={`libp2p-log-entry libp2p-log-entry--${entry.level}`}>
-                                <span className="libp2p-log-ts">
-                                    {new Date(entry.ts).toLocaleTimeString()}
-                                </span>
-                                <span>{entry.msg}</span>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </section>
+            <ActivityPanel log={log} onClear={() => setLog([])} />
 
             <Libp2pCollectionsModal
                 open={collectionsOpen}
