@@ -250,7 +250,7 @@ Specifically checked:
 
 - [ ] **§2.1** — Add `clearAll()` to `taskEngine`, `agentRuntime`, `automations/registry`, `commands/tools`; wire into `logout()` and `switchWorkspace()`.
 - [ ] **§2.2** — Split `ChatPanel.tsx` into the proposed 9 files; keep all 556 tests green.
-- [ ] **§5.4** — Comment every `eslint-disable react-hooks/exhaustive-deps` with a one-line rationale.
+- [x] **§5.4** — Comment every `eslint-disable react-hooks/exhaustive-deps` with a one-line rationale.
 - [ ] **§5.6** — Add unmount cleanup to `useStreamingChatState`.
 - [ ] Pin Credo version in `credebl-credo-controller/package.json` (insurance for §5.3).
 
@@ -259,12 +259,12 @@ Specifically checked:
 ### Should do, can slip to v1.1
 
 - [ ] §3 P2 splits, especially `useJobExecutor`, `SystemView`, `Libp2pView`.
-- [ ] §5.2 Console → structured logging migration.
-- [ ] §5.3 JSDoc for each `as any` / `@ts-ignore`.
+- [x] §5.2 Console → structured logging migration.
+- [x] §5.3 JSDoc for each `as any` / `@ts-ignore`.
 
 ### Backlog (don't touch unless they break)
 
-- [ ] P3 file splits.
+- [ ] P3 file splits — **explicitly deferred per §4**: declarative files (types, command definitions, leaf modals) are fine at >500 LOC because their cognitive load is low. Leave alone until they actually break something.
 - [ ] Move P2P state from refs to Zustand store.
 - [ ] Unused-exports ESLint plugin + cleanup pass.
 
