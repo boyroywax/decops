@@ -46,6 +46,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   const setView = useCallback((v: ViewId) => {
     if (v === "profile") { setShowProfileModal(true); return; }
     if (v === "architect") { activateArchitectChatAgent(); return; }
+    if (v === "orchestrator") { activateOrchestratorChatAgent(); return; }
     if (v === "activity") { setShowActivityModal(true); return; }
     setViewRaw(v);
     setNavContext({}); // Clear drill-down context on sidebar navigation
@@ -62,6 +63,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   const navigateTo = useCallback((v: ViewId, ctx: NavContext) => {
     if (v === "profile") { setShowProfileModal(true); return; }
     if (v === "architect") { activateArchitectChatAgent(); return; }
+    if (v === "orchestrator") { activateOrchestratorChatAgent(); return; }
     if (v === "activity") { setShowActivityModal(true); return; }
     setViewRaw(v);
     setNavContext(ctx);
@@ -355,6 +357,13 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     // "none", openChat: true) is applied by the universal workspace applier
     // effect below — `open("architect")` is all we need here.
     useChatAgentsStore.getState().open("architect");
+  }, []);
+
+  const activateOrchestratorChatAgent = useCallback(() => {
+    // Mirrors the Architect activation path: the orchestrator-bot's
+    // `workspace` config (view: "orchestrator", sideChatFooterPanel: "none")
+    // is applied by the universal workspace applier below.
+    useChatAgentsStore.getState().open("orchestrator-bot");
   }, []);
 
   // Any caller that bumps the open-tick (Cmd+K, libp2p Bot button, …) opens
