@@ -6,6 +6,7 @@ import {
   Hexagon, MessageSquare, Clapperboard,
   ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
   Activity, Zap, FileText, ChevronDown, Layers, Wrench, Monitor,
+  Workflow, Boxes, Server, Database, HardDrive,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import "../../styles/components/sidebar.css";
@@ -28,10 +29,28 @@ interface SidebarProps {
 
 const EDITOR_ITEM = { id: "editor" as ViewId, label: "Editor", icon: FileText, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] as [string, string] };
 const ARCHITECT_ITEM = { id: "architect" as ViewId, label: "Architect", icon: Sparkles, accent: "#fbbf24", gradient: ["#fbbf24", "#fb923c"] as [string, string] };
+const ORCHESTRATOR_ITEM = { id: "orchestrator" as ViewId, label: "Orchestrator", icon: Workflow, accent: "#22d3ee", gradient: ["#22d3ee", "#a78bfa"] as [string, string] };
 const STUDIO_ITEM = { id: "jobs" as ViewId, label: "Studio", icon: Clapperboard, accent: "#8b5cf6", gradient: ["#8b5cf6", "#a78bfa"] as [string, string] };
 const LIBP2P_ITEM = { id: "libp2p" as ViewId, label: "libp2p", icon: Globe, accent: "#38bdf8", gradient: ["#38bdf8", "#a78bfa"] as [string, string] };
 const TOOLKITS_ITEM = { id: "toolkits" as ViewId, label: "Tool Kits", icon: Wrench, accent: "#f97316", gradient: ["#f97316", "#fb923c"] as [string, string] };
 const SYSTEM_ITEM = { id: "system" as ViewId, label: "System", icon: Monitor, accent: "#64748b", gradient: ["#64748b", "#94a3b8"] as [string, string] };
+
+const ORCHESTRATOR_SUB_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; gradient: [string, string] }[] = [
+  { id: "libp2p", label: "libp2p", icon: Globe, accent: "#38bdf8", gradient: ["#38bdf8", "#a78bfa"] },
+  { id: "helia", label: "Helia", icon: Boxes, accent: "#a78bfa", gradient: ["#a78bfa", "#c084fc"] },
+  { id: "kubo", label: "Kubo", icon: Server, accent: "#34d399", gradient: ["#34d399", "#10b981"] },
+  { id: "orbitdb", label: "OrbitDB", icon: Database, accent: "#fb923c", gradient: ["#fb923c", "#f97316"] },
+  { id: "orbitdb-server", label: "Lagrange", icon: HardDrive, accent: "#f472b6", gradient: ["#f472b6", "#fb7185"] },
+];
+
+const ORCHESTRATOR_VIEWS: Set<ViewId> = new Set([
+  "orchestrator",
+  "libp2p",
+  "helia",
+  "kubo",
+  "orbitdb",
+  "orbitdb-server",
+]);
 
 const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; gradient: [string, string] }[] = [
   { id: "networks", label: "Networks", icon: Globe, accent: "#38bdf8", gradient: ["#38bdf8", "#60a5fa"] },
@@ -48,6 +67,7 @@ export function Sidebar({ view, setView, networks, messages, bridgeMessages, age
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   const [ecoExpanded, setEcoExpanded] = useState(() => ECOSYSTEM_VIEWS.has(view));
+  const [orcExpanded, setOrcExpanded] = useState(() => ORCHESTRATOR_VIEWS.has(view));
 
   const checkScroll = () => {
     if (navRef.current) {
@@ -198,6 +218,63 @@ export function Sidebar({ view, setView, networks, messages, bridgeMessages, age
           </>
         )}
       </button>
+
+      {/* ─── Orchestrator Expandable Menu ─── */}
+      <button
+        onClick={() => {
+          if (collapsed && !isMobile) {
+            setCollapsed(false);
+            setOrcExpanded(true);
+            return;
+          }
+          // Expand and navigate to the Orchestrator view on first open;
+          // subsequent clicks just toggle the expander.
+          if (!orcExpanded) {
+            setOrcExpanded(true);
+            if (view !== ORCHESTRATOR_ITEM.id && !ORCHESTRATOR_VIEWS.has(view)) {
+              setView(ORCHESTRATOR_ITEM.id);
+            }
+          } else {
+            setOrcExpanded(false);
+          }
+        }}
+        title={collapsed && !isMobile ? ORCHESTRATOR_ITEM.label : undefined}
+        className={`sidebar-nav-item sidebar-eco-toggle sidebar-nav-item--orchestrator ${ORCHESTRATOR_VIEWS.has(view) ? 'active' : ''}`}
+        data-accent="info"
+        style={ORCHESTRATOR_VIEWS.has(view) ? { color: ORCHESTRATOR_ITEM.accent } : undefined}
+      >
+        {ORCHESTRATOR_VIEWS.has(view)
+          ? <GradientIcon icon={ORCHESTRATOR_ITEM.icon} size={14} gradient={ORCHESTRATOR_ITEM.gradient} />
+          : <ORCHESTRATOR_ITEM.icon size={14} />
+        }
+        {(!collapsed || isMobile) && (
+          <>
+            <span className="sidebar-eco-name">{ORCHESTRATOR_ITEM.label}</span>
+            <ChevronDown size={12} className={`sidebar-eco-chevron${orcExpanded ? ' sidebar-eco-chevron--open' : ''}`} />
+          </>
+        )}
+      </button>
+
+      {orcExpanded && (!collapsed || isMobile) && (
+        <div className="sidebar-eco-subitems">
+          {ORCHESTRATOR_SUB_ITEMS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setView(tab.id)}
+              className={`sidebar-nav-item sidebar-nav-subitem ${view === tab.id ? 'active' : ''}`}
+              data-accent="info"
+              style={view === tab.id ? { color: tab.accent } : undefined}
+              title={tab.label}
+            >
+              {view === tab.id
+                ? <GradientIcon icon={tab.icon} size={13} gradient={tab.gradient} />
+                : <tab.icon size={13} />
+              }
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <button
         onClick={() => setView(EDITOR_ITEM.id)}

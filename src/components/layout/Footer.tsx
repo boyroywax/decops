@@ -267,19 +267,32 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
                 </div>
 
                 <div className="footer__metrics" aria-label="libp2p metrics">
+                    {/*
+                      * L.O.H.K toggle + group hidden: the libp2p / Helia / Kubo /
+                      * OrbitDB / Lagrange badges now live behind the
+                      * Orchestrator expander in the sidebar. The buttons and
+                      * their metrics hooks are kept so the surrounding plumbing
+                      * (acknowledge*, view routing) keeps working when the
+                      * sidebar sub-items are clicked.
+                      */}
                     <button
                         type="button"
                         className="footer__lohk-toggle"
                         onClick={() => setLohkCollapsed((v) => !v)}
                         title={lohkCollapsed ? "Show L.O.H.K metrics" : "Hide L.O.H.K metrics"}
                         aria-expanded={!lohkCollapsed}
+                        style={{ display: "none" }}
+                        hidden
+                        aria-hidden="true"
                     >
                         {lohkCollapsed ? <ChevronRight size={11} /> : <ChevronLeft size={11} />}
                     </button>
 
                     <div
                         className={`footer__lohk-group${lohkCollapsed ? " footer__lohk-group--collapsed" : ""}`}
-                        aria-hidden={lohkCollapsed}
+                        aria-hidden="true"
+                        style={{ display: "none" }}
+                        hidden
                     >
                     <button
                         type="button"
