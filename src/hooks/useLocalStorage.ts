@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { logError } from "@/services/logging";
 
 // Unique ID per hook instance to avoid self-triggering on custom events
 let instanceCounter = 0;
@@ -15,7 +16,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
             const item = window.localStorage.getItem(key);
             return item ? (JSON.parse(item) as T) : initialValue;
         } catch (error) {
-            console.warn(`Error reading localStorage key "${key}":`, error);
+            logError("local-storage.read", error, { key }, { warn: true });
             return initialValue;
         }
     }, [initialValue, key]);
@@ -59,13 +60,18 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
                                 const trimmedSerialized = JSON.stringify(trimmed);
                                 window.localStorage.setItem(key, trimmedSerialized);
                                 serialized = trimmedSerialized;
-                                console.warn(`useLocalStorage: "${key}" exceeded quota — trimmed from ${valueToStore.length} to ${trimmed.length} items.`);
+                                logError(
+                                    "local-storage.quota.trimmed",
+                                    new Error(`Quota exceeded for "${key}"`),
+                                    { key, originalLength: valueToStore.length, trimmedLength: trimmed.length },
+                                    { warn: true },
+                                );
                             } catch (trimErr) {
-                                console.warn(`useLocalStorage: "${key}" quota recovery failed; persistence disabled this write.`, trimErr);
+                                logError("local-storage.quota.recovery_failed", trimErr, { key }, { warn: true });
                                 serialized = null;
                             }
                         } else {
-                            console.warn(`useLocalStorage: failed to write "${key}".`, writeErr);
+                            logError("local-storage.write_failed", writeErr, { key }, { warn: true });
                             serialized = null;
                         }
                     }
@@ -82,7 +88,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
                     }));
                 }
             } catch (error) {
-                console.warn(`Error setting localStorage key "${key}":`, error);
+                logError("local-storage.set", error, { key }, { warn: true });
             }
         },
         [key, instanceId]
@@ -101,7 +107,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
                 try {
                     setStoredValue(JSON.parse(e.newValue));
                 } catch (error) {
-                    console.warn(`Error parsing storage change for key "${key}":`, error);
+                    logError("local-storage.parse_storage_event", error, { key }, { warn: true });
                 }
             }
         };
@@ -115,7 +121,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
                 try {
                     setStoredValue(JSON.parse(detail.newValue));
                 } catch (error) {
-                    console.warn(`Error parsing local sync for key "${key}":`, error);
+                    logError("local-storage.parse_local_sync", error, { key }, { warn: true });
                 }
             }
         };

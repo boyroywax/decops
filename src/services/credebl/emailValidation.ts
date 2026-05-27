@@ -1,5 +1,6 @@
 import api from '@/api/client';
 import type { ApiResponse, EmailOTPRequest, EmailOTPVerification, EmailValidation, AgentType, EmailRegistrationCredential } from '@/types';
+import { logAudit, logError } from '@/services/logging';
 import { CredeblResponse } from './types';
 import { emailRegistrationService } from './emailRegistration';
 
@@ -41,11 +42,11 @@ export const emailValidationService = {
 
             throw new Error(response.data.message || 'Failed to send OTP');
         } catch (error) {
-            console.warn('CREDEBL OTP service not available, using mock OTP for demo...');
+            logError('credebl-email.send_otp', error, { email: request.email, fallback: 'demo-mock' }, { warn: true });
 
             // Demo mode: Generate a mock OTP (would be sent via email in production)
             const mockOtp = Math.floor(100000 + Math.random() * 900000).toString();
-            console.log(`📧 Demo OTP for ${request.email}: ${mockOtp}`);
+            logAudit('credebl-email.demo_otp_issued', { email: request.email });
 
             // Store for demo verification
             localStorage.setItem('email_otp_pending', JSON.stringify({
@@ -84,7 +85,7 @@ export const emailValidationService = {
             }
 
             // OTP verified - now issue the credential via dedicated issuer agent
-            console.log(`Email ${verification.email} verified. Issuing credential via ${ISSUER_AGENT_TYPE} agent...`);
+            logAudit('credebl-email.verified', { email: verification.email, issuerAgentType: ISSUER_AGENT_TYPE });
 
             const credentialResult = await this.issueEmailCredential(verification.email, userDid);
 
@@ -245,7 +246,7 @@ export const emailValidationService = {
 
             throw new Error('Credential issuance failed');
         } catch (error) {
-            console.warn('CREDEBL credential issuance failed, creating local credential...');
+            logError('credebl-email.issue_credential', error, { email, fallback: 'local-credential' }, { warn: true });
 
             // Fallback: Create local credential for demo
             const localCredential = emailRegistrationService.createLocalEmailCredential(email, holderDid);

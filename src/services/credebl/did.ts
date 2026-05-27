@@ -1,5 +1,6 @@
 import { encryptData, decryptData } from '@/utils/secureStorage';
 import type { DIDDocument } from '@/types';
+import { logAudit, logError } from '@/services/logging';
 import { DIDCreationResponse } from './types';
 
 // Helper function to get existing or create a new local did:key (demo fallback only)
@@ -48,10 +49,10 @@ export async function getOrCreateLocalDIDKey(password: string): Promise<DIDCreat
                 assertionMethod: [`${did}#key-1`],
             };
 
-            console.log('Unlocked existing DID from encrypted storage:', did);
+            logAudit('credebl-did.unlocked', { did, surface: 'encrypted-keypair' });
             return { did, didDocument };
         } catch (error) {
-            console.warn('Failed to unlock keypair:', error);
+            logError('credebl-did.unlock', error, { surface: 'encrypted-keypair' }, { warn: true });
             throw error; // Re-throw to indicate password failure
         }
     }
@@ -59,7 +60,7 @@ export async function getOrCreateLocalDIDKey(password: string): Promise<DIDCreat
     // Migration path: Check for old unencrypted keypair
     const oldKeyPair = localStorage.getItem('user_keypair');
     if (oldKeyPair) {
-        console.log('Migrating old unencrypted keypair to encrypted storage...');
+        logAudit('credebl-did.migration.start', { from: 'user_keypair', to: 'user_encrypted_keypair' });
         try {
             // We have an old keypair, we should encrypt it with the provided password
             // and then remove the old one
@@ -71,7 +72,7 @@ export async function getOrCreateLocalDIDKey(password: string): Promise<DIDCreat
             // Now recurse to unlock it properly
             return getOrCreateLocalDIDKey(password);
         } catch (error) {
-            console.error('Migration failed:', error);
+            logError('credebl-did.migration', error);
         }
     }
 
@@ -137,7 +138,7 @@ export async function generateAndPersistLocalDIDKey(password: string): Promise<D
     localStorage.setItem('user_did', did);
     localStorage.setItem('user_did_document', JSON.stringify(didDocument));
 
-    console.log('Generated and persisted new encrypted DID:', did);
+    logAudit('credebl-did.generated', { did, method: 'did:key', curve: 'Ed25519' });
     return { did, didDocument };
 }
 
