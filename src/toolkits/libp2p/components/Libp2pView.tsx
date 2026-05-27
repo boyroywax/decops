@@ -28,6 +28,7 @@ import { useLibp2pCollections, decryptIdentity, encryptIdentity, decryptPnetKey 
 import { PubsubPanel } from "./PubsubPanel";
 import { ActivityPanel } from "./panels/ActivityPanel";
 import { ConnectPanel } from "./panels/ConnectPanel";
+import { IdentityPanel, type VaultEntry } from "./panels/IdentityPanel";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import { useCommandCtx } from "@/context/CommandContextProvider";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
@@ -1039,389 +1040,58 @@ export function Libp2pView(_props: Libp2pViewProps) {
             </section>
 
             {/* ── Identity panel ── */}
-            <section className="libp2p-panel">
-                <h3>
-                    <KeyRound size={14} /> Identity
-                    {snapshot.hasPersistedIdentity && (
-                        <span className="libp2p-badge libp2p-badge--ok" title="A private key is loaded for this node">
-                            persisted
-                        </span>
-                    )}
-                </h3>
-                {snapshot.peerId ? (
-                    <>
-                        <div className="libp2p-row">
-                            <span className="libp2p-label">Peer ID</span>
-                            <code className="libp2p-mono libp2p-mono--wrap">{snapshot.peerId}</code>
-                            <button className="libp2p-icon-btn" title="Copy" onClick={() => copy(snapshot.peerId!)} aria-label="Copy">
-                                <Copy size={12} />
-                            </button>
-                        </div>
-                        <div className="libp2p-row libp2p-row--col">
-                            <span className="libp2p-label">Listen addrs</span>
-                            {snapshot.multiaddrs.length === 0 ? (
-                                <span className="libp2p-muted">No multiaddrs yet — waiting for relay reservation…</span>
-                            ) : (
-                                <ul className="libp2p-addr-list">
-                                    {snapshot.multiaddrs.map((ma) => (
-                                        <li key={ma}>
-                                            <code className="libp2p-mono">{ma}</code>
-                                            <button className="libp2p-icon-btn" title="Copy" onClick={() => copy(ma)} aria-label="Copy">
-                                                <Copy size={12} />
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-                        </div>
-                    </>
-                ) : (
-                    <p className="libp2p-muted">
-                        {snapshot.hasPersistedIdentity
-                            ? "Identity loaded — start the node to derive its peer ID."
-                            : "Start the node to mint a fresh peer ID, or import an identity below."}
-                    </p>
-                )}
-
-                <div className="libp2p-form-row libp2p-form-row--wrap">
-                    <button
-                        className="libp2p-btn"
-                        onClick={handleGenerateIdentity}
-                        disabled={busy || isRunning}
-                        title="Stop the node first; generates a fresh Ed25519 key for the next start"
-                     aria-label="Stop the node first; generates a fresh Ed25519 key for the next start">
-                        <Sparkles size={12} /> Generate
-                    </button>
-                    <button
-                        className="libp2p-btn"
-                        onClick={() => setShowImport((s) => !s)}
-                        disabled={busy || isRunning}
-                    >
-                        <Upload size={12} /> Import…
-                    </button>
-                    <button
-                        className="libp2p-btn"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={busy || isRunning}
-                        title="Load an identity from a previously-exported JSON file"
-                    >
-                        <Upload size={12} /> From file…
-                    </button>
-                    <button
-                        className="libp2p-btn"
-                        onClick={() => {
-                            setVaultError(null);
-                            setShowVaultPicker((s) => !s);
-                        }}
-                        disabled={busy || isRunning || vault.length === 0}
-                        title={vault.length === 0
-                            ? "Vault is empty — save an identity first"
-                            : "Decrypt and load an identity stored in the vault"}
-                    >
-                        <KeyRound size={12} /> From vault…
-                    </button>
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".json,.txt,application/json,text/plain"
-                        style={{ display: "none" }}
-                        onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) handleImportFile(f);
-                            e.target.value = "";
-                        }}
-                    />
-                    <button
-                        className="libp2p-btn"
-                        onClick={handleExportIdentity}
-                        disabled={busy || (!snapshot.peerId && !snapshot.hasPersistedIdentity)}
-                        title="Reveal the private key (treat as a credential)"
-                     aria-label="Reveal the private key (treat as a credential)">
-                        <Download size={12} /> Export
-                    </button>
-                    <button
-                        className="libp2p-btn libp2p-btn--ghost"
-                        onClick={handleClearIdentity}
-                        disabled={busy || isRunning || !snapshot.hasPersistedIdentity}
-                    >
-                        <Trash2 size={12} /> Clear
-                    </button>
-                </div>
-
-                {showImport && (
-                    <div className="libp2p-form-row libp2p-form-row--col">
-                        <textarea
-                            className="libp2p-input libp2p-textarea"
-                            placeholder="Paste base64 protobuf privateKey…"
-                            value={importKey}
-                            onChange={(e) => setImportKey(e.target.value)}
-                            rows={3}
-                        />
-                        <div className="libp2p-form-row">
-                            <button
-                                className="libp2p-btn libp2p-btn--primary"
-                                onClick={handleSubmitImport}
-                                disabled={busy || !importKey.trim()}
-                            >
-                                Load identity
-                            </button>
-                            <button className="libp2p-btn libp2p-btn--ghost" onClick={() => setShowImport(false)}>
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {showVaultPicker && (
-                    <div className="libp2p-form-row libp2p-form-row--col">
-                        <select
-                            className="libp2p-input"
-                            value={vaultEntryId}
-                            onChange={(e) => {
-                                setVaultEntryId(e.target.value);
-                                setVaultError(null);
-                            }}
-                        >
-                            <option value="">— select a vault entry —</option>
-                            {vault.map((v) => (
-                                <option key={v.id} value={v.id}>
-                                    {v.label} · {v.peerId.slice(0, 16)}…
-                                </option>
-                            ))}
-                        </select>
-                        <input
-                            className="libp2p-input"
-                            type="password"
-                            placeholder="Passphrase"
-                            value={vaultPassphrase}
-                            onChange={(e) => {
-                                setVaultPassphrase(e.target.value);
-                                setVaultError(null);
-                            }}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && vaultEntryId && vaultPassphrase && !vaultBusy) {
-                                    void handleLoadFromVault();
-                                }
-                            }}
-                        />
-                        {vaultError && (
-                            <div className="libp2p-alert">
-                                <AlertTriangle size={14} /> {vaultError}
-                            </div>
-                        )}
-                        <div className="libp2p-form-row">
-                            <button
-                                className="libp2p-btn libp2p-btn--primary"
-                                onClick={() => void handleLoadFromVault()}
-                                disabled={busy || vaultBusy || !vaultEntryId || !vaultPassphrase}
-                            >
-                                {vaultBusy ? "Decrypting…" : "Load identity"}
-                            </button>
-                            <button
-                                className="libp2p-btn libp2p-btn--ghost"
-                                onClick={() => {
-                                    setShowVaultPicker(false);
-                                    setVaultPassphrase("");
-                                    setVaultError(null);
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {exportModalOpen && (
-                    <div
-                        className="libp2p-modal-backdrop"
-                        onClick={closeExportModal}
-                    >
-                        <div
-                            ref={exportModalRef}
-                            className="libp2p-modal libp2p-export-modal"
-                            role="dialog"
-                            aria-modal="true"
-                            aria-label="Export identity"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <header className="libp2p-modal-header">
-                                <div>
-                                    <h3>Export identity</h3>
-                                    {exported && (
-                                        <span className="libp2p-muted libp2p-mono">
-                                            {exported.peerId.slice(0, 16)}…
-                                        </span>
-                                    )}
-                                </div>
-                                <button
-                                    className="libp2p-modal-close"
-                                    onClick={closeExportModal}
-                                    aria-label="Close"
-                                >
-                                    <X size={16} />
-                                </button>
-                            </header>
-                            <div className="libp2p-modal-body">
-                                {!showExportPassphrase ? (
-                                    <div className="libp2p-form-row libp2p-form-row--col">
-                                        <p className="libp2p-muted">
-                                            Choose how to take this identity off the device. The encrypted
-                                            download is safe to store; the base64 copy can be pasted into the
-                                            Import field on another node.
-                                        </p>
-                                        <div className="libp2p-form-row libp2p-form-row--wrap">
-                                            <button
-                                                className="libp2p-btn libp2p-btn--primary"
-                                                onClick={() => void requestExport("encrypt")}
-                                                disabled={exportPending !== null}
-                                                title="Encrypt the private key with a passphrase and download as JSON"
-                                            >
-                                                <Download size={12} /> Download encrypted…
-                                            </button>
-                                            <button
-                                                className="libp2p-btn"
-                                                onClick={() => void requestExport("copy")}
-                                                disabled={exportPending !== null}
-                                                title="Copy the raw base64 protobuf private key (unencrypted)"
-                                            >
-                                                <Copy size={12} />{" "}
-                                                {exportPending === "copy" ? "Fetching…" : "Copy base64"}
-                                            </button>
-                                        </div>
-                                        <span className="libp2p-muted">
-                                            ⚠️ The base64 key fully impersonates this peer. Prefer the
-                                            encrypted download.
-                                        </span>
-                                        {exportError && (
-                                            <div className="libp2p-alert">
-                                                <AlertTriangle size={14} /> {exportError}
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="libp2p-form-row libp2p-form-row--col">
-                                        {!exported && (
-                                            <span className="libp2p-muted">
-                                                Fetching identity from the node…
-                                            </span>
-                                        )}
-                                        <input
-                                            className="libp2p-input"
-                                            type="password"
-                                            placeholder="Passphrase (min 8 chars)"
-                                            value={exportPassphrase}
-                                            onChange={(e) => {
-                                                setExportPassphrase(e.target.value);
-                                                setExportError(null);
-                                            }}
-                                            autoFocus
-                                        />
-                                        <input
-                                            className="libp2p-input"
-                                            type="password"
-                                            placeholder="Confirm passphrase"
-                                            value={exportConfirm}
-                                            onChange={(e) => {
-                                                setExportConfirm(e.target.value);
-                                                setExportError(null);
-                                            }}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter" && !exportBusy && exported) {
-                                                    void handleDownloadEncrypted();
-                                                }
-                                            }}
-                                        />
-                                        {exportError && (
-                                            <div className="libp2p-alert">
-                                                <AlertTriangle size={14} /> {exportError}
-                                            </div>
-                                        )}
-                                        <div className="libp2p-form-row">
-                                            <button
-                                                className="libp2p-btn libp2p-btn--primary"
-                                                onClick={() => void handleDownloadEncrypted()}
-                                                disabled={
-                                                    !exported ||
-                                                    exportBusy ||
-                                                    !exportPassphrase ||
-                                                    !exportConfirm
-                                                }
-                                            >
-                                                {exportBusy
-                                                    ? "Encrypting…"
-                                                    : !exported
-                                                        ? "Waiting for key…"
-                                                        : "Download"}
-                                            </button>
-                                            <button
-                                                className="libp2p-btn libp2p-btn--ghost"
-                                                onClick={() => {
-                                                    setShowExportPassphrase(false);
-                                                    setExportPending(null);
-                                                    setExportPassphrase("");
-                                                    setExportConfirm("");
-                                                    setExportError(null);
-                                                }}
-                                            >
-                                                Back
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {pendingEncryptedFile && (
-                    <div className="libp2p-form-row libp2p-form-row--col">
-                        <span className="libp2p-label">
-                            Encrypted identity file{pendingEncryptedFile.peerId
-                                ? ` · ${pendingEncryptedFile.peerId.slice(0, 16)}…`
-                                : ""}
-                        </span>
-                        <input
-                            className="libp2p-input"
-                            type="password"
-                            placeholder="Passphrase"
-                            value={filePassphrase}
-                            onChange={(e) => {
-                                setFilePassphrase(e.target.value);
-                                setFileError(null);
-                            }}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && filePassphrase && !fileBusy) {
-                                    void handleDecryptImportedFile();
-                                }
-                            }}
-                        />
-                        {fileError && (
-                            <div className="libp2p-alert">
-                                <AlertTriangle size={14} /> {fileError}
-                            </div>
-                        )}
-                        <div className="libp2p-form-row">
-                            <button
-                                className="libp2p-btn libp2p-btn--primary"
-                                onClick={() => void handleDecryptImportedFile()}
-                                disabled={busy || fileBusy || !filePassphrase}
-                            >
-                                {fileBusy ? "Decrypting…" : "Load identity"}
-                            </button>
-                            <button
-                                className="libp2p-btn libp2p-btn--ghost"
-                                onClick={() => {
-                                    setPendingEncryptedFile(null);
-                                    setFilePassphrase("");
-                                    setFileError(null);
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </section>
+            <IdentityPanel
+                snapshot={snapshot}
+                busy={busy}
+                isRunning={isRunning}
+                contacts={contacts}
+                vault={vault as unknown as VaultEntry[]}
+                showImport={showImport}
+                setShowImport={setShowImport}
+                importKey={importKey}
+                setImportKey={setImportKey}
+                showVaultPicker={showVaultPicker}
+                setShowVaultPicker={setShowVaultPicker}
+                vaultEntryId={vaultEntryId}
+                setVaultEntryId={setVaultEntryId}
+                vaultPassphrase={vaultPassphrase}
+                setVaultPassphrase={setVaultPassphrase}
+                vaultBusy={vaultBusy}
+                vaultError={vaultError}
+                setVaultError={setVaultError}
+                exportModalOpen={exportModalOpen}
+                exported={exported}
+                exportPending={exportPending}
+                setExportPending={setExportPending}
+                exportBusy={exportBusy}
+                exportError={exportError}
+                showExportPassphrase={showExportPassphrase}
+                setShowExportPassphrase={setShowExportPassphrase}
+                exportPassphrase={exportPassphrase}
+                setExportPassphrase={setExportPassphrase}
+                exportConfirm={exportConfirm}
+                setExportConfirm={setExportConfirm}
+                pendingEncryptedFile={pendingEncryptedFile}
+                filePassphrase={filePassphrase}
+                setFilePassphrase={setFilePassphrase}
+                fileBusy={fileBusy}
+                fileError={fileError}
+                setFileError={setFileError}
+                fileInputRef={fileInputRef}
+                exportModalRef={exportModalRef}
+                onCopy={copy}
+                onGenerate={handleGenerateIdentity}
+                onSubmitImport={handleSubmitImport}
+                onImportFile={handleImportFile}
+                onLoadFromVault={handleLoadFromVault}
+                onExport={handleExportIdentity}
+                onClear={handleClearIdentity}
+                onRequestExport={requestExport}
+                onDownloadEncrypted={handleDownloadEncrypted}
+                onCloseExportModal={closeExportModal}
+                onDecryptImportedFile={handleDecryptImportedFile}
+                onClearPendingFile={() => setPendingEncryptedFile(null)}
+            />
 
             {/* ── Dial panel ── */}
             <ConnectPanel
