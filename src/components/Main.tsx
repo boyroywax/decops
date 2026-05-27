@@ -8,6 +8,17 @@ import { AutomationsProvider } from "@/context/AutomationsContext";
 import { LLMProvider } from "@/context/LLMContext";
 import { useNotebook } from "@/hooks/useNotebook";
 import { getToolkitProviders, getToolkitGlobals } from "@/services/toolkits/uiRegistry";
+import { useJobsActivityBridge, useAutomationsActivityBridge } from "@/services/activity";
+
+/**
+ * Mounts the activity-bus bridges. Must live inside both JobsProvider
+ * and AutomationsProvider scopes. Renders nothing.
+ */
+function ActivityBridges() {
+    useJobsActivityBridge();
+    useAutomationsActivityBridge();
+    return null;
+}
 
 /**
  * Dynamically compose all toolkit-registered providers around `children`.
@@ -41,6 +52,7 @@ function InternalApp() {
         <LLMProvider>
             <WorkspaceProvider addJob={addJob}>
                 <AutomationsProvider addLog={notebook.addLog}>
+                    <ActivityBridges />
                     <ToolkitProviders>
                         <AuthenticatedApp notebook={notebook} />
                         <ToolkitGlobals />

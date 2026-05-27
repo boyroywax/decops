@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import {
     Monitor, Activity, Clock, Zap, Loader, CheckCircle, AlertCircle,
     Pause, Play, ChevronDown, ChevronUp,
-    Terminal, Search, Trash2, Settings,
+    Terminal, Search, Trash2, Settings, PlayCircle, History,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { CopyableId } from "@/components/shared/CopyableId";
@@ -14,32 +14,32 @@ import type { Job } from "@/types";
 import { TOOLKITS, toolkitRegistry } from "@/services/toolkits";
 import { useToolkitConfiguration } from "@/hooks/useToolkitConfiguration";
 import { ConfigurationItem } from "@/components/config/ConfigurationItem";
+import { ActivityFeed } from "@/components/activity/ActivityFeed";
 import { formatTime, formatDate } from "./system/helpers";
 import { ProcessCard } from "./system/ProcessCard";
 import { HistoryItem } from "./system/HistoryItem";
 import "../../styles/components/system-view.css";
 
-type SystemTab = "processes" | "queue" | "history" | "configuration";
+// Tab identifiers. Order matches the rendered tab bar.
+type SystemTab = "running" | "queued" | "automations" | "completed" | "configuration";
 
 
 // ─── Main System View ───────────────────────────────────────────────────────
 
 export function SystemView() {
-    const [activeTab, setActiveTab] = useState<SystemTab>("processes");
+    const [activeTab, setActiveTab] = useState<SystemTab>("running");
     const [historyFilter, setHistoryFilter] = useState("");
     const [historyStatus, setHistoryStatus] = useState<"all" | "completed" | "failed">("all");
+    const [historyGroupedByDay, setHistoryGroupedByDay] = useState(true);
     const [configFilter, setConfigFilter] = useState("");
     const [expandedConfigToolkit, setExpandedConfigToolkit] = useState<string | null>(null);
-    const { jobs, isPaused, toggleQueuePause, stopJob, removeJob, clearJobs } = useJobsContext();
-    const { automations, runs } = useAutomations();
+    const [automationsFilter, setAutomationsFilter] = useState("");
+    const { jobs, isPaused, toggleQueuePause, stopJob, removeJob } = useJobsContext();
+    const { automations, runs, runAutomation } = useAutomations();
     const { getFieldValue, setFieldValue, resetFieldValue } = useToolkitConfiguration();
     const del = useDeleteConfirm();
 
-    // Derived lists
-    const activeJobs = useMemo(() =>
-        jobs.filter(j => j.status === "running" || j.status === "queued" || j.status === "awaiting-input"),
-        [jobs]
-    );
+    // ─── Derived lists ───────────────────────────────────────────────────
 
     const queuedJobs = useMemo(() =>
         jobs.filter(j => j.status === "queued"),
@@ -47,8 +47,18 @@ export function SystemView() {
     );
 
     const runningJobs = useMemo(() =>
-        jobs.filter(j => j.status === "running"),
+        jobs.filter(j => j.status === "running" || j.status === "awaiting-input"),
         [jobs]
+    );
+
+    const runningAutomations = useMemo(() =>
+        runs.filter(r => r.status === "running"),
+        [runs]
+    );
+
+    const completedRuns = useMemo(() =>
+        runs.filter(r => r.status !== "running"),
+        [runs]
     );
 
     const historyJobs = useMemo(() =>
@@ -80,10 +90,29 @@ export function SystemView() {
         return groups;
     }, [historyJobs]);
 
-    const runningAutomations = useMemo(() =>
-        runs.filter(r => r.status === "running"),
-        [runs]
-    );
+    const filteredAutomations = useMemo(() => {
+        const q = automationsFilter.trim().toLowerCase();
+        if (!q) return automations;
+        return automations.filter((a) =>
+            a.name.toLowerCase().includes(q) ||
+            a.id.toLowerCase().includes(q) ||
+            (a.description ?? "").toLowerCase().includes(q) ||
+            a.tags.some((t) => t.toLowerCase().includes(q))
+        );
+    }, [automations, automationsFilter]);
+
+    const runsByAutomation = useMemo(() => {
+        const map = new Map<string, typeof runs>();
+        for (const r of runs) {
+            if (!map.has(r.automationId)) map.set(r.automationId, []);
+            map.get(r.automationId)!.push(r);
+        }
+        // newest first
+        for (const list of map.values()) {
+            list.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+        }
+        return map;
+    }, [runs]);
 
     const toolkitsWithConfig = useMemo(
         () => TOOLKITS
@@ -125,12 +154,26 @@ export function SystemView() {
         [toolkitsWithConfig],
     );
 
-    const tabCounts = {
-        processes: activeJobs.length + runningAutomations.length,
-        queue: queuedJobs.length,
-        history: historyJobs.length,
-        configuration: configFieldCount,
+    const completedCount = useMemo(
+        () => jobs.filter((j) => j.status === "completed" || j.status === "failed").length,
+        [jobs],
+    );
+
+    const tabCounts: Record<SystemTab, number> = {
+        running:        runningJobs.length + runningAutomations.length,
+        queued:         queuedJobs.length,
+        automations:    automations.length,
+        completed:      completedCount,
+        configuration:  configFieldCount,
     };
+
+    const TAB_DEFS: { id: SystemTab; label: string; icon: typeof Activity }[] = [
+        { id: "running",       label: "Running",       icon: Activity },
+        { id: "queued",        label: "Queued",        icon: Clock },
+        { id: "automations",   label: "Automations",   icon: Zap },
+        { id: "completed",     label: "Completed",     icon: Terminal },
+        { id: "configuration", label: "Configuration", icon: Settings },
+    ];
 
     return (
         <div className="system-view">
@@ -191,20 +234,17 @@ export function SystemView() {
 
             {/* ── Tab Bar ── */}
             <div className="system-view__tabs">
-                {(["processes", "queue", "history", "configuration"] as SystemTab[]).map(tab => (
+                {TAB_DEFS.map(({ id, label, icon: Icon }) => (
                     <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={`system-view__tab ${activeTab === tab ? "system-view__tab--active" : ""}`}
+                        key={id}
+                        onClick={() => setActiveTab(id)}
+                        className={`system-view__tab ${activeTab === id ? "system-view__tab--active" : ""}`}
                     >
-                        {tab === "processes" && <Activity size={13} />}
-                        {tab === "queue" && <Clock size={13} />}
-                        {tab === "history" && <Terminal size={13} />}
-                        {tab === "configuration" && <Settings size={13} />}
-                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                        {tabCounts[tab] > 0 && (
-                            <span className={`system-view__tab-badge ${activeTab === tab ? "system-view__tab-badge--active" : ""}`}>
-                                {tabCounts[tab]}
+                        <Icon size={13} />
+                        {label}
+                        {tabCounts[id] > 0 && (
+                            <span className={`system-view__tab-badge ${activeTab === id ? "system-view__tab-badge--active" : ""}`}>
+                                {tabCounts[id]}
                             </span>
                         )}
                     </button>
@@ -214,10 +254,10 @@ export function SystemView() {
             {/* ── Content ── */}
             <div className="system-view__content">
 
-                {/* ═══ PROCESSES TAB ═══ */}
-                {activeTab === "processes" && (
+                {/* ═══ RUNNING TAB ═══ */}
+                {activeTab === "running" && (
                     <div className="system-view__panel">
-                        {activeJobs.length === 0 && runningAutomations.length === 0 ? (
+                        {runningJobs.length === 0 && runningAutomations.length === 0 ? (
                             <div className="system-view__empty">
                                 <GradientIcon icon={Activity} size={40} gradient={["#64748b", "#94a3b8"]} />
                                 <div className="system-view__empty-title">No Active Processes</div>
@@ -227,7 +267,6 @@ export function SystemView() {
                             </div>
                         ) : (
                             <div className="system-view__process-list">
-                                {/* Running automations */}
                                 {runningAutomations.length > 0 && (
                                     <div className="system-view__section">
                                         <div className="system-view__section-header">
@@ -262,28 +301,38 @@ export function SystemView() {
                                     </div>
                                 )}
 
-                                {/* Active jobs */}
-                                {activeJobs.length > 0 && (
+                                {runningJobs.length > 0 && (
                                     <div className="system-view__section">
                                         <div className="system-view__section-header">
                                             <Activity size={13} color="#3b82f6" />
                                             <span>Jobs</span>
-                                            <span className="system-view__section-count">{activeJobs.length}</span>
+                                            <span className="system-view__section-count">{runningJobs.length}</span>
                                         </div>
-                                        {activeJobs.map(job => (
+                                        {runningJobs.map(job => (
                                             <ProcessCard key={job.id} job={job} onStop={stopJob} />
                                         ))}
                                     </div>
                                 )}
                             </div>
                         )}
+
+                        <div className="system-view__activity-section">
+                            <ActivityFeed
+                                title="Live activity — running jobs & automations"
+                                baseFilter={{
+                                    sources: ["jobs", "automations"],
+                                    kinds: ["jobLifecycle", "automation"],
+                                }}
+                                emptyMessage="Lifecycle events will stream here as jobs and automations start, progress, and finish."
+                                defaultTimeRange="1h"
+                            />
+                        </div>
                     </div>
                 )}
 
-                {/* ═══ QUEUE TAB ═══ */}
-                {activeTab === "queue" && (
+                {/* ═══ QUEUED TAB ═══ */}
+                {activeTab === "queued" && (
                     <div className="system-view__panel">
-                        {/* Queue controls */}
                         <div className="system-view__queue-controls">
                             <div className="system-view__queue-status">
                                 <span className={`system-view__queue-indicator ${isPaused ? "system-view__queue-indicator--paused" : ""}`} />
@@ -350,32 +399,137 @@ export function SystemView() {
                             </div>
                         )}
 
-                        {/* Also show running jobs in queue view as "currently executing" */}
-                        {runningJobs.length > 0 && (
-                            <div className="system-view__section" style={{ marginTop: "var(--space-2xl)" }}>
-                                <div className="system-view__section-header">
-                                    <Loader size={13} color="#3b82f6" />
-                                    <span>Currently Executing</span>
-                                    <span className="system-view__section-count">{runningJobs.length}</span>
-                                </div>
-                                {runningJobs.map(job => (
-                                    <ProcessCard key={job.id} job={job} onStop={stopJob} />
-                                ))}
-                            </div>
-                        )}
+                        <div className="system-view__activity-section">
+                            <ActivityFeed
+                                title="Queue activity"
+                                baseFilter={{
+                                    sources: ["jobs"],
+                                    channels: ["lifecycle.queued"],
+                                }}
+                                emptyMessage="Events for newly-queued jobs will appear here."
+                                defaultTimeRange="24h"
+                            />
+                        </div>
                     </div>
                 )}
 
-                {/* ═══ HISTORY TAB ═══ */}
-                {activeTab === "history" && (
+                {/* ═══ AUTOMATIONS TAB ═══ */}
+                {activeTab === "automations" && (
                     <div className="system-view__panel">
-                        {/* Search & filter bar */}
                         <div className="system-view__history-toolbar">
                             <div className="system-view__history-search">
                                 <Search size={13} />
                                 <input
                                     type="text"
-                                    placeholder="Search history..."
+                                    placeholder="Search automations by name, id, tag…"
+                                    value={automationsFilter}
+                                    onChange={(e) => setAutomationsFilter(e.target.value)}
+                                    className="system-view__history-input"
+                                />
+                            </div>
+                            <span className="system-view__history-count">
+                                {filteredAutomations.length} of {automations.length}
+                                {runningAutomations.length > 0 && ` · ${runningAutomations.length} running`}
+                            </span>
+                        </div>
+
+                        {filteredAutomations.length === 0 ? (
+                            <div className="system-view__empty">
+                                <GradientIcon icon={Zap} size={40} gradient={["#64748b", "#94a3b8"]} />
+                                <div className="system-view__empty-title">
+                                    {automations.length === 0 ? "No Automations Registered" : "No Matching Automations"}
+                                </div>
+                                <div className="system-view__empty-desc">
+                                    {automations.length === 0
+                                        ? "Define automations in the Automations view to schedule and orchestrate work."
+                                        : "Try a different search term."}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="system-view__automation-list">
+                                {filteredAutomations.map((def) => {
+                                    const defRuns = runsByAutomation.get(def.id) ?? [];
+                                    const lastRun = defRuns[0];
+                                    const isRunning = defRuns.some((r) => r.status === "running");
+                                    return (
+                                        <div key={def.id} className="sys-automation">
+                                            <div className="sys-automation__main">
+                                                <div className="sys-automation__icon">
+                                                    <Zap size={14} color={isRunning ? "#fbbf24" : "#64748b"} />
+                                                </div>
+                                                <div className="sys-automation__info">
+                                                    <div className="sys-automation__name">{def.name}</div>
+                                                    <div className="sys-automation__meta">
+                                                        <span className="sys-automation__type">{def.type}</span>
+                                                        {def.tags.slice(0, 4).map((t) => (
+                                                            <span key={t} className="sys-automation__tag">{t}</span>
+                                                        ))}
+                                                        {def.schedule && (
+                                                            <span className="sys-automation__schedule">
+                                                                <Clock size={10} /> {def.schedule}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {def.description && (
+                                                        <div className="sys-automation__desc">{def.description}</div>
+                                                    )}
+                                                </div>
+                                                <div className="sys-automation__actions">
+                                                    <span className="sys-automation__runs-count">
+                                                        <History size={10} /> {defRuns.length}
+                                                    </span>
+                                                    <button
+                                                        className="sys-automation__run-btn"
+                                                        onClick={() => runAutomation(def.id)}
+                                                        disabled={isRunning}
+                                                        title={isRunning ? "Automation is already running" : "Run now"}
+                                                    >
+                                                        {isRunning ? <Loader size={11} /> : <PlayCircle size={11} />}
+                                                        {isRunning ? "Running…" : "Run"}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            {lastRun && (
+                                                <div className="sys-automation__last-run">
+                                                    <span className={`sys-automation__run-status sys-automation__run-status--${lastRun.status}`}>
+                                                        {lastRun.status}
+                                                    </span>
+                                                    <span className="sys-automation__run-time">
+                                                        {new Date(lastRun.startTime).toLocaleString()}
+                                                    </span>
+                                                    {lastRun.error && (
+                                                        <span className="sys-automation__run-error" title={lastRun.error}>
+                                                            <AlertCircle size={10} /> {lastRun.error.slice(0, 80)}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        <div className="system-view__activity-section">
+                            <ActivityFeed
+                                title={`Automation activity${completedRuns.length > 0 ? ` · ${completedRuns.length} historical run${completedRuns.length === 1 ? "" : "s"}` : ""}`}
+                                baseFilter={{ sources: ["automations"] }}
+                                emptyMessage="Automation start/finish/failure events will appear here."
+                                defaultTimeRange="24h"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* ═══ COMPLETED TAB ═══ */}
+                {activeTab === "completed" && (
+                    <div className="system-view__panel">
+                        <div className="system-view__history-toolbar">
+                            <div className="system-view__history-search">
+                                <Search size={13} />
+                                <input
+                                    type="text"
+                                    placeholder="Search completed jobs…"
                                     value={historyFilter}
                                     onChange={e => setHistoryFilter(e.target.value)}
                                     className="system-view__history-input"
@@ -393,6 +547,13 @@ export function SystemView() {
                                         {s.charAt(0).toUpperCase() + s.slice(1)}
                                     </button>
                                 ))}
+                                <button
+                                    onClick={() => setHistoryGroupedByDay(v => !v)}
+                                    className={`system-view__filter-btn ${historyGroupedByDay ? "system-view__filter-btn--active" : ""}`}
+                                    title={historyGroupedByDay ? "Switch to flat list" : "Group by day"}
+                                >
+                                    {historyGroupedByDay ? "Grouped" : "Flat"}
+                                </button>
                             </div>
                             {historyJobs.length > 0 && (
                                 <span className="system-view__history-count">
@@ -409,7 +570,7 @@ export function SystemView() {
                                     Completed and failed jobs will appear here as a searchable log.
                                 </div>
                             </div>
-                        ) : (
+                        ) : historyGroupedByDay ? (
                             <div className="system-view__history-list">
                                 {historyGrouped.map((group, gi) => (
                                     <div key={group.day + gi} className="system-view__history-group">
@@ -426,7 +587,31 @@ export function SystemView() {
                                     </div>
                                 ))}
                             </div>
+                        ) : (
+                            <div className="system-view__history-list">
+                                {historyJobs.map(job => (
+                                    <HistoryItem key={job.id} job={job} />
+                                ))}
+                            </div>
                         )}
+
+                        <div className="system-view__activity-section">
+                            <ActivityFeed
+                                title="Completion activity"
+                                baseFilter={{
+                                    sources: ["jobs", "automations"],
+                                    channels: [
+                                        "lifecycle.completed",
+                                        "lifecycle.failed",
+                                        "run.completed",
+                                        "run.failed",
+                                    ],
+                                }}
+                                emptyMessage="Completion and failure events from jobs and automations will appear here."
+                                defaultTimeRange="24h"
+                                defaultGrouped
+                            />
+                        </div>
                     </div>
                 )}
 
