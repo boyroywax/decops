@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Rocket, CheckCircle, XCircle, FlaskConical } from "lucide-react";
+import { Rocket, CheckCircle, XCircle } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { useNotebook } from "./useNotebook";
 import { registry } from "@/services/commands/registry";
@@ -24,6 +24,7 @@ import {
 } from "@/utils/jobRuntime";
 import { reserveBatch } from "./jobScheduler";
 import { buildJobContext, type JobExecutorEnv } from "./jobContext";
+import { runJobDryRun } from "./jobDryRun";
 
 /** Max number of jobs running concurrently. Exposed for tests. */
 export const MAX_CONCURRENT_JOBS = 4;
@@ -252,75 +253,9 @@ export function useJobExecutor({
                     // ═══ DRY-RUN BRANCH ═══
                     // When dryRun is flagged, validate without executing and return report
                     if ((queuedJob as Job & { dryRun?: boolean }).dryRun) {
-                        let dryRunReport;
-
-                        if (queuedJob.steps && queuedJob.steps.length > 0) {
-                            // Multi-step job dry-run
-                            const deliverableKeys = (queuedJob.deliverables || []).map((d: JobDeliverable) => d.key);
-                            // dryRunJob only supports serial|parallel — 'mixed' jobs use parallel scheduling.
-                            const dryRunMode: 'serial' | 'parallel' =
-                                queuedJob.mode === 'parallel' || queuedJob.mode === 'mixed' ? 'parallel' : 'serial';
-                            dryRunReport = registry.dryRunJob(
-                                queuedJob.steps,
-                                dryRunMode,
-                                context,
-                                jobStorage,
-                                deliverableKeys,
-                                inputMap,
-                            );
-                        } else {
-                            // Single command dry-run
-                            const cmdResult = registry.dryRun(queuedJob.type, queuedJob.request, context);
-                            dryRunReport = {
-                                valid: cmdResult.valid,
-                                mode: 'single' as const,
-                                steps: [{
-                                    stepId: 'single',
-                                    stepIndex: 0,
-                                    commandId: queuedJob.type,
-                                    conditionMet: null,
-                                    result: cmdResult,
-                                }],
-                                unresolvedRefs: [],
-                                summary: cmdResult.summary,
-                                totalChecks: cmdResult.checks.length,
-                                passedChecks: cmdResult.checks.filter((c) => c.status === 'pass').length,
-                                failedChecks: cmdResult.checks.filter((c) => c.status === 'fail').length,
-                                warningCount: cmdResult.checks.filter((c) => c.status === 'warn').length,
-                            };
-                        }
-
-                        // Store the report as an artifact
-                        const reportArtifact = {
-                            id: crypto.randomUUID(),
-                            name: `Dry Run Report: ${queuedJob.type}`,
-                            type: 'json' as const,
-                            content: JSON.stringify(dryRunReport, null, 2),
-                            tags: ['type:json', 'source:dry-run', `job:${queuedJob.type}`],
-                            createdAt: Date.now(),
-                            source: 'job' as const,
-                        };
-                        addArtifact(queuedJob.id, reportArtifact);
-
-                        const status = dryRunReport.valid ? 'completed' : 'failed';
-                        const resultSummary = `[DRY RUN] ${dryRunReport.summary}`;
-                        updateJobStatus(queuedJob.id, status, resultSummary);
-
-                        addNotebookEntry({
-                            category: dryRunReport.valid ? 'output' : 'system',
-                            icon: <GradientIcon icon={FlaskConical} size={16} gradient={dryRunReport.valid ? ['#818cf8', '#6366f1'] : ['#ef4444', '#dc2626']} />,
-                            title: `Dry Run ${dryRunReport.valid ? 'Passed' : 'Failed'}: ${queuedJob.type}`,
-                            description: resultSummary,
-                            details: {
-                                jobId: queuedJob.id,
-                                command: queuedJob.type,
-                                passed: dryRunReport.passedChecks,
-                                failed: dryRunReport.failedChecks,
-                                warnings: dryRunReport.warningCount,
-                            },
-                            tags: ['job', 'dry-run', queuedJob.type],
+                        runJobDryRun(queuedJob, context, jobStorage, inputMap, {
+                            addArtifact, updateJobStatus, addNotebookEntry,
                         });
-
                         // Don't trigger tool job resolution for dry runs
                         return; // Skip actual execution — finally block releases the slot.
                     }
