@@ -9,11 +9,11 @@ import { NodeEditModal } from "@/toolkits/studio/components/NodeEditModal";
 import { isSeedJob } from "@/services/jobs/seedCatalog";
 import { useStudioContext } from "@/toolkits/studio/StudioContext";
 import { useLLM } from "@/context/LLMContext";
-import { readDraft, clearDraft, saveDraft, DRAFT_SAVE_DELAY } from "@/toolkits/studio/utils/studioDraft";
-import { buildJobDef as buildJobDefFn, loadJobToStudioState } from "@/toolkits/studio/utils/studioJobBuilder";
+import { readDraft } from "@/toolkits/studio/utils/studioDraft";
+import { useStudioDraft } from "@/toolkits/studio/hooks/useStudioDraft";
+import { useStudioJobBuilder } from "@/toolkits/studio/hooks/useStudioJobBuilder";
 import { createStudioAPI } from "@/toolkits/studio/utils/studioApi";
 import type { Job, JobDefinition, JobDeliverable, EntityInput, JobTrigger, TriggerEvent } from "@/types";
-import type { StudioDraft } from "@/toolkits/studio/utils/studioDraft";
 import "../styles/job-manager.css";
 
 // Re-export types & constants from the canonical location for backward compat
@@ -33,8 +33,8 @@ interface StudioViewProps {
 export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: StudioViewProps) {
     const llm = useLLM();
 
-    // Restore draft (if any) to seed initial state
-    const [draft] = useState<StudioDraft | null>(() => readDraft());
+    // Restore draft (if any) to seed initial state. Read once on mount.
+    const [draft] = useState(() => readDraft());
 
     // ── Job metadata ──
     const [name, setName] = useState(draft?.name ?? "");
@@ -79,26 +79,11 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const del = useDeleteConfirm();
 
     // ── Auto-save draft to localStorage (debounced) ──
-    useEffect(() => {
-        // Skip saving the very first render if nothing has changed from the restored draft
-        const timer = setTimeout(() => {
-            const hasSomething = name || description || steps.length || deliverables.length
-                || storageEntries.length || inputs.length || triggers.length;
-            if (!hasSomething) {
-                // Canvas is empty — clear any stale draft
-                clearDraft();
-                return;
-            }
-            saveDraft({
-                name, description, editingJobId,
-                steps, deliverables, storageEntries, inputs, triggers,
-                storageNodePositions, inputNodePositions, deliverableNodePositions,
-                savedAt: Date.now(),
-            });
-        }, DRAFT_SAVE_DELAY);
-        return () => clearTimeout(timer);
-    }, [name, description, editingJobId, steps, deliverables, storageEntries,
-        inputs, triggers, storageNodePositions, inputNodePositions, deliverableNodePositions]);
+    useStudioDraft({
+        name, description, editingJobId,
+        steps, deliverables, storageEntries, inputs, triggers,
+        storageNodePositions, inputNodePositions, deliverableNodePositions,
+    });
 
     const effectiveStepId = selectedElement?.type === "step" ? selectedElement.id : null;
     const selectedStep = effectiveStepId ? steps.find(s => s.id === effectiveStepId) || null : null;
@@ -466,63 +451,16 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const hasParallelGroups = steps.some(s => isParallelGroup(s));
     const derivedMode: "serial" | "parallel" | "mixed" = hasParallelGroups ? "mixed" : "serial";
 
-    // ── Build job definition (delegates to extracted helper) ──
-    const buildJobDef = (): JobDefinition | null => {
-        return buildJobDefFn({
-            name, description, editingJobId, steps, deliverables,
-            storageEntries, inputs, triggers, derivedMode,
-        });
-    };
-
-    const handleRun = () => {
-        const job = buildJobDef();
-        if (job) onRunJob(job);
-    };
-
-    const handleSave = () => {
-        const job = buildJobDef();
-        if (job) {
-            onSaveJob(job);
-            setEditingJobId(job.id);
-            clearDraft(); // saved — no longer a draft
-        }
-    };
-
-    // ── Load from catalog (delegates to extracted helper) ──
-    const loadJob = (job: JobDefinition) => {
-        const result = loadJobToStudioState(job);
-        setName(job.name);
-        setDescription(job.description);
-        setEditingJobId(job.id);
-        setSteps(result.steps);
-        setDeliverables(result.deliverables);
-        setStorageEntries(result.storageEntries);
-        setInputs(result.inputs);
-        setTriggers(result.triggers);
-        setSelectedElement(null);
-        setSelectedElements([]);
-        setShowCatalog(false);
-        setStorageNodePositions({});
-        setInputNodePositions({});
-        setDeliverableNodePositions({});
-    };
-
-    const handleNew = () => {
-        setName("");
-        setDescription("");
-        setEditingJobId(null);
-        setSteps([]);
-        setSelectedElement(null);
-        setSelectedElements([]);
-        setDeliverables([]);
-        setStorageEntries([]);
-        setInputs([]);
-        setTriggers([]);
-        setStorageNodePositions({});
-        setInputNodePositions({});
-        setDeliverableNodePositions({});
-        clearDraft(); // reset — discard any saved draft
-    };
+    // ── Job-builder verbs (delegates to extracted hook) ──
+    const { buildJobDef, handleRun, handleSave, handleNew, loadJob } = useStudioJobBuilder({
+        name, description, editingJobId, steps, deliverables,
+        storageEntries, inputs, triggers, derivedMode,
+        setName, setDescription, setEditingJobId,
+        setSteps, setDeliverables, setStorageEntries, setInputs, setTriggers,
+        setSelectedElement, setSelectedElements, setShowCatalog,
+        setStorageNodePositions, setInputNodePositions, setDeliverableNodePositions,
+        onSaveJob, onRunJob,
+    });
 
     // ── Register Studio API with context for external access (commands/AI) ──
     const { register, unregister } = useStudioContext();
