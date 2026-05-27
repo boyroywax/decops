@@ -6,27 +6,21 @@ import { useNotebook } from "@/hooks/useNotebook";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import { useArchitect, ArchitectProvider } from "@/toolkits/architect";
 import { useEcosystem } from "@/hooks/useEcosystem";
-import { Header } from "./Header";
-import { Sidebar } from "./Sidebar";
 import { Footer, type PanelMode } from "./Footer";
 import { ChatPanel } from "./ChatPanel";
 import { useAuth } from "@/context/AuthContext";
 import { useJobsContext } from "@/context/JobsContext";
 import { useJobCatalog } from "@/hooks/useJobCatalog";
-import { ViewSwitcher } from "./ViewSwitcher";
-import { StudioView } from "@/toolkits/studio";
-import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { useJobExecutor } from "@/hooks/useJobExecutor";
 
 import { useAutomations } from "@/context/AutomationsContext";
 import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
 import { useRouteSync } from "@/hooks/useRouteSync";
-import { ProfileModal } from "./ProfileModal";
-import { ActivityModal } from "./ActivityModal";
 import { useTheme } from "@/context/ThemeContext";
 import { CommandContextProvider } from "@/context/CommandContextProvider";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import { useChatAgentRegistrations } from "@/hooks/useChatAgentRegistrations";
+import { AppShell } from "./AppShell";
 import "../../styles/components/authenticated-app.css";
 import "../../styles/components/global.css";
 
@@ -540,126 +534,53 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   return (
     <ArchitectProvider value={architect}>
     <CommandContextProvider ecosystem={ecosystem} architect={architect} addLog={addLog}>
-    <div className="app-shell">
-      <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet" />
-
-      <Header user={user} logout={logout} setView={setView} onProfileClick={() => setShowProfileModal(true)} activityPulse={activityPulse} onActivityClick={() => setShowActivityModal(true)} isMobile={isMobile} />
-
-        <div className={`app-content ${isMobile ? "app-content--mobile" : ""}`}>
-          <div className={`app-sidebar-wrapper ${isMobile ? "app-sidebar-wrapper--mobile" : ""}`}>
-            <Sidebar
-              view={view}
-              setView={setView}
-              networks={ecosystem.networks}
-              messages={workspace.messages}
-              bridgeMessages={ecosystem.bridgeMessages}
-              agents={workspace.agents}
-              channels={workspace.channels}
-              groups={workspace.groups}
-              collapsed={sidebarCollapsed}
-              setCollapsed={setSidebarCollapsed}
-              isMobile={isMobile}
-              ecosystemName={ecosystem.ecosystem?.name}
-              totalUnread={workspace.totalUnread}
-            />
-          </div>
-
-          {/* Chat panel: left position (after sidebar) */}
-          {isSideChat && chatPosition === "left" && chatPanelNode}
-
-          <main className={`app-main ${view === "jobs" ? "app-main--studio" : ""}`}>
-            {/* Studio is always mounted to preserve state across navigations */}
-            <div style={{ display: view === "jobs" ? "contents" : "none" }}>
-              <ErrorBoundary>
-                <StudioView
-                  savedJobs={savedJobs}
-                  onSaveJob={saveJob}
-                  onDeleteJob={deleteJob}
-                  onRunJob={runJobDef}
-                />
-              </ErrorBoundary>
-            </div>
-            {view !== "jobs" && (
-              <ViewSwitcher
-              view={view}
-              setView={setView}
-              navContext={navContext}
-              navigateTo={navigateTo}
-              workspace={workspace}
-              architect={architect}
-              ecosystem={ecosystem}
-              allArtifacts={allArtifacts}
-              importArtifact={importArtifact}
-              removeArtifact={removeArtifact}
-              updateArtifact={updateArtifact}
-              notebookEntries={notebookEntries}
-              clearNotebook={clearNotebook}
-              exportNotebook={exportNotebook}
-              addNotebookEntry={addNotebookEntry}
-              addJob={addJob}
-              savedJobs={savedJobs}
-              onSaveJob={saveJob}
-              onDeleteJob={deleteJob}
-            />
-            )}
-          </main>
-
-          {/* Chat panel: right position */}
-          {isSideChat && chatPosition === "right" && chatPanelNode}
-        </div>
-
-        {/* Chat panel: bottom position (below content, above footer) */}
-        {!isSideChat && chatPanelNode}
-
-        <Footer
-          agents={workspace.agents}
-          channels={workspace.channels}
-          groups={workspace.groups}
-          messages={workspace.messages}
-
-          networks={ecosystem.networks}
-          bridges={ecosystem.bridges}
-          ecosystem={ecosystem}
-          addLog={addLog}
-          setView={setView}
-          jobs={jobs}
-          addJob={addJob}
-          allArtifacts={allArtifacts}
-          importArtifact={importArtifact}
-          removeArtifact={removeArtifact}
-          updateArtifact={updateArtifact}
-          isPaused={isPaused}
-          toggleQueuePause={toggleQueuePause}
-          stopJob={stopJob}
-          reorderQueue={reorderQueue}
-          removeJob={removeJob}
-          clearJobs={clearJobs}
-          activityPulse={activityPulse}
-          isMobile={isMobile}
-          savedJobs={savedJobs}
-          saveJob={saveJob}
-          deleteJob={deleteJob}
-          view={view}
-          panel={footerPanel}
-          setPanel={setFooterPanel}
-          chatPosition={chatPosition}
-          sideChatVisible={sideChatVisible}
-          toggleSideChat={toggleSideChat}
-        />
-
-        {/* Profile Modal (overlay) */}
-        <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
-
-        {/* Activity Modal (overlay) */}
-        <ActivityModal
-          isOpen={showActivityModal}
-          onClose={() => setShowActivityModal(false)}
-          entries={notebookEntries}
-          clearNotebook={clearNotebook}
-          exportNotebook={exportNotebook}
-          addEntry={addNotebookEntry}
-        />
-    </div>
+      <AppShell
+        user={user}
+        logout={logout}
+        view={view}
+        setView={setView}
+        navContext={navContext}
+        navigateTo={navigateTo}
+        isMobile={isMobile}
+        sidebarCollapsed={sidebarCollapsed}
+        setSidebarCollapsed={setSidebarCollapsed}
+        workspace={workspace}
+        ecosystem={ecosystem}
+        architect={architect}
+        notebookEntries={notebookEntries}
+        addNotebookEntry={addNotebookEntry}
+        clearNotebook={clearNotebook}
+        exportNotebook={exportNotebook}
+        addLog={addLog}
+        jobs={jobs}
+        addJob={addJob}
+        allArtifacts={allArtifacts}
+        importArtifact={importArtifact}
+        removeArtifact={removeArtifact}
+        updateArtifact={updateArtifact}
+        isPaused={isPaused}
+        toggleQueuePause={toggleQueuePause}
+        stopJob={stopJob}
+        reorderQueue={reorderQueue}
+        removeJob={removeJob}
+        clearJobs={clearJobs}
+        savedJobs={savedJobs}
+        saveJob={saveJob}
+        deleteJob={deleteJob}
+        runJobDef={runJobDef}
+        chatPanelNode={chatPanelNode}
+        chatPosition={chatPosition}
+        isSideChat={isSideChat}
+        footerPanel={footerPanel}
+        setFooterPanel={setFooterPanel}
+        sideChatVisible={sideChatVisible}
+        toggleSideChat={toggleSideChat}
+        activityPulse={activityPulse}
+        showProfileModal={showProfileModal}
+        setShowProfileModal={setShowProfileModal}
+        showActivityModal={showActivityModal}
+        setShowActivityModal={setShowActivityModal}
+      />
     </CommandContextProvider>
     </ArchitectProvider>
   );
