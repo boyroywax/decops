@@ -4,7 +4,6 @@ import { GradientIcon } from "@/components/shared/GradientIcon";
 import { useNotebook } from "./useNotebook";
 import { registry } from "@/services/commands/registry";
 import { resolveToolJob, rejectToolJob } from "@/services/commands/tools";
-import { getAgentModel, getCommandModel } from "@/services/ai";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContextType } from "@/context/WorkspaceContext";
 import type { User, JobEvent, Job, JobArtifact, JobRequest, NotebookEntry, EntityInput } from "@/types";
@@ -15,6 +14,7 @@ import type { UseNotebookReturn } from "./useNotebook";
 import type { UseEcosystemReturn } from "./useEcosystem";
 import type { UseArchitectReturn } from "@/toolkits/architect/hooks/useArchitect";
 import type { AutomationRun } from "@/services/automations/types";
+
 import { useStudioContext } from "@/toolkits/studio";
 import {
     resolveRefs, applyInputBindings, applyOutputMappings,
@@ -23,6 +23,7 @@ import {
     type RefContext, type HandlerRefContext,
 } from "@/utils/jobRuntime";
 import { reserveBatch } from "./jobScheduler";
+import { buildJobContext, type JobExecutorEnv } from "./jobContext";
 
 /** Max number of jobs running concurrently. Exposed for tests. */
 export const MAX_CONCURRENT_JOBS = 4;
@@ -126,6 +127,25 @@ export function useJobExecutor({
 
     useEffect(() => {
         const processJobs = async () => {
+            // Hook-level environment passed to per-job context builder.
+            // Live getters (getAgents/etc) read refs so jobs see fresh state.
+            const env: JobExecutorEnv = {
+                workspace,
+                getAgents: () => agentsRef.current,
+                getChannels: () => channelsRef.current,
+                getGroups: () => groupsRef.current,
+                getMessages: () => messagesRef.current,
+                user,
+                addLog,
+                addJob, removeJob, addArtifact, removeArtifact, importArtifact, updateArtifact,
+                allArtifacts, isPaused, toggleQueuePause,
+                getQueue: () => jobs,
+                setJobs, setStandaloneArtifacts, clearJobs,
+                savedJobs, saveJob, deleteJob,
+                ecosystem, architect, automations, workspaceManager,
+                studioApi,
+            };
+
             // Atomically reserve a batch — guarantees concurrency invariant
             // even when processJobs is invoked repeatedly within the same tick.
             const batch = reserveBatch(jobs, {
@@ -210,79 +230,7 @@ export function useJobExecutor({
                     /** Map of deliverable key → content for $deliverable.key resolution */
                     const deliverableContents: Record<string, unknown> = {};
 
-                    const context: CommandContext = {
-                        workspace: {
-                            ...workspace,
-                            addLog,
-                            activeChannel: workspace.activeChannel,
-                            setActiveChannel: workspace.setActiveChannel,
-                            setActiveChannels: workspace.setActiveChannels,
-                            getAgents: () => agentsRef.current,
-                            getChannels: () => channelsRef.current,
-                            getGroups: () => groupsRef.current,
-                            getMessages: () => messagesRef.current,
-                        },
-                        auth: { user },
-                        jobs: {
-                            addArtifact,
-                            removeArtifact,
-                            importArtifact,
-                            updateArtifact,
-                            allArtifacts,
-                            // Queue Management
-                            addJob,
-                            removeJob,
-                            pauseQueue: () => (!isPaused && toggleQueuePause()),
-                            resumeQueue: () => (isPaused && toggleQueuePause()),
-                            isPaused,
-                            getQueue: () => jobs,
-                            // Catalog Management
-                            getCatalog: () => savedJobs,
-                            saveDefinition: saveJob,
-                            deleteDefinition: deleteJob,
-                            // Persistence
-                            setJobs,
-                            setStandaloneArtifacts,
-                            clearJobs
-                        },
-                        ecosystem: {
-                            ecosystem: ecosystem.ecosystem,
-                            setEcosystem: ecosystem.setEcosystem,
-                            activeNetworkId: ecosystem.activeNetworkId ?? null,
-                            setActiveNetworkId: ecosystem.setActiveNetworkId ?? (() => {}),
-                            networks: ecosystem.networks,
-                            bridges: ecosystem.bridges,
-                            bridgeMessages: ecosystem.bridgeMessages,
-                            setNetworks: ecosystem.setNetworks,
-                            setBridges: ecosystem.setBridges,
-                            setBridgeMessages: ecosystem.setBridgeMessages,
-                            setActiveBridges: ecosystem.setActiveBridges,
-                            createBridge: ecosystem.createBridge,
-                            removeBridge: ecosystem.removeBridge,
-                            dissolveNetwork: ecosystem.dissolveNetwork
-                        },
-                        system: {
-                            setApiKey: (key: string) => localStorage.setItem("anthropic_api_key", key),
-                            setModel: (model: string) => localStorage.setItem("anthropic_model", model),
-                            getModelForCommand: (commandId: string) => getCommandModel(commandId),
-                            getModelForAgent: (agentId: string) => getAgentModel(agentId),
-                        },
-                        architect: {
-                            generateNetwork: architect.generateNetwork,
-                            deployNetwork: architect.deployNetwork
-                        },
-                        automations: automations || { runAutomation: async () => { }, runs: [] as AutomationRun[] },
-                        workspaceManager: workspaceManager as CommandContext['workspaceManager'],
-                        extensions: { studio: studioApi ?? undefined },
-                        storage: jobStorage,
-                        addDeliverable: (deliverable) => {
-                            // Stage deliverable content into storage for later assembly
-                            const storageKey = `${DELIVERABLE_STORAGE_PREFIX}${deliverable.key}`;
-                            jobStorage[storageKey] = deliverable.content;
-                            deliverableContents[deliverable.key] = deliverable.content;
-                            addLog(`Deliverable staged: ${deliverable.name} → storage[${storageKey}]`);
-                        },
-                    };
+                    const context = buildJobContext(env, jobStorage, deliverableContents);
 
                     /** Ref context for $storage / $deliverable / $input resolution */
                     const refs: RefContext = { storage: jobStorage, deliverables: deliverableContents, inputs: inputMap };
