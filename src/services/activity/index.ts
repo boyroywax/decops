@@ -23,6 +23,7 @@ export {
   useJobsActivityBridge,
   useAutomationsActivityBridge,
 } from "./bridges";
+export { useToolkitLogger, type ToolkitLogger, type ToolkitLogLevel } from "./useToolkitLogger";
 
 import type { ActivitySource } from "./types";
 

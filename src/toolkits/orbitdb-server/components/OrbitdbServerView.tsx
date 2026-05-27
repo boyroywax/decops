@@ -20,6 +20,8 @@ import { ORBITDB_SERVER_STORE_TYPES, type OrbitdbServerStoreType, type OrbitdbSe
 import { useJobsContext } from "@/context/JobsContext";
 import type { Job, JobRequest } from "@/types";
 import { useChatAgentsStore } from "@/services/chat/agents";
+import { ActivityFeed } from "@/components/activity/ActivityFeed";
+import { useToolkitLogger } from "@/services/activity";
 import "../styles/orbitdb-server.css";
 
 interface OrbitdbServerViewProps {
@@ -58,9 +60,7 @@ export function OrbitdbServerView(_props: OrbitdbServerViewProps) {
     useEffect(() => { setLabelDraft(snapshot.label); }, [snapshot.nodeId, snapshot.label]);
 
     // Local action log
-    const [log, setLog] = useState<{ ts: number; msg: string; level: "info" | "error" }[]>([]);
-    const addLog = (msg: string, level: "info" | "error" = "info") =>
-        setLog((l) => [{ ts: Date.now(), msg, level }, ...l].slice(0, 100));
+    const { addLog } = useToolkitLogger("orbitdb-server");
 
     // Create-db form
     const [newDbName, setNewDbName] = useState("");
@@ -840,28 +840,13 @@ export function OrbitdbServerView(_props: OrbitdbServerViewProps) {
 
             {/* ── Log ────────────────────────────── */}
             <section className="orbitdb-server-panel">
-                <header className="orbitdb-server-panel__head">
-                    <span>Log</span>
-                    <button
-                        type="button"
-                        className="libp2p-btn libp2p-btn--ghost"
-                        onClick={() => setLog([])}
-                        disabled={log.length === 0}
-                    >
-                        <Trash2 size={11} />
-                    </button>
-                </header>
-                <div className="orbitdb-server-log">
-                    {log.length === 0
-                        ? <div className="orbitdb-server-entries__empty">No activity yet.</div>
-                        : log.map((l, i) => (
-                            <div key={`${l.ts}-${i}`} className={`orbitdb-server-log__row${l.level === "error" ? " orbitdb-server-log__row--error" : ""}`}>
-                                <span className="orbitdb-server-log__time">{new Date(l.ts).toLocaleTimeString()}</span>
-                                <span className="orbitdb-server-log__msg">{l.msg}</span>
-                            </div>
-                        ))
-                    }
-                </div>
+                <ActivityFeed
+                    baseFilter={{ sources: ["orbitdb-server"] }}
+                    sourceOptions={["orbitdb-server"]}
+                    title="Log"
+                    defaultTimeRange="1h"
+                    emptyMessage="OrbitDB server events will appear here."
+                />
             </section>
         </div>
     );

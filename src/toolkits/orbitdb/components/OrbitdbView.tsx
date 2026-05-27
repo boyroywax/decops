@@ -21,6 +21,8 @@ import type { OrbitdbDbType } from "../types/orbitdb";
 import { useJobsContext } from "@/context/JobsContext";
 import type { Job, JobRequest } from "@/types";
 import { useChatAgentsStore } from "@/services/chat/agents";
+import { ActivityFeed } from "@/components/activity/ActivityFeed";
+import { useToolkitLogger } from "@/services/activity";
 import "../styles/orbitdb.css";
 
 interface OrbitdbViewProps {
@@ -46,9 +48,7 @@ export function OrbitdbView(_props: OrbitdbViewProps) {
     const [selectedHeliaId, setSelectedHeliaId] = useState<string>(snapshot.heliaNodeId ?? "");
     useEffect(() => { setSelectedHeliaId(snapshot.heliaNodeId ?? ""); }, [snapshot.nodeId, snapshot.heliaNodeId]);
 
-    const [log, setLog] = useState<{ ts: number; msg: string; level: "info" | "error" }[]>([]);
-    const addLog = (msg: string, level: "info" | "error" = "info") =>
-        setLog((l) => [{ ts: Date.now(), msg, level }, ...l].slice(0, 100));
+    const { addLog } = useToolkitLogger("orbitdb");
 
     const [renaming, setRenaming] = useState(false);
     const [labelDraft, setLabelDraft] = useState(snapshot.label);
@@ -567,21 +567,13 @@ export function OrbitdbView(_props: OrbitdbViewProps) {
 
                 {/* Log */}
                 <section className="libp2p-section">
-                    <h3 className="libp2p-section-title">Activity</h3>
-                    {log.length === 0 ? (
-                        <div className="libp2p-empty">No activity yet.</div>
-                    ) : (
-                        <div className="libp2p-log">
-                            {log.map((l, i) => (
-                                <div key={`${l.ts}-${i}`} className={`libp2p-log-line libp2p-log-line--${l.level}`}>
-                                    <span className="libp2p-log-time">
-                                        {new Date(l.ts).toLocaleTimeString()}
-                                    </span>{" "}
-                                    {l.msg}
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    <ActivityFeed
+                        baseFilter={{ sources: ["orbitdb"] }}
+                        sourceOptions={["orbitdb"]}
+                        title="Activity"
+                        defaultTimeRange="1h"
+                        emptyMessage="OrbitDB events will appear here."
+                    />
                 </section>
             </div>
         </div>

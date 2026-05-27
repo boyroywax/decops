@@ -18,6 +18,8 @@ import { heliaService } from "../service";
 import { libp2pService } from "@/toolkits/libp2p/service";
 import type { ManagerSnapshot as Libp2pManagerSnapshot } from "@/toolkits/libp2p/service";
 import { useJobsContext } from "@/context/JobsContext";
+import { ActivityFeed } from "@/components/activity/ActivityFeed";
+import { useToolkitLogger } from "@/services/activity";
 import type { Job, JobRequest } from "@/types";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import "../styles/helia.css";
@@ -58,9 +60,7 @@ export function HeliaView(_props: HeliaViewProps) {
         setSelectedLibp2pId(snapshot.libp2pNodeId ?? "");
     }, [snapshot.nodeId, snapshot.libp2pNodeId]);
 
-    const [log, setLog] = useState<{ ts: number; msg: string; level: "info" | "error" }[]>([]);
-    const addLog = (msg: string, level: "info" | "error" = "info") =>
-        setLog((l) => [{ ts: Date.now(), msg, level }, ...l].slice(0, 100));
+    const { addLog } = useToolkitLogger("helia");
 
     const [renaming, setRenaming] = useState(false);
     const [labelDraft, setLabelDraft] = useState(snapshot.label);
@@ -606,28 +606,13 @@ export function HeliaView(_props: HeliaViewProps) {
 
             {/* ── Activity log ──────────────────────────────────── */}
             <section className="helia-panel">
-                <header className="helia-panel__head">
-                    <span>Activity</span>
-                    <button
-                        type="button"
-                        className="libp2p-btn libp2p-btn--ghost"
-                        onClick={() => setLog([])}
-                        disabled={log.length === 0}
-                    >
-                        <Trash2 size={11} />
-                    </button>
-                </header>
-                <div className="helia-log">
-                    {log.length === 0
-                        ? <div className="helia-entries__empty">No activity yet.</div>
-                        : log.map((l, i) => (
-                            <div key={`${l.ts}-${i}`} className={`helia-log__row${l.level === "error" ? " helia-log__row--error" : ""}`}>
-                                <span className="helia-log__time">{new Date(l.ts).toLocaleTimeString()}</span>
-                                <span className="helia-log__msg">{l.msg}</span>
-                            </div>
-                        ))
-                    }
-                </div>
+                <ActivityFeed
+                    baseFilter={{ sources: ["helia"] }}
+                    sourceOptions={["helia"]}
+                    title="Activity"
+                    defaultTimeRange="1h"
+                    emptyMessage="Helia events will appear here."
+                />
             </section>
         </div>
     );

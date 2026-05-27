@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, Terminal, Zap, Activity, ChevronsUp, ChevronsDown, Briefcase, TerminalSquare, Clock } from "lucide-react";
-import { ActionsMonitor } from "./ActionsMonitor";
+import { ActivityFeed } from "@/components/activity/ActivityFeed";
 import { AutomationsPanel } from "./AutomationsPanel";
 import { HistoryPanel } from "./HistoryPanel";
 import { CommandsPanel } from "./CommandsPanel";
@@ -180,7 +180,11 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
             <div className="action-manager__content">
                 {activeTab === "monitor" && (
                     <div className="action-manager__tab-content">
-                        <ActionsMonitor />
+                        <ActivityFeed
+                            title="Live activity"
+                            defaultTimeRange="1h"
+                            emptyMessage="No activity yet. Events stream in as jobs run, automations fire, and toolkits emit."
+                        />
                     </div>
                 )}
                 {activeTab === "automations" && (

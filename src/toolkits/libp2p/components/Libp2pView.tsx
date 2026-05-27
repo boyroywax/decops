@@ -26,7 +26,8 @@ import { Libp2pCollectionsModal, type CollectionsTab } from "./Libp2pCollections
 import { Libp2pNetworksModal } from "./Libp2pNetworksModal";
 import { useLibp2pCollections, decryptIdentity, encryptIdentity, decryptPnetKey } from "../utils/collections";
 import { PubsubPanel } from "./PubsubPanel";
-import { ActivityPanel } from "./panels/ActivityPanel";
+import { ActivityFeed } from "@/components/activity/ActivityFeed";
+import { useToolkitLogger } from "@/services/activity";
 import { ConnectPanel } from "./panels/ConnectPanel";
 import { IdentityPanel, type VaultEntry } from "./panels/IdentityPanel";
 import { NetworkPanel } from "./panels/NetworkPanel";
@@ -47,7 +48,7 @@ export function Libp2pView(_props: Libp2pViewProps) {
     const vault = useLibp2pCollections((s) => s.vault);
 
     const [dialTarget, setDialTarget] = useState("");
-    const [log, setLog] = useState<{ ts: number; msg: string; level: "info" | "error" }[]>([]);
+    const { addLog } = useToolkitLogger("libp2p");
 
     // ── Start options (toggles for transports / services / discovery / bootstrap) ──
     const [services, setServices] = useState<Required<Libp2pServiceToggles>>({
@@ -207,9 +208,6 @@ export function Libp2pView(_props: Libp2pViewProps) {
         setPnetUnlockedLabel(null);
         setPnetError(null);
     };
-
-    const addLog = (msg: string, level: "info" | "error" = "info") =>
-        setLog((l) => [{ ts: Date.now(), msg, level }, ...l].slice(0, 100));
 
     const isRunning = snapshot.status === "running";
 
@@ -853,7 +851,15 @@ export function Libp2pView(_props: Libp2pViewProps) {
             />
 
             {/* ── Activity log ── */}
-            <ActivityPanel log={log} onClear={() => setLog([])} />
+            <section className="libp2p-panel">
+                <ActivityFeed
+                    baseFilter={{ sources: ["libp2p"] }}
+                    sourceOptions={["libp2p"]}
+                    title="Activity"
+                    defaultTimeRange="1h"
+                    emptyMessage="libp2p events will appear here as you start nodes, dial, subscribe, and publish."
+                />
+            </section>
 
             <Libp2pCollectionsModal
                 open={collectionsOpen}
