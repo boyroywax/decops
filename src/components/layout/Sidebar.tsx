@@ -219,41 +219,36 @@ export function Sidebar({ view, setView, networks, messages, bridgeMessages, age
         )}
       </button>
 
-      {/* ─── Orchestrator Expandable Menu ─── */}
-      <button
-        onClick={() => {
-          if (collapsed && !isMobile) {
-            setCollapsed(false);
-            setOrcExpanded(true);
-            return;
+      {/* ─── Orchestrator: label activates the bot, chevron toggles the submenu ─── */}
+      <div className="sidebar-split-row">
+        <button
+          onClick={() => setView(ORCHESTRATOR_ITEM.id)}
+          title={collapsed && !isMobile ? ORCHESTRATOR_ITEM.label : undefined}
+          className={`sidebar-nav-item sidebar-split-row__main sidebar-nav-item--orchestrator ${ORCHESTRATOR_VIEWS.has(view) ? 'active' : ''}`}
+          data-accent="info"
+          style={ORCHESTRATOR_VIEWS.has(view) ? { color: ORCHESTRATOR_ITEM.accent } : undefined}
+        >
+          {ORCHESTRATOR_VIEWS.has(view)
+            ? <GradientIcon icon={ORCHESTRATOR_ITEM.icon} size={14} gradient={ORCHESTRATOR_ITEM.gradient} />
+            : <ORCHESTRATOR_ITEM.icon size={14} />
           }
-          // Expand and navigate to the Orchestrator view on first open;
-          // subsequent clicks just toggle the expander.
-          if (!orcExpanded) {
-            setOrcExpanded(true);
-            if (view !== ORCHESTRATOR_ITEM.id && !ORCHESTRATOR_VIEWS.has(view)) {
-              setView(ORCHESTRATOR_ITEM.id);
-            }
-          } else {
-            setOrcExpanded(false);
-          }
-        }}
-        title={collapsed && !isMobile ? ORCHESTRATOR_ITEM.label : undefined}
-        className={`sidebar-nav-item sidebar-eco-toggle sidebar-nav-item--orchestrator ${ORCHESTRATOR_VIEWS.has(view) ? 'active' : ''}`}
-        data-accent="info"
-        style={ORCHESTRATOR_VIEWS.has(view) ? { color: ORCHESTRATOR_ITEM.accent } : undefined}
-      >
-        {ORCHESTRATOR_VIEWS.has(view)
-          ? <GradientIcon icon={ORCHESTRATOR_ITEM.icon} size={14} gradient={ORCHESTRATOR_ITEM.gradient} />
-          : <ORCHESTRATOR_ITEM.icon size={14} />
-        }
-        {(!collapsed || isMobile) && (
-          <>
+          {(!collapsed || isMobile) && (
             <span className="sidebar-eco-name">{ORCHESTRATOR_ITEM.label}</span>
+          )}
+        </button>
+        {(!collapsed || isMobile) && (
+          <button
+            type="button"
+            onClick={() => setOrcExpanded((v) => !v)}
+            className="sidebar-split-row__chevron"
+            title={orcExpanded ? "Collapse orchestrator toolkits" : "Expand orchestrator toolkits"}
+            aria-expanded={orcExpanded}
+            aria-label={orcExpanded ? "Collapse orchestrator toolkits" : "Expand orchestrator toolkits"}
+          >
             <ChevronDown size={12} className={`sidebar-eco-chevron${orcExpanded ? ' sidebar-eco-chevron--open' : ''}`} />
-          </>
+          </button>
         )}
-      </button>
+      </div>
 
       {orcExpanded && (!collapsed || isMobile) && (
         <div className="sidebar-eco-subitems">

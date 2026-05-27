@@ -232,6 +232,40 @@
   display: none;
 }
 
+/* Split row: main nav button + sibling chevron toggle (e.g. Orchestrator). */
+.sidebar-split-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.sidebar-split-row__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-split-row__chevron {
+  background: transparent;
+  border: none;
+  color: var(--text-ghost);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-md);
+  flex-shrink: 0;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.sidebar-split-row__chevron:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+}
+
+.app-sidebar.collapsed .sidebar-split-row__chevron {
+  display: none;
+}
+
 /* Bottom nav group (architect + collapse) */
 .sidebar-nav-bottom {
   display: flex;
