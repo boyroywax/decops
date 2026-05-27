@@ -27,6 +27,7 @@ import { Libp2pNetworksModal } from "./Libp2pNetworksModal";
 import { useLibp2pCollections, decryptIdentity, encryptIdentity, decryptPnetKey } from "../utils/collections";
 import { PubsubPanel } from "./PubsubPanel";
 import { ActivityPanel } from "./panels/ActivityPanel";
+import { ConnectPanel } from "./panels/ConnectPanel";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import { useCommandCtx } from "@/context/CommandContextProvider";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
@@ -1423,43 +1424,13 @@ export function Libp2pView(_props: Libp2pViewProps) {
             </section>
 
             {/* ── Dial panel ── */}
-            <section className="libp2p-panel">
-                <h3><Link2 size={14} /> Connect</h3>
-                <div className="libp2p-form-row">
-                    <input
-                        type="text"
-                        className="libp2p-input"
-                        placeholder="/dnsaddr/example.com/p2p/Qm… or peer id"
-                        value={dialTarget}
-                        onChange={(e) => setDialTarget(e.target.value)}
-                        disabled={!isRunning || busy}
-                    />
-                    <button
-                        className="libp2p-btn"
-                        disabled={!isRunning || busy || !dialTarget.trim()}
-                        onClick={handleDial}
-                    >
-                        Dial
-                    </button>
-                </div>
-                <details className="libp2p-bootstrap">
-                    <summary>Default bootstrap peers ({DEFAULT_BOOTSTRAP.length})</summary>
-                    <ul className="libp2p-addr-list">
-                        {DEFAULT_BOOTSTRAP.map((ma) => (
-                            <li key={ma}>
-                                <code className="libp2p-mono">{ma}</code>
-                                <button
-                                    className="libp2p-icon-btn"
-                                    title="Use as dial target"
-                                    onClick={() => setDialTarget(ma)} aria-label="Use as dial target"
-                                >
-                                    <Link2 size={12} />
-                                </button>
-                            </li>
-                        ))}
-                    </ul>
-                </details>
-            </section>
+            <ConnectPanel
+                dialTarget={dialTarget}
+                setDialTarget={setDialTarget}
+                isRunning={isRunning}
+                busy={busy}
+                onDial={handleDial}
+            />
 
             {/* ── Peers panel ── */}
             <section className="libp2p-panel">
