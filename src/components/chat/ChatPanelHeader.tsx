@@ -1,13 +1,16 @@
-import { AlignJustify, Brain, ChevronsDown, ChevronsUp, X } from "lucide-react";
+import { AlignJustify, Brain, ChevronsDown, ChevronsUp, Globe, X } from "lucide-react";
 
 interface ChatPanelHeaderProps {
   conversationsCount: number;
   showConvos: boolean;
   showMemories: boolean;
+  showEcosystem: boolean;
+  ecosystemCount?: number;
   isSide: boolean;
   isExpanded: boolean;
   onToggleConvos: () => void;
   onToggleMemories: () => void;
+  onToggleEcosystem: () => void;
   onNew: () => void;
   onToggleExpand: () => void;
   onClose: () => void;
@@ -23,10 +26,13 @@ export function ChatPanelHeader({
   conversationsCount,
   showConvos,
   showMemories,
+  showEcosystem,
+  ecosystemCount,
   isSide,
   isExpanded,
   onToggleConvos,
   onToggleMemories,
+  onToggleEcosystem,
   onNew,
   onToggleExpand,
   onClose,
@@ -54,6 +60,18 @@ export function ChatPanelHeader({
         >
           <Brain size={9} />
           Memories
+        </button>
+        <button
+          onClick={onToggleEcosystem}
+          className={`chat-panel__convos-toggle${showEcosystem ? " chat-panel__convos-toggle--active" : ""}`}
+          title="Ecosystem messaging"
+          data-testid="chat-panel-ecosystem-toggle"
+        >
+          <Globe size={9} />
+          Ecosystem
+          {ecosystemCount !== undefined && ecosystemCount > 0 && (
+            <span className={`chat-panel__convos-count${showEcosystem ? " chat-panel__convos-count--active" : ""}`}>{ecosystemCount}</span>
+          )}
         </button>
       </div>
       <div className="chat-panel__header-right">

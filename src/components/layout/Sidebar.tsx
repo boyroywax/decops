@@ -3,7 +3,7 @@ import type { ViewId, Network, Message, BridgeMessage } from "@/types";
 import type { LucideIcon } from "lucide-react";
 import {
   Sparkles, Globe, Bot, ArrowLeftRight,
-  Hexagon, MessageSquare, Clapperboard,
+  Hexagon, Clapperboard,
   ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
   Activity, Zap, FileText, ChevronDown, Layers, Wrench, Monitor,
   Workflow, Boxes, Server, Database, HardDrive,
@@ -57,10 +57,9 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; 
   { id: "agents", label: "Agents", icon: Bot, accent: "#00e5a0", gradient: ["#00e5a0", "#34d399"] },
   { id: "channels", label: "Channels", icon: ArrowLeftRight, accent: "#a78bfa", gradient: ["#a78bfa", "#c084fc"] },
   { id: "groups", label: "Groups", icon: Hexagon, accent: "#f472b6", gradient: ["#f472b6", "#fb7185"] },
-  { id: "messages", label: "Messages", icon: MessageSquare, accent: "#fbbf24", gradient: ["#fbbf24", "#fb923c"] },
 ];
 
-const ECOSYSTEM_VIEWS: Set<ViewId> = new Set(["networks", "agents", "channels", "groups", "messages"]);
+const ECOSYSTEM_VIEWS: Set<ViewId> = new Set(["networks", "agents", "channels", "groups"]);
 
 export function Sidebar({ view, setView, networks, messages, bridgeMessages, agents, channels, groups, collapsed, setCollapsed, isMobile, ecosystemName, totalUnread }: SidebarProps) {
   const navRef = useRef<HTMLElement>(null);
@@ -103,7 +102,6 @@ export function Sidebar({ view, setView, networks, messages, bridgeMessages, age
   const getAccentType = (tabId: ViewId): string => {
     switch (tabId) {
       case "architect":
-      case "messages":
         return "warning";
       case "networks":
       case "editor":
@@ -171,7 +169,6 @@ export function Sidebar({ view, setView, networks, messages, bridgeMessages, age
                 tab.id === "agents" ? agents.length :
                 tab.id === "channels" ? channels.length :
                 tab.id === "groups" ? groups.length :
-                tab.id === "messages" ? messages.length + bridgeMessages.length :
                 0;
 
               return (
@@ -187,11 +184,9 @@ export function Sidebar({ view, setView, networks, messages, bridgeMessages, age
                     : <tab.icon size={13} />
                   }
                   {tab.label}
-                  {tab.id === "messages" && (totalUnread || 0) > 0 ? (
-                    <span className="sidebar-count sidebar-count--unread warning">{totalUnread}</span>
-                  ) : badgeCount > 0 ? (
+                  {badgeCount > 0 && (
                     <span className={`sidebar-count ${getAccentType(tab.id)}`}>{badgeCount}</span>
-                  ) : null}
+                  )}
                 </button>
               );
             })}

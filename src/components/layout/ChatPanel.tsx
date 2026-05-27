@@ -9,6 +9,9 @@ import { ChatMessageList } from "@/components/chat/ChatMessageList";
 import { ChatInputBar } from "@/components/chat/ChatInputBar";
 import { ChatPanelHeader } from "@/components/chat/ChatPanelHeader";
 import { ConversationsList } from "@/components/chat/ConversationsList";
+import { EcosystemPanel } from "@/components/chat/EcosystemPanel";
+import { EcosystemMessagesList } from "@/components/chat/EcosystemMessagesList";
+import type { EcosystemSelection } from "@/components/chat/ecosystemSelection";
 import { useChatMentions } from "@/hooks/chat/useChatMentions";
 import { useChatScroll } from "@/hooks/chat/useChatScroll";
 import { useChatSend } from "@/hooks/chat/useChatSend";
@@ -71,6 +74,8 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
     } = useConversations(activeWorkspaceId);
 
     const [showMemories, setShowMemories] = useState(false);
+    const [showEcosystem, setShowEcosystem] = useState(false);
+    const [ecosystemSelection, setEcosystemSelection] = useState<EcosystemSelection | null>(null);
 
     const activeAgent = useActiveChatAgent();
     const availableAgents = useChatAgentsStore(s => s.agents);
@@ -377,16 +382,23 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                 conversationsCount={conversations.length}
                 showConvos={showConvos}
                 showMemories={showMemories}
+                showEcosystem={showEcosystem}
+                ecosystemCount={
+                    (workspaceCtx.messages?.length || 0) +
+                    (ecosystem?.bridgeMessages?.length || 0)
+                }
                 isSide={isSide}
                 isExpanded={isExpanded}
-                onToggleConvos={() => { setShowConvos(!showConvos); if (!showConvos) setShowMemories(false); }}
-                onToggleMemories={() => { setShowMemories(!showMemories); if (!showMemories) setShowConvos(false); }}
+                onToggleConvos={() => { setShowConvos(!showConvos); if (!showConvos) { setShowMemories(false); setShowEcosystem(false); } }}
+                onToggleMemories={() => { setShowMemories(!showMemories); if (!showMemories) { setShowConvos(false); setShowEcosystem(false); } }}
+                onToggleEcosystem={() => { setShowEcosystem(!showEcosystem); if (!showEcosystem) { setShowConvos(false); setShowMemories(false); } }}
                 onNew={createNewChat}
                 onToggleExpand={onToggleExpand}
                 onClose={onClose}
             />
 
-            {/* Body: conversations list, memories panel, or chat */}
+            {/* Body: conversations list, memories panel, ecosystem picker,
+                ecosystem messages, or chat */}
             {showConvos ? (
                 <ConversationsList
                     conversations={conversations}
@@ -398,6 +410,40 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
             ) : showMemories ? (
                 /* Memories panel */
                 <MemoriesPanel workspaceId={activeWorkspaceId} />
+            ) : showEcosystem ? (
+                <EcosystemPanel
+                    agents={workspaceCtx.agents}
+                    channels={workspaceCtx.channels}
+                    groups={workspaceCtx.groups}
+                    messages={workspaceCtx.messages}
+                    networks={ecosystem?.networks || []}
+                    bridges={ecosystem?.bridges || []}
+                    bridgeMessages={ecosystem?.bridgeMessages || []}
+                    selection={ecosystemSelection}
+                    onSelect={(sel) => {
+                        setEcosystemSelection(sel);
+                        setShowEcosystem(false);
+                    }}
+                    chatAgents={Object.values(availableAgents)}
+                    activeChatAgentId={activeAgent?.id ?? null}
+                    onSelectAgent={(id) => {
+                        useChatAgentsStore.getState().setActive(id);
+                        setEcosystemSelection(null);
+                        setShowEcosystem(false);
+                    }}
+                />
+            ) : ecosystemSelection ? (
+                <EcosystemMessagesList
+                    selection={ecosystemSelection}
+                    onClear={() => setEcosystemSelection(null)}
+                    agents={workspaceCtx.agents}
+                    channels={workspaceCtx.channels}
+                    groups={workspaceCtx.groups}
+                    messages={workspaceCtx.messages}
+                    networks={ecosystem?.networks || []}
+                    bridges={ecosystem?.bridges || []}
+                    bridgeMessages={ecosystem?.bridgeMessages || []}
+                />
             ) : (
                 /* Chat messages */
                 <ChatMessageList
@@ -418,7 +464,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
             )}
 
             {/* Input (always visible) */}
-            {!showConvos && !showMemories && (
+            {!showConvos && !showMemories && !showEcosystem && !ecosystemSelection && (
                 <ChatInputBar
                     activeAgent={activeAgent}
                     availableAgents={availableAgents}

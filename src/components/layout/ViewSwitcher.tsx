@@ -7,7 +7,6 @@ import { AgentsView } from "@/components/views/AgentsView";
 import { ChannelsView } from "@/components/views/ChannelsView";
 import { ChannelDetailView } from "@/components/views/ChannelDetailView";
 import { GroupsView } from "@/components/views/GroupsView";
-import { MessagesView } from "@/components/views/MessagesView";
 import { ToolkitDetailView } from "@/components/views/ToolkitDetailView";
 import { ToolKitsView } from "@/components/views/ToolKitsView";
 import { NetworkView } from "@/components/views/NetworkView";
@@ -273,48 +272,10 @@ export function ViewSwitcher({
     }
 
     if (view === "messages") {
-        return (
-            <MessagesView
-                agents={workspace.agents}
-                channels={workspace.channels}
-                groups={workspace.groups}
-                messages={workspace.messages}
-                activeChannel={workspace.activeChannel}
-                setActiveChannel={workspace.setActiveChannel}
-                msgInput={workspace.msgInput}
-                setMsgInput={workspace.setMsgInput}
-                sending={workspace.sending}
-                broadcastGroup={workspace.broadcastGroup}
-                setBroadcastGroup={workspace.setBroadcastGroup}
-                broadcastInput={workspace.broadcastInput}
-                setBroadcastInput={workspace.setBroadcastInput}
-                broadcasting={workspace.broadcasting}
-                msgEndRef={workspace.msgEndRef}
-                channelMessages={workspace.channelMessages}
-                acFrom={workspace.acFrom}
-                acTo={workspace.acTo}
-                sendMessage={workspace.sendMessage}
-                sendBroadcast={workspace.sendBroadcast}
-                removeMessages={workspace.removeMessages}
-                unreadCounts={workspace.unreadCounts}
-                markChannelRead={workspace.markChannelRead}
-                networks={ecosystem.networks}
-                bridges={ecosystem.bridges}
-                bridgeMessages={ecosystem.bridgeMessages}
-                selectedBridge={ecosystem.selectedBridge}
-                setSelectedBridge={ecosystem.setSelectedBridge}
-                bridgeMsgInput={ecosystem.bridgeMsgInput}
-                setBridgeMsgInput={ecosystem.setBridgeMsgInput}
-                bridgeSending={ecosystem.bridgeSending}
-                selBridgeFrom={ecosystem.selBridgeFrom}
-                selBridgeTo={ecosystem.selBridgeTo}
-                selBridgeFromNet={ecosystem.selBridgeFromNet}
-                selBridgeToNet={ecosystem.selBridgeToNet}
-                sendBridgeMessage={ecosystem.sendBridgeMessage}
-                allArtifacts={allArtifacts}
-                onNavigateToArtifact={(art) => navigateTo("artifacts", { artifactId: art.id })}
-            />
-        );
+        // Messages page has been unified into the chat panel's Ecosystem
+        // sub-panel. Any lingering deep-link to /messages falls through to
+        // the default view (handled by the caller switching `view`).
+        return null;
     }
 
     if (view === "network") {
