@@ -12,6 +12,20 @@ import type { Agent } from "@/types";
 import { TOOLKITS } from "@/services/toolkits";
 import { registry } from "./registry";
 import { COLLECTIVE_MEMORY_COMMAND_IDS } from "@/services/commands/definitions/collective-memory";
+import {
+  clearAll,
+  resolveToolJob,
+  rejectToolJob,
+  watchChildJob,
+  resolveToolTimeout,
+  registerPendingToolJob,
+  hasPendingToolJob,
+  deletePendingToolJob,
+} from "./toolJobRegistry";
+
+// Re-export for backward compatibility — external callers still import these
+// from "@/services/commands/tools". §3.6.
+export { clearAll, resolveToolJob, rejectToolJob, watchChildJob, resolveToolTimeout };
 
 // ── Anthropic Tool Schema Types ────────────────────
 
@@ -46,34 +60,10 @@ export interface ToolCallResult {
 }
 
 // ── Pending Tool Job Registry ──────────────────────
-// Module-level promise map so the job executor can signal completion
-// back to the awaiting tool call.
+// Moved to ./toolJobRegistry.ts (§3.6). The registry, clearAll,
+// resolveToolJob, rejectToolJob, watchChildJob, and resolveToolTimeout
+// helpers are re-exported above for backwards-compatible imports.
 
-interface PendingToolJob {
-  resolve: (result: unknown) => void;
-  reject: (err: Error) => void;
-}
-
-const pendingToolJobs = new Map<string, PendingToolJob>();
-
-/**
- * Reset all module-level state. Pending tool-job promises that have not
- * resolved by logout/workspace-switch are rejected so awaiters unblock
- * cleanly. See §2.1 of MVP_AUDIT_AND_REFACTOR_PLAN.md.
- */
-export function clearAll(): void {
-  for (const pending of pendingToolJobs.values()) {
-    try {
-      pending.reject(new Error("Runtime reset (logout or workspace switch)"));
-    } catch {
-      // ignore — caller may have already detached
-    }
-  }
-  pendingToolJobs.clear();
-}
-
-const TOOL_JOB_TIMEOUT_MS = 12_000; // 12s default — most non-child-job commands complete in <2s; long-running ones declare spawnsChildJobs or timeoutMs
-const JOB_RUNNER_TIMEOUT_MS = 180_000; // 3 minute default for commands that spawn child jobs
 const DIRECT_TOOL_COMMANDS = new Set([
   "queue_new_job",
   "create_job",
@@ -120,67 +110,6 @@ const DEFAULT_AGENT_TOOL_IDS = new Set<string>([
 
 const COLLECTIVE_MEMORY_TOOLKIT_ID = "collective-memory";
 const COLLECTIVE_MEMORY_COMMAND_ID_SET = new Set<string>(COLLECTIVE_MEMORY_COMMAND_IDS);
-
-/**
- * Pick the tool-call wait timeout for a given command.
- *
- * Resolution order:
- *   1. Explicit `command.timeoutMs` on the definition.
- *   2. `JOB_RUNNER_TIMEOUT_MS` when the definition sets `spawnsChildJobs`.
- *   3. `TOOL_JOB_TIMEOUT_MS` otherwise.
- *
- * Falls back to the short timeout if the command id is unknown (the
- * registry only knows about installed commands, but the tool adapter
- * receives whatever the LLM tries to call).
- *
- * Exported for testing.
- */
-export function resolveToolTimeout(toolName: string): number {
-  const def = registry.get(toolName);
-  if (def?.timeoutMs != null) return def.timeoutMs;
-  if (def?.spawnsChildJobs) return JOB_RUNNER_TIMEOUT_MS;
-  return TOOL_JOB_TIMEOUT_MS;
-}
-
-/** Called by the job executor when a tool-initiated job completes */
-export function resolveToolJob(jobId: string, result: unknown): boolean {
-  const pending = pendingToolJobs.get(jobId);
-  if (pending) {
-    pending.resolve(result);
-    pendingToolJobs.delete(jobId);
-    return true;
-  }
-  return false;
-}
-
-/** Called by the job executor when a tool-initiated job fails */
-export function rejectToolJob(jobId: string, error: string): boolean {
-  const pending = pendingToolJobs.get(jobId);
-  if (pending) {
-    pending.reject(new Error(error));
-    pendingToolJobs.delete(jobId);
-    return true;
-  }
-  return false;
-}
-
-/**
- * Watch a child job spawned by a command (e.g. studio_run_job).
- * Returns a Promise that resolves when the child job completes or rejects on failure.
- * The job executor already calls resolveToolJob/rejectToolJob for every job,
- * so registering here piggy-backs on that mechanism.
- */
-export function watchChildJob(childJobId: string, timeoutMs = JOB_RUNNER_TIMEOUT_MS): Promise<unknown> {
-  return new Promise<unknown>((resolve, reject) => {
-    pendingToolJobs.set(childJobId, { resolve, reject });
-    setTimeout(() => {
-      if (pendingToolJobs.has(childJobId)) {
-        pendingToolJobs.delete(childJobId);
-        resolve({ _childTimeout: true, message: `Child job ${childJobId.slice(0, 12)} is still running after ${timeoutMs / 1000}s. Check the job history for results.` });
-      }
-    }, timeoutMs);
-  });
-}
 
 // ── Type Mapping ───────────────────────────────────
 
@@ -674,15 +603,15 @@ export async function executeToolCall(
 
     // Wait for the job executor to complete this job
     const result = await new Promise<unknown>((resolve, reject) => {
-      pendingToolJobs.set(jobId, { resolve, reject });
+      registerPendingToolJob(jobId, { resolve, reject });
 
       // Timeout safety — don't block the tool loop forever.
       // Per-command `timeoutMs` / `spawnsChildJobs` on the CommandDefinition
       // override the default. See `resolveToolTimeout`.
       const timeout = resolveToolTimeout(toolName);
       setTimeout(() => {
-        if (pendingToolJobs.has(jobId)) {
-          pendingToolJobs.delete(jobId);
+        if (hasPendingToolJob(jobId)) {
+          deletePendingToolJob(jobId);
           resolve({ _timeout: true, message: `Job ${jobId.slice(0, 8)} is still running after ${timeout / 1000}s` });
         }
       }, timeout);
