@@ -128,6 +128,7 @@ function renderSchemaRows(schema: Record<string, any>, depth = 0): { key: string
   const props = schema.properties || (schema.type === "object" ? {} : null);
   if (props) {
     for (const [key, val] of Object.entries(props)) {
+      // Cast: JSON-Schema sub-properties are typed as `unknown` in our schema model; downstream code reads `type`/`properties`/`items` defensively.
       const v = val as any;
       const type = v.type || "any";
       rows.push({ key, type, depth });

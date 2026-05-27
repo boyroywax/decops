@@ -26,6 +26,7 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
 
     // Execution mode (shared across job & automation)
     const [execMode, setExecMode] = useState<"serial" | "parallel">(
+        // Cast: legacy AutomationDefinition (pre-unified-builder) didn't declare `mode`; we read it opportunistically when migrating older saved automations.
         initialJob?.mode || (initialAutomation as any)?.mode || "serial"
     );
 
@@ -38,6 +39,7 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
         ...s,
         id: s.id || crypto.randomUUID(),
         args: s.args || {},
+        // Cast: pre-conditional-steps AutomationStep didn't declare `condition`; we preserve it when round-tripping legacy automations.
         condition: (s as any).condition || ""
     })));
 
@@ -45,11 +47,13 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
     const [searchTerm, setSearchTerm] = useState("");
 
     // Deliverables (shared across job & automation)
+    // Cast: legacy AutomationDefinition didn't declare `deliverables`; same migration story as `mode`/`condition` above.
     const initDeliverables = initialJob?.deliverables || (initialAutomation as any)?.deliverables || [];
     const [deliverables, setDeliverables] = useState<JobDeliverable[]>(initDeliverables);
     const [showDeliverables, setShowDeliverables] = useState(initDeliverables.length > 0);
 
     // Inter-step Storage Defaults (shared across job & automation)
+    // Cast: legacy AutomationDefinition didn't declare `storageDefaults`; same migration story as above.
     const initStorage = initialJob?.storageDefaults || (initialAutomation as any)?.storageDefaults || {};
     const [storageEntries, setStorageEntries] = useState<Array<{ key: string; value: string }>>(
         Object.entries(initStorage).map(([key, value]) => ({

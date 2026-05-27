@@ -228,6 +228,7 @@ class KuboNode {
         this.connectPromise = (async () => {
             try {
                 const mod = await import("kubo-rpc-client");
+                // Cast: kubo-rpc-client publishes its `create` factory without a typedef in our module resolution mode.
                 /* eslint-disable @typescript-eslint/no-explicit-any */
                 const create = (mod as any).create as (opts: any) => KuboClientLike;
                 /* eslint-enable @typescript-eslint/no-explicit-any */

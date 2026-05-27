@@ -105,6 +105,13 @@ export function CommandPrompt({
     const [errors, setErrors] = useState<FieldError[]>([]);
     const [showOptional, setShowOptional] = useState(false);
     const [dryRunReport, setDryRunReport] = useState<DryRunJobResult | null>(null);
+    /**
+     * Cast: `firstInputRef` is typed for the union of the three concrete element
+     * kinds we render below (input/select/textarea), but React's per-element
+     * `ref` prop only accepts a `Ref<ConcreteElement>`. Each JSX `ref={... as any}`
+     * below intentionally widens the ref to bypass that contravariant mismatch;
+     * the runtime element really is one of the three union members.
+     */
     const firstInputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(null);
 
     // Focus first input on mount

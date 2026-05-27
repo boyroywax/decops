@@ -69,6 +69,7 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
             ...(jobDef.inputDefaults && jobDef.inputDefaults.length > 0 ? { inputDefaults: jobDef.inputDefaults } : {}),
             ...(jobDef.parallelGroups && jobDef.parallelGroups.length > 0 ? { parallelGroups: jobDef.parallelGroups } : {}),
             dryRun: true,
+            // Cast: we assemble a partial JobDefinition for dry-run; the runtime accepts this subset but the strict shape requires every optional cluster.
         } as any);
         setActiveTab("monitor");
     };

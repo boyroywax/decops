@@ -334,6 +334,7 @@ class OrbitdbNode {
             await heliaService.start({}, heliaNodeId);
         }
 
+        // Cast: heliaService.getNode() returns our wrapper; the underlying `helia` instance is exposed by index access since it isn't part of the wrapper's public typed surface.
         let ipfs: any = (heliaService.getNode(heliaNodeId) as any)["helia"];
         if (!ipfs) {
             throw new Error("Failed to obtain a running helia (IPFS) instance");
@@ -358,6 +359,7 @@ class OrbitdbNode {
         await libp2pService.start(recoveredOpts, libp2pNodeId);
         await heliaService.start({ libp2pNodeId }, heliaNodeId);
 
+        // Cast: same as above — re-fetch the underlying helia instance after a libp2p auto-restart.
         ipfs = (heliaService.getNode(heliaNodeId) as any)["helia"];
         if (!ipfs || !isPubsubReady(ipfs)) {
             throw new Error("libp2p pubsub could not be auto-started for the selected Helia node");
@@ -531,6 +533,7 @@ class OrbitdbNode {
         orbitdbMod: Record<string, unknown>,
         params: { ipfs: unknown; id?: string; directory?: string },
     ): Promise<OrbitdbLike> {
+        // Cast: @orbitdb/core ships no TypeScript declarations for KeyStore/Identities/MemoryStorage; we introspect the module at runtime.
         /* eslint-disable @typescript-eslint/no-explicit-any */
         const KeyStore = (orbitdbMod as any).KeyStore as
             | ((opts: { storage: unknown }) => Promise<unknown>)
@@ -560,6 +563,7 @@ class OrbitdbNode {
     private async buildMemoryStorages(): Promise<Record<string, unknown>> {
         const mod = this.orbitdbMod ?? (await import("@orbitdb/core"));
         if (!this.orbitdbMod) this.orbitdbMod = mod;
+        // Cast: @orbitdb/core storage factories (MemoryStorage / LRUStorage / ComposedStorage) are untyped — runtime introspection only.
         /* eslint-disable @typescript-eslint/no-explicit-any */
         const MemoryStorage = (mod as any).MemoryStorage as (() => Promise<unknown>) | undefined;
         const LRUStorage = (mod as any).LRUStorage as ((o?: { size?: number }) => Promise<unknown>) | undefined;
@@ -622,6 +626,7 @@ class OrbitdbNode {
         let DatabaseFactory: any | undefined;
         if (opts.type === "documents" && opts.indexBy && opts.indexBy !== "_id") {
             const mod = this.orbitdbMod ?? (await import("@orbitdb/core"));
+            // Cast: @orbitdb/core Documents database factory has no published typedef.
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const Documents = (mod as any).Documents as ((params: { indexBy: string }) => unknown);
             if (typeof Documents === "function") {
