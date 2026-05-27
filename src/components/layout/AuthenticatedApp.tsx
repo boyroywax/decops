@@ -4,7 +4,7 @@ import { GradientIcon } from "@/components/shared/GradientIcon";
 import type { ViewId, NavContext, JobDefinition } from "@/types";
 import { useNotebook } from "@/hooks/useNotebook";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
-import { useArchitect, ArchitectProvider, ArchitectBanner, ArchitectWelcome } from "@/toolkits/architect";
+import { useArchitect, ArchitectProvider } from "@/toolkits/architect";
 import { useEcosystem } from "@/hooks/useEcosystem";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
@@ -26,31 +26,9 @@ import { ActivityModal } from "./ActivityModal";
 import { useTheme } from "@/context/ThemeContext";
 import { CommandContextProvider } from "@/context/CommandContextProvider";
 import { useChatAgentsStore } from "@/services/chat/agents";
-import type { ChatAgentSubmitContext } from "@/services/chat/agents";
-import { Sparkles, Clapperboard, Edit3 } from "lucide-react";
-import { SCENARIO_PRESETS } from "@/constants";
+import { useChatAgentRegistrations } from "@/hooks/useChatAgentRegistrations";
 import "../../styles/components/authenticated-app.css";
 import "../../styles/components/global.css";
-
-/**
- * Stream a short canned reply word-by-word into the active chat agent's
- * stream UI so the user sees the same live-typing feel as the workspace
- * stream. Falls back to a single appendAssistantMessage when the host
- * panel doesn't support streaming.
- */
-async function streamCannedReply(ctx: ChatAgentSubmitContext, text: string): Promise<void> {
-  if (!ctx.streamAssistantMessage) {
-    ctx.appendAssistantMessage?.(text);
-    return;
-  }
-  const stream = ctx.streamAssistantMessage();
-  const tokens = text.match(/\S+\s*/g) ?? [text];
-  for (const token of tokens) {
-    stream.append(token);
-    await new Promise((r) => setTimeout(r, 18));
-  }
-  stream.done(text);
-}
 
 
 
@@ -393,139 +371,8 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     if (openTick > 0) openChatPanel();
   }, [openTick, openChatPanel]);
 
-  // Architect chat agent registration. The registered onSubmit reads the
-  // architect object via a ref so it always sees the latest closures without
-  // re-registering on every render (which would otherwise loop the store
-  // subscribers).
-  const architectRef = useRef(architect);
-  useEffect(() => { architectRef.current = architect; }, [architect]);
-
-  useEffect(() => {
-    const dispose = useChatAgentsStore.getState().register({
-      id: "architect",
-      name: "Architect",
-      description: "Describe a network and the Architect will generate a deployable mesh blueprint.",
-      icon: Sparkles,
-      gradient: ["#fbbf24", "#fcd34d"],
-      banner: ArchitectBanner,
-      welcome: ArchitectWelcome,
-      preferredSideWidth: 1000,
-      freshConversation: true,
-      // Scope tools to the design / network domain so the model stays
-      // focused and the request stays well under Anthropic's 128-tool cap.
-      toolkitIds: [
-        "ecosystem",
-        "agent-management",
-        "infrastructure",
-        "workspace-mgmt",
-        "autonomy",
-        "jobs",
-        "artifacts",
-      ],
-      placeholder: "Describe a network or multi-agent ecosystem to build…",
-      workspace: {
-        // Architect generates networks — land the user on the Network
-        // Manager so newly-built networks appear in view. Side-chat layout
-        // collapses the bottom drawer; bottom-anchored chat keeps the
-        // footer (it IS the chat).
-        view: "networks",
-        sideChatFooterPanel: "none",
-      },
-      quickActions: SCENARIO_PRESETS.slice(0, 5).map((s) => ({
-        label: s.label,
-        prompt: s.desc,
-      })),
-      onSubmit: async (text, ctx) => {
-        const a = architectRef.current;
-        const phase = a.archPhase;
-        const trimmed = text.trim();
-        // Intent: user explicitly asks for a new design / blueprint.
-        const wantsGen =
-          /\b(build|create|generate|design|make|spin\s*up|new\s+(network|design|blueprint|ecosystem)|another\s+(network|design|blueprint|ecosystem)|build\s+another|start\s+over)\b/i.test(
-            trimmed,
-          );
-
-        // Mid-flight: a blueprint is on screen awaiting deploy/discard, or is deploying.
-        if (phase === "preview" || phase === "deploying") {
-          const reply =
-            phase === "deploying"
-              ? "Your ecosystem is deploying right now — I'll be ready for the next design once it finishes."
-              : "Your blueprint is ready below. Deploy or discard it before I draft another one.";
-          await streamCannedReply(ctx, reply);
-          return true;
-        }
-
-        // After deployment: only regenerate if the user clearly wants a new design.
-        if (phase === "done" && !wantsGen) {
-          const reply =
-            /\b(thanks?|thank you|thx|ty|cheers|nice|great|awesome|cool|perfect)\b/i.test(trimmed)
-              ? "You're welcome! Tell me when you'd like to build another network and I'll draft a fresh blueprint."
-              : "Your last ecosystem is deployed. Say something like \"build a new network for…\" and I'll generate another blueprint.";
-          await streamCannedReply(ctx, reply);
-          return true;
-        }
-
-        // Otherwise (phase === "input", or "done" with explicit generation intent): generate.
-        a.generateNetwork(trimmed);
-        await new Promise<void>((resolve) => {
-          const start = Date.now();
-          const tick = () => {
-            const cur = architectRef.current;
-            if (!cur.archGenerating) return resolve();
-            if (cur.archError) return resolve();
-            if (Date.now() - start > 90_000) return resolve();
-            setTimeout(tick, 200);
-          };
-          tick();
-        });
-        if (architectRef.current.archError) {
-          ctx.appendAssistantMessage?.(`Architect error: ${architectRef.current.archError}`);
-        }
-        return true;
-      },
-    });
-    return dispose;
-  }, []);
-
-  // Editor + Studio chat agents. These are passive registrations that let
-  // the chat panel render the right banner / input icon when the user is
-  // working in those toolkit views. Their onSubmit returns false so input
-  // falls through to the existing studio/editor chat paths.
-  useEffect(() => {
-    const store = useChatAgentsStore.getState();
-    const disposeEditor = store.register({
-      id: "editor",
-      name: "Editor",
-      description: "Routing prompts to the editor — ask the AI to edit, refactor or explain your file.",
-      icon: Edit3,
-      gradient: ["#60a5fa", "#a78bfa"],
-      placeholder: "Ask the AI to help edit your file…",
-      toolkitIds: ["artifacts", "workspace-mgmt"],
-      workspace: {
-        // Editor takes the full screen — collapse the bottom drawer when
-        // chat is on a side panel. The Editor view is reached via the
-        // sidebar; the agent itself is view-bound so we don't force it.
-        view: "editor",
-        sideChatFooterPanel: "none",
-      },
-    });
-    const disposeStudio = store.register({
-      id: "studio",
-      name: "Studio",
-      description: "Routing prompts to Studio — describe canvas changes, layouts, and analytics.",
-      icon: Clapperboard,
-      gradient: ["#f472b6", "#fb7185"],
-      placeholder: "Ask the AI to build on the Studio canvas…",
-      toolkitIds: ["studio", "jobs", "artifacts", "agent-management"],
-      workspace: {
-        // Studio drives Job canvases — land on the Jobs view and auto-open
-        // the Actions drawer so the user sees the running job artifacts.
-        view: "jobs",
-        sideChatFooterPanel: "jobs",
-      },
-    });
-    return () => { disposeEditor(); disposeStudio(); };
-  }, []);
+  // Register built-in chat agents (Architect, Editor, Studio).
+  useChatAgentRegistrations(architect);
 
   // ─── Universal workspace applier ────────────────────────────────────
   // When the active chat agent changes, apply its declarative
