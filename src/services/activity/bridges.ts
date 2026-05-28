@@ -45,10 +45,22 @@ function jobTitle(job: Job, prevStatus?: JobStatus): string {
 export function useJobsActivityBridge(): void {
   const { jobs } = useJobsContext();
   const prevRef = useRef<Map<string, JobStatus>>(new Map());
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     const prev = prevRef.current;
     const next = new Map<string, JobStatus>();
+
+    // On first mount, snapshot the rehydrated jobs from persistence
+    // WITHOUT publishing. Otherwise every job loaded from localStorage
+    // looks like a brand-new state transition and floods the bus with
+    // bogus "Job created/started/completed" events on every refresh.
+    if (!initializedRef.current) {
+      for (const job of jobs) next.set(job.id, job.status);
+      prevRef.current = next;
+      initializedRef.current = true;
+      return;
+    }
 
     for (const job of jobs) {
       next.set(job.id, job.status);
@@ -109,10 +121,19 @@ function runSeverity(status: RunStatus): ActivitySeverity {
 export function useAutomationsActivityBridge(): void {
   const { runs, automations } = useAutomations();
   const prevRef = useRef<Map<string, RunStatus>>(new Map());
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     const prev = prevRef.current;
     const next = new Map<string, RunStatus>();
+
+    // First mount: snapshot rehydrated runs without re-publishing.
+    if (!initializedRef.current) {
+      for (const run of runs) next.set(run.id, run.status);
+      prevRef.current = next;
+      initializedRef.current = true;
+      return;
+    }
 
     for (const run of runs) {
       next.set(run.id, run.status);
