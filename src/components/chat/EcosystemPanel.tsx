@@ -9,18 +9,18 @@
  *   • P2P channels
  *   • Group broadcasts
  *   • Cross-network bridges
- *   • AI agent DMs (switches the active chat agent — keeps regular convo
- *     rendering path because the existing LLM conversation IS the agent DM)
+ *   • Ecosystem agent DMs (filters the dialogue to messages where the
+ *     selected workspace agent is sender or recipient)
  *
- * Picking anything except an AI agent sets `selection` on the parent
- * ChatPanel, which then swaps the dialogue area for EcosystemMessagesList.
+ * The chat-agent persona switcher (Architect/Code/etc.) lives in the
+ * chat input bar — not here.
  */
 import {
   Globe,
   ArrowLeftRight,
   Hexagon,
   Link2,
-  Bot,
+  User,
 } from "lucide-react";
 import type {
   Agent,
@@ -31,7 +31,6 @@ import type {
   Network,
   Bridge,
 } from "@/types";
-import type { ChatAgent } from "@/services/chat/agents";
 import type { EcosystemSelection } from "./ecosystemSelection";
 
 interface EcosystemPanelProps {
@@ -45,11 +44,6 @@ interface EcosystemPanelProps {
 
   selection: EcosystemSelection | null;
   onSelect: (sel: EcosystemSelection) => void;
-
-  /** Registered chat agents (LLM-backed). Selecting one calls onSelectAgent. */
-  chatAgents: ChatAgent[];
-  activeChatAgentId: string | null;
-  onSelectAgent: (id: string) => void;
 
   unreadCounts?: Record<string, number>;
 }
@@ -75,9 +69,6 @@ export function EcosystemPanel({
   bridgeMessages,
   selection,
   onSelect,
-  chatAgents,
-  activeChatAgentId,
-  onSelectAgent,
   unreadCounts,
 }: EcosystemPanelProps) {
   const totalEcosystemMessages =
@@ -197,25 +188,28 @@ export function EcosystemPanel({
         </>
       )}
 
-      {/* ── AI Agent DMs ─────────────────────────────── */}
-      {chatAgents.length > 0 && (
+      {/* ── Ecosystem Agent DMs ──────────────────────── */}
+      {agents.length > 0 && (
         <>
-          <SectionTitle text="AI Agent DMs" count={chatAgents.length} />
-          {chatAgents.map((a) => {
-            const isAc = activeChatAgentId === a.id && selection === null;
+          <SectionTitle text="Agent DMs" count={agents.length} />
+          {agents.map((a) => {
+            const isAc = selection?.kind === "agent-dm" && selection.agentId === a.id;
+            const count = messages.filter((m) => m.fromId === a.id || m.toId === a.id).length
+              + bridgeMessages.filter((m) => m.fromId === a.id || m.toId === a.id).length;
+            const label = a.title ? `${a.name} · ${a.title}` : a.name;
             return (
               <button
                 key={a.id}
                 type="button"
-                onClick={() => onSelectAgent(a.id)}
+                onClick={() => onSelect({ kind: "agent-dm", agentId: a.id })}
                 className={`chat-eco-panel__item${isAc ? " chat-eco-panel__item--active" : ""}`}
               >
                 <div className="chat-eco-panel__item-label">
-                  <Bot size={11} /> {a.name}
+                  <User size={11} /> {label}
                 </div>
-                {a.description && (
-                  <div className="chat-eco-panel__item-meta">{a.description}</div>
-                )}
+                <div className="chat-eco-panel__item-meta">
+                  {count > 0 ? `${count} msg${count === 1 ? "" : "s"}` : "no messages"}
+                </div>
               </button>
             );
           })}

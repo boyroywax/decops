@@ -5,15 +5,18 @@
  * Set when the user picks an item in the EcosystemPanel; null when the
  * dialogue area should fall back to the active LLM conversation.
  *
- * AI agent DMs intentionally don't appear here — selecting an AI agent
- * just calls `useChatAgentsStore.setActive(id)` and keeps the regular
- * conversation rendering path.
+ * Chat-agent personas (the LLM bot themes like Architect/Code/etc.) are
+ * NOT selected here — those are switched from the chat input bar. The
+ * "agent-dm" kind below refers to a workspace ECOSYSTEM agent (an
+ * identity in `workspace.agents`), showing all P2P / broadcast / bridge
+ * traffic involving that agent.
  */
 export type EcosystemSelection =
   | { kind: "overview" }
   | { kind: "p2p"; channelId: string }
   | { kind: "broadcast"; groupId: string }
-  | { kind: "bridge"; bridgeId: string };
+  | { kind: "bridge"; bridgeId: string }
+  | { kind: "agent-dm"; agentId: string };
 
 export function ecosystemSelectionLabel(
   sel: EcosystemSelection,
@@ -44,6 +47,10 @@ export function ecosystemSelectionLabel(
       const from = ctx.agents.find((a) => a.id === b.fromAgentId)?.name ?? "?";
       const to = ctx.agents.find((a) => a.id === b.toAgentId)?.name ?? "?";
       return `Bridge · ${from} → ${to}`;
+    }
+    case "agent-dm": {
+      const a = ctx.agents.find((x) => x.id === sel.agentId);
+      return a ? `DM · ${a.name}` : "Agent DM";
     }
   }
 }

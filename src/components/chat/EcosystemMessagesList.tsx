@@ -3,15 +3,15 @@
  * ecosystem selection made in the EcosystemPanel.
  *
  * Renders the appropriate slice of workspace state (p2p channel messages,
- * group broadcast messages, bridge messages, or the unified overview)
- * inside the chat panel body, replacing the LLM ChatMessageList while
- * an ecosystem selection is active.
+ * group broadcast messages, bridge messages, ecosystem-agent DMs, or the
+ * unified overview) inside the chat panel body, replacing the LLM
+ * ChatMessageList while an ecosystem selection is active.
  *
- * AI agent DMs are intentionally NOT handled here — those route through
- * the regular ChatMessageList via the active chat agent.
+ * The chat-agent persona switcher (Architect/Code/etc.) lives in the
+ * chat input bar — not here.
  */
 import { useMemo, type ReactNode } from "react";
-import { Globe, ArrowLeftRight, Hexagon, Link2, X } from "lucide-react";
+import { Globe, ArrowLeftRight, Hexagon, Link2, User, X } from "lucide-react";
 import type {
   Agent,
   Channel,
@@ -184,6 +184,59 @@ export function EcosystemMessagesList({
         icon: <Link2 size={12} />,
         title: `${fA} → ${tA}`,
         subtitle: `Bridge · ${rs.length} message${rs.length === 1 ? "" : "s"}`,
+      };
+    } else if (selection.kind === "agent-dm") {
+      const a = agents.find((x) => x.id === selection.agentId);
+      const involves = (fromId: string, toId: string) =>
+        fromId === selection.agentId || toId === selection.agentId;
+      messages
+        .filter((m) => involves(m.fromId, m.toId))
+        .forEach((m) =>
+          rs.push({
+            id: m.id,
+            fromId: m.fromId,
+            toId: m.toId,
+            content: m.content,
+            response: m.response,
+            ts: m.ts,
+            source: "p2p",
+          }),
+        );
+      bridgeMessages
+        .filter((m) => involves(m.fromId, m.toId))
+        .forEach((m) =>
+          rs.push({
+            id: m.id,
+            fromId: m.fromId,
+            toId: m.toId,
+            content: m.content,
+            response: m.response,
+            ts: m.ts,
+            source: "bridge",
+          }),
+        );
+      networks.forEach((n) =>
+        (n.messages || [])
+          .filter((m) => involves(m.fromId, m.toId))
+          .forEach((m) =>
+            rs.push({
+              id: `${n.id}:${m.id}`,
+              fromId: m.fromId,
+              toId: m.toId,
+              content: m.content,
+              response: m.response,
+              ts: m.ts,
+              source: "network",
+              networkName: n.name,
+              networkColor: n.color,
+            }),
+          ),
+      );
+      rs.sort((a, b) => a.ts - b.ts);
+      hdr = {
+        icon: <User size={12} />,
+        title: a ? (a.title ? `${a.name} · ${a.title}` : a.name) : "Agent DM",
+        subtitle: `Agent DM · ${rs.length} message${rs.length === 1 ? "" : "s"}`,
       };
     }
 

@@ -424,13 +424,6 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                         setEcosystemSelection(sel);
                         setShowEcosystem(false);
                     }}
-                    chatAgents={Object.values(availableAgents)}
-                    activeChatAgentId={activeAgent?.id ?? null}
-                    onSelectAgent={(id) => {
-                        useChatAgentsStore.getState().setActive(id);
-                        setEcosystemSelection(null);
-                        setShowEcosystem(false);
-                    }}
                 />
             ) : ecosystemSelection ? (
                 <EcosystemMessagesList
