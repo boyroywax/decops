@@ -66,6 +66,8 @@ export interface ActivityFeedProps {
   bufferLimit?: number;
   /** Restrict the source chip list. Defaults to KNOWN_ACTIVITY_SOURCES. */
   sourceOptions?: ActivitySource[];
+  /** Extra class names appended to the root element. */
+  className?: string;
 }
 
 export function ActivityFeed({
@@ -78,6 +80,7 @@ export function ActivityFeed({
   defaultGrouped = false,
   bufferLimit = 500,
   sourceOptions,
+  className,
 }: ActivityFeedProps) {
   const [search, setSearch] = useState("");
   const [selectedSources, setSelectedSources] = useState<Set<ActivitySource>>(new Set(initialSources));
@@ -177,7 +180,7 @@ export function ActivityFeed({
   }, [filteredEvents, grouped]);
 
   return (
-    <div className="activity-feed">
+    <div className={`activity-feed${className ? ` ${className}` : ""}`}>
       <div className="activity-feed__toolbar">
         <div className="activity-feed__toolbar-row activity-feed__toolbar-row--primary">
           <div className="activity-feed__title">

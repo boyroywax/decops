@@ -1,17 +1,31 @@
 /* ─── ActivityFeed ──────────────────────────────────────────────────────
  * Shared, filterable, live-tailing event stream.
- * Mounted by SystemView panels and (later) per-toolkit Activity panels.
+ * Mounted by SystemView panels, per-toolkit panels, ActivityModal, and
+ * the ActionManager Monitor tab.
+ *
+ * All colours pull from theme tokens (design-tokens.css + theme-light.css
+ * + theme-solar.css) so the component renders correctly under every
+ * theme without per-theme overrides.
  */
 
 .activity-feed {
   display: flex;
   flex-direction: column;
-  background: rgba(15, 18, 24, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 8px;
+  background: var(--bg-elevated, rgba(15, 18, 24, 0.65));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-md, 8px);
   overflow: hidden;
   min-height: 0;
   flex: 1 1 auto;
+  color: var(--text-primary);
+}
+
+/* When dropped straight into a flush container (e.g. the ActionManager
+   Monitor tab) we don't want the extra rounded chrome around the feed. */
+.activity-feed--flush {
+  border: none;
+  border-radius: 0;
+  background: transparent;
 }
 
 .activity-feed__toolbar {
@@ -19,8 +33,9 @@
   flex-direction: column;
   gap: 6px;
   padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--bg-surface, rgba(255, 255, 255, 0.02));
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
+  flex-shrink: 0;
 }
 
 .activity-feed__toolbar-row {
@@ -39,13 +54,13 @@
   gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: #cbd5e1;
+  color: var(--text-secondary, #cbd5e1);
 }
 .activity-feed__count {
   font-size: 10px;
   font-weight: 600;
-  color: #94a3b8;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted, #94a3b8);
+  background: var(--bg-surface-hover, rgba(255, 255, 255, 0.06));
   padding: 2px 6px;
   border-radius: 8px;
 }
@@ -55,33 +70,35 @@
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-input, rgba(0, 0, 0, 0.3));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
   border-radius: 6px;
   flex: 1 1 200px;
   min-width: 160px;
   max-width: 320px;
-  color: #64748b;
+  color: var(--text-subtle, #64748b);
 }
 .activity-feed__search:focus-within {
-  border-color: rgba(59, 130, 246, 0.5);
+  border-color: var(--color-info, rgba(59, 130, 246, 0.5));
 }
 .activity-feed__search-input {
   background: transparent;
   border: none;
   outline: none;
-  color: #cbd5e1;
+  color: var(--text-primary, #cbd5e1);
   font-size: 12px;
   width: 100%;
   font-family: inherit;
 }
-.activity-feed__search-input::placeholder { color: #475569; }
+.activity-feed__search-input::placeholder {
+  color: var(--text-ghost, #475569);
+}
 
 .activity-feed__time-range {
   display: flex;
   gap: 2px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-input, rgba(0, 0, 0, 0.3));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
   border-radius: 6px;
   padding: 2px;
 }
@@ -105,23 +122,23 @@
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
   border-radius: 6px;
-  color: #94a3b8;
+  color: var(--text-muted, #94a3b8);
   font-size: 10px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.12s ease;
 }
 .activity-feed__icon-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #cbd5e1;
+  background: var(--bg-surface-hover, rgba(255, 255, 255, 0.06));
+  color: var(--text-secondary, #cbd5e1);
 }
 .activity-feed__icon-btn--on {
-  background: rgba(59, 130, 246, 0.12);
-  border-color: rgba(59, 130, 246, 0.5);
-  color: #60a5fa;
+  background: color-mix(in srgb, var(--color-info, #60a5fa) 14%, transparent);
+  border-color: color-mix(in srgb, var(--color-info, #60a5fa) 50%, transparent);
+  color: var(--color-info, #60a5fa);
 }
 
 .activity-feed__chip-group {
@@ -134,10 +151,10 @@
   align-items: center;
   gap: 5px;
   padding: 3px 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border-default, rgba(255, 255, 255, 0.08));
   border-radius: 12px;
-  color: #94a3b8;
+  color: var(--text-muted, #94a3b8);
   font-size: 10px;
   font-weight: 600;
   cursor: pointer;
@@ -145,11 +162,12 @@
   text-transform: capitalize;
 }
 .activity-feed__chip:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #cbd5e1;
+  background: var(--bg-surface-hover, rgba(255, 255, 255, 0.06));
+  color: var(--text-secondary, #cbd5e1);
 }
 .activity-feed__chip--active {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-surface-hover, rgba(255, 255, 255, 0.08));
+  color: var(--text-primary);
 }
 .activity-feed__chip-dot {
   width: 6px;
@@ -158,20 +176,25 @@
   flex-shrink: 0;
 }
 
+/* ─── List ────────────────────────────────────────────────────────────
+ * Flexes to fill the parent. NO hardcoded max/min-height — callers that
+ * need a bounded feed (e.g. SystemView page panels) wrap the feed in a
+ * sized container; bottom-dock placements rely on the dock's height.
+ * This is what eliminates the double-scrollbar in the ActionManager
+ * Monitor tab. */
 .activity-feed__list {
   flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
   line-height: 1.4;
-  max-height: 460px;
-  min-height: 120px;
 }
 
 .activity-feed__empty {
   padding: 28px 16px;
   text-align: center;
-  color: #64748b;
+  color: var(--text-subtle, #64748b);
   font-size: 12px;
   font-family: var(--font-sans, system-ui);
 }
@@ -183,26 +206,30 @@
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background: rgba(15, 18, 24, 0.95);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-elevated, rgba(15, 18, 24, 0.95));
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.06));
   font-family: var(--font-sans, system-ui);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #64748b;
+  color: var(--text-subtle, #64748b);
   z-index: 1;
 }
 .activity-feed__day-count {
   margin-left: auto;
-  color: #475569;
+  color: var(--text-ghost, #475569);
 }
 
 .activity-feed__row {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.03));
 }
-.activity-feed__row--warn  .activity-feed__row-main { background: rgba(245, 158, 11, 0.04); }
-.activity-feed__row--error .activity-feed__row-main { background: rgba(239, 68, 68, 0.06); }
+.activity-feed__row--warn .activity-feed__row-main {
+  background: color-mix(in srgb, var(--color-warning, #f59e0b) 6%, transparent);
+}
+.activity-feed__row--error .activity-feed__row-main {
+  background: color-mix(in srgb, var(--color-danger, #ef4444) 8%, transparent);
+}
 
 .activity-feed__row-main {
   display: grid;
@@ -215,29 +242,51 @@
   width: 100%;
   text-align: left;
   cursor: pointer;
-  color: #cbd5e1;
+  color: var(--text-secondary, #cbd5e1);
   font-family: inherit;
   font-size: 11px;
 }
 .activity-feed__row-main:disabled { cursor: default; }
-.activity-feed__row-main:not(:disabled):hover { background: rgba(255, 255, 255, 0.03); }
+.activity-feed__row-main:not(:disabled):hover {
+  background: var(--bg-surface-hover, rgba(255, 255, 255, 0.03));
+}
 
-.activity-feed__row-toggle { color: #475569; display: inline-flex; }
-.activity-feed__row-time { color: #64748b; }
+.activity-feed__row-toggle {
+  color: var(--text-ghost, #475569);
+  display: inline-flex;
+}
+.activity-feed__row-time {
+  color: var(--text-subtle, #64748b);
+}
 .activity-feed__row-source { font-weight: 600; }
-.activity-feed__row-channel { color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.activity-feed__row-severity { text-transform: uppercase; font-weight: 700; font-size: 9px; letter-spacing: 0.05em; }
-.activity-feed__row-title { color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.activity-feed__row-channel {
+  color: var(--text-muted, #94a3b8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.activity-feed__row-severity {
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+}
+.activity-feed__row-title {
+  color: var(--text-primary, #e2e8f0);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .activity-feed__row-detail {
   padding: 8px 12px 12px 36px;
-  background: rgba(0, 0, 0, 0.25);
-  border-top: 1px solid rgba(255, 255, 255, 0.03);
+  background: var(--bg-surface, rgba(0, 0, 0, 0.25));
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.03));
 }
 .activity-feed__row-message {
   font-family: var(--font-sans, system-ui);
   font-size: 12px;
-  color: #cbd5e1;
+  color: var(--text-secondary, #cbd5e1);
   margin-bottom: 8px;
   white-space: pre-wrap;
   word-break: break-word;
@@ -253,19 +302,19 @@
   font-size: 9px;
   font-weight: 600;
   padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-surface-hover, rgba(255, 255, 255, 0.05));
   border-radius: 8px;
-  color: #94a3b8;
+  color: var(--text-muted, #94a3b8);
   text-transform: lowercase;
 }
 .activity-feed__row-data {
   margin: 0;
   padding: 8px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--bg-input, rgba(0, 0, 0, 0.3));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.05));
   border-radius: 4px;
   font-size: 10px;
-  color: #94a3b8;
+  color: var(--text-muted, #94a3b8);
   white-space: pre-wrap;
   word-break: break-word;
   max-height: 240px;

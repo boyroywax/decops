@@ -179,11 +179,12 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
             {/* Content Area */}
             <div className="action-manager__content">
                 {activeTab === "monitor" && (
-                    <div className="action-manager__tab-content">
+                    <div className="action-manager__tab-content action-manager__tab-content--flush">
                         <ActivityFeed
                             title="Live activity"
                             defaultTimeRange="1h"
                             emptyMessage="No activity yet. Events stream in as jobs run, automations fire, and toolkits emit."
+                            className="activity-feed--flush"
                         />
                     </div>
                 )}

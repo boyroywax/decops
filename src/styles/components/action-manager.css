@@ -189,6 +189,18 @@
   scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
 }
 
+/* Flush variant — used when the tab embeds a component that owns its
+ * own scrolling (e.g. ActivityFeed on the Monitor tab). Removes the
+ * outer padding/scroll so the child fills the dock and only one
+ * scrollbar is shown. */
+.action-manager__tab-content--flush {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 .action-manager__tab-content::-webkit-scrollbar {
   width: 6px;
   height: 6px;
