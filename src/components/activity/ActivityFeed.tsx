@@ -19,7 +19,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Search, Pause, Play, Download, ChevronDown, ChevronRight,
-  Activity, Filter, X,
+  Activity, Filter, X, ArrowUpNarrowWide, ArrowDownWideNarrow,
 } from "lucide-react";
 import {
   useActivityFeed,
@@ -88,6 +88,7 @@ export function ActivityFeed({
   const [timeRange, setTimeRange] = useState<TimeRange>(defaultTimeRange);
   const [liveTail, setLiveTail] = useState(true);
   const [grouped, setGrouped] = useState(defaultGrouped);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   const events = useActivityFeed({ ...baseFilter, limit: bufferLimit });
@@ -97,7 +98,7 @@ export function ActivityFeed({
     const cutoff = range?.ms !== null && range?.ms !== undefined ? Date.now() - range.ms : null;
     const q = search.trim().toLowerCase();
 
-    return events.filter((e) => {
+    const filtered = events.filter((e) => {
       if (selectedSources.size > 0 && !selectedSources.has(e.source)) return false;
       if (selectedSeverities.size > 0 && !selectedSeverities.has(e.severity)) return false;
       if (cutoff !== null && e.timestamp < cutoff) return false;
@@ -107,15 +108,22 @@ export function ActivityFeed({
       }
       return true;
     });
-  }, [events, search, selectedSources, selectedSeverities, timeRange]);
 
-  // Live tail: scroll the list to the bottom when new events arrive.
+    // Bus delivers ascending (oldest → newest). Reverse for desc.
+    return sortDir === "asc" ? filtered : [...filtered].reverse();
+  }, [events, search, selectedSources, selectedSeverities, timeRange, sortDir]);
+
+  // Live tail: scroll to the newest row when new events arrive. The
+  // newest row is at the bottom when ascending and at the top when
+  // descending.
   const listRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (!liveTail) return;
     const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [filteredEvents.length, liveTail]);
+    if (!el) return;
+    if (sortDir === "asc") el.scrollTop = el.scrollHeight;
+    else el.scrollTop = 0;
+  }, [filteredEvents.length, liveTail, sortDir]);
 
   const toggleSource = (s: ActivitySource) => {
     setSelectedSources((prev) => {
@@ -233,6 +241,15 @@ export function ActivityFeed({
             >
               <Filter size={12} />
               <span>{grouped ? "Grouped" : "Flat"}</span>
+            </button>
+            <button
+              onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+              className="activity-feed__icon-btn"
+              title={sortDir === "asc" ? "Sort newest first" : "Sort oldest first"}
+              aria-label={`Sort ${sortDir === "asc" ? "oldest to newest" : "newest to oldest"} — click to reverse`}
+            >
+              {sortDir === "asc" ? <ArrowUpNarrowWide size={12} /> : <ArrowDownWideNarrow size={12} />}
+              <span>{sortDir === "asc" ? "Oldest" : "Newest"}</span>
             </button>
             <button
               onClick={handleExportJson}
