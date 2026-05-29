@@ -84,4 +84,37 @@ describe("ActivityBus", () => {
     expect(matchesFilter(evt, { until: 1500 })).toBe(true);
     expect(matchesFilter(evt, { until: 500 })).toBe(false);
   });
+
+  it("publish upserts by id and floats the envelope to the newest slot", () => {
+    bus.publish({ source: "jobs", channel: "lifecycle.queued",  kind: "jobLifecycle", severity: "info", title: "Job queued",  id: "job:1", timestamp: 100 });
+    bus.publish({ source: "system", channel: "boot",            kind: "event",        severity: "info", title: "boot",       timestamp: 110 });
+    bus.publish({ source: "jobs", channel: "lifecycle.running", kind: "jobLifecycle", severity: "info", title: "Job running", id: "job:1", timestamp: 120 });
+    bus.publish({ source: "jobs", channel: "lifecycle.completed", kind: "jobLifecycle", severity: "info", title: "Job completed", id: "job:1", timestamp: 130, message: "ok" });
+
+    const all = bus.query();
+    // The job envelope collapses to a single row, ordered last by its
+    // latest transition; the unrelated boot event stays in place.
+    expect(all).toHaveLength(2);
+    expect(all[0].title).toBe("boot");
+    expect(all[1].id).toBe("job:1");
+    expect(all[1].title).toBe("Job completed");
+    expect(all[1].message).toBe("ok");
+    expect(all[1].timestamp).toBe(130);
+  });
+
+  it("remove(id) drops the buffered event and notifies removal listeners", () => {
+    bus.publish({ source: "jobs", channel: "lifecycle.completed", kind: "jobLifecycle", severity: "info", title: "done", id: "job:42" });
+    bus.publish({ source: "system", channel: "boot", kind: "event", severity: "info", title: "keep" });
+
+    const removed: string[] = [];
+    bus.subscribeRemovals((id) => removed.push(id));
+
+    expect(bus.remove("job:42")).toBe(true);
+    expect(bus.remove("job:missing")).toBe(false);
+
+    const all = bus.query();
+    expect(all).toHaveLength(1);
+    expect(all[0].title).toBe("keep");
+    expect(removed).toEqual(["job:42"]);
+  });
 });

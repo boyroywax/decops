@@ -27,24 +27,35 @@ function jobChannel(status: JobStatus): string {
   return `lifecycle.${status}`;
 }
 
-function jobTitle(job: Job, prevStatus?: JobStatus): string {
-  if (!prevStatus) return `Job created: ${job.type}`;
+function jobTitle(job: Job): string {
   switch (job.status) {
-    case "running": return `Job started: ${job.type}`;
     case "completed": return `Job completed: ${job.type}`;
     case "failed": return `Job failed: ${job.type}`;
     case "awaiting-input": return `Job awaiting input: ${job.type}`;
-    case "queued": return `Job re-queued: ${job.type}`;
+    case "running": return `Job running: ${job.type}`;
+    case "queued": return `Job queued: ${job.type}`;
   }
 }
 
+interface JobStageRecord {
+  status: JobStatus;
+  at: number;
+  result?: string;
+}
+
 /**
- * Publishes activity events for job creation and status transitions.
+ * Publishes a single activity envelope per job, updated in place as the
+ * job transitions through statuses. The envelope's id is `job:<jobId>`,
+ * its timestamp tracks the latest transition (so completed jobs sort to
+ * the most recent slot), and `data.stages` retains the per-stage history
+ * (queued → running → completed/failed/awaiting-input).
+ *
  * Must be mounted inside both JobsProvider and AutomationsProvider scopes.
  */
 export function useJobsActivityBridge(): void {
   const { jobs } = useJobsContext();
   const prevRef = useRef<Map<string, JobStatus>>(new Map());
+  const historyRef = useRef<Map<string, JobStageRecord[]>>(new Map());
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -55,8 +66,17 @@ export function useJobsActivityBridge(): void {
     // WITHOUT publishing. Otherwise every job loaded from localStorage
     // looks like a brand-new state transition and floods the bus with
     // bogus "Job created/started/completed" events on every refresh.
+    // We still seed history with a terminal snapshot so an in-place
+    // update after rehydration carries the prior stage context.
     if (!initializedRef.current) {
-      for (const job of jobs) next.set(job.id, job.status);
+      for (const job of jobs) {
+        next.set(job.id, job.status);
+        historyRef.current.set(job.id, [{
+          status: job.status,
+          at: job.updatedAt ?? job.createdAt ?? Date.now(),
+          result: job.result,
+        }]);
+      }
       prevRef.current = next;
       initializedRef.current = true;
       return;
@@ -67,38 +87,55 @@ export function useJobsActivityBridge(): void {
       const prevStatus = prev.get(job.id);
       if (prevStatus === job.status) continue;
 
+      // Append a stage record for this transition.
+      const stages = historyRef.current.get(job.id) ?? [];
+      stages.push({
+        status: job.status,
+        at: job.updatedAt ?? Date.now(),
+        result: job.result,
+      });
+      historyRef.current.set(job.id, stages);
+
+      const isTerminal = job.status === "completed" || job.status === "failed";
+
       activityBus.publish({
+        // Stable id collapses every transition for this job into one row.
+        id: `job:${job.id}`,
         source: "jobs",
         channel: jobChannel(job.status),
         kind: "jobLifecycle",
         severity: jobSeverity(job.status),
-        title: jobTitle(job, prevStatus),
-        message: job.result,
+        title: jobTitle(job),
+        // Surface the result on terminal events; otherwise leave the
+        // message empty (in-progress rows shouldn't claim a result).
+        message: isTerminal ? job.result : undefined,
         jobId: job.id,
+        // Stamp with the latest transition time so rows order by the
+        // datetime of completion (or last activity for in-flight jobs).
+        timestamp: job.updatedAt ?? Date.now(),
         tags: ["job", job.type, job.status],
         data: {
           id: job.id,
           type: job.type,
           status: job.status,
           createdAt: job.createdAt,
+          startedAt: (job as { startedAt?: number }).startedAt,
           updatedAt: job.updatedAt,
           completedAt: (job as { completedAt?: number }).completedAt,
+          result: isTerminal ? job.result : undefined,
+          stages,
         },
       });
     }
 
-    // Jobs that disappeared between renders → publish a "removed" event.
-    for (const [id, status] of prev) {
+    // Jobs that disappeared between renders → drop their envelope from
+    // the feed. Removal is a store operation, not a lifecycle event, so
+    // we don't emit a new envelope (which would clobber the terminal
+    // completed/failed row with a debug "removed" entry).
+    for (const [id] of prev) {
       if (next.has(id)) continue;
-      activityBus.publish({
-        source: "jobs",
-        channel: "lifecycle.removed",
-        kind: "jobLifecycle",
-        severity: "debug",
-        title: `Job removed (${status})`,
-        jobId: id,
-        tags: ["job", "removed", status],
-      });
+      activityBus.remove(`job:${id}`);
+      historyRef.current.delete(id);
     }
 
     prevRef.current = next;

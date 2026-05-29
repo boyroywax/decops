@@ -46,7 +46,17 @@ export function extractEditorPreviewContent(messageContent: string): string | nu
             .replace(/```action[\s\S]*?```/g, "")
             .trim();
 
-        const fencedBlocks = collectFencedBlocks(between);
+        // Recovery: if the model forgot to close one of its fences (a
+        // common streaming hiccup) the regex below would find no blocks
+        // and we'd lose the document. Count fence lines and append a
+        // synthetic closer when the count is odd so the last block still
+        // captures everything up to the EDITOR_FILE_END marker.
+        const fenceLineCount = (between.match(/^```/gm) || []).length;
+        const normalized = fenceLineCount % 2 === 1
+            ? `${between}\n\`\`\``
+            : between;
+
+        const fencedBlocks = collectFencedBlocks(normalized);
         if (fencedBlocks.length > 0) {
             return joinDocumentParts(fencedBlocks);
         }

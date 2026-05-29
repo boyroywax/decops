@@ -125,7 +125,7 @@ export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob
             <div className="action-manager__header">
                 <div className="action-manager__header-left">
                     <span className="action-manager__title">
-                        <Terminal size={10} color="#00e5a0" /> ACTIONS
+                        <Terminal size={10} /> ACTIONS
                     </span>
                     <span className="action-manager__separator">│</span>
                     <div className="action-manager__tabs">

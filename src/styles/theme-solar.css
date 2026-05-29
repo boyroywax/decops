@@ -676,7 +676,7 @@
 
 /* ─── Action Manager — Solar ─── */
 [data-theme="solar"] .action-manager {
-  background: #fefaf0;
+  background: rgba(253, 246, 227, 0.95);
   border-top-color: rgba(120, 80, 20, 0.10);
   backdrop-filter: blur(12px);
 }
@@ -691,10 +691,12 @@
 
 [data-theme="solar"] .action-manager__tab-count {
   background: rgba(120, 80, 20, 0.06);
+  color: #8a7968;
 }
 
 [data-theme="solar"] .action-manager__tab--active .action-manager__tab-count {
   background: rgba(184, 134, 11, 0.15);
+  color: #9c6d10;
 }
 
 [data-theme="solar"] .action-manager__tab-content {
@@ -716,7 +718,7 @@
 }
 
 [data-theme="solar"] .action-manager__section-title {
-  color: #5c5040;
+  color: #8a7968;
 }
 
 [data-theme="solar"] .action-manager__tab {
@@ -725,15 +727,21 @@
 
 [data-theme="solar"] .action-manager__tab:hover {
   color: #5c5040;
+  background: rgba(120, 80, 20, 0.05);
 }
 
 [data-theme="solar"] .action-manager__tab--active {
-  background: rgba(184, 134, 11, 0.08);
-  color: #8b6914;
+  background: rgba(184, 134, 11, 0.10);
+  border-color: rgba(184, 134, 11, 0.25);
+  color: #9c6d10;
 }
 
 [data-theme="solar"] .action-manager__separator {
   color: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .action-manager__title svg {
+  color: #9c6d10;
 }
 
 [data-theme="solar"] .action-manager__close-btn:hover {
@@ -741,7 +749,7 @@
 }
 
 [data-theme="solar"] .action-manager__expand-btn:hover {
-  color: #8b6914;
+  color: #9c6d10;
 }
 
 [data-theme="solar"] .action-library__search,
@@ -1121,6 +1129,76 @@
   background: rgba(46, 125, 50, 0.08);
   border-color: rgba(46, 125, 50, 0.18);
   color: #2e7d32;
+}
+
+/* ─── Activity Feed (flush — Monitor tab) — Solar ───
+ * Mirrors artifacts-panel solar overrides: warm-brown chrome
+ * (rgba(120,80,20,0.0X)) and amber accent (#9c6d10) — remapping the
+ * dark-base indigo so the feed harmonises with the solarized palette. */
+[data-theme="solar"] .activity-feed--flush .activity-feed__toolbar {
+  border-bottom-color: rgba(120, 80, 20, 0.06);
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__toolbar-row--chips {
+  border-top-color: rgba(120, 80, 20, 0.05);
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__search,
+[data-theme="solar"] .activity-feed--flush .activity-feed__time-range {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+  color: var(--text-primary);
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__search:focus-within {
+  border-color: rgba(184, 134, 11, 0.40);
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__chip {
+  background: rgba(120, 80, 20, 0.05);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #8a7968;
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__chip:hover,
+[data-theme="solar"] .activity-feed--flush .activity-feed__chip--active,
+[data-theme="solar"] .activity-feed--flush .activity-feed__chip--time.activity-feed__chip--active {
+  background: rgba(184, 134, 11, 0.10);
+  border-color: rgba(184, 134, 11, 0.25);
+  color: #9c6d10;
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__icon-btn:hover {
+  background: rgba(120, 80, 20, 0.05);
+  color: var(--text-primary);
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__icon-btn--on {
+  background: rgba(184, 134, 11, 0.10);
+  border-color: rgba(184, 134, 11, 0.25);
+  color: #9c6d10;
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__row {
+  border-bottom-color: rgba(120, 80, 20, 0.05);
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__row-main:not(:disabled):hover {
+  background: rgba(184, 134, 11, 0.06);
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__day-header {
+  background: rgba(253, 246, 227, 0.97);
+  border-bottom-color: rgba(120, 80, 20, 0.08);
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__row-detail {
+  background: rgba(120, 80, 20, 0.03);
+  border-top-color: rgba(120, 80, 20, 0.08);
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__row-tag {
+  background: rgba(120, 80, 20, 0.05);
+  border-color: rgba(120, 80, 20, 0.10);
+  color: #8a7968;
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__row-data {
+  background: rgba(120, 80, 20, 0.04);
+  border-color: rgba(120, 80, 20, 0.12);
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__list {
+  scrollbar-color: rgba(120, 80, 20, 0.20) transparent;
+}
+[data-theme="solar"] .activity-feed--flush .activity-feed__list::-webkit-scrollbar-thumb {
+  background: rgba(120, 80, 20, 0.20);
 }
 
 /* ─── LLM Manager Panel — Solar ─── */

@@ -75,6 +75,10 @@
   gap: var(--space-sm);
 }
 
+.action-manager__title svg {
+  color: #818cf8;
+}
+
 .action-manager__separator {
   color: var(--text-void);
   font-size: var(--text-sm);
@@ -92,7 +96,7 @@
 
 .action-manager__tab {
   background: none;
-  border: none;
+  border: 1px solid transparent;
   color: var(--text-ghost);
   cursor: pointer;
   font-family: inherit;
@@ -100,31 +104,34 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  border-radius: var(--radius-md);
   transition: all var(--transition-fast);
 }
 
 .action-manager__tab:hover {
-  color: var(--text-muted);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .action-manager__tab--active {
-  background: rgba(0, 229, 160, 0.08);
-  color: var(--color-accent);
+  background: rgba(129, 140, 248, 0.1);
+  border-color: rgba(129, 140, 248, 0.25);
+  color: #818cf8;
 }
 
 .action-manager__tab-count {
   font-size: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  padding: 0 4px;
-  border-radius: var(--radius-md);
-  color: var(--text-ghost);
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 5px;
+  border-radius: 6px;
+  color: var(--text-invisible);
 }
 
 .action-manager__tab--active .action-manager__tab-count {
-  background: rgba(0, 229, 160, 0.15);
-  color: var(--color-accent);
+  background: rgba(129, 140, 248, 0.15);
+  color: #818cf8;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -166,7 +173,7 @@
 }
 
 .action-manager__expand-btn:hover {
-  color: var(--color-accent, #00e5a0);
+  color: #818cf8;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -249,9 +256,11 @@
 }
 
 .action-manager__section-title {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-muted);
-  margin-bottom: var(--space-lg);
-  letter-spacing: 0.02em;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  font-weight: normal;
+  color: var(--text-ghost);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-md);
 }

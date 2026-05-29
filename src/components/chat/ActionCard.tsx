@@ -65,6 +65,18 @@ export default function ActionCard({ action, context }: ActionCardProps) {
                             }} />
                             {matchingJob.status.toUpperCase()}
                         </span>
+                        {/* Keep the action repeatable even after a matching
+                            job exists — re-queueing is a valid operator
+                            workflow (rerun, duplicate, retry). */}
+                        {context.addJob && (
+                            <button
+                                onClick={() => context.addJob!({ type: action.type, request: action })}
+                                className="action-card__add-btn"
+                                title="Queue this action again"
+                            >
+                                <PlusCircle size={10} /> Run again
+                            </button>
+                        )}
                     </div>
                 ) : (
                     context.addJob && (

@@ -328,3 +328,211 @@
   .activity-feed__row-channel { display: none; }
   .activity-feed__row-title { grid-column: 1 / -1; padding-left: 22px; }
 }
+
+/* ─── Flush variant — matches ArtifactsPanel aesthetic ───────────────
+ * Used by ActionManager's Monitor tab so the live activity panel
+ * shares the artifacts-panel's compact, monospace, indigo-accented
+ * chrome. Scope all overrides under .activity-feed--flush to keep the
+ * default framed feed (e.g. toolkit views) untouched.
+ *
+ * Theme-aware: pulls from design tokens so the same rules render
+ * correctly under dark, light, and solar themes. Theme-specific tweaks
+ * (matching artifacts-panel) live in theme-light.css / theme-solar.css. */
+
+.activity-feed--flush .activity-feed__toolbar {
+  padding: 6px 14px;
+  gap: 4px;
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.activity-feed--flush .activity-feed__toolbar-row {
+  gap: var(--space-md);
+}
+.activity-feed--flush .activity-feed__toolbar-row--chips {
+  padding-top: 2px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.03);
+  gap: var(--space-md);
+}
+
+.activity-feed--flush .activity-feed__title {
+  font-size: var(--text-xs);
+  font-weight: normal;
+  color: var(--text-ghost);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  gap: var(--space-sm);
+}
+.activity-feed--flush .activity-feed__title > span:not(.activity-feed__count) {
+  letter-spacing: 0.1em;
+}
+.activity-feed--flush .activity-feed__count {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: normal;
+  color: var(--text-invisible);
+  background: transparent;
+  padding: 0;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.activity-feed--flush .activity-feed__search {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 4px 10px;
+  flex: 1 1 200px;
+  max-width: 260px;
+  color: var(--text-invisible);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+.activity-feed--flush .activity-feed__search:focus-within {
+  border-color: rgba(129, 140, 248, 0.4);
+}
+.activity-feed--flush .activity-feed__search-input {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+}
+.activity-feed--flush .activity-feed__search-input::placeholder {
+  color: var(--text-invisible);
+}
+
+.activity-feed--flush .activity-feed__time-range {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  padding: 1px;
+  gap: 0;
+}
+.activity-feed--flush .activity-feed__chip--time {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--text-ghost);
+  text-transform: none;
+}
+.activity-feed--flush .activity-feed__chip--time.activity-feed__chip--active {
+  background: rgba(129, 140, 248, 0.12);
+  color: #818cf8;
+}
+
+.activity-feed--flush .activity-feed__toolbar-actions {
+  gap: 2px;
+}
+.activity-feed--flush .activity-feed__icon-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-subtle);
+  padding: 3px 5px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: normal;
+}
+.activity-feed--flush .activity-feed__icon-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+.activity-feed--flush .activity-feed__icon-btn--on {
+  background: rgba(129, 140, 248, 0.1);
+  border-color: rgba(129, 140, 248, 0.25);
+  color: #818cf8;
+}
+
+.activity-feed--flush .activity-feed__chip-group {
+  gap: 3px;
+}
+.activity-feed--flush .activity-feed__chip {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: normal;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-ghost);
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+.activity-feed--flush .activity-feed__chip:hover {
+  background: rgba(129, 140, 248, 0.12);
+  border-color: rgba(129, 140, 248, 0.25);
+  color: #818cf8;
+}
+.activity-feed--flush .activity-feed__chip--active {
+  background: rgba(129, 140, 248, 0.12);
+  border-color: rgba(129, 140, 248, 0.25);
+  color: #818cf8;
+}
+.activity-feed--flush .activity-feed__chip-dot {
+  width: 5px;
+  height: 5px;
+}
+
+/* List/rows — keep monospace stream, but align separators and day-headers
+ * to the panel's subtle border palette. */
+.activity-feed--flush .activity-feed__list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+.activity-feed--flush .activity-feed__list::-webkit-scrollbar { width: 6px; }
+.activity-feed--flush .activity-feed__list::-webkit-scrollbar-track { background: transparent; }
+.activity-feed--flush .activity-feed__list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.activity-feed--flush .activity-feed__day-header {
+  background: rgba(0, 0, 0, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-ghost);
+}
+
+.activity-feed--flush .activity-feed__row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+.activity-feed--flush .activity-feed__row-main {
+  color: var(--text-secondary);
+}
+.activity-feed--flush .activity-feed__row-main:not(:disabled):hover {
+  background: rgba(129, 140, 248, 0.06);
+}
+.activity-feed--flush .activity-feed__row-time { color: var(--text-subtle); }
+.activity-feed--flush .activity-feed__row-channel { color: var(--text-muted); }
+.activity-feed--flush .activity-feed__row-title { color: var(--text-primary); }
+.activity-feed--flush .activity-feed__row-toggle { color: var(--text-ghost); }
+
+.activity-feed--flush .activity-feed__row-detail {
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+.activity-feed--flush .activity-feed__row-message {
+  color: var(--text-secondary);
+}
+.activity-feed--flush .activity-feed__row-tag {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-ghost);
+  border-radius: 6px;
+  padding: 1px 5px;
+  text-transform: none;
+}
+.activity-feed--flush .activity-feed__row-data {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: var(--border-medium);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+.activity-feed--flush .activity-feed__empty {
+  color: var(--text-subtle);
+}

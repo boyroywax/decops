@@ -36,6 +36,7 @@ export type ViewId =
   | "orbitdb"
   | "orbitdb-server"
   | "orchestrator"
+  | "navigator"
   | "system";
 
 /** Navigation context for hierarchical drill-down: Ecosystem → Network → Group → Agent → Channel */
@@ -191,6 +192,7 @@ export type ToolkitId =
   | "orbitdb"
   | "orbitdb-server"
   | "orchestrator"
+  | "navigator"
   // Capability toolkits (external)
   | "web-crawler"
   | "ocr"
@@ -353,6 +355,16 @@ export interface Channel {
   toNetworkId?: string;
 }
 
+/**
+ * Group kind — distinguishes a "native" group (members all live in one
+ * network) from a "huddle" (an ad-hoc cross-network assembly summoned by
+ * the navigator).
+ *
+ * Both kinds persist into the groups list; a huddle simply spans multiple
+ * networks and renders with a different affordance in the UI.
+ */
+export type GroupKind = "native" | "huddle";
+
 export interface Group {
   id: string;
   name: string;
@@ -362,7 +374,23 @@ export interface Group {
   did: string;
   color: string;
   createdAt: string;
-  networkId?: string;  // Which network this group belongs to
+  /** Owning network (always set for kind="native"; the primary/host network for kind="huddle"). */
+  networkId?: string;
+  /**
+   * For kind="huddle": the full set of networks contributing members.
+   * Omitted for native groups (use `networkId` instead).
+   */
+  networkIds?: string[];
+  /** Defaults to "native" if absent. */
+  kind?: GroupKind;
+  /**
+   * For huddles: which entity summoned it (typically "navigator", an
+   * agent DID, or "user"). Surfaced in the UI so operators can tell
+   * ad-hoc assemblies apart from designed groups.
+   */
+  summonedBy?: string;
+  /** For huddles: the goal/topic this assembly was formed around. */
+  topic?: string;
   modelId?: string;    // LLM model override for group decision-making
 }
 
@@ -512,6 +540,14 @@ export interface CreateGroupRequest {
   name: string;
   members: string[]; // agent IDs
   governance: GovernanceModelId;
+  /** Optional kind discriminator. Defaults to "native". */
+  kind?: GroupKind;
+  /** For huddles: full list of contributing networks. */
+  networkIds?: string[];
+  /** For huddles: caller identifier (e.g. "navigator", agent DID, "user"). */
+  summonedBy?: string;
+  /** For huddles: free-text topic/goal that the assembly is forming around. */
+  topic?: string;
 }
 
 export interface SendMessageRequest {

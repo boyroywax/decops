@@ -6,6 +6,7 @@ import {
     makeId, deriveTitle,
 } from "@/components/chat/utils";
 import type { Conversation } from "@/components/chat/types";
+import { useChatAgentsStore } from "@/services/chat/agents";
 
 /**
  * Hook that encapsulates conversation CRUD, persistence, and scroll management.
@@ -84,9 +85,22 @@ export function useConversations(workspaceId?: string | null) {
 
     // ── CRUD ──
     const updateConversation = useCallback((id: string, msgs: ChatMessage[]) => {
+        // Stamp authorship + creation time on assistant messages that
+        // haven't been tagged yet. Capturing this at persistence keeps
+        // multi-bot conversations correctly themed even after the
+        // operator switches the active chat agent.
+        const activeAgentId = useChatAgentsStore.getState().activeAgentId;
+        const now = Date.now();
+        const stamped = msgs.map((m) => {
+            if (m.role !== "assistant") return m;
+            const next: ChatMessage = { ...m };
+            if (next.agentId === undefined && activeAgentId) next.agentId = activeAgentId;
+            if (next.createdAt === undefined) next.createdAt = now;
+            return next;
+        });
         setConversations(prev => prev.map(c =>
             c.id === id
-                ? { ...c, messages: msgs, title: deriveTitle(msgs), updatedAt: Date.now() }
+                ? { ...c, messages: stamped, title: deriveTitle(stamped), updatedAt: Date.now() }
                 : c
         ));
     }, []);
@@ -110,6 +124,77 @@ export function useConversations(workspaceId?: string | null) {
         setShowConvos(false);
     }, []);
 
+    /** Open (or create) the agent-DM conversation for `agentId`. Returns
+     *  the conversation id that was activated. Ecosystem-tagged
+     *  conversations are hidden from the regular Conversations list and
+     *  are routed through the EcosystemPanel instead. */
+    const openAgentDM = useCallback((agentId: string, agentName: string) => {
+        let targetId: string | null = null;
+        setConversations(prev => {
+            const existing = prev.find(c =>
+                c.ecosystemKind === "agent-dm" && c.ecosystemId === agentId
+            );
+            if (existing) {
+                targetId = existing.id;
+                return prev;
+            }
+            const id = makeId();
+            targetId = id;
+            const convo: Conversation = {
+                id,
+                title: `DM: ${agentName}`,
+                messages: [],
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                ecosystemKind: "agent-dm",
+                ecosystemId: agentId,
+            };
+            return [convo, ...prev];
+        });
+        // setConversations is sync (React batches), but the setter above
+        // captures targetId via closure — read it on next tick.
+        queueMicrotask(() => {
+            if (targetId) {
+                setActiveId(targetId);
+                setShowConvos(false);
+                initialScrollDone.current = false;
+            }
+        });
+    }, []);
+
+    /** Open (or create) the group-broadcast conversation for `groupId`. */
+    const openBroadcast = useCallback((groupId: string, groupName: string) => {
+        let targetId: string | null = null;
+        setConversations(prev => {
+            const existing = prev.find(c =>
+                c.ecosystemKind === "broadcast" && c.ecosystemId === groupId
+            );
+            if (existing) {
+                targetId = existing.id;
+                return prev;
+            }
+            const id = makeId();
+            targetId = id;
+            const convo: Conversation = {
+                id,
+                title: `Group: ${groupName}`,
+                messages: [],
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                ecosystemKind: "broadcast",
+                ecosystemId: groupId,
+            };
+            return [convo, ...prev];
+        });
+        queueMicrotask(() => {
+            if (targetId) {
+                setActiveId(targetId);
+                setShowConvos(false);
+                initialScrollDone.current = false;
+            }
+        });
+    }, []);
+
     const deleteConvo = useCallback((id: string) => {
         setConversations(prev => prev.filter(c => c.id !== id));
         if (activeId === id) {
@@ -125,5 +210,6 @@ export function useConversations(workspaceId?: string | null) {
         active, messages,
         endRef, inputRef, initialScrollDone,
         updateConversation, createNewChat, switchTo, deleteConvo,
+        openAgentDM, openBroadcast,
     };
 }

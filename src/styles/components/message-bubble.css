@@ -38,6 +38,60 @@
   color: var(--text-secondary);
 }
 
+/* Themed assistant bubble — adopts the active chat agent's banner color
+ * scheme. The gradient endpoints are passed in as --mb-agent-start /
+ * --mb-agent-end CSS custom properties from MessageBubble's inline style.
+ * The result is a subtle accent that visually links the bubble back to
+ * the bot that authored it (Navigator, Orchestrator, etc).
+ */
+.mb-bubble--themed {
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--mb-agent-start, #38bdf8) 12%, transparent),
+      color-mix(in srgb, var(--mb-agent-end, #a78bfa) 7%, transparent)),
+    rgba(255, 255, 255, 0.02);
+  border-color: color-mix(in srgb, var(--mb-agent-start, #38bdf8) 35%, rgba(255, 255, 255, 0.06));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--mb-agent-start, #38bdf8) 10%, transparent) inset;
+}
+.mb-bubble--themed::before {
+  content: "";
+  display: block;
+  height: 2px;
+  margin: -8px -12px 8px;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(90deg, var(--mb-agent-start, #38bdf8), var(--mb-agent-end, #a78bfa));
+  opacity: 0.7;
+}
+
+/* Author + time-since header at the top of bot messages. Kept small
+ * and low-contrast so it doesn't steal attention from the response. */
+.mb-bubble__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 9.5px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  margin: 0 0 4px;
+  color: var(--text-muted, rgba(255, 255, 255, 0.5));
+}
+.mb-bubble__author {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--mb-agent-start, currentColor) 70%, currentColor);
+}
+.mb-bubble__time {
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+.mb-bubble__author + .mb-bubble__time::before {
+  content: "· ";
+  margin-right: 2px;
+  opacity: 0.5;
+}
+.mb-bubble--user .mb-bubble__meta { display: none; }
+
 /* ── Tool Call Display ── */
 
 .tool-calls-section {

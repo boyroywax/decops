@@ -30,15 +30,33 @@ export function useActivityFeed(filter?: ActivityFilter): ActivityEvent[] {
   useEffect(() => {
     // Seed with a fresh query in case the filter changed.
     setEvents(activityBus.query(stableFilter));
-    const dispose = activityBus.subscribe((evt) => {
+    const disposePublish = activityBus.subscribe((evt) => {
       setEvents((prev) => {
-        const next = prev.concat(evt);
+        // Upsert by id: if an event with the same id is already in the
+        // list, drop it and re-append so the envelope reflects its latest
+        // state and floats to the newest position. Otherwise append.
+        const existingIdx = prev.findIndex((e) => e.id === evt.id);
+        const next = existingIdx !== -1
+          ? [...prev.slice(0, existingIdx), ...prev.slice(existingIdx + 1), evt]
+          : prev.concat(evt);
         const cap = limitRef.current;
         if (cap > 0 && next.length > cap) return next.slice(next.length - cap);
         return next;
       });
     }, stableFilter);
-    return dispose;
+    // Removals are global (filter-agnostic on the bus side) — drop any
+    // row whose id matches, regardless of whether the originating event
+    // would have passed our filter at the time it was published.
+    const disposeRemoval = activityBus.subscribeRemovals((id) => {
+      setEvents((prev) => {
+        const idx = prev.findIndex((e) => e.id === id);
+        return idx === -1 ? prev : [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+      });
+    });
+    return () => {
+      disposePublish();
+      disposeRemoval();
+    };
   }, [stableFilter]);
 
   return events;

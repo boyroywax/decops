@@ -656,10 +656,12 @@
 
 [data-theme="light"] .action-manager__tab-count {
   background: rgba(0, 0, 0, 0.05);
+  color: var(--text-invisible);
 }
 
 [data-theme="light"] .action-manager__tab--active .action-manager__tab-count {
-  background: rgba(0, 180, 120, 0.12);
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
 }
 
 [data-theme="light"] .action-manager__tab-content {
@@ -681,7 +683,7 @@
 }
 
 [data-theme="light"] .action-manager__section-title {
-  color: #555570;
+  color: var(--text-ghost);
 }
 
 [data-theme="light"] .action-manager__tab {
@@ -690,15 +692,21 @@
 
 [data-theme="light"] .action-manager__tab:hover {
   color: #444460;
+  background: rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="light"] .action-manager__tab--active {
-  background: rgba(0, 180, 120, 0.06);
-  color: #00875a;
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.25);
+  color: #4f46e5;
 }
 
 [data-theme="light"] .action-manager__separator {
   color: rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .action-manager__title svg {
+  color: #4f46e5;
 }
 
 [data-theme="light"] .action-manager__close-btn:hover {
@@ -706,7 +714,7 @@
 }
 
 [data-theme="light"] .action-manager__expand-btn:hover {
-  color: #00875a;
+  color: #4f46e5;
 }
 
 /* Action library / commands panel search in light mode */
@@ -1052,6 +1060,57 @@
 
 [data-theme="light"] .artifacts-panel__btn--delete:hover {
   background: rgba(220, 38, 38, 0.12);
+}
+
+/* ─── Activity Feed (flush — Monitor tab) — Light ───
+ * Mirrors artifacts-panel light overrides: same border-bottom alphas,
+ * same search/filter input bg + border, same indigo accent (#818cf8)
+ * inherited from the dark base. Only black-on-light surfaces are
+ * remapped — accent indigo passes through unchanged. */
+[data-theme="light"] .activity-feed--flush .activity-feed__toolbar {
+  border-bottom-color: rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .activity-feed--flush .activity-feed__toolbar-row--chips {
+  border-top-color: rgba(0, 0, 0, 0.03);
+}
+[data-theme="light"] .activity-feed--flush .activity-feed__search,
+[data-theme="light"] .activity-feed--flush .activity-feed__time-range {
+  background: var(--bg-input);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: var(--text-primary);
+}
+[data-theme="light"] .activity-feed--flush .activity-feed__chip {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .activity-feed--flush .activity-feed__icon-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
+[data-theme="light"] .activity-feed--flush .activity-feed__row {
+  border-bottom-color: rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .activity-feed--flush .activity-feed__day-header {
+  background: #ffffff;
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .activity-feed--flush .activity-feed__row-detail {
+  background: rgba(0, 0, 0, 0.02);
+  border-top-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .activity-feed--flush .activity-feed__row-tag {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+[data-theme="light"] .activity-feed--flush .activity-feed__row-data {
+  background: var(--bg-input);
+  border-color: rgba(0, 0, 0, 0.10);
+}
+[data-theme="light"] .activity-feed--flush .activity-feed__list {
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+[data-theme="light"] .activity-feed--flush .activity-feed__list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
 }
 
 /* ─── LLM Manager Panel — Light ─── */

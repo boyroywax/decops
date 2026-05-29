@@ -128,4 +128,35 @@ describe("extractEditorPreviewContent", () => {
         ].join("\n");
         expect(extractEditorPreviewContent(msg)).toBe("# Real File");
     });
+
+    it("recovers content when the model forgets to close a fence inside the marked region", () => {
+        const msg = [
+            EDITOR_DOC_BEGIN,
+            "```json",
+            "{",
+            "  \"nodeId\": \"n-24-1zbc\",",
+            "  \"services\": { \"ping\": true }",
+            "}",
+            // ← missing closing ```
+            EDITOR_DOC_END,
+        ].join("\n");
+        expect(extractEditorPreviewContent(msg)).toBe(
+            "{\n  \"nodeId\": \"n-24-1zbc\",\n  \"services\": { \"ping\": true }\n}",
+        );
+    });
+
+    it("recovers when an earlier block is closed but the trailing block is not", () => {
+        const msg = [
+            EDITOR_DOC_BEGIN,
+            "```md",
+            "# Section A",
+            "```",
+            "```md",
+            "# Section B (unclosed)",
+            EDITOR_DOC_END,
+        ].join("\n");
+        expect(extractEditorPreviewContent(msg)).toBe(
+            "# Section A\n\n# Section B (unclosed)",
+        );
+    });
 });

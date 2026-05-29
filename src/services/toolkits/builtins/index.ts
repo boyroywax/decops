@@ -24,6 +24,7 @@ import { kuboModule } from "@/toolkits/kubo";
 import { orbitdbModule } from "@/toolkits/orbitdb";
 import { orbitdbServerModule } from "@/toolkits/orbitdb-server";
 import { orchestratorModule } from "@/toolkits/orchestrator";
+import { navigatorModule } from "@/toolkits/navigator";
 import { workspaceMgmtModule } from "./workspace-mgmt";
 import { loggingModule } from "./logging";
 import { collectiveMemoryModule } from "./collective-memory";
@@ -57,6 +58,7 @@ export const builtinModules: ToolkitModule[] = [
   orbitdbModule,
   orbitdbServerModule,
   orchestratorModule,
+  navigatorModule,
   workspaceMgmtModule,
   // Capability toolkits
   webCrawlerModule,
@@ -83,6 +85,7 @@ export {
   orbitdbModule,
   orbitdbServerModule,
   orchestratorModule,
+  navigatorModule,
   workspaceMgmtModule,
   webCrawlerModule,
   ocrModule,

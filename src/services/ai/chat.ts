@@ -25,6 +25,13 @@ export interface ChatMessage {
   id?: string;
   role: "user" | "assistant";
   content: string;
+  /** Chat-agent id that authored this message (e.g. "navigator-bot",
+   *  "orchestrator-bot"). Used by the chat UI to tint assistant
+   *  bubbles with the agent's banner color scheme. */
+  agentId?: string;
+  /** Wall-clock time the message was added to its conversation (ms
+   *  epoch). Rendered as "Xm ago" in the message header. */
+  createdAt?: number;
   stopPrompt?: {
     jobId?: string;
     jobName?: string;

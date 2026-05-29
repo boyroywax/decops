@@ -31,7 +31,31 @@ export const createGroupCommand: CommandDefinition = {
         networkId: {
             name: "networkId",
             type: "network",
-            description: "ID of the network this group belongs to",
+            description: "ID of the network this group belongs to (primary/host network for huddles)",
+            required: false,
+        },
+        kind: {
+            name: "kind",
+            type: "string",
+            description: "Group kind: 'native' (default, single-network) or 'huddle' (ad-hoc, cross-network assembly).",
+            required: false,
+        },
+        networkIds: {
+            name: "networkIds",
+            type: "array",
+            description: "For kind='huddle': list of contributing network IDs. Inferred from member networks when omitted.",
+            required: false,
+        },
+        summonedBy: {
+            name: "summonedBy",
+            type: "string",
+            description: "For huddles: who summoned the assembly (e.g. 'navigator', an agent DID, or 'user').",
+            required: false,
+        },
+        topic: {
+            name: "topic",
+            type: "string",
+            description: "For huddles: the goal / topic the assembly is forming around.",
             required: false,
         },
         items: {
@@ -65,7 +89,16 @@ export const createGroupCommand: CommandDefinition = {
         // Normalize: batch items or single spec
         const specs = args.items
             ? (Array.isArray(args.items) ? args.items : [args.items])
-            : [{ name: args.name, members: args.members, governance: args.governance, networkId: args.networkId }];
+            : [{
+                name: args.name,
+                members: args.members,
+                governance: args.governance,
+                networkId: args.networkId,
+                kind: args.kind,
+                networkIds: args.networkIds,
+                summonedBy: args.summonedBy,
+                topic: args.topic,
+            }];
 
         const createdGroups: Group[] = [];
         const allNewChannels: Channel[] = [];
@@ -85,6 +118,27 @@ export const createGroupCommand: CommandDefinition = {
             if (uniqueMembers.length < 2) throw new Error("Group must have at least 2 members");
 
             const specNetworkId = isUnresolvedRef(spec.networkId) ? undefined : spec.networkId;
+            const kind: "native" | "huddle" = spec.kind === "huddle" ? "huddle" : "native";
+
+            // For huddles, infer the contributing network set from members
+            // when the caller didn't specify it explicitly.
+            let networkIds: string[] | undefined;
+            if (kind === "huddle") {
+                if (Array.isArray(spec.networkIds) && spec.networkIds.length > 0) {
+                    networkIds = [...new Set((spec.networkIds as unknown[]).filter((n: unknown): n is string => typeof n === "string" && !!n))];
+                } else {
+                    const inferred = uniqueMembers
+                        .map((mid) => allAgents.find((a) => a.id === mid)?.networkId)
+                        .filter((n): n is string => typeof n === "string" && !!n);
+                    networkIds = [...new Set(inferred)];
+                }
+            }
+
+            const resolvedNetworkId = specNetworkId
+                || (kind === "huddle" ? networkIds?.[0] : undefined)
+                || context.ecosystem?.activeNetworkId
+                || (context.ecosystem?.networks?.length === 1 ? context.ecosystem.networks[0].id : undefined);
+
             const newGroup: Group = {
                 id: crypto.randomUUID(),
                 name,
@@ -94,7 +148,15 @@ export const createGroupCommand: CommandDefinition = {
                 did: generateGroupDID(),
                 color: GROUP_COLORS[(groups.length + createdGroups.length) % GROUP_COLORS.length],
                 createdAt: new Date().toISOString(),
-                networkId: specNetworkId || context.ecosystem?.activeNetworkId || (context.ecosystem?.networks?.length === 1 ? context.ecosystem.networks[0].id : undefined),
+                networkId: resolvedNetworkId,
+                kind,
+                ...(kind === "huddle"
+                    ? {
+                        networkIds: networkIds && networkIds.length > 0 ? networkIds : undefined,
+                        summonedBy: typeof spec.summonedBy === "string" ? spec.summonedBy : "navigator",
+                        topic: typeof spec.topic === "string" ? spec.topic : undefined,
+                    }
+                    : {}),
             };
 
             createdGroups.push(newGroup);

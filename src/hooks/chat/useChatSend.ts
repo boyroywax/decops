@@ -11,6 +11,16 @@ import type { PinnedMention } from "@/hooks/chat/useChatMentions";
 import type { JobStep, Agent, Group } from "@/types";
 import type { ChatAgent } from "@/services/chat/agents";
 
+/**
+ * A real slash command is `/<identifier>[ args]` where the identifier is a
+ * single token of word chars, dots, or dashes. This excludes path-like
+ * inputs (e.g. multiaddrs `/dnsaddr/bootstrap.libp2p.io/p2p/Qm…`, unix
+ * paths `/etc/hosts`, URLs) so they aren't dismissed as "Unknown command".
+ */
+export function isSlashCommand(text: string): boolean {
+    return /^\/[A-Za-z][\w.-]*(\s|$)/.test(text);
+}
+
 type StreamingState = {
     streamingText: string | null;
     streamingToolCalls: ChatMessage["toolCalls"] extends infer T | undefined ? NonNullable<T> : never;
@@ -268,8 +278,8 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
         const mentionPrefix = pinnedMentions
             .map(m => `@${m.name.replace(/\s+/g, "_")}`)
             .join(" ");
-        const startsWithSlash = rawText.startsWith("/");
-        const text = startsWithSlash || !mentionPrefix
+        const isCommand = isSlashCommand(rawText);
+        const text = isCommand || !mentionPrefix
             ? rawText
             : mentionPrefix + (rawText ? ` ${rawText}` : "");
         if (!text.trim()) return;
@@ -303,7 +313,7 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
 
         // Active chat agent routing (Architect, libp2p, …) — first chance to handle the input.
         // Non-slash, non-@mention messages are offered to the active agent's onSubmit.
-        if (activeAgent?.onSubmit && !text.startsWith("/") && !/^@\w/.test(text)) {
+        if (activeAgent?.onSubmit && !isSlashCommand(text) && !/^@\w/.test(text)) {
             try {
                 const controller = new AbortController();
                 abortRef.current = controller;
@@ -372,9 +382,12 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
         }
 
         try {
-            // CLI INTERCEPTION — commands go through arg prompt → job queue
-            if (text.startsWith("/")) {
-                const part1 = text.split(" ")[0];
+            // CLI INTERCEPTION — commands go through arg prompt → job queue.
+            // Only intercept real `/command` identifiers; path/multiaddr-like
+            // inputs (e.g. `/dnsaddr/...`, `/etc/hosts`) fall through to the
+            // normal chat path so they aren't lost as "Unknown command".
+            if (isSlashCommand(text)) {
+                const part1 = text.split(/\s+/)[0];
                 const commandId = part1.slice(1);
                 const argsString = text.slice(part1.length).trim();
 

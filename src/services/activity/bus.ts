@@ -46,6 +46,7 @@ export function matchesFilter(event: ActivityEvent, filter?: ActivityFilter): bo
 export class ActivityBus {
   private buffer: ActivityEvent[] = [];
   private listeners = new Set<{ fn: ActivityListener; filter?: ActivityFilter }>();
+  private removalListeners = new Set<(id: string) => void>();
   private seq = 0;
   private retention: number;
 
@@ -53,15 +54,28 @@ export class ActivityBus {
     this.retention = retention;
   }
 
-  /** Publish an event. Returns the materialised event with id + timestamp. */
+  /**
+   * Publish an event. Returns the materialised event with id + timestamp.
+   *
+   * If `input.id` is provided and a buffered event already carries that id,
+   * the existing entry is removed and the new event is appended — so the
+   * envelope floats to the newest position. This lets long-lived signals
+   * (e.g. a job lifecycle) collapse into a single, in-place-updating row
+   * ordered by the timestamp of its most recent transition.
+   */
   publish(input: ActivityEventInput): ActivityEvent {
     const timestamp = input.timestamp ?? Date.now();
-    const id = input.id ?? `act-${timestamp.toString(36)}-${(this.seq++).toString(36)}`;
+    const providedId = input.id;
+    const id = providedId ?? `act-${timestamp.toString(36)}-${(this.seq++).toString(36)}`;
     const event: ActivityEvent = {
       ...input,
       id,
       timestamp,
     };
+    if (providedId) {
+      const existingIdx = this.buffer.findIndex((e) => e.id === providedId);
+      if (existingIdx !== -1) this.buffer.splice(existingIdx, 1);
+    }
     this.buffer.push(event);
     if (this.buffer.length > this.retention) {
       this.buffer.splice(0, this.buffer.length - this.retention);
@@ -84,6 +98,34 @@ export class ActivityBus {
     this.listeners.add(sub);
     return () => {
       this.listeners.delete(sub);
+    };
+  }
+
+  /**
+   * Remove an event by id. Returns true if a buffered event was dropped.
+   * Removal listeners are notified so subscribers (e.g. useActivityFeed)
+   * can prune their derived state. This is the symmetric counterpart to
+   * the upsert-by-id behaviour of `publish`.
+   */
+  remove(id: string): boolean {
+    const idx = this.buffer.findIndex((e) => e.id === id);
+    if (idx === -1) return false;
+    this.buffer.splice(idx, 1);
+    for (const fn of this.removalListeners) {
+      try {
+        fn(id);
+      } catch {
+        // listener errors must not break the remover
+      }
+    }
+    return true;
+  }
+
+  /** Subscribe to removal notifications; returns an unsubscribe function. */
+  subscribeRemovals(fn: (id: string) => void): () => void {
+    this.removalListeners.add(fn);
+    return () => {
+      this.removalListeners.delete(fn);
     };
   }
 

@@ -10,7 +10,6 @@ import { ChatInputBar } from "@/components/chat/ChatInputBar";
 import { ChatPanelHeader } from "@/components/chat/ChatPanelHeader";
 import { ConversationsList } from "@/components/chat/ConversationsList";
 import { EcosystemPanel } from "@/components/chat/EcosystemPanel";
-import { EcosystemMessagesList } from "@/components/chat/EcosystemMessagesList";
 import type { EcosystemSelection } from "@/components/chat/ecosystemSelection";
 import { useChatMentions } from "@/hooks/chat/useChatMentions";
 import { useChatScroll } from "@/hooks/chat/useChatScroll";
@@ -71,6 +70,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
         active, messages,
         endRef, inputRef, initialScrollDone,
         updateConversation, createNewChat, switchTo, deleteConvo,
+        openAgentDM, openBroadcast,
     } = useConversations(activeWorkspaceId);
 
     const [showMemories, setShowMemories] = useState(false);
@@ -196,9 +196,49 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
         input,
         setInput,
         inputRef,
-        agents: workspaceCtx.agents as Agent[],
-        groups: workspaceCtx.groups as Group[],
+        // Scope mention candidates based on the active conversation.
+        //   • agent DM → only the DM partner can be @mentioned.
+        //   • group broadcast → only members of that group are
+        //     reachable; no cross-group fan-out and no foreign agents.
+        agents: (() => {
+            if (active?.ecosystemKind === "agent-dm") {
+                return (workspaceCtx.agents as Agent[]).filter(a => a.id === active.ecosystemId);
+            }
+            if (active?.ecosystemKind === "broadcast") {
+                const g = (workspaceCtx.groups as Group[]).find(x => x.id === active.ecosystemId);
+                const memberIds = new Set(g?.members ?? []);
+                return (workspaceCtx.agents as Agent[]).filter(a => memberIds.has(a.id));
+            }
+            return workspaceCtx.agents as Agent[];
+        })(),
+        groups: (active?.ecosystemKind === "agent-dm" || active?.ecosystemKind === "broadcast"
+            ? []
+            : (workspaceCtx.groups as Group[])),
     });
+
+    // When an ecosystem agent-DM or group broadcast is selected, replace
+    // the pinned-mention chips with the matching target so the standard
+    // ChatInputBar drives the conversation. P2P / bridge / overview
+    // selections stay read-only and are handled by hiding the input.
+    useEffect(() => {
+        // Functional updaters bail out when the next state is reference-
+        // equal to the previous one; this prevents an infinite render
+        // loop when upstream `workspaceCtx.agents` / `groups` arrays are
+        // re-created on every render.
+        const sameSingle = (prev: typeof pinnedMentions, type: "agent" | "group", id: string, name: string) =>
+            prev.length === 1 && prev[0].type === type && prev[0].id === id && prev[0].name === name;
+        if (active?.ecosystemKind === "agent-dm") {
+            const a = workspaceCtx.agents.find(x => x.id === active.ecosystemId);
+            if (a) setPinnedMentions(prev => sameSingle(prev, "agent", a.id, a.name) ? prev : [{ type: "agent", id: a.id, name: a.name }]);
+            return;
+        }
+        if (active?.ecosystemKind === "broadcast") {
+            const g = workspaceCtx.groups.find(x => x.id === active.ecosystemId);
+            if (g) setPinnedMentions(prev => sameSingle(prev, "group", g.id, g.name) ? prev : [{ type: "group", id: g.id, name: g.name }]);
+            return;
+        }
+        setPinnedMentions(prev => prev.length === 0 ? prev : []);
+    }, [active?.ecosystemKind, active?.ecosystemId, ecosystemSelection, workspaceCtx.agents, workspaceCtx.groups, setPinnedMentions]);
 
     // Determine which ecosystem object to use. 
     // If passed via props, use it. usage of useEcosystem inside ChatPanel would be wrong.
@@ -401,7 +441,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                 ecosystem messages, or chat */}
             {showConvos ? (
                 <ConversationsList
-                    conversations={conversations}
+                    conversations={conversations.filter(c => !c.ecosystemKind)}
                     activeId={activeId}
                     onSwitch={switchTo}
                     onDelete={deleteConvo}
@@ -421,21 +461,33 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                     bridgeMessages={ecosystem?.bridgeMessages || []}
                     selection={ecosystemSelection}
                     onSelect={(sel) => {
+                        // Agent DMs and group broadcasts are backed by
+                        // tagged Conversations: find-or-create the
+                        // matching conversation and route the user into
+                        // the standard chat view. Other ecosystem
+                        // selections (p2p / bridge / overview) remain
+                        // read-only and use the selection state.
+                        if (sel?.kind === "agent-dm") {
+                            const a = workspaceCtx.agents.find(x => x.id === sel.agentId);
+                            if (a) {
+                                setEcosystemSelection(null);
+                                openAgentDM(a.id, a.name);
+                                setShowEcosystem(false);
+                                return;
+                            }
+                        }
+                        if (sel?.kind === "broadcast") {
+                            const g = workspaceCtx.groups.find(x => x.id === sel.groupId);
+                            if (g) {
+                                setEcosystemSelection(null);
+                                openBroadcast(g.id, g.name);
+                                setShowEcosystem(false);
+                                return;
+                            }
+                        }
                         setEcosystemSelection(sel);
                         setShowEcosystem(false);
                     }}
-                />
-            ) : ecosystemSelection ? (
-                <EcosystemMessagesList
-                    selection={ecosystemSelection}
-                    onClear={() => setEcosystemSelection(null)}
-                    agents={workspaceCtx.agents}
-                    channels={workspaceCtx.channels}
-                    groups={workspaceCtx.groups}
-                    messages={workspaceCtx.messages}
-                    networks={ecosystem?.networks || []}
-                    bridges={ecosystem?.bridges || []}
-                    bridgeMessages={ecosystem?.bridgeMessages || []}
                 />
             ) : (
                 /* Chat messages */
@@ -456,8 +508,9 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                 />
             )}
 
-            {/* Input (always visible) */}
-            {!showConvos && !showMemories && !showEcosystem && !ecosystemSelection && (
+            {/* Input (visible for regular chat and for agent-DM /
+                group-broadcast ecosystem selections). */}
+            {!showConvos && !showMemories && !showEcosystem && (
                 <ChatInputBar
                     activeAgent={activeAgent}
                     availableAgents={availableAgents}

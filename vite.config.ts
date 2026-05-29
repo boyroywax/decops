@@ -1,10 +1,12 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import wasm from 'vite-plugin-wasm'
+import topLevelAwait from 'vite-plugin-top-level-await'
 import path from 'path'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     resolve: {
         alias: {
             '@': path.resolve(__dirname, 'src'),
@@ -12,6 +14,11 @@ export default defineConfig({
     },
     plugins: [
         react(),
+        // The wasm + top-level-await plugins are required for the
+        // production browser bundle (didcomm, helia) but interact badly
+        // with vitest's transform pipeline and hang test workers. Skip
+        // them during `vitest` runs — the test setup mocks `didcomm`.
+        ...(mode === 'test' ? [] : [wasm(), topLevelAwait()]),
         VitePWA({
             registerType: 'autoUpdate',
             includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
@@ -42,6 +49,10 @@ export default defineConfig({
                 ]
             },
             workbox: {
+                // didcomm + helia + noble push the main bundle past the
+                // default 2 MiB precache limit. Raise to 8 MiB so the
+                // service-worker manifest includes the full app shell.
+                maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
                 navigateFallback: 'index.html',
                 runtimeCaching: [
@@ -81,6 +92,15 @@ export default defineConfig({
         globals: true,
         environment: 'jsdom',
         setupFiles: './src/test/setup.ts',
+        // The `didcomm` package is a WASM-backed module whose top-level
+        // initialisation hangs vitest's jsdom worker. It is mocked in
+        // src/test/setup.ts; excluding it here prevents the deps optimiser
+        // from trying to pre-bundle the real package.
+        server: {
+            deps: {
+                external: ['didcomm'],
+            },
+        },
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html'],
@@ -102,4 +122,4 @@ export default defineConfig({
         // expected to send the correct Access-Control-* headers themselves;
         // see that ADR for the exact restoration recipe if needed.
     }
-})
+}))

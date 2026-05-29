@@ -35,4 +35,12 @@ export interface Conversation {
     messages: ChatMessage[];
     createdAt: number;
     updatedAt: number;
+    /** When set, this conversation backs an ecosystem chat thread
+     * (agent DM, group broadcast) rather than a general user/LLM chat.
+     * Ecosystem-tagged conversations are hidden from the regular
+     * Conversations list and are opened from the EcosystemPanel. */
+    ecosystemKind?: "agent-dm" | "broadcast";
+    /** Workspace entity id this conversation is bound to: agentId for
+     * "agent-dm", groupId for "broadcast". */
+    ecosystemId?: string;
 }

@@ -9,6 +9,7 @@ import {
   Workflow, Boxes, Server, Database, HardDrive,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
+import { useChatAgentsStore } from "@/services/chat/agents";
 import "../../styles/components/sidebar.css";
 
 interface SidebarProps {
@@ -127,38 +128,48 @@ export function Sidebar({ view, setView, networks, messages, bridgeMessages, age
       className={`app-sidebar ${isMobile ? 'mobile' : ''} ${collapsed && !isMobile ? 'collapsed' : ''}`}
     >
       <div className="sidebar-nav-top">
-        {/* ─── Ecosystem Expandable Menu ─── */}
-        <button
-          onClick={() => {
-            if (collapsed && !isMobile) {
-              setCollapsed(false);
-              setEcoExpanded(true);
-            } else {
-              setEcoExpanded(!ecoExpanded);
+        {/* ─── Ecosystem: label opens Navigator + chat, chevron toggles submenu ─── */}
+        <div className="sidebar-split-row">
+          <button
+            onClick={() => {
+              if (collapsed && !isMobile) {
+                setCollapsed(false);
+              }
+              setView("navigator");
+              useChatAgentsStore.getState().open("navigator-bot");
+            }}
+            title={collapsed && !isMobile ? (ecosystemName || "Ecosystem") : undefined}
+            className={`sidebar-nav-item sidebar-split-row__main sidebar-eco-toggle ${view === "navigator" || ECOSYSTEM_VIEWS.has(view) ? 'active' : ''}`}
+            data-accent="accent"
+          >
+            {(view === "navigator" || ECOSYSTEM_VIEWS.has(view))
+              ? <GradientIcon icon={Layers} size={14} gradient={["#00e5a0", "#38bdf8"]} />
+              : <Layers size={14} />
             }
-          }}
-          title={collapsed && !isMobile ? (ecosystemName || "Ecosystem") : undefined}
-          className={`sidebar-nav-item sidebar-eco-toggle ${ECOSYSTEM_VIEWS.has(view) ? 'active' : ''}`}
-          data-accent="accent"
-        >
-          {ECOSYSTEM_VIEWS.has(view)
-            ? <GradientIcon icon={Layers} size={14} gradient={["#00e5a0", "#38bdf8"]} />
-            : <Layers size={14} />
-          }
-          {collapsed && !isMobile && (
-            <>
-              {(networks.length + agents.length + channels.length + groups.length) > 0 && (
-                <span className="sidebar-badge accent">{networks.length + agents.length + channels.length + groups.length}</span>
-              )}
-            </>
-          )}
-          {(!collapsed || isMobile) && (
-            <>
+            {collapsed && !isMobile && (
+              <>
+                {(networks.length + agents.length + channels.length + groups.length) > 0 && (
+                  <span className="sidebar-badge accent">{networks.length + agents.length + channels.length + groups.length}</span>
+                )}
+              </>
+            )}
+            {(!collapsed || isMobile) && (
               <span className="sidebar-eco-name">{ecosystemName || "Ecosystem"}</span>
+            )}
+          </button>
+          {(!collapsed || isMobile) && (
+            <button
+              type="button"
+              onClick={() => setEcoExpanded((v) => !v)}
+              className="sidebar-split-row__chevron"
+              title={ecoExpanded ? "Collapse ecosystem" : "Expand ecosystem"}
+              aria-expanded={ecoExpanded}
+              aria-label={ecoExpanded ? "Collapse ecosystem" : "Expand ecosystem"}
+            >
               <ChevronDown size={12} className={`sidebar-eco-chevron${ecoExpanded ? ' sidebar-eco-chevron--open' : ''}`} />
-            </>
+            </button>
           )}
-        </button>
+        </div>
 
         {/* ─── Ecosystem Sub-items ─── */}
         {ecoExpanded && (!collapsed || isMobile) && (

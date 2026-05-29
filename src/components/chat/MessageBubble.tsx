@@ -8,6 +8,7 @@ import { JobProgressCard } from "./JobProgressCard";
 import { MarkdownContent } from "@/components/shared/MarkdownContent";
 import { useJobsContext } from "@/context/JobsContext";
 import { useArchitectContext, ArchitectInlinePanel } from "@/toolkits/architect";
+import { useChatAgentsStore } from "@/services/chat/agents";
 import type { ViewId } from "@/types";
 import { CheckCircle, AlertTriangle, Wrench, Loader, FileText } from "lucide-react";
 import "../../styles/components/message-bubble.css";
@@ -26,6 +27,19 @@ function extractArtifactIds(result: any): string[] {
     if (result.result && Array.isArray(result.result.artifactIds)) return result.result.artifactIds;
     if (result.jobResult && Array.isArray(result.jobResult.artifactIds)) return result.jobResult.artifactIds;
     return [];
+}
+
+/** Compact relative timestamp for the bubble meta header. */
+function formatTimeSince(ts: number): string {
+    const diffMs = Date.now() - ts;
+    if (diffMs < 45_000) return "just now";
+    const mins = Math.round(diffMs / 60_000);
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.round(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(ts).toLocaleDateString();
 }
 
 function ToolCallCard({ tc }: { tc: NonNullable<ChatMessage["toolCalls"]>[number] }) {
@@ -105,6 +119,15 @@ export default function MessageBubble({ msg, context, setView, isStreaming, onSt
     const [isOlderCounterAnimating, setIsOlderCounterAnimating] = useState(false);
     const previousOlderCountRef = useRef<number>(0);
 
+    // Resolve the chat agent that authored this message so we can tint
+    // the bubble in its banner color scheme. We deliberately do NOT fall
+    // back to the currently active agent — that would re-theme prior
+    // bubbles whenever the operator switches bots. Messages are stamped
+    // with `agentId` at persistence time in useConversations.
+    const agentMap = useChatAgentsStore((s) => s.agents);
+    const resolvedAgentId = !isUser ? msg.agentId : undefined;
+    const themedAgent = resolvedAgentId ? agentMap[resolvedAgentId] : undefined;
+
     const orderedJobIds = useMemo(() => {
         if (!msg.jobIds || msg.jobIds.length === 0) return [] as string[];
         const seen = new Set<string>();
@@ -173,7 +196,31 @@ export default function MessageBubble({ msg, context, setView, isStreaming, onSt
 
     return (
         <div className={`mb-row ${isUser ? "mb-row--user" : "mb-row--assistant"}`}>
-            <div className={`mb-bubble ${isUser ? "mb-bubble--user" : "mb-bubble--assistant"}${isStreaming ? " mb-bubble--streaming" : ""}`}>
+            <div
+                className={`mb-bubble ${isUser ? "mb-bubble--user" : "mb-bubble--assistant"}${isStreaming ? " mb-bubble--streaming" : ""}${themedAgent ? " mb-bubble--themed" : ""}`}
+                data-agent-id={themedAgent?.id}
+                style={themedAgent?.gradient ? {
+                    // Banner color scheme → bubble tint. The CSS rules in
+                    // message-bubble.css use these custom properties to draw
+                    // the accent border + soft background gradient.
+                    ["--mb-agent-start" as any]: themedAgent.gradient[0],
+                    ["--mb-agent-end" as any]: themedAgent.gradient[1],
+                } : undefined}
+            >
+                {(themedAgent || msg.createdAt) && !isUser ? (
+                    <div className="mb-bubble__meta" aria-hidden={false}>
+                        {themedAgent ? (
+                            <span className="mb-bubble__author" title={themedAgent.description}>
+                                {themedAgent.name}
+                            </span>
+                        ) : null}
+                        {msg.createdAt ? (
+                            <span className="mb-bubble__time" title={new Date(msg.createdAt).toLocaleString()}>
+                                {formatTimeSince(msg.createdAt)}
+                            </span>
+                        ) : null}
+                    </div>
+                ) : null}
                 {msg.architectCard ? (
                     <ArchitectInlinePanel
                         archPrompt={canUseLiveArchitect ? architect.archPrompt : msg.architectCard.prompt}

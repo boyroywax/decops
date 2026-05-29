@@ -138,6 +138,7 @@ export function ChatMessageList({
             content: streamState.streamingText || "",
             toolCalls: streamState.streamingToolCalls.length > 0 ? streamState.streamingToolCalls : undefined,
             jobIds: streamState.streamingToolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!),
+            agentId: activeAgent?.id,
           }}
           context={context}
           setView={setView}

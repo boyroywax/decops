@@ -24,7 +24,7 @@
  */
 
 import { useEffect } from "react";
-import { Bot, Boxes, Database, HardDrive, Network, Server, Waypoints } from "lucide-react";
+import { Bot, Boxes, Compass, Database, HardDrive, Network, Server, Waypoints } from "lucide-react";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import { Libp2pChatBanner } from "./libp2p/components/Libp2pChatBanner";
 import { HeliaChatBanner } from "./helia/components/HeliaChatBanner";
@@ -32,6 +32,7 @@ import { KuboChatBanner } from "./kubo/components/KuboChatBanner";
 import { OrbitdbChatBanner } from "./orbitdb/components/OrbitdbChatBanner";
 import { OrbitdbServerChatBanner } from "./orbitdb-server/components/OrbitdbServerChatBanner";
 import { OrchestratorChatBanner } from "./orchestrator/components/OrchestratorChatBanner";
+import { NavigatorChatBanner } from "./navigator/components/NavigatorChatBanner";
 
 // ── Step 1: Bot chat-delegation registration (must run before any chat) ──
 import "./studio/studioBot";
@@ -41,6 +42,7 @@ import "./kubo/kuboBot";
 import "./orbitdb/orbitdbBot";
 import "./orbitdb-server/orbitdbServerBot";
 import "./orchestrator/orchestratorBot";
+import "./navigator/navigatorBot";
 
 // ── Step 2: Toolkit UI registration ──
 import "./studio/register";
@@ -51,6 +53,7 @@ import "./kubo/register";
 import "./orbitdb/register";
 import "./orbitdb-server/register";
 import "./orchestrator/register";
+import "./navigator/register";
 import "./architect/register";
 
 /**
@@ -223,6 +226,33 @@ export function useToolkitChatAgents(): void {
                     { label: "Reconcile", prompt: "Reconcile the active stack against its linked manifest and report drift" },
                     { label: "Save current state", prompt: "Snapshot the current L.O.H.K state into a new manifest artifact" },
                     { label: "List manifests", prompt: "List the manifest artifacts available in the workspace" },
+                ],
+            }),
+        );
+
+        // Navigator chat agent — captures prompts as goals and routes them
+        // across the ecosystem, summoning huddles where needed.
+        disposers.push(
+            useChatAgentsStore.getState().register({
+                id: "navigator-bot",
+                name: "Navigator",
+                description:
+                    "Turns a prompt into a goal, decomposes it into sub-goals, and summons cross-network huddles. Bot-to-bot traffic is wrapped in DIDComm v2.",
+                icon: Compass,
+                gradient: ["#22d3ee", "#6366f1"],
+                banner: NavigatorChatBanner,
+                placeholder:
+                    "Tell the navigator what to accomplish (it will plan, route, and summon huddles)…",
+                toolkitIds: ["navigator", "infrastructure", "agent-management", "ecosystem", "jobs"],
+                workspace: {
+                    view: "navigator",
+                    sideChatFooterPanel: "none",
+                },
+                quickActions: [
+                    { label: "Plan a goal", prompt: "Capture this goal and decompose it: investigate cross-network drift and propose corrective sub-goals." },
+                    { label: "Summon a huddle", prompt: "Summon a 4-agent cross-network huddle to debate the active goal." },
+                    { label: "Status", prompt: "Report the status of the active navigator goal and its huddles." },
+                    { label: "Cancel active goal", prompt: "Cancel the active navigator goal." },
                 ],
             }),
         );
