@@ -8,6 +8,7 @@ export const queueNewJobCommand: CommandDefinition = {
     description: "Adds a new job to the execution queue. Supports single-command or multi-step jobs with deliverables and shared storage.",
     tags: ["job", "system"],
     rbac: ["orchestrator", "builder", "researcher"],
+    spawnsChildJobs: true,
     args: {
         type: { name: "type", type: "string", description: "Command ID to run (or job name for multi-step)", required: true },
         request: { name: "request", type: "object", description: "Arguments for the command", required: true, defaultValue: {} },

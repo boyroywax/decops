@@ -106,7 +106,7 @@ export interface UseChatSendOptions {
 }
 
 export interface UseChatSendResult {
-    send: () => Promise<void>;
+    send: (textOverride?: string) => Promise<void>;
     stopStreaming: () => void;
     handleStopPromptAction: (
         choice: "finish" | "stop" | "stop-and-job",
@@ -267,15 +267,17 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
         updateConversation(convoId, successMsg);
     }, [jobs, addLog, updateConversation]);
 
-    const send = useCallback(async () => {
-        const rawText = input.trim();
+    const send = useCallback(async (textOverride?: string) => {
+        const rawText = (typeof textOverride === "string" ? textOverride : input).trim();
         if (!rawText && pinnedMentions.length === 0) return;
         if (loading) return;
         // Combine pinned-mention chips with the typed text so the existing
         // `@name` resolution logic downstream picks them up. Chips are NOT
         // cleared on send — they persist into the next prompt unless the
         // user removes them via the chip's `×` button.
-        const mentionPrefix = pinnedMentions
+        const mentionPrefix = textOverride
+            ? ""
+            : pinnedMentions
             .map(m => `@${m.name.replace(/\s+/g, "_")}`)
             .join(" ");
         const isCommand = isSlashCommand(rawText);
@@ -286,7 +288,7 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
         const runId = ++runCounterRef.current;
         activeRunIdRef.current = runId;
         cancelledRunIdRef.current = null;
-        setInput("");
+        if (!textOverride) setInput("");
         setMentionQuery(null);
 
         // Auto-create conversation if none active

@@ -38,6 +38,7 @@ import {
   getCommandIdsForAgent,
   getUnmigratedToolkitsForAgentTools,
 } from "./toolSurface";
+import { perfLog } from "@/services/perf";
 
 // Re-export for backward compatibility — external callers still import these
 // from "@/services/commands/tools". §3.6.
@@ -130,6 +131,13 @@ export async function executeToolCall(
           : undefined;
       const result = jobId ? await watchChildJob(jobId, resolveToolTimeout(toolName)) : queued;
       const duration_ms = Math.round(performance.now() - start);
+      perfLog("commands.execute_tool_call", {
+        toolName,
+        mode: "direct-tool-command",
+        durationMs: duration_ms,
+        timeoutMs: resolveToolTimeout(toolName),
+        hasJobId: !!jobId,
+      });
       return {
         tool_use_id: toolUseId,
         name: toolName,
@@ -149,6 +157,13 @@ export async function executeToolCall(
         resolveToolTimeout(toolName),
       );
       const duration_ms = Math.round(performance.now() - start);
+      perfLog("commands.execute_tool_call", {
+        toolName,
+        mode: "auto-wrap",
+        durationMs: duration_ms,
+        timeoutMs: resolveToolTimeout(toolName),
+        hasJobId: !!jobId,
+      });
       return {
         tool_use_id: toolUseId,
         name: toolName,
@@ -171,6 +186,13 @@ export async function executeToolCall(
       // Fallback: if addJob didn't return a job (shouldn't happen), execute directly
       const result = await registry.execute(toolName, toolInput, context);
       const duration_ms = Math.round(performance.now() - start);
+      perfLog("commands.execute_tool_call", {
+        toolName,
+        mode: "direct-registry-fallback",
+        durationMs: duration_ms,
+        timeoutMs: resolveToolTimeout(toolName),
+        hasJobId: false,
+      });
       return {
         tool_use_id: toolUseId,
         name: toolName,
@@ -197,6 +219,13 @@ export async function executeToolCall(
     });
 
     const duration_ms = Math.round(performance.now() - start);
+    perfLog("commands.execute_tool_call", {
+      toolName,
+      mode: "job-bridge",
+      durationMs: duration_ms,
+      timeoutMs: resolveToolTimeout(toolName),
+      hasJobId: !!jobId,
+    });
 
     return {
       tool_use_id: toolUseId,
@@ -209,6 +238,13 @@ export async function executeToolCall(
   } catch (err) {
     const duration_ms = Math.round(performance.now() - start);
     const errorMsg = err instanceof Error ? err.message : String(err);
+    perfLog("commands.execute_tool_call", {
+      toolName,
+      mode: "error",
+      durationMs: duration_ms,
+      timeoutMs: resolveToolTimeout(toolName),
+      error: errorMsg,
+    });
 
     return {
       tool_use_id: toolUseId,

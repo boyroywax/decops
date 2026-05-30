@@ -358,6 +358,43 @@
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
 }
 
+/* Inline assistant feedback/retry controls */
+.chat-message-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 3px 0 8px 10px;
+  opacity: 0.75;
+}
+
+.chat-message-actions__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted, rgba(255, 255, 255, 0.45));
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.chat-message-actions__btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.chat-message-actions__btn--active {
+  color: #00e5a0;
+}
+
+.chat-message-actions__btn:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
 .job-progress-section__counter--success {
   color: #34d399;
   border-color: rgba(52, 211, 153, 0.9);

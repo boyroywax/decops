@@ -6,7 +6,8 @@
  * sub-goals and start work on individual sub-goals directly.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Compass, Target, Users, Trash2, Plus, Play } from "lucide-react";
+import { Compass, Target, Users, Trash2, Plus, Play, X } from "lucide-react";
+import { GradientIcon } from "@/components/shared/GradientIcon";
 import { navigatorService } from "../service";
 import type { NavigatorSnapshot, NavigatorGoal, NavigatorHuddle, NavigatorSubgoal } from "../types";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
@@ -22,7 +23,7 @@ function HuddleCard({ huddle }: { huddle: NavigatorHuddle }) {
   return (
     <div className="navigator-huddle">
       <div className="navigator-huddle__head">
-        <Users size={12} />
+        <Users size={13} />
         <span className="navigator-huddle__title">Huddle</span>
         <StatusPill status={huddle.status} />
       </div>
@@ -155,7 +156,7 @@ function GoalCard({ goal, huddles, agents, isActive, onSelect, onCancel, onRemov
   return (
     <div className={`navigator-goal ${isActive ? "navigator-goal--active" : ""}`} onClick={onSelect}>
       <div className="navigator-goal__head">
-        <Target size={12} />
+        <Target size={14} className="navigator-goal__head-icon" />
         <span className="navigator-goal__title">{goal.title}</span>
         <StatusPill status={goal.status} />
         <button
@@ -164,19 +165,20 @@ function GoalCard({ goal, huddles, agents, isActive, onSelect, onCancel, onRemov
           onClick={(e) => { e.stopPropagation(); onCancel(); }}
           disabled={goal.status === "cancelled" || goal.status === "completed"}
         >
-          ✕
+          <X size={12} />
         </button>
         <button
           className="navigator-goal__btn"
           title="Remove from list"
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
         >
-          <Trash2 size={11} />
+          <Trash2 size={12} />
         </button>
       </div>
-      <div className="navigator-goal__prompt">{goal.prompt}</div>
+      <p className="navigator-goal__prompt">{goal.prompt}</p>
       <div className="navigator-goal__meta">
-        {goal.subgoals.length} sub-goal(s) · thid {goal.thid.slice(0, 8)}
+        <span>{goal.subgoals.length} sub-goal(s)</span>
+        <span>thid {goal.thid.slice(0, 8)}</span>
       </div>
       {goal.subgoals.length > 0 ? (
         <ul className="navigator-goal__subgoals">
@@ -255,20 +257,31 @@ export function NavigatorView() {
   };
 
   return (
-    <div className="navigator-view">
-      <header className="navigator-view__header">
-        <Compass size={16} />
-        <h2>Navigator</h2>
-        <span className="navigator-view__sub">
+    <div className="navigator-root">
+      <div className="navigator-header">
+        <div className="navigator-header-left">
+          <h2 className="navigator-title">
+            <GradientIcon icon={Compass} size={20} gradient={["#22d3ee", "#3b82f6"]} />
+            Navigator
+          </h2>
+          <p className="navigator-subtitle">
+            Plan goals, break them into sub-goals, and dispatch work to agents or huddles.
+          </p>
+        </div>
+        <span className="navigator-stats">
           {snap.goals.length} goal(s) · {snap.huddles.length} huddle(s)
         </span>
-      </header>
+      </div>
       {snap.goals.length === 0 ? (
-        <div className="navigator-view__empty">
-          <p>No goals yet. Open the chat panel and ask the Navigator to accomplish something.</p>
+        <div className="navigator-empty">
+          <Compass size={28} className="navigator-empty__icon" />
+          <div className="navigator-empty__title">No goals yet</div>
+          <p className="navigator-empty__desc">
+            Open the chat panel and ask the Navigator to accomplish something. Sub-goals and huddles will appear here.
+          </p>
         </div>
       ) : (
-        <div className="navigator-view__list">
+        <div className="navigator-list">
           {snap.goals.map((g) => (
             <GoalCard
               key={g.id}

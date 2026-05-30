@@ -36,29 +36,58 @@ export function useJobs() {
 
     // ── Boot-time reconciliation ─────────────────────────────
     // Jobs marked "running" cannot survive a page reload — the executor's
-    // in-memory promise is gone. Without this, any libp2p_*/studio_*/… job
-    // stuck "running" at unload time would keep the toolkit `busy` gates
-    // permanently true (Start node / identity buttons greyed out forever).
-    // Mark them failed once on first mount so the UI is recoverable.
+    // in-memory promise is gone. Queued jobs are also problematic on reload:
+    // they auto-start immediately on boot, which can replay stale inspector
+    // commands (e.g. list_queued_jobs) and flood chat/activity output.
+    //
+    // Boot policy:
+    // - running  -> failed (always)
+    // - queued   -> failed by default (unless request.resumeOnReload === true)
+    //
+    // This makes session restore safe/noisy-command-proof while preserving
+    // an explicit escape hatch for truly resumable queued work.
     useEffect(() => {
         setJobs((prev) => {
-            const hasStale = prev.some((j) => j.status === "running");
+            const isResumableQueued = (j: Job) =>
+                j.status === "queued" && j.request?.resumeOnReload === true;
+            const hasStale = prev.some((j) =>
+                j.status === "running" || (j.status === "queued" && !isResumableQueued(j))
+            );
             const oversized = prev.length > MAX_PERSISTED_JOBS;
             if (!hasStale && !oversized) return prev;
             const now = Date.now();
             const fixed = prev.map((job) => {
-                if (job.status !== "running") return job;
+                if (job.status === "running") {
+                    return {
+                        ...job,
+                        status: "failed",
+                        result: "Interrupted by page reload",
+                        pendingPrompt: undefined,
+                        updatedAt: now,
+                        completedAt: now,
+                        timeline: pushEvent(job.timeline, {
+                            kind: "failed",
+                            label: "Interrupted by page reload",
+                        }),
+                    } as Job;
+                }
+                if (job.status === "queued" && !isResumableQueued(job)) {
+                    return {
+                        ...job,
+                        status: "failed",
+                        result: "Dropped on page reload (not marked resumable)",
+                        pendingPrompt: undefined,
+                        updatedAt: now,
+                        completedAt: now,
+                        timeline: pushEvent(job.timeline, {
+                            kind: "failed",
+                            label: "Dropped on page reload",
+                        }),
+                    } as Job;
+                }
                 return {
                     ...job,
-                    status: "failed",
-                    result: "Interrupted by page reload",
-                    pendingPrompt: undefined,
-                    updatedAt: now,
-                    completedAt: now,
-                    timeline: pushEvent(job.timeline, {
-                        kind: "failed",
-                        label: "Interrupted by page reload",
-                    }),
+                    // untouched (awaiting-input, completed, failed, or resumable queued)
                 } as Job;
             });
             return trimJobs(fixed);

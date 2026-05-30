@@ -23,7 +23,7 @@ interface ChatInputBarProps {
     loading: boolean;
     isReady: boolean;
     streamState: StreamStateLike;
-    send: () => void;
+    send: (textOverride?: string) => void;
     stopStreaming: () => void;
 
     // Mentions
@@ -172,7 +172,7 @@ export function ChatInputBar({
                     ><Square size={14} /></button>
                 ) : (
                     <button
-                        onClick={send}
+                        onClick={() => send()}
                         disabled={!input.trim() && pinnedMentions.length === 0}
                         className={`chat-panel__send-btn${isReady ? " chat-panel__send-btn--ready" : ""}`}
                         data-testid="chat-panel-send"

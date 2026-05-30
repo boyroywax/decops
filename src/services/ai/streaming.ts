@@ -15,7 +15,7 @@ import { getModelProvider } from "./providers";
 import { getChatDelegation } from "./delegation";
 import { runChatTurn } from "./runner";
 import type { ChatTurnMessage } from "./runner";
-import { recallCollectiveMemory } from "@/services/collectiveMemory";
+import { retrieveWorkspaceContext } from "@/services/rag/retrieval";
 
 // Re-export the SSE parser so any external caller importing it from this
 // module continues to work after the move into sse.ts.
@@ -65,23 +65,22 @@ export async function streamChatWithWorkspace(
     Array.isArray(toolkitIds) &&
     toolkitIds.length > 0 &&
     !toolkitIds.includes("collective-memory");
-  let recalledMemory: ReturnType<typeof recallCollectiveMemory> = [];
-  if (!isDarkAgent) {
-    try {
-      recalledMemory = recallCollectiveMemory({
-        query: userMessage,
-        limit: 5,
-        includeGlobal: true,
-      });
-    } catch {
-      // Recall failures must never break a chat turn.
-      recalledMemory = [];
-    }
+  let recalledMemory: ReturnType<typeof import("@/services/collectiveMemory").recallCollectiveMemory> = [];
+  let ragContext = "";
+  try {
+    const retrieved = await retrieveWorkspaceContext(userMessage, ctx, { isDarkAgent });
+    recalledMemory = retrieved.recalledMemory;
+    ragContext = retrieved.ragContext;
+  } catch {
+    // Retrieval failures must never break a chat turn.
+    recalledMemory = [];
+    ragContext = "";
   }
 
   let systemPrompt = buildWorkspaceSystemPrompt(ctx, {
     recalledMemory,
     isDarkAgent,
+    ragContext,
   });
 
   // Pluggable delegation — toolkits can augment the system prompt and

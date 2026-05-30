@@ -1,5 +1,6 @@
+import { useMemo, useState } from "react";
 import type { RefObject } from "react";
-import { Eye, MessageCircle } from "lucide-react";
+import { Eye, MessageCircle, ThumbsDown, ThumbsUp, RotateCcw } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";
@@ -37,6 +38,7 @@ interface ChatMessageListProps {
 
   streamState: StreamStateLike;
   endRef: RefObject<HTMLDivElement | null>;
+  send: (textOverride?: string) => void;
 }
 
 /**
@@ -59,7 +61,28 @@ export function ChatMessageList({
   proposeEdit,
   streamState,
   endRef,
+  send,
 }: ChatMessageListProps) {
+  const [feedbackByMessageIdx, setFeedbackByMessageIdx] = useState<Record<number, "up" | "down" | null>>({});
+
+  const retrySourceByAssistantIdx = useMemo(() => {
+    const map: Record<number, string | null> = {};
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      if (msg.role !== "assistant" || msg.systemNotice) continue;
+      let source: string | null = null;
+      for (let j = i - 1; j >= 0; j--) {
+        const prior = messages[j];
+        if (prior.role === "user" && !prior.systemNotice && prior.content.trim()) {
+          source = prior.content;
+          break;
+        }
+      }
+      map[i] = source;
+    }
+    return map;
+  }, [messages]);
+
   return (
     <div className="chat-panel__messages" data-testid="chat-panel-messages">
       <ChatAgentBanner />
@@ -116,6 +139,48 @@ export function ChatMessageList({
             </div>
           ) : (
             <MessageBubble msg={m} context={context} setView={setView} onStopPromptAction={handleStopPromptAction} />
+          )}
+          {!m.systemNotice && m.role === "assistant" && !loading && (
+            <div className="chat-message-actions" aria-label="Message feedback and retry actions">
+              <button
+                type="button"
+                className={`chat-message-actions__btn${feedbackByMessageIdx[i] === "up" ? " chat-message-actions__btn--active" : ""}`}
+                onClick={() => setFeedbackByMessageIdx(prev => ({
+                  ...prev,
+                  [i]: prev[i] === "up" ? null : "up",
+                }))}
+                title="Thumbs up"
+                aria-label="Thumbs up"
+              >
+                <ThumbsUp size={11} />
+              </button>
+              <button
+                type="button"
+                className={`chat-message-actions__btn${feedbackByMessageIdx[i] === "down" ? " chat-message-actions__btn--active" : ""}`}
+                onClick={() => setFeedbackByMessageIdx(prev => ({
+                  ...prev,
+                  [i]: prev[i] === "down" ? null : "down",
+                }))}
+                title="Thumbs down"
+                aria-label="Thumbs down"
+              >
+                <ThumbsDown size={11} />
+              </button>
+              <button
+                type="button"
+                className="chat-message-actions__btn"
+                onClick={() => {
+                  const source = retrySourceByAssistantIdx[i];
+                  if (!source || loading) return;
+                  send(source);
+                }}
+                disabled={!retrySourceByAssistantIdx[i] || loading}
+                title="Retry this prompt"
+                aria-label="Retry prompt"
+              >
+                <RotateCcw size={11} />
+              </button>
+            </div>
           )}
           {editorActive && editorApi && m.role === "assistant" && !!extractEditorPreviewContent(m.content) && (
             <button

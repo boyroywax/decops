@@ -41,6 +41,7 @@ import {
 } from "./providers";
 import type { ToolUseBlock, ProviderMessage } from "./providers";
 import { parseAnthropicSSE, parseOpenAISSE } from "./sse";
+import { perfLog, perfNow } from "@/services/perf";
 
 // ── Public types ──────────────────────────────────────────────────────────
 
@@ -168,6 +169,7 @@ export async function runChatTurn(
   options: ChatRunOptions,
   callbacks: ChatRunCallbacks = {},
 ): Promise<ChatRunResult> {
+  const turnStart = perfNow();
   const {
     model,
     systemPrompt,
@@ -238,7 +240,21 @@ export async function runChatTurn(
 
   try {
     for (let round = 0; round < maxRounds; round++) {
+      const roundStart = perfNow();
+      let firstTokenMs: number | null = null;
+      const roundOnToken = (token: string): void => {
+        if (firstTokenMs === null) firstTokenMs = Math.round(perfNow() - roundStart);
+        callbacks.onToken?.(token);
+      };
+
       if (callbacks.signal?.aborted) {
+        perfLog("ai.run_chat_turn.abort", {
+          model,
+          provider,
+          round,
+          totalDurationMs: Math.round(perfNow() - turnStart),
+          toolCallCount: allToolCalls.length,
+        });
         return { text: fullText, toolCalls: allToolCalls, reason: "aborted" };
       }
 
@@ -280,7 +296,7 @@ export async function runChatTurn(
           {
             onText: (token) => {
               roundText += token;
-              callbacks.onToken?.(token);
+              roundOnToken(token);
             },
             onToolUseStart: (block) => {
               callbacks.onToolCallStart?.(block.name, {});
@@ -324,7 +340,7 @@ export async function runChatTurn(
             {
               onText: (delta) => {
                 roundText += delta;
-                callbacks.onToken?.(delta);
+                roundOnToken(delta);
               },
               onToolUseStart: (block) => {
                 callbacks.onToolCallStart?.(block.name, {});
@@ -365,6 +381,9 @@ export async function runChatTurn(
           // For the non-streaming path, emit synthetic chunks so the UI can
           // still show progressive typing.
           await emitSyntheticTokenChunks(roundText, callbacks);
+          if (roundText && firstTokenMs === null) {
+            firstTokenMs = Math.round(perfNow() - roundStart);
+          }
 
           rawAssistantContent = provider === "openai" || provider === "openrouter"
             ? data.choices?.[0]?.message?.tool_calls
@@ -403,6 +422,23 @@ export async function runChatTurn(
 
         if (roundText) fullText += roundText;
         callbacks.onRoundEnd?.(round);
+        perfLog("ai.run_chat_turn.round", {
+          model,
+          provider,
+          round,
+          toolUseBlocks: 0,
+          roundTextLength: roundText.length,
+          firstTokenMs,
+          roundDurationMs: Math.round(perfNow() - roundStart),
+        });
+        perfLog("ai.run_chat_turn.complete", {
+          model,
+          provider,
+          reason: "end_turn",
+          roundsUsed: round + 1,
+          toolCallCount: allToolCalls.length,
+          totalDurationMs: Math.round(perfNow() - turnStart),
+        });
         return {
           text: fullText,
           toolCalls: allToolCalls,
@@ -412,6 +448,14 @@ export async function runChatTurn(
 
       // ───── Execute tools ─────
       if (!commandContext) {
+        perfLog("ai.run_chat_turn.complete", {
+          model,
+          provider,
+          reason: "no_command_context",
+          roundsUsed: round + 1,
+          toolCallCount: allToolCalls.length,
+          totalDurationMs: Math.round(perfNow() - turnStart),
+        });
         // Defensive: the model asked for tools but we have no context.
         return {
           text: fullText || "[No command context available]",
@@ -507,10 +551,27 @@ export async function runChatTurn(
       }
 
       if (roundText) fullText += "\n\n";
+      perfLog("ai.run_chat_turn.round", {
+        model,
+        provider,
+        round,
+        toolUseBlocks: toolUseBlocks.length,
+        roundTextLength: roundText.length,
+        firstTokenMs,
+        roundDurationMs: Math.round(perfNow() - roundStart),
+      });
       callbacks.onRoundEnd?.(round);
       // Loop continues to next round so the model can react to tool results.
     }
 
+    perfLog("ai.run_chat_turn.complete", {
+      model,
+      provider,
+      reason: "max_rounds",
+      roundsUsed: maxRounds,
+      toolCallCount: allToolCalls.length,
+      totalDurationMs: Math.round(perfNow() - turnStart),
+    });
     return {
       text: fullText || "[Tool call loop limit reached]",
       toolCalls: allToolCalls,
@@ -518,12 +579,35 @@ export async function runChatTurn(
     };
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
+      perfLog("ai.run_chat_turn.complete", {
+        model,
+        provider,
+        reason: "aborted",
+        toolCallCount: allToolCalls.length,
+        totalDurationMs: Math.round(perfNow() - turnStart),
+      });
       return { text: fullText || "[Cancelled]", toolCalls: allToolCalls, reason: "aborted" };
     }
     const msg = err instanceof Error ? err.message : String(err);
     if (isMissingKeyError(msg)) {
+      perfLog("ai.run_chat_turn.complete", {
+        model,
+        provider,
+        reason: "error",
+        error: msg,
+        toolCallCount: allToolCalls.length,
+        totalDurationMs: Math.round(perfNow() - turnStart),
+      });
       return { text: missingKeyMessage(), toolCalls: allToolCalls, reason: "error", error: msg };
     }
+    perfLog("ai.run_chat_turn.complete", {
+      model,
+      provider,
+      reason: "error",
+      error: msg,
+      toolCallCount: allToolCalls.length,
+      totalDurationMs: Math.round(perfNow() - turnStart),
+    });
     return {
       text: fullText || `[Chat error: ${msg}]`,
       toolCalls: allToolCalls,

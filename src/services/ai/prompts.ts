@@ -10,6 +10,11 @@ import type { Libp2pSnapshot } from "@/toolkits/libp2p";
 import type { HeliaSnapshot } from "@/toolkits/helia";
 import type { OrbitdbSnapshot } from "@/toolkits/orbitdb";
 import type { CollectiveMemoryEntry } from "@/services/collectiveMemory";
+import {
+  buildToolkitUsageGuide,
+  JOB_CREATION_PLAYBOOK,
+  WORKSPACE_RAG_PLAYBOOK,
+} from "./toolUsagePlaybook";
 
 /** Live snapshot of the workspace's p2p runtime singletons.
  *  Built from libp2pService / heliaService / orbitdbService and injected
@@ -22,6 +27,7 @@ export interface WorkspaceP2PContext {
 }
 
 export interface WorkspaceContext {
+  workspaceId?: string;
   agents: Agent[];
   channels: Channel[];
   groups: Group[];
@@ -83,7 +89,7 @@ ${orbLines}`;
 
 export function buildWorkspaceSystemPrompt(
   ctx: WorkspaceContext,
-  opts: { recalledMemory?: CollectiveMemoryEntry[]; isDarkAgent?: boolean } = {},
+  opts: { recalledMemory?: CollectiveMemoryEntry[]; isDarkAgent?: boolean; ragContext?: string } = {},
 ): string {
   const agentSummary = ctx.agents.length > 0
     ? ctx.agents.map(a => `  - "${a.name}" (${a.role}, DID: ${a.did.slice(0, 24)}…)`).join("\n")
@@ -143,6 +149,18 @@ export function buildWorkspaceSystemPrompt(
   const toolkitCatalog = availableToolkits
     .map(t => `  - "${t.id}" (${t.name}): ${t.commands.length} commands — ${t.description.slice(0, 80)}`)
     .join("\n");
+  const playbookToolkitIds = [
+    "jobs",
+    "workspace-rag",
+    "agent-management",
+    "ecosystem",
+    "infrastructure",
+    "artifacts",
+    "collective-memory",
+    "workspace-mgmt",
+    "studio",
+  ];
+  const toolkitPlaybookSection = buildToolkitUsageGuide(playbookToolkitIds, { maxToolkits: 8 });
 
   const p2pSection = ctx.p2p ? formatP2PSection(ctx.p2p) : "\nP2P RUNTIME STATE (live): (not provided)";
 
@@ -158,6 +176,7 @@ export function buildWorkspaceSystemPrompt(
           return `  - {id:${e.id.slice(0, 8)}… imp:${e.importance}${tagPart}}${srcPart} — ${e.content.slice(0, 280)}${e.content.length > 280 ? "…" : ""}`;
         }).join("\n")}`
       : "\n\nRELEVANT PRIOR MEMORY: (none auto-recalled for this turn)";
+  const ragSection = opts.ragContext ? `\n${opts.ragContext}` : "";
 
   return `You are the Mesh Workspace AI Assistant. You help the user manage their decentralized agent collaboration workspace.
 
@@ -185,7 +204,7 @@ ${jobSummary}
 
 Agent Toolkit Bindings:
 ${toolkitSummary}
-${p2pSection}${memorySection}
+${p2pSection}${memorySection}${ragSection}
 ═══════════════════════
 
 HIERARCHY: Ecosystem (= Workspace) → Network → Group → Agent/Channel
@@ -240,6 +259,12 @@ Best practices for autonomous agents:
 3. Specialist agents (researchers, builders, curators) should have focused toolkit sets
 4. When proposing new agents via propose_agent, recommend appropriate toolkits
 5. When delegating tasks, verify the target agent has the necessary toolkits enabled
+
+${JOB_CREATION_PLAYBOOK}
+
+${WORKSPACE_RAG_PLAYBOOK}
+
+${toolkitPlaybookSection}
 
 COLLECTIVE MEMORY (Cross-Conversation Knowledge Base):
 The workspace ships a shared, persistent memory store every non-dark agent can read and write. Use it to remember durable facts that will outlive a single conversation — user preferences, decisions made, naming conventions, recurring intents, deployment IDs, important findings.

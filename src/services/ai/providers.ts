@@ -277,12 +277,22 @@ export function parseToolUseBlocks(model: string, data: unknown): ToolUseBlock[]
   if (provider === "openai" || provider === "openrouter") {
     const toolCalls = d.choices?.[0]?.message?.tool_calls || [];
     // Normalize to Anthropic-like format for compatibility
-    return toolCalls.map((tc) => ({
-      type: "tool_use" as const,
-      id: tc.id,
-      name: tc.function?.name || "",
-      input: JSON.parse(tc.function?.arguments || "{}") as Record<string, unknown>,
-    }));
+    return toolCalls.map((tc) => {
+      let parsedInput: Record<string, unknown> = {};
+      if (tc.function?.arguments) {
+        try {
+          parsedInput = JSON.parse(tc.function.arguments) as Record<string, unknown>;
+        } catch {
+          parsedInput = {};
+        }
+      }
+      return {
+        type: "tool_use" as const,
+        id: tc.id,
+        name: tc.function?.name || "",
+        input: parsedInput,
+      };
+    });
   }
   return []; // Google/Ollama: no tool support in this layer
 }

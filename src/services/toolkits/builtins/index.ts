@@ -28,6 +28,7 @@ import { navigatorModule } from "@/toolkits/navigator";
 import { workspaceMgmtModule } from "./workspace-mgmt";
 import { loggingModule } from "./logging";
 import { collectiveMemoryModule } from "./collective-memory";
+import { workspaceRagModule } from "./workspace-rag";
 
 // ── Capability toolkits (external integrations) ─
 import { webCrawlerModule } from "./web-crawler";
@@ -43,6 +44,7 @@ export const builtinModules: ToolkitModule[] = [
   // Core platform toolkits (register first — others may depend on them)
   loggingModule,
   collectiveMemoryModule,
+  workspaceRagModule,
   // Command-group toolkits
   agentManagementModule,
   infrastructureModule,
@@ -71,6 +73,7 @@ export const builtinModules: ToolkitModule[] = [
 export {
   loggingModule,
   collectiveMemoryModule,
+  workspaceRagModule,
   agentManagementModule,
   infrastructureModule,
   ecosystemModule,

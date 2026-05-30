@@ -497,6 +497,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                     context={context}
                     setView={setView}
                     handleStopPromptAction={handleStopPromptAction}
+                    send={send}
                     activeAgent={activeAgent}
                     setInput={setInput}
                     inputRef={inputRef}

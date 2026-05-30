@@ -20,6 +20,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { CommandContextProvider } from "@/context/CommandContextProvider";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import { useChatAgentRegistrations } from "@/hooks/useChatAgentRegistrations";
+import { scheduleWorkspaceIndex } from "@/services/rag/workspaceIndexer";
 import { AppShell } from "./AppShell";
 import "../../styles/components/authenticated-app.css";
 import "../../styles/components/global.css";
@@ -492,6 +493,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
   jobsRef.current = jobs;
 
   const buildChatWorkspaceContext = useCallback(() => ({
+    workspaceId: activeWorkspaceId || undefined,
     agents: workspaceRef.current.agents,
     channels: workspaceRef.current.channels,
     groups: workspaceRef.current.groups,
@@ -500,7 +502,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     bridges: ecosystemRef.current.bridges,
     addJob,
     jobs: jobsRef.current,
-  }), [addJob]);
+  }), [activeWorkspaceId, addJob]);
 
   // Stored snapshot — initialised once, refreshed only by user-send
   // (via the prop callback ChatPanel invokes) or agent request.
@@ -516,6 +518,34 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     setChatWorkspaceContext(next);
     return next;
   }, [buildChatWorkspaceContext]);
+
+  const lastMessageId = workspace.messages.length > 0 ? workspace.messages[workspace.messages.length - 1]?.id : null;
+  const lastJob = jobs.length > 0 ? jobs[jobs.length - 1] : null;
+
+  // Background reindex policy: mark dirty and debounce indexing as workspace
+  // entities mutate. Query-time retrieval still performs a freshness guard.
+  useEffect(() => {
+    const snapshot = buildChatWorkspaceContext();
+    scheduleWorkspaceIndex(snapshot, "workspace-update");
+  }, [
+    buildChatWorkspaceContext,
+    activeWorkspaceId,
+    workspace.agents.length,
+    workspace.channels.length,
+    workspace.groups.length,
+    workspace.messages.length,
+    lastMessageId,
+    ecosystem.networks.length,
+    ecosystem.bridges.length,
+    jobs.length,
+    lastJob?.id,
+    lastJob?.status,
+  ]);
+
+  useEffect(() => {
+    const snapshot = buildChatWorkspaceContext();
+    scheduleWorkspaceIndex(snapshot, "workspace-switch");
+  }, [activeWorkspaceId, buildChatWorkspaceContext]);
 
   const isSideChat = chatPosition === "left" || chatPosition === "right";
 

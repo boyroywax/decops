@@ -10,7 +10,7 @@ import { getAllTools, getToolsForAgent } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContext } from "./prompts";
 import { buildWorkspaceSystemPrompt } from "./prompts";
-import { recallCollectiveMemory } from "@/services/collectiveMemory";
+import { retrieveWorkspaceContext } from "@/services/rag/retrieval";
 import { getSelectedModel, getAgentModel } from "./models";
 import {
   getModelProvider,
@@ -20,6 +20,11 @@ import { getChatDelegation } from "./delegation";
 import { runChatTurn } from "./runner";
 import type { ChatTurnMessage } from "./runner";
 import type { StreamCallbacks } from "./streaming";
+import {
+  buildToolkitUsageGuide,
+  JOB_CREATION_PLAYBOOK,
+  WORKSPACE_RAG_PLAYBOOK,
+} from "./toolUsagePlaybook";
 
 export interface ChatMessage {
   id?: string;
@@ -213,8 +218,11 @@ export async function streamChatWithAgent(
 }
 
 /** Shared system-prompt builder for direct user↔agent chats. */
-function buildAgentChatSystemPrompt(agent: Agent, toolCount: number): string {
+export function buildAgentChatSystemPrompt(agent: Agent, toolCount: number): string {
   const role = ROLES.find(r => r.id === agent.role);
+  const enabledToolkitIds = (agent.toolkits || []).map(t => t.toolkitId);
+  const toolkitPlaybookSection = buildToolkitUsageGuide(enabledToolkitIds, { maxToolkits: 6 });
+  const includeRagPlaybook = enabledToolkitIds.includes("workspace-rag");
   return [
     `You are "${agent.name}", a ${role?.label || agent.role} agent in a decentralized mesh workspace.`,
     `Your DID: ${agent.did}`,
@@ -256,6 +264,9 @@ COLLECTIVE MEMORY PROTOCOL (default-on unless this agent is explicitly set to da
 - Tag memories with concise topic tags so other agents can retrieve them.
 - If the operator requests isolation/privacy, switch to dark mode using \`set_agent_memory_mode\` with mode \`dark\` and stop writing shared memory.`
       : "",
+    toolCount > 0 ? `\n${JOB_CREATION_PLAYBOOK}` : "",
+    toolCount > 0 && includeRagPlaybook ? `\n${WORKSPACE_RAG_PLAYBOOK}` : "",
+    toolCount > 0 && toolkitPlaybookSection ? `\n${toolkitPlaybookSection}` : "",
     `\nYou are chatting directly with a human operator who manages this workspace.`,
     `Respond concisely and in-character. Keep responses under 200 words. Use markdown formatting when appropriate.`,
   ].filter(Boolean).join("\n");
@@ -269,16 +280,18 @@ export async function chatWithWorkspace(
 ): Promise<{ text: string; toolCalls: ToolCallDisplay[] }> {
   const model = getSelectedModel();
   const provider = getModelProvider(model);
-  // Auto-recall the top relevant collective-memory entries for this turn
-  // so the model has cross-conversation context without having to call
-  // recall_collective_memory itself.
-  let recalledMemory: ReturnType<typeof recallCollectiveMemory> = [];
+
+  let recalledMemory: ReturnType<typeof import("@/services/collectiveMemory").recallCollectiveMemory> = [];
+  let ragContext = "";
   try {
-    recalledMemory = recallCollectiveMemory({ query: userMessage, limit: 5, includeGlobal: true });
+    const retrieved = await retrieveWorkspaceContext(userMessage, ctx);
+    recalledMemory = retrieved.recalledMemory;
+    ragContext = retrieved.ragContext;
   } catch {
     recalledMemory = [];
+    ragContext = "";
   }
-  let systemPrompt = buildWorkspaceSystemPrompt(ctx, { recalledMemory });
+  let systemPrompt = buildWorkspaceSystemPrompt(ctx, { recalledMemory, ragContext });
 
   // Pluggable delegation: toolkits can register delegation checks
   const delegation = getChatDelegation(userMessage);
