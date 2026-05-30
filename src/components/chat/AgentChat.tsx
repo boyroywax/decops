@@ -11,6 +11,7 @@ import { useWorkspaceStore } from "@/stores";
 import { useAuth } from "@/context/AuthContext";
 import { useCommandCtx } from "@/context/CommandContextProvider";
 import { useJobsContext } from "@/context/JobsContext";
+import { useSendOrchestrator } from "@/hooks/chat/useSendOrchestrator";
 import "../../styles/components/agent-chat.css";
 
 interface AgentChatProps {
@@ -62,6 +63,11 @@ export function AgentChat({ agent }: AgentChatProps) {
   const [collapsed, setCollapsed] = useState(false);
   const streamState = useStreamingChatState();
   const abortRef = useRef<AbortController | null>(null);
+  const { runStreamingTurn, stopStreamingTurn } = useSendOrchestrator({
+    streamState,
+    abortRef,
+    owner: "agent-chat",
+  });
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -126,15 +132,12 @@ export function AgentChat({ agent }: AgentChatProps) {
   useEffect(() => {
     setInput("");
     setLoading(false);
-    abortRef.current?.abort();
-    abortRef.current = null;
-    streamState.clearStreaming();
+    stopStreamingTurn();
   }, [agent.id]);
 
   const stop = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-  }, []);
+    stopStreamingTurn();
+  }, [stopStreamingTurn]);
 
   const sendMessage = useCallback(async () => {
     const text = input.trim();
@@ -156,23 +159,19 @@ export function AgentChat({ agent }: AgentChatProps) {
     addMessage(pending);
     setInput("");
     setLoading(true);
-    streamState.startStreaming();
-
-    const controller = new AbortController();
-    abortRef.current = controller;
 
     // Snapshot the history the model should see (excludes this in-flight turn)
     const historyForModel = persistedHistory;
 
-    const callbacks: StreamCallbacks = streamState.buildCallbacks(controller.signal);
-
     try {
-      const { text: response, toolCalls } = await streamChatWithAgent(
-        agent,
-        text,
-        historyForModel,
-        callbacks,
-        commandContext ?? undefined,
+      const { text: response, toolCalls } = await runStreamingTurn((callbacks: StreamCallbacks) =>
+        streamChatWithAgent(
+          agent,
+          text,
+          historyForModel,
+          callbacks,
+          commandContext ?? undefined,
+        )
       );
       const collectedJobIds = toolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!);
       setLiveTurns(prev => ({
@@ -207,9 +206,6 @@ export function AgentChat({ agent }: AgentChatProps) {
         )
       );
     } finally {
-      streamState.flushPending();
-      abortRef.current = null;
-      streamState.clearStreaming();
       setLoading(false);
     }
   }, [
@@ -222,6 +218,7 @@ export function AgentChat({ agent }: AgentChatProps) {
     addMessage,
     setMessages,
     commandContext,
+    runStreamingTurn,
   ]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

@@ -1,4 +1,5 @@
 import { AlignJustify, Brain, ChevronsDown, ChevronsUp, Globe, X } from "lucide-react";
+import type { ReactNode } from "react";
 
 interface ChatPanelHeaderProps {
   conversationsCount: number;
@@ -14,6 +15,7 @@ interface ChatPanelHeaderProps {
   onNew: () => void;
   onToggleExpand: () => void;
   onClose: () => void;
+  perfPanel?: ReactNode;
 }
 
 /**
@@ -36,6 +38,7 @@ export function ChatPanelHeader({
   onNew,
   onToggleExpand,
   onClose,
+  perfPanel,
 }: ChatPanelHeaderProps) {
   return (
     <div className="chat-panel__header">
@@ -75,6 +78,7 @@ export function ChatPanelHeader({
         </button>
       </div>
       <div className="chat-panel__header-right">
+        {perfPanel}
         <button onClick={onNew} className="chat-panel__new-btn" title="New conversation">+ New</button>
         {!isSide && (
           <button

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { ChatMessage } from "@/services/ai";
+import { perfLog, perfNow } from "@/services/perf";
 import {
     loadConversations, saveConversations,
     loadActiveId, saveActiveId,
@@ -45,16 +46,37 @@ export function useConversations(workspaceId?: string | null) {
     // don't accidentally write the previous workspace's conversations into the
     // new workspace's storage key during the swap.
     const currentWorkspaceRef = useRef<string | null | undefined>(workspaceId);
+    const pendingConversationsRef = useRef<Conversation[] | null>(null);
+    const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const flushConversationPersistence = useCallback(() => {
+        const pending = pendingConversationsRef.current;
+        if (!pending) return;
+        const startedAt = perfNow();
+        saveConversations(pending, currentWorkspaceRef.current);
+        perfLog("chat.persistence.conversations", {
+            workspaceId: currentWorkspaceRef.current ?? null,
+            conversationCount: pending.length,
+            messageCount: pending.reduce((sum, c) => sum + c.messages.length, 0),
+            durationMs: Math.round(perfNow() - startedAt),
+        });
+        pendingConversationsRef.current = null;
+    }, []);
 
     // ── Workspace switch: reload conversations and active id ──
     useEffect(() => {
         if (currentWorkspaceRef.current === workspaceId) return;
+        if (persistTimerRef.current) {
+            clearTimeout(persistTimerRef.current);
+            persistTimerRef.current = null;
+        }
+        flushConversationPersistence();
         currentWorkspaceRef.current = workspaceId;
         setConversations(loadConversations(workspaceId));
         setActiveId(loadActiveId(workspaceId));
         setShowConvos(false);
         initialScrollDone.current = false;
-    }, [workspaceId]);
+    }, [workspaceId, flushConversationPersistence]);
 
     // Derive active conversation
     const active = conversations.find(c => c.id === activeId) || null;
@@ -63,12 +85,38 @@ export function useConversations(workspaceId?: string | null) {
     // ── Persistence (only writes for the current workspace) ──
     useEffect(() => {
         if (currentWorkspaceRef.current !== workspaceId) return;
-        saveConversations(conversations, workspaceId);
-    }, [conversations, workspaceId]);
+        pendingConversationsRef.current = conversations;
+        if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+        persistTimerRef.current = setTimeout(() => {
+            persistTimerRef.current = null;
+            flushConversationPersistence();
+        }, 350);
+        return () => {
+            if (persistTimerRef.current) {
+                clearTimeout(persistTimerRef.current);
+                persistTimerRef.current = null;
+            }
+        };
+    }, [conversations, workspaceId, flushConversationPersistence]);
+
+    useEffect(() => {
+        const onBeforeUnload = () => flushConversationPersistence();
+        window.addEventListener("beforeunload", onBeforeUnload);
+        return () => {
+            window.removeEventListener("beforeunload", onBeforeUnload);
+            flushConversationPersistence();
+        };
+    }, [flushConversationPersistence]);
 
     useEffect(() => {
         if (currentWorkspaceRef.current !== workspaceId) return;
+        const startedAt = perfNow();
         saveActiveId(activeId, workspaceId);
+        perfLog("chat.persistence.active_id", {
+            workspaceId: workspaceId ?? null,
+            hasActiveId: !!activeId,
+            durationMs: Math.round(perfNow() - startedAt),
+        });
     }, [activeId, workspaceId]);
 
     // ── Scroll management ──

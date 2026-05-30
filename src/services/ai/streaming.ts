@@ -6,16 +6,10 @@
  */
 
 import type { CommandContext } from "@/services/commands/types";
-import { getAllTools, getToolsByToolkitIds } from "@/services/commands/tools";
 import type { ToolCallDisplay, ChatMessage } from "./chat";
 import type { WorkspaceContext } from "./prompts";
-import { buildWorkspaceSystemPrompt } from "./prompts";
-import { getSelectedModel } from "./models";
-import { getModelProvider } from "./providers";
-import { getChatDelegation } from "./delegation";
 import { runChatTurn } from "./runner";
-import type { ChatTurnMessage } from "./runner";
-import { retrieveWorkspaceContext } from "@/services/rag/retrieval";
+import { prepareWorkspaceTurn } from "./workspaceTurn";
 
 // Re-export the SSE parser so any external caller importing it from this
 // module continues to work after the move into sse.ts.
@@ -52,64 +46,20 @@ export async function streamChatWithWorkspace(
   /** Optional toolkit allowlist from the active chat agent. */
   toolkitIds?: string[],
 ): Promise<{ text: string; toolCalls: ToolCallDisplay[] }> {
-  const model = getSelectedModel();
-  const provider = getModelProvider(model);
-
-  // ── Auto-recall collective memory ──
-  // Pull a small set of the most relevant prior memories and inject them
-  // into the system prompt so the model has cross-conversation context
-  // without having to call recall_collective_memory itself. Skipped when
-  // the active agent is in DARK MODE (toolkitIds explicitly excludes the
-  // "collective-memory" toolkit).
-  const isDarkAgent =
-    Array.isArray(toolkitIds) &&
-    toolkitIds.length > 0 &&
-    !toolkitIds.includes("collective-memory");
-  let recalledMemory: ReturnType<typeof import("@/services/collectiveMemory").recallCollectiveMemory> = [];
-  let ragContext = "";
-  try {
-    const retrieved = await retrieveWorkspaceContext(userMessage, ctx, { isDarkAgent });
-    recalledMemory = retrieved.recalledMemory;
-    ragContext = retrieved.ragContext;
-  } catch {
-    // Retrieval failures must never break a chat turn.
-    recalledMemory = [];
-    ragContext = "";
-  }
-
-  let systemPrompt = buildWorkspaceSystemPrompt(ctx, {
-    recalledMemory,
-    isDarkAgent,
-    ragContext,
+  const prepared = await prepareWorkspaceTurn(userMessage, history, ctx, commandContext, {
+    toolkitIds,
+    streamRequested: true,
   });
-
-  // Pluggable delegation — toolkits can augment the system prompt and
-  // adjust round budget based on keyword detection in the user message.
-  const delegation = getChatDelegation(userMessage);
-  let maxRounds = 8;
-  if (delegation) {
-    systemPrompt = delegation.enhance(systemPrompt);
-    maxRounds = delegation.maxRounds ?? 12;
-  }
-
-  const tools = commandContext
-    ? (toolkitIds && toolkitIds.length > 0 ? getToolsByToolkitIds(toolkitIds) : getAllTools())
-    : [];
-
-  const messages: ChatTurnMessage[] = [
-    ...history.slice(-20).map((m) => ({ role: m.role, content: m.content })),
-    { role: "user" as const, content: userMessage },
-  ];
 
   const result = await runChatTurn(
     {
-      model,
-      systemPrompt,
-      messages,
-      tools: tools.length > 0 ? tools : undefined,
+      model: prepared.model,
+      systemPrompt: prepared.systemPrompt,
+      messages: prepared.messages,
+      tools: prepared.tools.length > 0 ? prepared.tools : undefined,
       commandContext,
-      maxRounds,
-      stream: provider === "anthropic" || provider === "openai" || provider === "openrouter",
+      maxRounds: prepared.maxRounds,
+      stream: prepared.stream,
     },
     {
       onToken: callbacks.onToken,

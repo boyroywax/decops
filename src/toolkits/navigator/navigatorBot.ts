@@ -39,15 +39,22 @@ export function getNavigatorBotLog(): NavigatorBotResponse[] { return [...reques
 // ── Tool filter ──
 
 const NAVIGATOR_COMMAND_IDS = new Set([
+  // Core navigator commands
   "navigator_submit_prompt",
   "navigator_decompose_goal",
   "navigator_summon_huddle",
   "navigator_start_subgoal",
   "navigator_status",
   "navigator_cancel_goal",
-  // Plus a handful of read-only helpers the bot needs to plan well.
+  // Read-only workspace lookups the bot needs to plan and route accurately
+  "list_agents",
   "list_groups",
+  "list_networks",
+  "list_channels",
+  "list_jobs",
   "list_messages",
+  // RAG: resolve IDs and discover command names before creating jobs
+  "workspace_rag_query",
 ]);
 
 function getNavigatorTools() {
@@ -98,11 +105,13 @@ CAPABILITIES YOU CONTROL:
 - navigator_summon_huddle({ goalId, subgoalId, name, memberAgentIds, topic?, governance? }) — summon members from ANY networks into a new persistent Group (kind="huddle"). The huddle shows up in the groups list and persists for reuse. Use this when a sub-goal needs consensus, multi-perspective input, or coordination across organizational boundaries.
 
 **Inspection**
-- list_groups, list_messages — read-only context.
+- list_agents, list_groups, list_networks, list_channels, list_jobs, list_messages — read-only context.
+- workspace_rag_query({ query }) — semantic search over all workspace entities (agents, groups, networks, commands, goals). Use this FIRST to resolve agent/group/network IDs and discover the right command names before any assignment.
 
 OPERATING RULES:
 ════════════════
-1. Always start by calling navigator_submit_prompt to record the user's request as a Goal — even if you immediately decompose it. The goalId is the anchor for everything that follows.
+0. ALWAYS call workspace_rag_query first to resolve unknown agent/group/network IDs and discover what commands exist for the requested work. Never hardcode IDs.
+1. Then call navigator_submit_prompt to record the user's request as a Goal — even if you immediately decompose it. The goalId is the anchor for everything that follows.
 2. Decompose conservatively: prefer one sub-goal per *distinct* outcome. Don't fan-out unless the work is genuinely independent.
 3. ${botConfig.autoSummonHuddles ? "You MAY summon huddles autonomously when consultation is clearly needed." : "Do NOT summon huddles without explicit user approval."}.
 4. Pick huddle members deliberately: 2-6 agents drawn from the networks that contain the relevant expertise. Always prefer the smallest huddle that can plausibly decide.
@@ -110,6 +119,7 @@ OPERATING RULES:
 6. ${botConfig.autoQueueJobs ? "When a sub-goal is assigned to an agent, expect the runtime to queue jobs automatically — your job is just the routing." : "Sub-goal execution is NOT auto-queued; surface the plan and let the user trigger work."}.
 7. NEVER call libp2p_*, helia_*, orbitdb_*, kubo_*, or orchestrator_* tools directly. Those belong to other sub-agents.
 8. When reporting back, ALWAYS state: the goal title + id, the sub-goal count, and (for huddles) the member count and contributing networks.
+9. After decomposing, proactively call navigator_start_subgoal for each sub-goal that has a clear assignee — do not wait for the user to trigger execution unless autoQueueJobs is off.
 
 ${lines.join("\n")}
 
@@ -219,18 +229,37 @@ export async function handleNavigatorBotRequest(
 export function shouldDelegateToNavigatorBot(message: string): boolean {
   const m = message.toLowerCase();
   const patterns: RegExp[] = [
+    // Explicit navigator references
     /\bnavigator\b/,
     /\bgoal(s)?\b/,
     /\bsub-?goal(s)?\b/,
-    /\bplan\s+(out|across|for)\b/,
     /\bdecompose\b/,
     /\bhuddle\b/,
-    /\bconsult\s+(a\s+)?(group|huddle|panel)\b/,
-    /\bsummon\s+(a\s+)?(group|huddle|panel|assembly)\b/,
+    // Planning / orchestration intent
+    /\bplan\s+(out|across|for|a\s+way)\b/,
+    /\bplan\s+(this|the|it)\b/,
+    /\bbreak\s+(this|the|it)\s+(down|apart|into)\b/,
+    /\bbreak\s+down\s+(this|the)\s+(task|goal|prompt|work|request)\b/,
+    /\bcoordinate\b/,
+    /\baccomplish\b/,
+    /\bget\s+this\s+done\b/,
+    /\bmake\s+(this|it)\s+happen\b/,
+    /\bwork\s+toge(ther|rward)\b/,
+    // Multi-agent / multi-network routing
     /\bcross[- ]network\b/,
-    /\bcoordinate\s+(across|between)\s+(agents|networks)\b/,
-    /\baccomplish\s+/,
-    /\bbreak\s+down\s+(this|the)\s+(task|goal|prompt)\b/,
+    /\bcoordinate\s+(across|between|with)\s+(agents|networks|teams)\b/,
+    /\bmultiple\s+agents\b/,
+    /\bassign\s+(to|agents?|work)\b/,
+    /\bdelegate\s+(to|work|tasks?)\b/,
+    /\broute\s+(to|across|between)\b/,
+    // Consultation / group assembly
+    /\bconsult\s+(a\s+)?(group|huddle|panel|agents?)\b/,
+    /\bsummon\s+(a\s+)?(group|huddle|panel|assembly)\b/,
+    /\bgather\s+(input|consensus|feedback)\b/,
+    // Natural goal-completion language
+    /\bi\s+(need|want)\s+(you\s+)?to\s+(make|do|complete|finish|execute|run|set\s+up|build|create)\b/,
+    /\b(execute|complete|finish|deliver)\s+(the|this|a)\s+(task|goal|plan|work|project)\b/,
+    /\bfully\s+(automat|execut|complet)\b/,
   ];
   return patterns.some((p) => p.test(m));
 }

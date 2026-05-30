@@ -6,17 +6,14 @@
 import type { Agent, Message, BridgeMessage, ArchPhase, DeployProgress, MeshConfig } from "@/types";
 import { ROLES } from "@/constants";
 import { TOOLKITS } from "@/services/toolkits";
-import { getAllTools, getToolsForAgent } from "@/services/commands/tools";
+import { getToolsForAgent } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContext } from "./prompts";
-import { buildWorkspaceSystemPrompt } from "./prompts";
-import { retrieveWorkspaceContext } from "@/services/rag/retrieval";
-import { getSelectedModel, getAgentModel } from "./models";
+import { getAgentModel } from "./models";
 import {
   getModelProvider,
   buildProviderRequest, parseProviderResponse,
 } from "./providers";
-import { getChatDelegation } from "./delegation";
 import { runChatTurn } from "./runner";
 import type { ChatTurnMessage } from "./runner";
 import type { StreamCallbacks } from "./streaming";
@@ -25,6 +22,7 @@ import {
   JOB_CREATION_PLAYBOOK,
   WORKSPACE_RAG_PLAYBOOK,
 } from "./toolUsagePlaybook";
+import { prepareWorkspaceTurn } from "./workspaceTurn";
 
 export interface ChatMessage {
   id?: string;
@@ -137,35 +135,10 @@ export async function chatWithAgent(
   commandContext?: CommandContext,
   onToolCall?: (display: ToolCallDisplay) => void,
 ): Promise<{ text: string; toolCalls: ToolCallDisplay[] }> {
-  const model = getAgentModel(agent.id);
-  const provider = getModelProvider(model);
-
-  const tools = commandContext && (provider === "anthropic" || provider === "openai" || provider === "openrouter")
-    ? getToolsForAgent(agent)
-    : [];
-
-  const systemPrompt = buildAgentChatSystemPrompt(agent, tools.length);
-
-  const messages: ChatTurnMessage[] = [
-    ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
-    { role: "user" as const, content: userMessage },
-  ];
-
-  const result = await runChatTurn(
-    {
-      model,
-      systemPrompt,
-      messages,
-      tools: tools.length > 0 ? tools : undefined,
-      commandContext,
-      maxRounds: tools.length > 0 ? 6 : 1,
-      maxTokens: 1500,
-    },
-    {
-      onToolCallComplete: onToolCall,
-    },
-  );
-  return { text: result.text, toolCalls: result.toolCalls };
+  return runAgentChatTurn(agent, userMessage, history, commandContext, {
+    onToolCallComplete: onToolCall,
+    stream: false,
+  });
 }
 
 /**
@@ -180,6 +153,30 @@ export async function streamChatWithAgent(
   history: ChatMessage[],
   callbacks: StreamCallbacks,
   commandContext?: CommandContext,
+): Promise<{ text: string; toolCalls: ToolCallDisplay[] }> {
+  return runAgentChatTurn(agent, userMessage, history, commandContext, {
+    onToken: callbacks.onToken,
+    onToolCallStart: callbacks.onToolCallStart,
+    onToolCallComplete: callbacks.onToolCallComplete,
+    onRoundEnd: callbacks.onRoundEnd,
+    signal: callbacks.signal,
+    stream: true,
+  });
+}
+
+async function runAgentChatTurn(
+  agent: Agent,
+  userMessage: string,
+  history: ChatMessage[],
+  commandContext: CommandContext | undefined,
+  options: {
+    onToken?: (token: string) => void;
+    onToolCallStart?: (name: string, input: Record<string, unknown>) => void;
+    onToolCallComplete?: (display: ToolCallDisplay) => void;
+    onRoundEnd?: (round: number) => void;
+    signal?: AbortSignal;
+    stream: boolean;
+  },
 ): Promise<{ text: string; toolCalls: ToolCallDisplay[] }> {
   const model = getAgentModel(agent.id);
   const provider = getModelProvider(model);
@@ -204,14 +201,14 @@ export async function streamChatWithAgent(
       commandContext,
       maxRounds: tools.length > 0 ? 6 : 1,
       maxTokens: 1500,
-      stream: provider === "anthropic" || provider === "openai" || provider === "openrouter",
+      stream: options.stream && (provider === "anthropic" || provider === "openai" || provider === "openrouter"),
     },
     {
-      onToken: callbacks.onToken,
-      onToolCallStart: callbacks.onToolCallStart,
-      onToolCallComplete: callbacks.onToolCallComplete,
-      onRoundEnd: callbacks.onRoundEnd,
-      signal: callbacks.signal,
+      onToken: options.onToken,
+      onToolCallStart: options.onToolCallStart,
+      onToolCallComplete: options.onToolCallComplete,
+      onRoundEnd: options.onRoundEnd,
+      signal: options.signal,
     },
   );
   return { text: result.text, toolCalls: result.toolCalls };
@@ -258,6 +255,16 @@ If a tool errors or returns unexpected output, the Assess line MUST start with "
 
 ANTI-FABRICATION RAIL (CRITICAL): Tools execute ONLY via the structured tool-use channel. Prose like "Running X...", "Calling Y...", "Let me invoke...", "The result shows..." does NOT invoke anything. If you say "Needs tools: yes" you MUST emit a real tool_use block immediately — the system rejects fabricated tool turns and forces a retry. Never fabricate tool output, JSON, or status. If the capability you need isn't in your tools, say so plainly.
 
+Never claim you are unable to emit tool_use, blocked by a guardian, or limited by configuration for tool calling. In this runtime, structured tool calls are supported through the provider channel.
+
+NO NARRATION-ONLY TURNS: Never output intent narration instead of execution (forbidden: "I will...", "next I'll...", "then I'll..."). Either emit one real tool_use immediately or provide a direct final answer with no execution claims.
+
+MANDATORY COMMAND EXECUTION FLOW: when tools are needed, do this sequence exactly:
+1) Search workspace RAG for the necessary command IDs/args and context.
+2) Create a job with command calls as steps (queue_new_job for multi-step, create_job for one atomic command).
+3) Run/queue the job and wait for structured results.
+4) Review output/status and then continue or finalize.
+
 COLLECTIVE MEMORY PROTOCOL (default-on unless this agent is explicitly set to dark mode):
 - Before planning non-trivial work, call \`recall_collective_memory\` with a focused query to load prior decisions/facts.
 - When you produce durable facts, decisions, IDs, endpoint details, or runbook steps, call \`remember_collective_memory\`.
@@ -277,45 +284,20 @@ export async function chatWithWorkspace(
   history: ChatMessage[],
   ctx: WorkspaceContext,
   commandContext?: CommandContext,
+  toolkitIds?: string[],
 ): Promise<{ text: string; toolCalls: ToolCallDisplay[] }> {
-  const model = getSelectedModel();
-  const provider = getModelProvider(model);
-
-  let recalledMemory: ReturnType<typeof import("@/services/collectiveMemory").recallCollectiveMemory> = [];
-  let ragContext = "";
-  try {
-    const retrieved = await retrieveWorkspaceContext(userMessage, ctx);
-    recalledMemory = retrieved.recalledMemory;
-    ragContext = retrieved.ragContext;
-  } catch {
-    recalledMemory = [];
-    ragContext = "";
-  }
-  let systemPrompt = buildWorkspaceSystemPrompt(ctx, { recalledMemory, ragContext });
-
-  // Pluggable delegation: toolkits can register delegation checks
-  const delegation = getChatDelegation(userMessage);
-  let maxRounds = 8;
-  if (delegation) {
-    systemPrompt = delegation.enhance(systemPrompt);
-    maxRounds = delegation.maxRounds ?? 12;
-  }
-
-  // Build tools from command registry (tool use supported for anthropic/openai/openrouter)
-  const tools = commandContext && (provider === "anthropic" || provider === "openai" || provider === "openrouter") ? getAllTools() : [];
-
-  const messages: ChatTurnMessage[] = [
-    ...history.slice(-20).map(m => ({ role: m.role, content: m.content })),
-    { role: "user" as const, content: userMessage },
-  ];
+  const prepared = await prepareWorkspaceTurn(userMessage, history, ctx, commandContext, {
+    toolkitIds,
+    streamRequested: false,
+  });
 
   const result = await runChatTurn({
-    model,
-    systemPrompt,
-    messages,
-    tools: tools.length > 0 ? tools : undefined,
+    model: prepared.model,
+    systemPrompt: prepared.systemPrompt,
+    messages: prepared.messages,
+    tools: prepared.tools.length > 0 ? prepared.tools : undefined,
     commandContext,
-    maxRounds,
+    maxRounds: prepared.maxRounds,
   });
   return { text: result.text, toolCalls: result.toolCalls };
 }

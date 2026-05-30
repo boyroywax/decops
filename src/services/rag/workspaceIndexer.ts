@@ -4,6 +4,7 @@ import { registry as commandRegistry } from "@/services/commands/registry";
 import { embedText } from "./embeddings";
 import { ragVectorStore, type RagVectorRecord } from "./vectorStore";
 import { getWorkspaceRagPolicy } from "./policy";
+import { navigatorService } from "@/toolkits/navigator/service";
 
 export interface RagDocument {
   id: string;
@@ -236,6 +237,82 @@ function buildToolkitAndCommandDocs(workspaceId: string, timestamp: string): Rag
   return docs;
 }
 
+function buildNavigatorDocs(workspaceId: string, timestamp: string): RagDocument[] {
+  const docs: RagDocument[] = [];
+  try {
+    const snap = navigatorService.snapshot();
+    if (snap.goals.length === 0 && snap.huddles.length === 0) return docs;
+
+    // Summary doc for active goal
+    const active = snap.activeGoalId
+      ? snap.goals.find((g) => g.id === snap.activeGoalId)
+      : undefined;
+
+    docs.push({
+      id: `ws:${workspaceId}:navigator:summary`,
+      workspaceId,
+      entityType: "navigator_state",
+      entityId: "navigator_state",
+      tags: ["navigator", "goals", "huddles", "active"],
+      updatedAt: timestamp,
+      text: [
+        `Navigator state. Active goal: ${active ? `${active.title} (${active.id}, ${active.status})` : "none"}.`,
+        `Total goals: ${snap.goals.length}. Total huddles: ${snap.huddles.length}.`,
+        snap.goals.slice(0, 10).map((g) =>
+          `Goal "${g.title}" id=${g.id} status=${g.status} subgoals=${g.subgoals.length} networks=${g.networkIds?.join(",") || "any"}.`
+        ).join("\n"),
+      ].join("\n"),
+    });
+
+    // Per-goal docs
+    for (const g of snap.goals.slice(0, 20)) {
+      const subgoalLines = g.subgoals.slice(0, 10).map((s) =>
+        `  sub[${s.id}] "${s.title}" status=${s.status} agent=${s.assignedAgentId || "none"} huddle=${s.huddleId || "none"} jobs=${s.jobIds.join(",") || "none"}.`
+      ).join("\n");
+      docs.push({
+        id: `ws:${workspaceId}:navigator:goal:${g.id}`,
+        workspaceId,
+        entityType: "navigator_goal",
+        entityId: `goal:${g.id}`,
+        tags: ["navigator", "goal", g.status, ...(g.id === snap.activeGoalId ? ["active"] : [])],
+        updatedAt: timestamp,
+        text: [
+          `Navigator goal "${g.title}" (${g.id}).`,
+          `Status: ${g.status}. Networks: ${g.networkIds?.join(", ") || "any"}.`,
+          `Prompt: ${g.prompt.slice(0, 300)}.`,
+          `Subgoals (${g.subgoals.length}):`,
+          subgoalLines || "  (none)",
+          ...(g.error ? [`Error: ${g.error}.`] : []),
+        ].join("\n"),
+      });
+    }
+
+    // Per-huddle docs
+    for (const h of snap.huddles.slice(0, 20)) {
+      docs.push({
+        id: `ws:${workspaceId}:navigator:huddle:${h.id}`,
+        workspaceId,
+        entityType: "navigator_huddle",
+        entityId: `huddle:${h.id}`,
+        tags: ["navigator", "huddle", h.status ?? "open"],
+        updatedAt: timestamp,
+        text: [
+          `Navigator huddle ${h.id}.`,
+          `Status: ${h.status}. GoalId: ${h.goalId}. SubgoalId: ${h.subgoalId}.`,
+          `Members: ${h.members.join(", ") || "none"}.`,
+          `NetworkIds: ${h.networkIds.join(", ") || "none"}.`,
+          `PTHID: ${h.pthid}. THID: ${h.thid}.`,
+          `GroupId (created huddle group): ${h.groupId}.`,
+          ...(h.decision ? [`Decision: ${h.decision}.`] : []),
+        ].join("\n"),
+      });
+    }
+  } catch {
+    // Navigator not available — skip silently
+  }
+  return docs;
+}
+
 function buildDocs(ctx: WorkspaceContext, workspaceId?: string | null): RagDocument[] {
   const resolvedWorkspaceId = normalizeWorkspaceId(workspaceId);
   const timestamp = new Date().toISOString();
@@ -244,20 +321,28 @@ function buildDocs(ctx: WorkspaceContext, workspaceId?: string | null): RagDocum
     buildEcosystemTopologyDoc(ctx, resolvedWorkspaceId, timestamp),
     ...buildIdentityLookupDocs(ctx, resolvedWorkspaceId, timestamp),
     ...buildToolkitAndCommandDocs(resolvedWorkspaceId, timestamp),
+    ...buildNavigatorDocs(resolvedWorkspaceId, timestamp),
   ];
 
   for (const a of ctx.agents) {
+    const toolkitIds = (a.toolkits ?? []).map((b) => b.toolkitId).join(", ") || "none";
+    const autonomyLevel = (a as any).autonomyConfig?.level ?? (a as any).autonomyConfig?.mode ?? "none";
+    const endpointType = (a as any).endpoint?.type ?? "none";
     docs.push({
       id: `ws:${resolvedWorkspaceId}:agent:${a.id}`,
       workspaceId: resolvedWorkspaceId,
       entityType: "agent",
       entityId: a.id,
-      tags: ["agent", a.role],
+      tags: ["agent", a.role, ...(a.isDarkAgent ? ["dark"] : [])],
       updatedAt: timestamp,
       text: [
         `Agent ${a.name} (${a.id}).`,
         `Role: ${a.role}. Title: ${a.title || "none"}.`,
         `Network: ${a.networkId || "none"}. DID: ${a.did || "none"}.`,
+        `RuntimeStatus: ${(a as any).runtimeStatus || "unknown"}. Endpoint: ${endpointType}. Dark: ${a.isDarkAgent ? "yes" : "no"}.`,
+        `RecommendedModel: ${a.recommendedModel || "none"}. AutonomyLevel: ${autonomyLevel}.`,
+        `Toolkits: ${toolkitIds}.`,
+        `LastActive: ${a.lastActivityAt || "unknown"}. ActiveSince: ${a.activeSince || "unknown"}.`,
         `Prompt: ${a.prompt || "none"}.`,
       ].join("\n"),
     });
@@ -280,17 +365,27 @@ function buildDocs(ctx: WorkspaceContext, workspaceId?: string | null): RagDocum
   }
 
   for (const g of ctx.groups) {
+    const kind = g.kind ?? "native";
+    const allNetworkIds = g.networkIds?.length
+      ? g.networkIds.join(", ")
+      : (g.networkId || "none");
+    const kindTags: string[] = kind === "huddle" ? ["huddle"] : [];
     docs.push({
       id: `ws:${resolvedWorkspaceId}:group:${g.id}`,
       workspaceId: resolvedWorkspaceId,
       entityType: "group",
       entityId: g.id,
-      tags: ["group", g.governance],
+      tags: ["group", g.governance, ...kindTags],
       updatedAt: timestamp,
       text: [
         `Group ${g.name} (${g.id}).`,
-        `Governance: ${g.governance}. Threshold: ${g.threshold}.`,
+        `Kind: ${kind}. Governance: ${g.governance}. Threshold: ${g.threshold}.`,
         `Members: ${g.members.join(", ") || "none"}.`,
+        `NetworkId: ${g.networkId || "none"}. NetworkIds: ${allNetworkIds}.`,
+        ...(kind === "huddle" ? [
+          `SummonedBy: ${g.summonedBy || "unknown"}. Topic: ${g.topic || "none"}.`,
+        ] : []),
+        ...(g.modelId ? [`ModelOverride: ${g.modelId}.`] : []),
       ].join("\n"),
     });
   }
@@ -306,7 +401,9 @@ function buildDocs(ctx: WorkspaceContext, workspaceId?: string | null): RagDocum
       text: [
         `Network ${n.name} (${n.id}).`,
         `UUID/ID: ${n.id}. DID: ${n.did || "none"}.`,
-        `Agents in network: ${n.agents.length}. Channels in network: ${n.channels.length}.`,
+        `Description: ${n.description || "none"}.`,
+        `Agents in network: ${n.agents.length} (ids: ${n.agents.slice(0, 10).map((a) => a.id).join(", ") || "none"}).`,
+        `Channels in network: ${n.channels.length}. Groups in network: ${n.groups.length}.`,
       ].join("\n"),
     });
   }
@@ -346,6 +443,9 @@ function buildDocs(ctx: WorkspaceContext, workspaceId?: string | null): RagDocum
   }
 
   for (const j of ctx.jobs.slice(-30)) {
+    const stepSummary = (j.steps ?? []).slice(0, 8)
+      .map((s) => `${s.commandId}(${s.status ?? "pending"})`)
+      .join(", ") || "none";
     docs.push({
       id: `ws:${resolvedWorkspaceId}:job:${j.id}`,
       workspaceId: resolvedWorkspaceId,
@@ -356,7 +456,7 @@ function buildDocs(ctx: WorkspaceContext, workspaceId?: string | null): RagDocum
       text: [
         `Job ${j.id}. Type: ${j.type}. Status: ${j.status}.`,
         `Description: ${j.request?.description || "none"}.`,
-        `Step count: ${j.steps?.length || 0}.`,
+        `Step count: ${j.steps?.length || 0}. Steps: ${stepSummary}.`,
       ].join("\n"),
     });
   }
@@ -369,6 +469,13 @@ function buildFingerprint(ctx: WorkspaceContext, workspaceId?: string | null): s
   const lastMsg = ctx.messages.length > 0 ? ctx.messages[ctx.messages.length - 1] : null;
   const lastJob = ctx.jobs.length > 0 ? ctx.jobs[ctx.jobs.length - 1] : null;
 
+  let navFingerprint = "nav:0:0";
+  try {
+    const navSnap = navigatorService.snapshot();
+    const lastGoal = navSnap.goals[0];
+    navFingerprint = `nav:${navSnap.goals.length}:${navSnap.huddles.length}:${lastGoal ? `${lastGoal.id}:${lastGoal.status}` : "-"}`;
+  } catch { /* navigator not available */ }
+
   return [
     resolvedWorkspaceId,
     `a:${ctx.agents.length}`,
@@ -380,6 +487,7 @@ function buildFingerprint(ctx: WorkspaceContext, workspaceId?: string | null): s
     `j:${ctx.jobs.length}:${lastJob?.id || "-"}:${lastJob?.status || "-"}`,
     `tk:${TOOLKITS.length}`,
     `cmd:${commandRegistry.getAll().filter((c) => !c.hidden).length}`,
+    navFingerprint,
   ].join("|");
 }
 

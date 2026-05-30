@@ -10,6 +10,7 @@ import type { Conversation } from "@/components/chat/types";
 import type { PinnedMention } from "@/hooks/chat/useChatMentions";
 import type { JobStep, Agent, Group } from "@/types";
 import type { ChatAgent } from "@/services/chat/agents";
+import { useSendOrchestrator } from "@/hooks/chat/useSendOrchestrator";
 
 /**
  * A real slash command is `/<identifier>[ args]` where the identifier is a
@@ -143,6 +144,11 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
     const runCounterRef = useRef(0);
     const activeRunIdRef = useRef<number | null>(null);
     const cancelledRunIdRef = useRef<number | null>(null);
+    const { runStreamingTurn, stopStreamingTurn } = useSendOrchestrator({
+        streamState,
+        abortRef,
+        owner: "workspace-chat",
+    });
     const [pendingCommand, setPendingCommand] = useState<PendingCommand | null>(null);
 
     /** Cancel an in-progress streaming chat */
@@ -152,10 +158,8 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
         const partialResponse = (streamState.streamingText || "").trim();
         const partialToolCalls = streamState.streamingToolCalls;
 
-        abortRef.current?.abort();
-        abortRef.current = null;
+        stopStreamingTurn();
         setLoading(false);
-        streamState.clearStreaming();
 
         activeAgent?.onStop?.({ conversationId: activeId ?? undefined });
 
@@ -383,6 +387,7 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
             }
         }
 
+        let usedStreamingTurn = false;
         try {
             // CLI INTERCEPTION — commands go through arg prompt → job queue.
             // Only intercept real `/command` identifiers; path/multiaddr-like
@@ -484,11 +489,7 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
                 }
 
                 // Streaming chat
-                streamState.startStreaming();
-
-                const controller = new AbortController();
-                abortRef.current = controller;
-                const streamCallbacks: StreamCallbacks = streamState.buildCallbacks(controller.signal);
+                usedStreamingTurn = true;
 
                 // Build editor context suffix if editor mode is active
                 let messageToSend = text;
@@ -505,15 +506,14 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
                 // back to the static `context` prop when no refresh
                 // callback was supplied (tests, legacy callers).
                 const freshContext = refreshContext ? refreshContext() : context;
-                const { text: response, toolCalls } = await streamChatWithWorkspace(
-                    messageToSend, currentMessages, { ...freshContext, p2p: readP2PContext() }, streamCallbacks, commandContext,
-                    activeAgent?.toolkitIds,
+                const { text: response, toolCalls } = await runStreamingTurn((streamCallbacks: StreamCallbacks) =>
+                    streamChatWithWorkspace(
+                        messageToSend, currentMessages, { ...freshContext, p2p: readP2PContext() }, streamCallbacks, commandContext,
+                        activeAgent?.toolkitIds,
+                    )
                 );
 
                 if (cancelledRunIdRef.current === runId) return;
-
-                abortRef.current = null;
-                streamState.clearStreaming();
 
                 // Collect jobIds from tool calls for inline progress tracking
                 const collectedJobIds = toolCalls
@@ -542,7 +542,9 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
             const errMsg = [...updatedMsgs, { role: "assistant" as const, content: `Error: ${err instanceof Error ? err.message : String(err)}` }];
             updateConversation(currentId, errMsg);
         } finally {
-            streamState.flushPending();
+            if (!usedStreamingTurn) {
+                streamState.flushPending();
+            }
             if (activeRunIdRef.current === runId) activeRunIdRef.current = null;
             setLoading(false);
         }
@@ -550,6 +552,7 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
         input, pinnedMentions, loading, activeId, conversations, context, refreshContext,
         addLog, updateConversation, commandContext, queueCommandAsJob, workspaceCtx,
         activeAgent, readP2PContext, streamState, editorActive, editorApi,
+        runStreamingTurn,
         setActiveId, setConversations, setInput, setLoading, setMentionQuery,
     ]);
 

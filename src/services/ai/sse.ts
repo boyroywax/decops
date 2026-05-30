@@ -174,7 +174,7 @@ export async function parseOpenAISSE(
   response: Response,
   callbacks: OpenAISSECallbacks,
   signal?: AbortSignal,
-): Promise<{ text: string; toolCalls: Array<{ id: string; name: string; arguments: string }> }> {
+): Promise<{ text: string; toolCalls: Array<{ id: string; name: string; arguments: string }>; finishReason: string | null }> {
   const reader = response.body!.getReader();
   if (signal) {
     signal.addEventListener("abort", () => { reader.cancel(); }, { once: true });
@@ -184,6 +184,7 @@ export async function parseOpenAISSE(
   let full = "";
   // Accumulate tool call deltas keyed by index.
   const toolCallByIndex: Array<{ id: string; name: string; arguments: string }> = [];
+  let finishReason: string | null = null;
   // Track whether we've announced start for a given tool-call index.
   const startedIndexes = new Set<number>();
 
@@ -202,6 +203,10 @@ export async function parseOpenAISSE(
         try {
           const event = JSON.parse(payload);
           const delta = event?.choices?.[0]?.delta;
+          const choiceFinishReason = event?.choices?.[0]?.finish_reason;
+          if (typeof choiceFinishReason === "string" && choiceFinishReason.length > 0) {
+            finishReason = choiceFinishReason;
+          }
           if (!delta) continue;
           // Text content delta
           if (typeof delta.content === "string" && delta.content.length > 0) {
@@ -238,5 +243,5 @@ export async function parseOpenAISSE(
     reader.releaseLock();
   }
 
-  return { text: full, toolCalls: toolCallByIndex.filter(tc => tc.id && tc.name) };
+  return { text: full, toolCalls: toolCallByIndex.filter(tc => tc.id && tc.name), finishReason };
 }

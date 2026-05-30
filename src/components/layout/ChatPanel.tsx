@@ -8,6 +8,7 @@ import { MemoriesPanel } from "@/components/chat/MemoriesPanel";
 import { ChatMessageList } from "@/components/chat/ChatMessageList";
 import { ChatInputBar } from "@/components/chat/ChatInputBar";
 import { ChatPanelHeader } from "@/components/chat/ChatPanelHeader";
+import { ChatPerfPanel } from "@/components/chat/ChatPerfPanel";
 import { ConversationsList } from "@/components/chat/ConversationsList";
 import { EcosystemPanel } from "@/components/chat/EcosystemPanel";
 import type { EcosystemSelection } from "@/components/chat/ecosystemSelection";
@@ -435,6 +436,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                 onNew={createNewChat}
                 onToggleExpand={onToggleExpand}
                 onClose={onClose}
+                perfPanel={<ChatPerfPanel />}
             />
 
             {/* Body: conversations list, memories panel, ecosystem picker,

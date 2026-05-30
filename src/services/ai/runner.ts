@@ -201,9 +201,19 @@ export async function runChatTurn(
   // Capped so a stubborn model can't burn the round budget.
   const FABRICATION_RETRY_BUDGET = 2;
   let fabricationRetries = 0;
+  const CONTINUATION_RETRY_BUDGET = 2;
+  let continuationRetries = 0;
+  const NO_PROGRESS_RETRY_BUDGET = 2;
+  let noProgressRetries = 0;
+  const CAPABILITY_REFUSAL_RETRY_BUDGET = 2;
+  let capabilityRefusalRetries = 0;
   const declaredToolsRegex = /```thinking[\s\S]*?Needs tools:\s*yes\b/i;
   const narratedToolVerbRegex = /\b(run(?:ning)?|call(?:ing)?|invoke(?:d|s|ing)?|use(?:d|s|ing)?|execut(?:e|ed|es|ing)|queue(?:d|s|ing)?|trigger(?:ed|s|ing)?)\b/i;
   const fabricatedResultRegex = /\b(tool|command|job)\b[\s\S]{0,32}\b(returned|returns|result|results|output|completed|failed|succeeded|queued|created|deployed)\b|\b(result|output)\s*:\s*\{|\bjob[\s_-]?id\s*[:=]/i;
+  const capabilityRefusalRegex = /\b(i\s+cannot\s+emit|unable\s+to\s+emit|cannot\s+emit)\b[\s\S]{0,80}\btool[_ -]?use\b|\btool[_ -]?use\s+xml\b|\bfundamental\s+limitation\b|\bcurrent\s+configuration\b[\s\S]{0,40}\blimitation\b|\bblocked\s+by\s+the\s+guardian\b/i;
+  const planningNarrationRegex = /\b(i\s+will|i'll|let\s+me|next\s+i|then\s+i|going\s+to|about\s+to)\b/i;
+  const workflowMarkerRegex = /```thinking|(?:^|\n)\s*(Plan|Next|Assess):/i;
+  const directAnswerSignalRegex = /\b(done|completed|finished|summary|in short|based on|i found|here\s+are|here's|result)\b/i;
   const toolNames = (tools || []).map(t => t.name).filter(Boolean);
 
   const findMentionedToolName = (text: string): string | null => {
@@ -238,6 +248,15 @@ export async function runChatTurn(
     return null;
   };
 
+  const isPotentiallyIncompleteText = (text: string): boolean => {
+    const trimmed = text.trim();
+    if (!trimmed) return false;
+    if (trimmed.endsWith("```")) return false;
+    if (/[.!?)]$/.test(trimmed)) return false;
+    if (trimmed.length < 80) return false;
+    return true;
+  };
+
   try {
     for (let round = 0; round < maxRounds; round++) {
       const roundStart = perfNow();
@@ -261,6 +280,7 @@ export async function runChatTurn(
       let toolUseBlocks: ToolUseBlock[] = [];
       let rawAssistantContent: unknown = null;
       let roundText = "";
+      let finishReason: string | null = null;
       const useStream = supportsAnthropicStream;
       const useOpenAIStream = supportsOpenAIStream;
 
@@ -311,6 +331,7 @@ export async function runChatTurn(
 
         rawAssistantContent = sseResult.contentBlocks;
         toolUseBlocks = sseResult.contentBlocks.filter((b): b is ToolUseBlock => b.type === "tool_use");
+        finishReason = sseResult.stopReason ?? null;
       } else {
         // Non-streaming path — works for every provider, including Anthropic
         // when stream:false.
@@ -350,6 +371,7 @@ export async function runChatTurn(
             callbacks.signal,
           );
           if (!roundText) roundText = sse.text;
+          finishReason = sse.finishReason;
           // Convert streamed OpenAI tool calls to Anthropic-shaped blocks
           // so the rest of the tool-execution loop works unchanged.
           for (const tc of sse.toolCalls) {
@@ -377,6 +399,9 @@ export async function runChatTurn(
 
           toolUseBlocks = wantsTools ? parseToolUseBlocks(model, data) : [];
           roundText = parseProviderResponse(model, data);
+          finishReason = provider === "openai" || provider === "openrouter"
+            ? (typeof data?.choices?.[0]?.finish_reason === "string" ? data.choices[0].finish_reason : null)
+            : (typeof data?.stop_reason === "string" ? data.stop_reason : null);
 
           // For the non-streaming path, emit synthetic chunks so the UI can
           // still show progressive typing.
@@ -393,12 +418,30 @@ export async function runChatTurn(
 
       // ───── No tools requested → done (with anti-fabrication check) ─────
       if (toolUseBlocks.length === 0) {
+        const truncatedByTokenLimit = finishReason === "max_tokens" || finishReason === "length";
         const narratedToolName = detectNarratedToolName(roundText);
         const fabricatedResultCue = detectFabricatedResultCue(roundText);
+        const appearsLikePlanningNarration =
+          workflowMarkerRegex.test(roundText) &&
+          planningNarrationRegex.test(roundText) &&
+          !directAnswerSignalRegex.test(roundText);
         const needsFabricationRetry =
           wantsTools &&
           fabricationRetries < FABRICATION_RETRY_BUDGET &&
           (declaredToolsRegex.test(roundText) || !!narratedToolName || !!fabricatedResultCue);
+
+        const needsNoProgressRetry =
+          wantsTools &&
+          noProgressRetries < NO_PROGRESS_RETRY_BUDGET &&
+          !needsFabricationRetry &&
+          appearsLikePlanningNarration;
+
+        const claimsPlatformLimitation = capabilityRefusalRegex.test(roundText);
+        const needsCapabilityRefusalRetry =
+          wantsTools &&
+          capabilityRefusalRetries < CAPABILITY_REFUSAL_RETRY_BUDGET &&
+          !needsFabricationRetry &&
+          claimsPlatformLimitation;
 
         if (
           needsFabricationRetry
@@ -416,6 +459,58 @@ export async function runChatTurn(
             role: "user",
             content: `[SYSTEM GUARDRAIL] Your previous turn ${narratedToolName ? `narrated calling tool "${narratedToolName}"` : fabricatedResultCue ? fabricatedResultCue.reason : `declared "Needs tools: yes"`} but did NOT emit a structured tool_use block — nothing actually executed. Writing prose about a tool does not invoke it. Retry now: either (a) emit the real tool_use call immediately after a corrected \`\`\`thinking block, or (b) if you cannot or should not use a tool, output a \`\`\`thinking block with "Needs tools: no" and answer the user directly from the workspace state in your system prompt. Do NOT narrate tool calls or results again.`,
           });
+          callbacks.onRoundEnd?.(round);
+          continue;
+        }
+
+        if (needsNoProgressRetry) {
+          noProgressRetries++;
+          if (rawAssistantContent && Array.isArray(rawAssistantContent) && rawAssistantContent.length > 0) {
+            apiMessages.push({ role: "assistant", content: rawAssistantContent });
+          } else if (roundText) {
+            apiMessages.push({ role: "assistant", content: roundText });
+          }
+          apiMessages.push({
+            role: "user",
+            content: "[SYSTEM EXECUTION GUARDRAIL] Your previous turn described a plan in prose but did not execute it. Stop narrating intent. Next turn must do exactly one of: (a) emit a real structured tool_use immediately, or (b) provide a direct final answer with no execution claims and no future-tense action narration.",
+          });
+          callbacks.onRoundEnd?.(round);
+          continue;
+        }
+
+        if (needsCapabilityRefusalRetry) {
+          capabilityRefusalRetries++;
+          if (rawAssistantContent && Array.isArray(rawAssistantContent) && rawAssistantContent.length > 0) {
+            apiMessages.push({ role: "assistant", content: rawAssistantContent });
+          } else if (roundText) {
+            apiMessages.push({ role: "assistant", content: roundText });
+          }
+          apiMessages.push({
+            role: "user",
+            content: "[SYSTEM TOOL-CALL CLARIFICATION] Do not claim platform/guardian/configuration limits about structured tool_use. In this runtime, tool calls are emitted by your provider output channel, not by writing XML in prose. If tools are needed, emit one real tool_use now. If no tool is needed, answer directly with no execution claims.",
+          });
+          callbacks.onRoundEnd?.(round);
+          continue;
+        }
+
+        const needsContinuationRetry =
+          continuationRetries < CONTINUATION_RETRY_BUDGET &&
+          round < maxRounds - 1 &&
+          truncatedByTokenLimit &&
+          isPotentiallyIncompleteText(roundText);
+
+        if (needsContinuationRetry) {
+          continuationRetries++;
+          if (rawAssistantContent && Array.isArray(rawAssistantContent) && rawAssistantContent.length > 0) {
+            apiMessages.push({ role: "assistant", content: rawAssistantContent });
+          } else if (roundText) {
+            apiMessages.push({ role: "assistant", content: roundText });
+          }
+          apiMessages.push({
+            role: "user",
+            content: "[SYSTEM CONTINUATION] Continue exactly from where you stopped. Do not restart, summarize, or repeat. Finish the same sentence/plan before concluding.",
+          });
+          if (roundText) fullText += roundText;
           callbacks.onRoundEnd?.(round);
           continue;
         }
