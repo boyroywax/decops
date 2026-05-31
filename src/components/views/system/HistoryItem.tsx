@@ -14,6 +14,29 @@ import type { Job } from "@/types";
 import { formatDuration, formatTime } from "./helpers";
 import { JobTimeline } from "./JobTimeline";
 
+function getPendingRepliesCount(job: Job): number {
+    const steps = job.resultDetails?.steps;
+    if (!steps || steps.length === 0) return 0;
+
+    let pending = 0;
+    for (const step of steps) {
+        if (step.commandId !== "send_message" && step.commandId !== "broadcast_message") continue;
+        if (!step.result || typeof step.result !== "object") continue;
+
+        const result = step.result as Record<string, unknown>;
+        if (result.status !== "queued") continue;
+
+        if (step.commandId === "broadcast_message") {
+            const count = typeof result.count === "number" && Number.isFinite(result.count) ? Math.max(1, Math.floor(result.count)) : 1;
+            pending += count;
+        } else {
+            pending += 1;
+        }
+    }
+
+    return pending;
+}
+
 export function HistoryItem({ job }: { job: Job }) {
     const [expanded, setExpanded] = useState(false);
     const duration = job.startedAt && job.completedAt
@@ -23,6 +46,8 @@ export function HistoryItem({ job }: { job: Job }) {
     const stepsDone = job.steps?.filter(s => s.status === "completed").length || 0;
     const hasArtifacts = job.artifacts && job.artifacts.length > 0;
     const hasTimeline = job.timeline && job.timeline.length > 0;
+    const resultDetails = job.resultDetails;
+    const pendingReplies = getPendingRepliesCount(job);
 
     return (
         <div className={`sys-history-item ${expanded ? "sys-history-item--expanded" : ""}`}>
@@ -56,6 +81,11 @@ export function HistoryItem({ job }: { job: Job }) {
                         <span className={`sys-history-item__status sys-history-item__status--${job.status}`}>
                             {job.status}
                         </span>
+                        {pendingReplies > 0 && (
+                            <span className="sys-history-item__status sys-history-item__status--running">
+                                {pendingReplies} repl{pendingReplies === 1 ? "y" : "ies"} pending
+                            </span>
+                        )}
                         {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                     </div>
                 </div>
@@ -68,6 +98,31 @@ export function HistoryItem({ job }: { job: Job }) {
                     <div className="sys-process__detail">
                         {job.result && (
                             <div className="sys-history-item__result">{job.result}</div>
+                        )}
+                        {resultDetails && (
+                            <div className="sys-history-item__structured-result">
+                                <div className="sys-history-item__structured-title">Execution Results</div>
+                                <div className="sys-history-item__structured-summary">{resultDetails.summary}</div>
+                                <div className="sys-history-item__structured-steps">
+                                    {resultDetails.steps.map((step) => (
+                                        <div key={step.id} className="sys-history-item__structured-step">
+                                            <div className="sys-history-item__structured-step-head">
+                                                <span>{step.commandId}</span>
+                                                <span>{step.status}</span>
+                                            </div>
+                                            {step.input && (
+                                                <pre>{JSON.stringify(step.input, null, 2)}</pre>
+                                            )}
+                                            {step.result !== undefined && (
+                                                <pre>{typeof step.result === "string" ? step.result : JSON.stringify(step.result, null, 2)}</pre>
+                                            )}
+                                            {step.error && (
+                                                <pre>{step.error}</pre>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         )}
                         <div className="sys-history-item__id-row">
                             <CopyableId value={job.id} label="Job ID" truncate={32} />

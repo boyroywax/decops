@@ -145,7 +145,7 @@ export async function handleNavigatorBotRequest(
     const model = getSelectedModel();
     const provider = getModelProvider(model);
     const systemPrompt = buildNavigatorBotSystemPrompt();
-    const tools = (provider === "anthropic" || provider === "openai") ? getNavigatorTools() : [];
+    const tools = (provider === "anthropic" || provider === "openai" || provider === "openrouter") ? getNavigatorTools() : [];
 
     botStatus = "executing";
 

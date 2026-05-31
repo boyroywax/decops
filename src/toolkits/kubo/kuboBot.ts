@@ -144,7 +144,7 @@ export async function handleKuboBotRequest(
         const model = getSelectedModel();
         const provider = getModelProvider(model);
         const systemPrompt = buildKuboBotSystemPrompt();
-        const tools = (provider === "anthropic" || provider === "openai") ? getKuboTools() : [];
+        const tools = (provider === "anthropic" || provider === "openai" || provider === "openrouter") ? getKuboTools() : [];
 
         botStatus = "executing";
 

@@ -164,7 +164,7 @@ export async function handleOrbitdbBotRequest(
         const model = getSelectedModel();
         const provider = getModelProvider(model);
         const systemPrompt = buildOrbitdbBotSystemPrompt();
-        const tools = (provider === "anthropic" || provider === "openai") ? getOrbitdbTools() : [];
+        const tools = (provider === "anthropic" || provider === "openai" || provider === "openrouter") ? getOrbitdbTools() : [];
 
         botStatus = "executing";
 

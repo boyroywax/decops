@@ -186,7 +186,7 @@ export async function handleLibp2pBotRequest(
         const provider = getModelProvider(model);
 
         const systemPrompt = buildLibp2pBotSystemPrompt(snap);
-        const tools = (provider === "anthropic" || provider === "openai") ? getLibp2pTools() : [];
+        const tools = (provider === "anthropic" || provider === "openai" || provider === "openrouter") ? getLibp2pTools() : [];
 
         botStatus = "executing";
 

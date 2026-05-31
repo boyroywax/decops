@@ -37,6 +37,56 @@ function jobTitle(job: Job): string {
   }
 }
 
+function buildCommandTrace(job: Job): Array<Record<string, unknown>> {
+  const detailSteps = job.resultDetails?.steps ?? [];
+  if (detailSteps.length > 0) {
+    return detailSteps.map((step) => ({
+      id: step.id,
+      commandId: step.commandId,
+      name: step.name,
+      status: step.status,
+      input: step.input,
+      result: step.result,
+      error: step.error,
+      startedAt: step.startedAt,
+      completedAt: step.completedAt,
+      durationMs:
+        typeof step.startedAt === "number" && typeof step.completedAt === "number"
+          ? Math.max(0, step.completedAt - step.startedAt)
+          : undefined,
+    }));
+  }
+
+  const runtimeSteps = job.steps ?? [];
+  return runtimeSteps.map((step) => ({
+    id: step.id,
+    commandId: step.commandId,
+    name: step.name,
+    status: step.status,
+    input: step.args,
+    result: step.result,
+    startedAt: step.startedAt,
+    completedAt: step.completedAt,
+    durationMs:
+      typeof step.startedAt === "number" && typeof step.completedAt === "number"
+        ? Math.max(0, step.completedAt - step.startedAt)
+        : undefined,
+  }));
+}
+
+function jobMessage(job: Job, isTerminal: boolean, commandTrace: Array<Record<string, unknown>>): string | undefined {
+  if (!isTerminal) return undefined;
+  const summary = job.resultDetails?.summary || job.result;
+  if (commandTrace.length === 0) return summary;
+
+  const commandSummary = commandTrace
+    .map((c) => `${String(c.commandId)}:${String(c.status || "unknown")}`)
+    .join(", ");
+  return summary
+    ? `${summary} | commands: ${commandSummary}`
+    : `Commands: ${commandSummary}`;
+}
+
 interface JobStageRecord {
   status: JobStatus;
   at: number;
@@ -97,6 +147,7 @@ export function useJobsActivityBridge(): void {
       historyRef.current.set(job.id, stages);
 
       const isTerminal = job.status === "completed" || job.status === "failed";
+      const commandTrace = buildCommandTrace(job);
 
       activityBus.publish({
         // Stable id collapses every transition for this job into one row.
@@ -106,9 +157,8 @@ export function useJobsActivityBridge(): void {
         kind: "jobLifecycle",
         severity: jobSeverity(job.status),
         title: jobTitle(job),
-        // Surface the result on terminal events; otherwise leave the
-        // message empty (in-progress rows shouldn't claim a result).
-        message: isTerminal ? job.result : undefined,
+        // Surface detailed completion summary + command outcomes on terminal events.
+        message: jobMessage(job, isTerminal, commandTrace),
         jobId: job.id,
         // Stamp with the latest transition time so rows order by the
         // datetime of completion (or last activity for in-flight jobs).
@@ -123,6 +173,10 @@ export function useJobsActivityBridge(): void {
           updatedAt: job.updatedAt,
           completedAt: (job as { completedAt?: number }).completedAt,
           result: isTerminal ? job.result : undefined,
+          resultSummary: isTerminal ? job.resultDetails?.summary : undefined,
+          commandCount: commandTrace.length,
+          commands: commandTrace,
+          resultDetails: isTerminal ? job.resultDetails : undefined,
           stages,
         },
       });

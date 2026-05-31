@@ -9,6 +9,7 @@ import { LLMProvider } from "@/context/LLMContext";
 import { useNotebook } from "@/hooks/useNotebook";
 import { getToolkitProviders, getToolkitGlobals } from "@/services/toolkits/uiRegistry";
 import { useJobsActivityBridge, useAutomationsActivityBridge } from "@/services/activity";
+import { useNavigatorReplyBridge } from "@/toolkits/navigator/replyBridge";
 
 /**
  * Mounts the activity-bus bridges. Must live inside both JobsProvider
@@ -17,6 +18,7 @@ import { useJobsActivityBridge, useAutomationsActivityBridge } from "@/services/
 function ActivityBridges() {
     useJobsActivityBridge();
     useAutomationsActivityBridge();
+    useNavigatorReplyBridge();
     return null;
 }
 

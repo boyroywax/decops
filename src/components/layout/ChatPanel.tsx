@@ -11,6 +11,7 @@ import { ChatPanelHeader } from "@/components/chat/ChatPanelHeader";
 import { ChatPerfPanel } from "@/components/chat/ChatPerfPanel";
 import { ConversationsList } from "@/components/chat/ConversationsList";
 import { EcosystemPanel } from "@/components/chat/EcosystemPanel";
+import { EcosystemMessagesList } from "@/components/chat/EcosystemMessagesList";
 import type { EcosystemSelection } from "@/components/chat/ecosystemSelection";
 import { useChatMentions } from "@/hooks/chat/useChatMentions";
 import { useChatScroll } from "@/hooks/chat/useChatScroll";
@@ -372,6 +373,23 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
 
     const editorAvailable = !!editorApi && view === "editor";
     const editorActive = activeAgent?.id === "editor";
+    const conversationEcosystemSelection = useMemo(() => {
+        if (!active?.ecosystemKind || !active?.ecosystemId) return null;
+        if (active.ecosystemKind === "agent-dm") {
+            return { kind: "agent-dm" as const, agentId: active.ecosystemId };
+        }
+        if (active.ecosystemKind === "broadcast") {
+            return { kind: "broadcast" as const, groupId: active.ecosystemId };
+        }
+        return null;
+    }, [active?.ecosystemKind, active?.ecosystemId]);
+    const showConversationEcosystemFallback =
+        !showConvos &&
+        !showMemories &&
+        !showEcosystem &&
+        !ecosystemSelection &&
+        !!conversationEcosystemSelection &&
+        messages.length === 0;
 
     // §2.2 — send pipeline, stop controls, /cmd queue, prompt modal
     const {
@@ -407,6 +425,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
     }, [studioAvailable]);
 
     const isReady = !!input.trim() && !loading;
+    const showingEcosystemMessages = !showConvos && !showMemories && !showEcosystem && !!ecosystemSelection;
 
     return (
         <div
@@ -491,6 +510,30 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                         setShowEcosystem(false);
                     }}
                 />
+            ) : ecosystemSelection ? (
+                <EcosystemMessagesList
+                    selection={ecosystemSelection}
+                    onClear={() => setEcosystemSelection(null)}
+                    agents={workspaceCtx.agents}
+                    channels={workspaceCtx.channels}
+                    groups={workspaceCtx.groups}
+                    messages={workspaceCtx.messages}
+                    networks={ecosystem?.networks || []}
+                    bridges={ecosystem?.bridges || []}
+                    bridgeMessages={ecosystem?.bridgeMessages || []}
+                />
+            ) : showConversationEcosystemFallback && conversationEcosystemSelection ? (
+                <EcosystemMessagesList
+                    selection={conversationEcosystemSelection}
+                    onClear={createNewChat}
+                    agents={workspaceCtx.agents}
+                    channels={workspaceCtx.channels}
+                    groups={workspaceCtx.groups}
+                    messages={workspaceCtx.messages}
+                    networks={ecosystem?.networks || []}
+                    bridges={ecosystem?.bridges || []}
+                    bridgeMessages={ecosystem?.bridgeMessages || []}
+                />
             ) : (
                 /* Chat messages */
                 <ChatMessageList
@@ -513,7 +556,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
 
             {/* Input (visible for regular chat and for agent-DM /
                 group-broadcast ecosystem selections). */}
-            {!showConvos && !showMemories && !showEcosystem && (
+            {!showConvos && !showMemories && !showEcosystem && !showingEcosystemMessages && (
                 <ChatInputBar
                     activeAgent={activeAgent}
                     availableAgents={availableAgents}

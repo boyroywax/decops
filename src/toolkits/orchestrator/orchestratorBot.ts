@@ -159,7 +159,7 @@ export async function handleOrchestratorBotRequest(
         const model = getSelectedModel();
         const provider = getModelProvider(model);
         const systemPrompt = buildOrchestratorBotSystemPrompt();
-        const tools = (provider === "anthropic" || provider === "openai") ? getOrchestratorTools() : [];
+        const tools = (provider === "anthropic" || provider === "openai" || provider === "openrouter") ? getOrchestratorTools() : [];
 
         botStatus = "executing";
 

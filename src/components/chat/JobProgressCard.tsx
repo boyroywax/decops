@@ -52,6 +52,68 @@ function ModeBadge({ mode }: { mode?: string }) {
     );
 }
 
+function prettyJson(value: unknown): string {
+    if (value === undefined) return "";
+    if (typeof value === "string") return value;
+    try {
+        return JSON.stringify(value, null, 2);
+    } catch {
+        return String(value);
+    }
+}
+
+function CompletionDetailsView({ resultDetails }: { resultDetails?: Job["resultDetails"] }) {
+    if (!resultDetails) return null;
+    return (
+        <div className="jpc__result-details">
+            <div className="jpc__result-details-title">Execution Results</div>
+            <div className="jpc__result-details-summary">{resultDetails.summary}</div>
+            <div className="jpc__result-details-steps">
+                {resultDetails.steps.map((step) => (
+                    <div key={step.id} className="jpc__result-step">
+                        <div className="jpc__result-step-head">
+                            <span className="jpc__result-step-command">{step.commandId}</span>
+                            <span className={`jpc__result-step-status jpc__result-step-status--${step.status}`}>{step.status}</span>
+                        </div>
+                        {step.input && Object.keys(step.input).length > 0 && (
+                            <pre className="jpc__result-step-block">INPUT: {prettyJson(step.input)}</pre>
+                        )}
+                        {step.result !== undefined && (
+                            <pre className="jpc__result-step-block">RESULT: {prettyJson(step.result)}</pre>
+                        )}
+                        {step.error && (
+                            <pre className="jpc__result-step-block jpc__result-step-block--error">ERROR: {step.error}</pre>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function getPendingRepliesCount(job: Job): number {
+    const steps = job.resultDetails?.steps;
+    if (!steps || steps.length === 0) return 0;
+
+    let pending = 0;
+    for (const step of steps) {
+        if (step.commandId !== "send_message" && step.commandId !== "broadcast_message") continue;
+        if (!step.result || typeof step.result !== "object") continue;
+
+        const result = step.result as Record<string, unknown>;
+        if (result.status !== "queued") continue;
+
+        if (step.commandId === "broadcast_message") {
+            const count = typeof result.count === "number" && Number.isFinite(result.count) ? Math.max(1, Math.floor(result.count)) : 1;
+            pending += count;
+        } else {
+            pending += 1;
+        }
+    }
+
+    return pending;
+}
+
 // ── Progress bar ──
 
 function ProgressBar({ completed, total, failed }: { completed: number; total: number; failed: number }) {
@@ -238,6 +300,7 @@ export function JobProgressCard({ jobId, toolCalls = [] }: JobProgressCardProps)
     const isRunning = job.status === "running";
     const isDone = job.status === "completed";
     const isFailed = job.status === "failed";
+    const pendingReplies = getPendingRepliesCount(job);
     const isQueued = job.status === "queued";
     const isAwaitingInput = job.status === "awaiting-input";
     const hasToolErrors = toolCalls.some(tc => !!tc.error);
@@ -392,6 +455,13 @@ export function JobProgressCard({ jobId, toolCalls = [] }: JobProgressCardProps)
                                 <span>{job.result.length > 160 ? job.result.slice(0, 160) + "…" : job.result}</span>
                             </div>
                         )}
+                        {pendingReplies > 0 && (
+                            <div className="jpc__result">
+                                <Clock size={11} />
+                                <span>{pendingReplies} repl{pendingReplies === 1 ? "y" : "ies"} still processing in background</span>
+                            </div>
+                        )}
+                        <CompletionDetailsView resultDetails={job.resultDetails} />
                     </div>
                 </div>
             </div>

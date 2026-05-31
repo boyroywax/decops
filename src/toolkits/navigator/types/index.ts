@@ -20,11 +20,37 @@ export type NavigatorGoalStatus =
 export type NavigatorSubgoalStatus =
   | "pending"
   | "assigned"
+  | "paused"
+  | "blocked"
   | "consulting"   // routed to a huddle, awaiting consensus
   | "executing"
   | "completed"
   | "failed"
   | "skipped";
+
+export interface NavigatorLifecycleEvent {
+  id: string;
+  timestamp: number;
+  goalId: string;
+  subgoalId?: string;
+  kind:
+    | "goal-created"
+    | "goal-status"
+    | "goal-cancelled"
+    | "goal-removed"
+    | "subgoal-created"
+    | "subgoal-status"
+    | "subgoal-assigned"
+    | "subgoal-job-linked"
+    | "subgoal-note"
+    | "huddle-created"
+    | "huddle-status";
+  actor?: string;
+  fromStatus?: string;
+  toStatus?: string;
+  message?: string;
+  jobId?: string;
+}
 
 export interface NavigatorSubgoal {
   id: string;
@@ -39,6 +65,18 @@ export interface NavigatorSubgoal {
   status: NavigatorSubgoalStatus;
   /** IDs of jobs created to execute this subgoal. */
   jobIds: string[];
+  /** Number of retry attempts initiated by operator/automation. */
+  retries?: number;
+  /** Optional pause/block/failure reason. */
+  reason?: string;
+  /** Transition timestamps for lifecycle monitoring. */
+  startedAt?: number;
+  completedAt?: number;
+  lastTransitionAt?: number;
+  /** Latest execution-linked job id for quick lookup. */
+  latestJobId?: string;
+  /** Per-subgoal lifecycle log (newest at end). */
+  lifecycle?: NavigatorLifecycleEvent[];
   /** Free-form result summary once completed. */
   result?: string;
   error?: string;
@@ -60,6 +98,10 @@ export interface NavigatorGoal {
   thid: string;
   /** Networks this goal spans (informational). */
   networkIds: string[];
+  startedAt?: number;
+  completedAt?: number;
+  lastTransitionAt?: number;
+  lifecycle?: NavigatorLifecycleEvent[];
   createdAt: number;
   updatedAt: number;
   /** Free-form synthesis once all sub-goals complete. */

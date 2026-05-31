@@ -75,6 +75,7 @@ export async function callAgentAI(
   channelType: string,
   conversationHistory: (Message | BridgeMessage)[],
   crossNetworkCtx?: string,
+  commandContext?: CommandContext,
 ): Promise<string> {
   const model = getAgentModel(agent.id);
 
@@ -101,7 +102,28 @@ export async function callAgentAI(
   });
   messages.push({ role: "user", content: message });
 
+  const provider = getModelProvider(model);
+  const tools = commandContext && (provider === "anthropic" || provider === "openai" || provider === "openrouter")
+    ? getToolsForAgent(agent)
+    : [];
+
   try {
+    if (tools.length > 0 && commandContext) {
+      const result = await runChatTurn(
+        {
+          model,
+          systemPrompt,
+          messages: messages as ChatTurnMessage[],
+          tools,
+          commandContext,
+          maxRounds: 6,
+          maxTokens: 1200,
+          stream: false,
+        },
+      );
+      return result.text;
+    }
+
     const req = buildProviderRequest(model, systemPrompt, messages, 1000);
     const response = await fetch(req.url, {
       method: "POST",
@@ -230,8 +252,8 @@ export function buildAgentChatSystemPrompt(agent: Agent, toolCount: number): str
           return tk ? `${tk.name} (${tk.commands.length} commands)` : b.toolkitId;
         }).join(", ")}. You can only use commands from these toolkits. If you need a capability from a disabled toolkit, ask the operator to enable it.`
       : "",
-    toolCount > 0
-      ? `\nYou have ${toolCount} tools available. Most actions go through the **create_job** meta-tool: discover commands via list_available_commands (optionally inspect with get_command_schema), then call create_job with the chosen commandId and args. Commands from your bound toolkits ALSO appear as direct tools — prefer those when available.
+       toolCount > 0
+         ? `\nYou have ${toolCount} tools available. Most operational work should follow a simple job workflow: identify the needed tool, search RAG for commands/context, select the commands, create one flat serial job when possible, execute it, then diagnose/retry if needed. Commands from your bound toolkits ALSO appear as direct tools — prefer those when available.
 
 You MUST follow the Reasoning Protocol on every turn:
 
@@ -240,7 +262,7 @@ Begin EVERY turn with a single fenced \`\`\`thinking block in this exact format 
 \`\`\`thinking
 Confidence: high|medium|low — one short sentence on how clearly you understand the request.
 Needs tools: yes|no — one short sentence on why.
-Plan: one short sentence. If "Needs tools: yes", name the next job or command (prefer queue_new_job to bundle related work; use a leaf command only for one atomic action or inspection).
+       Plan: one short sentence. If "Needs tools: yes", name the next job or command and keep the job shape as flat and serial as possible.
 \`\`\`
 
 Then either (a) call exactly one tool, or (b) reply directly if no tools are needed.
@@ -254,6 +276,8 @@ Next: one short sentence — call another tool (name it) OR finalize the answer.
 If a tool errors or returns unexpected output, the Assess line MUST start with "ERROR:" or "UNEXPECTED:" and Next MUST describe a corrective plan (different args, different command, or ask the user). Re-approach with the new information — do not blindly retry. Never invent tool results. Keep each line under 140 characters.
 
 ANTI-FABRICATION RAIL (CRITICAL): Tools execute ONLY via the structured tool-use channel. Prose like "Running X...", "Calling Y...", "Let me invoke...", "The result shows..." does NOT invoke anything. If you say "Needs tools: yes" you MUST emit a real tool_use block immediately — the system rejects fabricated tool turns and forces a retry. Never fabricate tool output, JSON, or status. If the capability you need isn't in your tools, say so plainly.
+
+Never serialize pseudo tool calls in plain text or XML-like tags (forbidden: <longcat_tool_call>, <tool_call>, <longcat_arg_key>, <longcat_arg_value>, or similar wrappers). Those are treated as narration and do not execute.
 
 Never claim you are unable to emit tool_use, blocked by a guardian, or limited by configuration for tool calling. In this runtime, structured tool calls are supported through the provider channel.
 

@@ -104,6 +104,7 @@ export function useCommandContext({
                 // Queue Management
                 addJob: jobs.addJob,
                 removeJob: jobs.removeJob,
+                stopJob: jobs.stopJob,
                 pauseQueue: jobs.toggleQueuePause, // Mapped from toggle
                 resumeQueue: jobs.toggleQueuePause,
                 isPaused: jobs.isPaused,

@@ -7,7 +7,7 @@ import { resolveToolJob, rejectToolJob } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContextType } from "@/context/WorkspaceContext";
 import type { User, JobEvent, Job, JobArtifact, JobRequest, NotebookEntry, EntityInput } from "@/types";
-import type { JobStep, JobDeliverable } from "@/types/jobs";
+import type { JobStep, JobDeliverable, JobCompletionDetails } from "@/types/jobs";
 import type { UseJobsReturn } from "./useJobs";
 import type { UseJobCatalogReturn } from "./useJobCatalog";
 import type { UseNotebookReturn } from "./useNotebook";
@@ -48,6 +48,7 @@ interface JobExecutorProps {
     updateJob?: UseJobsReturn["updateJob"];
     addArtifact: UseJobsReturn["addArtifact"];
     removeJob: UseJobsReturn["removeJob"];
+    stopJob: UseJobsReturn["stopJob"];
     clearJobs: UseJobsReturn["clearJobs"];
     allArtifacts: JobArtifact[];
     importArtifact: UseJobsReturn["importArtifact"];
@@ -90,6 +91,7 @@ export function useJobExecutor({
     updateJob,
     addArtifact,
     removeJob,
+    stopJob,
     allArtifacts,
     importArtifact,
     removeArtifact,
@@ -138,7 +140,7 @@ export function useJobExecutor({
                 getMessages: () => messagesRef.current,
                 user,
                 addLog,
-                addJob, removeJob, addArtifact, removeArtifact, importArtifact, updateArtifact,
+                addJob, removeJob, stopJob, addArtifact, removeArtifact, importArtifact, updateArtifact,
                 allArtifacts, isPaused, toggleQueuePause,
                 getQueue: () => jobs,
                 setJobs, setStandaloneArtifacts, clearJobs,
@@ -248,7 +250,30 @@ export function useJobExecutor({
                         });
                     };
 
-                    let finalResult;
+                    let finalResult: unknown;
+                    let completionDetails: JobCompletionDetails | undefined;
+
+                    const toSerializableValue = (value: unknown): unknown => {
+                        if (value === undefined) return undefined;
+                        if (value === null) return null;
+                        if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
+                        try {
+                            return JSON.parse(JSON.stringify(value));
+                        } catch {
+                            return String(value);
+                        }
+                    };
+
+                    const buildStepDetail = (step: JobStep) => ({
+                        id: step.id,
+                        commandId: step.commandId,
+                        name: step.name,
+                        status: (step.status === "failed" || step.status === "skipped") ? step.status : "completed" as const,
+                        input: toSerializableValue(step.args) as Record<string, any> | undefined,
+                        result: toSerializableValue(step.result),
+                        startedAt: step.startedAt,
+                        completedAt: step.completedAt,
+                    });
 
                     // ═══ DRY-RUN BRANCH ═══
                     // When dryRun is flagged, validate without executing and return report
@@ -355,7 +380,13 @@ export function useJobExecutor({
                                 }
                             }
 
-                            finalResult = "All steps completed";
+                            completionDetails = {
+                                summary: "All steps completed",
+                                mode: "parallel",
+                                steps: steps.map(buildStepDetail),
+                                finalResult: { steps: results.length, mode: "parallel" },
+                            };
+                            finalResult = completionDetails;
                         } else if (queuedJob.mode === "mixed" && queuedJob.parallelGroups && queuedJob.parallelGroups.length > 0) {
                             // ═══ MIXED MODE: serial chain + parallel groups ═══
                             const steps = [...queuedJob.steps];
@@ -478,7 +509,13 @@ export function useJobExecutor({
                             }
 
                             if (mixedFailed) throw new Error("One or more steps failed");
-                            finalResult = "Sequence completed";
+                            completionDetails = {
+                                summary: "Sequence completed",
+                                mode: "mixed",
+                                steps: steps.map(buildStepDetail),
+                                finalResult: { steps: steps.length, mode: "mixed" },
+                            };
+                            finalResult = completionDetails;
                         } else {
                             // Serial - We can update incrementally safely!
                             const steps = [...queuedJob.steps];
@@ -560,11 +597,33 @@ export function useJobExecutor({
                                 // Update progress
                                 syncJobState({ steps: [...steps] });
                             }
-                            finalResult = "Sequence completed";
+                            completionDetails = {
+                                summary: "Sequence completed",
+                                mode: "serial",
+                                steps: steps.map(buildStepDetail),
+                                finalResult: { steps: steps.length, mode: "serial" },
+                            };
+                            finalResult = completionDetails;
                         }
                     } else {
                         // Legacy / Single Command Job
-                        finalResult = await registry.execute(queuedJob.type, queuedJob.request, context);
+                        const legacyResult = await registry.execute(queuedJob.type, queuedJob.request, context);
+                        completionDetails = {
+                            summary: `Completed ${queuedJob.type}`,
+                            mode: "serial",
+                            steps: [{
+                                id: queuedJob.id,
+                                commandId: queuedJob.type,
+                                name: queuedJob.type,
+                                status: "completed",
+                                input: toSerializableValue(queuedJob.request) as Record<string, any> | undefined,
+                                result: toSerializableValue(legacyResult),
+                                startedAt: queuedJob.startedAt,
+                                completedAt: Date.now(),
+                            }],
+                            finalResult: toSerializableValue(legacyResult),
+                        };
+                        finalResult = completionDetails;
                     }
 
                     // ═══ DELIVERABLE ASSEMBLY ═══
@@ -596,7 +655,12 @@ export function useJobExecutor({
                     // `JobDeliverable` type; cast bridges this pre-existing mismatch.)
                     syncJobState({ deliverables: producedDeliverables.length > 0 ? (producedDeliverables as unknown as JobDeliverable[]) : undefined });
 
-                    updateJobStatus(queuedJob.id, "completed", typeof finalResult === 'string' ? finalResult : JSON.stringify(finalResult));
+                    updateJobStatus(
+                        queuedJob.id,
+                        "completed",
+                        completionDetails?.summary || (typeof finalResult === "string" ? finalResult : "Job completed"),
+                        completionDetails,
+                    );
 
                     // Signal tool call promise (if this job was created by a tool call)
                     resolveToolJob(queuedJob.id, finalResult);

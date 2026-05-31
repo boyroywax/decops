@@ -39,6 +39,56 @@ function renderRequestParams(request: Record<string, any>) {
     );
 }
 
+function renderStructuredResult(job: Job) {
+    if (!job.resultDetails) return null;
+    return (
+        <div className="history-panel__structured-result">
+            <div className="history-panel__structured-title">Execution Results</div>
+            <div className="history-panel__structured-summary">{job.resultDetails.summary}</div>
+            {job.resultDetails.steps.map((step) => (
+                <div key={step.id} className="history-panel__structured-step">
+                    <div className="history-panel__structured-step-head">
+                        <span className="history-panel__step-command">{step.commandId}</span>
+                        <span className="history-panel__step-status">{step.status}</span>
+                    </div>
+                    {step.input && Object.keys(step.input).length > 0 && (
+                        <pre className="history-panel__structured-block">INPUT: {JSON.stringify(step.input, null, 2)}</pre>
+                    )}
+                    {step.result !== undefined && (
+                        <pre className="history-panel__structured-block">RESULT: {typeof step.result === "string" ? step.result : JSON.stringify(step.result, null, 2)}</pre>
+                    )}
+                    {step.error && (
+                        <pre className="history-panel__structured-block history-panel__structured-block--error">ERROR: {step.error}</pre>
+                    )}
+                </div>
+            ))}
+        </div>
+    );
+}
+
+function getPendingRepliesCount(job: Job): number {
+    const steps = job.resultDetails?.steps;
+    if (!steps || steps.length === 0) return 0;
+
+    let pending = 0;
+    for (const step of steps) {
+        if (step.commandId !== "send_message" && step.commandId !== "broadcast_message") continue;
+        if (!step.result || typeof step.result !== "object") continue;
+
+        const result = step.result as Record<string, unknown>;
+        if (result.status !== "queued") continue;
+
+        if (step.commandId === "broadcast_message") {
+            const count = typeof result.count === "number" && Number.isFinite(result.count) ? Math.max(1, Math.floor(result.count)) : 1;
+            pending += count;
+        } else {
+            pending += 1;
+        }
+    }
+
+    return pending;
+}
+
 type StatusFilter = "all" | "completed" | "failed";
 
 export function HistoryPanel() {
@@ -106,6 +156,7 @@ export function HistoryPanel() {
             {view === "cards" && (
                 <div className="history-panel__card-list">
                     {historyJobs.map(job => {
+                        const pendingReplies = getPendingRepliesCount(job);
                         const isExpanded = expandedJob === job.id;
                         const duration = job.updatedAt && job.createdAt
                             ? formatDuration(job.updatedAt - job.createdAt)
@@ -145,6 +196,11 @@ export function HistoryPanel() {
                                         </div>
                                     </div>
                                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                        {pendingReplies > 0 && (
+                                            <span className="history-panel__status-pill history-panel__status-pill--running">
+                                                {pendingReplies} repl{pendingReplies === 1 ? "y" : "ies"} pending
+                                            </span>
+                                        )}
                                         <span className={`history-panel__status-pill history-panel__status-pill--${job.status}`}>
                                             {job.status}
                                         </span>
@@ -243,6 +299,7 @@ export function HistoryPanel() {
                         </thead>
                         <tbody>
                             {historyJobs.map(job => {
+                                const pendingReplies = getPendingRepliesCount(job);
                                 const duration = job.updatedAt && job.createdAt
                                     ? formatDuration(job.updatedAt - job.createdAt)
                                     : "—";
@@ -266,6 +323,14 @@ export function HistoryPanel() {
                                                 ? <span className="history-panel__result-preview">{job.result.slice(0, 60)}{job.result.length > 60 ? "…" : ""}</span>
                                                 : <span className="history-panel__no-result">—</span>
                                             }
+                                            {pendingReplies > 0 && (
+                                                <div>
+                                                    <span className="history-panel__status-pill history-panel__status-pill--running">
+                                                        {pendingReplies} repl{pendingReplies === 1 ? "y" : "ies"} pending
+                                                    </span>
+                                                </div>
+                                            )}
+                                            {job.resultDetails && renderStructuredResult(job)}
                                         </td>
                                         <td className="history-panel__td history-panel__td--steps-count">
                                             {job.steps?.length || 0}

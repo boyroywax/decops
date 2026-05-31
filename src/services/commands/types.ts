@@ -72,6 +72,7 @@ export interface CommandContext {
         // Queue Management
         addJob: (job: JobRequest) => Job;
         removeJob: (id: string) => void;
+        stopJob: (id: string) => void;
         pauseQueue: () => void;
         resumeQueue: () => void;
         isPaused: boolean;

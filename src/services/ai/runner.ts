@@ -214,6 +214,8 @@ export async function runChatTurn(
   const planningNarrationRegex = /\b(i\s+will|i'll|let\s+me|next\s+i|then\s+i|going\s+to|about\s+to)\b/i;
   const workflowMarkerRegex = /```thinking|(?:^|\n)\s*(Plan|Next|Assess):/i;
   const directAnswerSignalRegex = /\b(done|completed|finished|summary|in short|based on|i found|here\s+are|here's|result)\b/i;
+  const serializedToolCallRegex = /<(?:longcat_tool_call|tool_call|tooluse)[^>]*>|<(?:longcat_arg_key|longcat_arg_value|arg_key|arg_value)[^>]*>/i;
+  const serializedToolNameRegex = /<longcat_tool_call>\s*([^\n<]+)/i;
   const toolNames = (tools || []).map(t => t.name).filter(Boolean);
 
   const findMentionedToolName = (text: string): string | null => {
@@ -421,6 +423,12 @@ export async function runChatTurn(
         const truncatedByTokenLimit = finishReason === "max_tokens" || finishReason === "length";
         const narratedToolName = detectNarratedToolName(roundText);
         const fabricatedResultCue = detectFabricatedResultCue(roundText);
+        const serializedToolCallDetected = serializedToolCallRegex.test(roundText);
+        const serializedToolName = (() => {
+          if (!serializedToolCallDetected) return null;
+          const m = roundText.match(serializedToolNameRegex);
+          return m?.[1]?.trim() || null;
+        })();
         const appearsLikePlanningNarration =
           workflowMarkerRegex.test(roundText) &&
           planningNarrationRegex.test(roundText) &&
@@ -428,7 +436,7 @@ export async function runChatTurn(
         const needsFabricationRetry =
           wantsTools &&
           fabricationRetries < FABRICATION_RETRY_BUDGET &&
-          (declaredToolsRegex.test(roundText) || !!narratedToolName || !!fabricatedResultCue);
+          (declaredToolsRegex.test(roundText) || !!narratedToolName || !!fabricatedResultCue || serializedToolCallDetected);
 
         const needsNoProgressRetry =
           wantsTools &&
@@ -457,7 +465,7 @@ export async function runChatTurn(
           }
           apiMessages.push({
             role: "user",
-            content: `[SYSTEM GUARDRAIL] Your previous turn ${narratedToolName ? `narrated calling tool "${narratedToolName}"` : fabricatedResultCue ? fabricatedResultCue.reason : `declared "Needs tools: yes"`} but did NOT emit a structured tool_use block — nothing actually executed. Writing prose about a tool does not invoke it. Retry now: either (a) emit the real tool_use call immediately after a corrected \`\`\`thinking block, or (b) if you cannot or should not use a tool, output a \`\`\`thinking block with "Needs tools: no" and answer the user directly from the workspace state in your system prompt. Do NOT narrate tool calls or results again.`,
+            content: `[SYSTEM GUARDRAIL] Your previous turn ${serializedToolCallDetected ? `serialized a pseudo tool call${serializedToolName ? ` for "${serializedToolName}"` : ""} using XML-like tags` : narratedToolName ? `narrated calling tool "${narratedToolName}"` : fabricatedResultCue ? fabricatedResultCue.reason : `declared "Needs tools: yes"`} but did NOT emit a structured tool_use block — nothing actually executed. Writing prose or XML-like tags about a tool does not invoke it. Retry now: either (a) emit the real provider-native tool_use call immediately after a corrected \`\`\`thinking block, or (b) if you cannot or should not use a tool, output a \`\`\`thinking block with "Needs tools: no" and answer directly from workspace state. Do NOT output <longcat_tool_call>, <tool_call>, or any XML-like argument tags.`,
           });
           callbacks.onRoundEnd?.(round);
           continue;

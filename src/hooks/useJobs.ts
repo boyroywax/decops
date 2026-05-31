@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import type { Job, JobStatus, JobArtifact, JobRequest, JobEvent, EntityInput } from "@/types";
+import type { JobCompletionDetails } from "@/types/jobs";
 
 /** Hard cap on persisted job history. Without this, jobs accumulate
  *  forever and eventually bust the 5MB localStorage quota — which used
@@ -111,7 +112,7 @@ export function useJobs() {
         return newJob;
     }, []);
 
-    const updateJobStatus = useCallback((id: string, status: JobStatus, result?: string) => {
+    const updateJobStatus = useCallback((id: string, status: JobStatus, result?: string, resultDetails?: JobCompletionDetails) => {
         setJobs((prev) => prev.map((job) => {
             if (job.id === id) {
                 const now = Date.now();
@@ -122,6 +123,7 @@ export function useJobs() {
                     ...job,
                     status,
                     result,
+                    resultDetails,
                     updatedAt: now,
                     ...(status === "running" ? { startedAt: job.startedAt || now } : {}),
                     ...(status === "completed" || status === "failed" ? { completedAt: now } : {}),

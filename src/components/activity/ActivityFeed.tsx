@@ -362,6 +362,7 @@ interface ActivityRowProps {
 function ActivityRow({ event, expanded, onToggle }: ActivityRowProps) {
   const accent = KNOWN_ACTIVITY_SOURCES.find((s) => s.id === event.source)?.accent ?? "#64748b";
   const hasDetail = event.message || event.data !== undefined || (event.tags && event.tags.length > 0);
+  const commandRows = getEventCommandRows(event);
 
   return (
     <div className={`activity-feed__row activity-feed__row--${event.severity}`}>
@@ -388,6 +389,19 @@ function ActivityRow({ event, expanded, onToggle }: ActivityRowProps) {
       {expanded && hasDetail && (
         <div className="activity-feed__row-detail">
           {event.message && <div className="activity-feed__row-message">{event.message}</div>}
+          {commandRows.length > 0 && (
+            <div className="activity-feed__row-command-list">
+              <div className="activity-feed__row-command-title">Command Results</div>
+              {commandRows.map((row, idx) => (
+                <div key={`${event.id}-cmd-${idx}`} className="activity-feed__row-command">
+                  <span className="activity-feed__row-command-id">{row.commandId}</span>
+                  <span className={`activity-feed__row-command-status activity-feed__row-command-status--${row.status}`}>{row.status}</span>
+                  <span className="activity-feed__row-command-duration">{row.durationLabel}</span>
+                  <span className="activity-feed__row-command-result">{row.result}</span>
+                </div>
+              ))}
+            </div>
+          )}
           {event.tags && event.tags.length > 0 && (
             <div className="activity-feed__row-tags">
               {event.tags.map((t) => (
@@ -404,11 +418,54 @@ function ActivityRow({ event, expanded, onToggle }: ActivityRowProps) {
   );
 }
 
+function getEventCommandRows(event: ActivityEvent): Array<{ commandId: string; status: string; result: string; durationLabel: string }> {
+  if (!event.data || typeof event.data !== "object") return [];
+  const data = event.data as Record<string, unknown>;
+  if (!Array.isArray(data.commands)) return [];
+
+  return data.commands
+    .map((c) => {
+      if (!c || typeof c !== "object") return null;
+      const cmd = c as Record<string, unknown>;
+      const commandId = typeof cmd.commandId === "string" ? cmd.commandId : "unknown";
+      const status = typeof cmd.status === "string" ? cmd.status : "unknown";
+      const error = typeof cmd.error === "string" ? cmd.error : "";
+      const durationMs = typeof cmd.durationMs === "number" && Number.isFinite(cmd.durationMs)
+        ? Math.max(0, Math.floor(cmd.durationMs))
+        : undefined;
+      const resultRaw = cmd.result;
+      const result = error
+        ? `Error: ${error}`
+        : typeof resultRaw === "string"
+          ? resultRaw
+          : resultRaw === undefined
+            ? "(no result)"
+            : JSON.stringify(resultRaw);
+      return {
+        commandId,
+        status,
+        durationLabel: formatDurationMs(durationMs),
+        result: result.length > 180 ? `${result.slice(0, 180)}...` : result,
+      };
+    })
+    .filter((row): row is { commandId: string; status: string; result: string; durationLabel: string } => !!row);
+}
+
 // ─── utilities ──────────────────────────────────────────────────────────
 
 function formatTime(ts: number): string {
   const d = new Date(ts);
   return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function formatDurationMs(ms?: number): string {
+  if (ms === undefined) return "-";
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = ms / 1000;
+  if (seconds < 60) return `${seconds.toFixed(2)}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remSeconds = seconds - minutes * 60;
+  return `${minutes}m ${remSeconds.toFixed(1)}s`;
 }
 
 function formatDay(ts: number): string {

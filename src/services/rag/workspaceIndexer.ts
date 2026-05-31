@@ -33,6 +33,7 @@ const lastMessageCountByWorkspace = new Map<string, number>();
 const pendingTimerByWorkspace = new Map<string, ReturnType<typeof setTimeout>>();
 const pendingContextByWorkspace = new Map<string, WorkspaceContext>();
 const inFlightIndexByWorkspace = new Map<string, Promise<void>>();
+let navigatorSubscriptionInstalled = false;
 
 function normalizeWorkspaceId(workspaceId?: string | null): string {
   return workspaceId || "default-workspace";
@@ -469,21 +470,63 @@ function buildFingerprint(ctx: WorkspaceContext, workspaceId?: string | null): s
   const lastMsg = ctx.messages.length > 0 ? ctx.messages[ctx.messages.length - 1] : null;
   const lastJob = ctx.jobs.length > 0 ? ctx.jobs[ctx.jobs.length - 1] : null;
 
+  const digest = (parts: string[], limit = 80): string =>
+    parts.slice(0, limit).sort().join("|");
+
+  const agentDigest = digest(
+    ctx.agents.map((a) => `${a.id}:${a.did || "-"}:${a.networkId || "-"}:${a.lastActivityAt || "-"}`),
+    120,
+  );
+  const channelDigest = digest(
+    ctx.channels.map((c) => `${c.id}:${c.from}:${c.to}:${c.type}:${c.networkId || "-"}:${c.mode || "-"}`),
+    120,
+  );
+  const groupDigest = digest(
+    ctx.groups.map((g) => `${g.id}:${g.did || "-"}:${g.networkId || "-"}:${(g.networkIds || []).join(",")}:${g.members.join(",")}`),
+    120,
+  );
+  const networkDigest = digest(
+    ctx.networks.map((n) => `${n.id}:${n.did || "-"}:${n.name}`),
+    120,
+  );
+  const bridgeDigest = digest(
+    ctx.bridges.map((b) => `${b.id}:${b.fromNetworkId}:${b.toNetworkId}:${b.fromAgentId}:${b.toAgentId}:${b.type}`),
+    120,
+  );
+
   let navFingerprint = "nav:0:0";
   try {
     const navSnap = navigatorService.snapshot();
-    const lastGoal = navSnap.goals[0];
-    navFingerprint = `nav:${navSnap.goals.length}:${navSnap.huddles.length}:${lastGoal ? `${lastGoal.id}:${lastGoal.status}` : "-"}`;
+    const goalDigest = navSnap.goals
+      .slice(0, 30)
+      .map((g) => {
+        const subDigest = g.subgoals
+          .slice(0, 20)
+          .map((s) => `${s.id}:${s.status}:${s.updatedAt}`)
+          .join(",");
+        return `${g.id}:${g.status}:${g.updatedAt}:${subDigest}`;
+      })
+      .join("|");
+    const huddleDigest = navSnap.huddles
+      .slice(0, 30)
+      .map((h) => `${h.id}:${h.status}:${h.updatedAt}:${h.goalId}:${h.subgoalId}`)
+      .join("|");
+    navFingerprint = `nav:${navSnap.goals.length}:${navSnap.huddles.length}:${navSnap.activeGoalId || "-"}:${goalDigest}:${huddleDigest}`;
   } catch { /* navigator not available */ }
 
   return [
     resolvedWorkspaceId,
     `a:${ctx.agents.length}`,
+    `ad:${agentDigest}`,
     `c:${ctx.channels.length}`,
+    `cd:${channelDigest}`,
     `g:${ctx.groups.length}`,
+    `gd:${groupDigest}`,
     `m:${ctx.messages.length}:${lastMsg?.id || "-"}`,
     `n:${ctx.networks.length}`,
+    `nd:${networkDigest}`,
     `b:${ctx.bridges.length}`,
+    `bd:${bridgeDigest}`,
     `j:${ctx.jobs.length}:${lastJob?.id || "-"}:${lastJob?.status || "-"}`,
     `tk:${TOOLKITS.length}`,
     `cmd:${commandRegistry.getAll().filter((c) => !c.hidden).length}`,
@@ -492,6 +535,7 @@ function buildFingerprint(ctx: WorkspaceContext, workspaceId?: string | null): s
 }
 
 export function getWorkspaceIndexStatus(ctx: WorkspaceContext): WorkspaceIndexStatus {
+  ensureNavigatorIndexSync();
   const workspaceId = normalizeWorkspaceId(ctx.workspaceId);
   const expected = buildFingerprint(ctx, workspaceId);
   const current = fingerprintByWorkspace.get(workspaceId);
@@ -557,6 +601,7 @@ export function scheduleWorkspaceIndex(
   ctx: WorkspaceContext,
   reason: "workspace-update" | "workspace-switch" | "message-burst" = "workspace-update",
 ): void {
+  ensureNavigatorIndexSync();
   const policy = getWorkspaceRagPolicy();
   if (!policy.autoIndexEnabled) return;
 
@@ -592,6 +637,28 @@ export function scheduleWorkspaceIndex(
   }, policy.debounceMs);
 
   pendingTimerByWorkspace.set(workspaceId, timeout);
+}
+
+function ensureNavigatorIndexSync(): void {
+  if (navigatorSubscriptionInstalled) return;
+  navigatorSubscriptionInstalled = true;
+
+  navigatorService.subscribe(() => {
+    const workspaceIds = new Set<string>([
+      ...pendingContextByWorkspace.keys(),
+      ...fingerprintByWorkspace.keys(),
+      ...dirtyByWorkspace.keys(),
+    ]);
+
+    for (const workspaceId of workspaceIds) {
+      dirtyByWorkspace.set(workspaceId, true);
+      const latest = pendingContextByWorkspace.get(workspaceId);
+      if (!latest) continue;
+      void ensureWorkspaceIndexed(latest).catch(() => {
+        // Never throw from background synchronization.
+      });
+    }
+  });
 }
 
 export async function clearWorkspaceIndex(workspaceId: string): Promise<void> {

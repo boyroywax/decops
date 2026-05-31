@@ -208,6 +208,27 @@ export interface JobBase {
   inputs?: EntityInput[];
   parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>;
   dryRun?: boolean;
+  resultDetails?: JobCompletionDetails;
+}
+
+export interface JobCompletionStepDetail {
+  id: string;
+  commandId: string;
+  name?: string;
+  status: "completed" | "failed" | "skipped";
+  input?: Record<string, any>;
+  result?: unknown;
+  error?: string;
+  startedAt?: number;
+  completedAt?: number;
+}
+
+export interface JobCompletionDetails {
+  summary: string;
+  mode?: 'serial' | 'parallel' | 'mixed';
+  steps: JobCompletionStepDetail[];
+  finalResult?: unknown;
+  error?: string;
 }
 
 /**

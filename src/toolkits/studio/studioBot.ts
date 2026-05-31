@@ -327,7 +327,7 @@ export async function handleStudioBotRequest(
         const systemPrompt = buildStudioBotSystemPrompt(studioState);
 
         // Get only studio tools
-        const tools = (provider === "anthropic" || provider === "openai") ? getStudioTools() : [];
+        const tools = (provider === "anthropic" || provider === "openai" || provider === "openrouter") ? getStudioTools() : [];
 
         botStatus = "building";
 

@@ -137,18 +137,14 @@ export function buildToolkitUsageGuide(toolkitIds: string[], opts: BuildGuideOpt
 }
 
 export const JOB_CREATION_PLAYBOOK = `JOB EXECUTION PLAYBOOK:
-- MANDATORY EXECUTION FLOW (default):
-  1) Use workspace-rag status/search tools to identify the right command(s) and args.
-  2) Create a job that specifies those command calls as steps (queue_new_job for multi-step, create_job for one atomic command).
-  3) Run/queue the job and wait for tool/job results.
-  4) Review the returned outputs/status and then decide next action.
+- 1) Identify that a tool/command needs to run.
+- 2) Search workspace RAG for the relevant tools/commands and current context.
+- 3) Select the needed commands and create one job with a flat serial step list whenever possible.
+- 4) Execute the job and wait for output.
+- 5) If there is an error, diagnose it and rerun the job if possible.
+- Prefer the simplest job shape that matches the work. Use create_job for a single command, and use queue_new_job only when a serial multi-step job is genuinely needed.
 - Treat operational tool calls as command invocations executed through jobs, not prose narration.
-- Default to job-first execution for anything beyond one atomic read.
-- If two or more dependent steps are needed, use queue_new_job with explicit steps.
-- Use create_job for single operational command execution with traceability.
-- Validate command schema before execution when args are uncertain.
-- For parallel work, fan-out to unique storage keys and fan-in in one serial merge step.
-- Always include clear step names/descriptions so progress cards are interpretable.`;
+- Always include clear step names/descriptions so the output is easy to review.`;
 
 export const WORKSPACE_RAG_PLAYBOOK = `WORKSPACE RAG PLAYBOOK:
 - Use RAG as command discovery + planning input before mutations: search first, then job execution.

@@ -26,19 +26,27 @@ export const sendMessageCommand: CommandDefinition = {
             type: "string",
             description: "The content of the message",
             required: true,
+        },
+        await_response: {
+            name: "await_response",
+            type: "boolean",
+            description: "If true, waits for recipient AI response before completing the job (slower).",
+            required: false,
+            defaultValue: false,
         }
     },
     output: "JSON object with delivery status and response content.",
     outputSchema: {
         type: "object",
         properties: {
-            status: { type: "string", enum: ["delivered", "failed", "no-prompt"] },
+            status: { type: "string", enum: ["queued", "delivered", "failed", "no-prompt"] },
             messageId: { type: "string" },
             response: { type: "string" }
         }
     },
     execute: async (args, context) => {
         const { from_agent_id, to_agent_id, message } = args;
+        const awaitResponse = Boolean(args.await_response);
         const { setMessages, addLog } = context.workspace;
 
         // Read LIVE workspace state via getters (falls back to snapshots
@@ -100,8 +108,8 @@ export const sendMessageCommand: CommandDefinition = {
             // any messages persisted earlier in the same job. Falls back to
             // the snapshot for legacy contexts.
             const history = context.workspace.getMessages?.() ?? context.workspace.messages;
-            try {
-                const response = await callAgentAI(toAgent, fromAgent, message, channel?.type || 'data', history);
+            const finalizeResponse = async () => {
+                const response = await callAgentAI(toAgent, fromAgent, message, channel?.type || 'data', history, undefined, context);
 
                 // Update message with response
                 setMessages(prev => prev.map(m => m.id === msgId ? { ...m, response, status: "delivered" } : m));
@@ -111,6 +119,23 @@ export const sendMessageCommand: CommandDefinition = {
                 context.storage.lastMessageId = msgId;
                 context.storage.lastResponse = response;
                 context.storage[`response_${toAgent.id}`] = response;
+
+                return response;
+            };
+
+            if (!awaitResponse) {
+                void finalizeResponse().catch((err: unknown) => {
+                    const msg = err instanceof Error ? err.message : String(err);
+                    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, status: "failed", response: `Error: ${msg}` } : m));
+                });
+                return {
+                    status: "queued",
+                    messageId: msgId,
+                };
+            }
+
+            try {
+                const response = await finalizeResponse();
 
                 return {
                     status: "delivered",

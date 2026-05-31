@@ -59,6 +59,7 @@ export type { AnthropicTool, ToolCallResult };
 const DIRECT_TOOL_COMMANDS = new Set([
   "queue_new_job",
   "create_job",
+  "navigator_start_subgoal",
 ]);
 
 function shouldAutoWrapToolCommand(toolName: string): boolean {

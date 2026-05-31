@@ -159,7 +159,7 @@ export async function handleHeliaBotRequest(
         const model = getSelectedModel();
         const provider = getModelProvider(model);
         const systemPrompt = buildHeliaBotSystemPrompt();
-        const tools = (provider === "anthropic" || provider === "openai") ? getHeliaTools() : [];
+        const tools = (provider === "anthropic" || provider === "openai" || provider === "openrouter") ? getHeliaTools() : [];
 
         botStatus = "executing";
 

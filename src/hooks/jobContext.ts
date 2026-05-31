@@ -36,6 +36,7 @@ export interface JobExecutorEnv {
     // Jobs API
     addJob: UseJobsReturn["addJob"];
     removeJob: UseJobsReturn["removeJob"];
+    stopJob: UseJobsReturn["stopJob"];
     addArtifact: UseJobsReturn["addArtifact"];
     removeArtifact: UseJobsReturn["removeArtifact"];
     importArtifact: UseJobsReturn["importArtifact"];
@@ -94,6 +95,7 @@ export function buildJobContext(
             allArtifacts: env.allArtifacts,
             addJob: env.addJob,
             removeJob: env.removeJob,
+            stopJob: env.stopJob,
             pauseQueue: () => (!env.isPaused && env.toggleQueuePause()),
             resumeQueue: () => (env.isPaused && env.toggleQueuePause()),
             isPaused: env.isPaused,

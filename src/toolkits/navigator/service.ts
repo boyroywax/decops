@@ -17,6 +17,8 @@ import type {
   NavigatorSubgoal,
   NavigatorHuddle,
   NavigatorSnapshot,
+  NavigatorSubgoalStatus,
+  NavigatorLifecycleEvent,
 } from "./types";
 
 const STORAGE_KEY = "decops.navigator.state.v1";
@@ -82,6 +84,43 @@ class NavigatorService {
     save(this.state);
   }
 
+  private pushGoalEvent(goalId: string, event: Omit<NavigatorLifecycleEvent, "id" | "timestamp" | "goalId">): void {
+    const goal = this.state.goals[goalId];
+    if (!goal) return;
+    const nextEvent: NavigatorLifecycleEvent = {
+      id: uuid(),
+      timestamp: Date.now(),
+      goalId,
+      ...event,
+    };
+    const lifecycle = [...(goal.lifecycle || []), nextEvent];
+    this.state.goals[goalId] = { ...goal, lifecycle, updatedAt: Date.now() };
+  }
+
+  private pushSubgoalEvent(goalId: string, subgoalId: string, event: Omit<NavigatorLifecycleEvent, "id" | "timestamp" | "goalId" | "subgoalId">): void {
+    const goal = this.state.goals[goalId];
+    if (!goal) return;
+    const idx = goal.subgoals.findIndex((s) => s.id === subgoalId);
+    if (idx < 0) return;
+    const current = goal.subgoals[idx];
+    const nextEvent: NavigatorLifecycleEvent = {
+      id: uuid(),
+      timestamp: Date.now(),
+      goalId,
+      subgoalId,
+      ...event,
+    };
+    const updatedSubgoal: NavigatorSubgoal = {
+      ...current,
+      lifecycle: [...(current.lifecycle || []), nextEvent],
+      updatedAt: Date.now(),
+      lastTransitionAt: Date.now(),
+    };
+    const subgoals = [...goal.subgoals];
+    subgoals[idx] = updatedSubgoal;
+    this.state.goals[goalId] = { ...goal, subgoals, updatedAt: Date.now(), lastTransitionAt: Date.now() };
+  }
+
   // ── Goals ───────────────────────────────────────────────────────
 
   createGoal(input: { prompt: string; title?: string; networkIds?: string[] }): NavigatorGoal {
@@ -97,8 +136,16 @@ class NavigatorService {
       networkIds: input.networkIds ?? [],
       createdAt: now,
       updatedAt: now,
+      lastTransitionAt: now,
+      lifecycle: [],
     };
     this.state.goals[id] = goal;
+    this.pushGoalEvent(id, {
+      kind: "goal-created",
+      toStatus: "draft",
+      message: `Goal created: ${goal.title}`,
+      actor: "navigator",
+    });
     this.state.activeGoalId = id;
     this.emit();
     return goal;
@@ -119,8 +166,25 @@ class NavigatorService {
   updateGoal(id: string, patch: Partial<NavigatorGoal>): NavigatorGoal {
     const goal = this.state.goals[id];
     if (!goal) throw new Error(`Unknown goal: ${id}`);
-    const next: NavigatorGoal = { ...goal, ...patch, id: goal.id, updatedAt: Date.now() };
+    const now = Date.now();
+    const previousStatus = goal.status;
+    const next: NavigatorGoal = { ...goal, ...patch, id: goal.id, updatedAt: now, lastTransitionAt: now };
+    if (patch.status && patch.status !== previousStatus) {
+      if (patch.status === "executing" && !next.startedAt) next.startedAt = now;
+      if ((patch.status === "completed" || patch.status === "failed" || patch.status === "cancelled") && !next.completedAt) {
+        next.completedAt = now;
+      }
+    }
     this.state.goals[id] = next;
+    if (patch.status && patch.status !== previousStatus) {
+      this.pushGoalEvent(id, {
+        kind: patch.status === "cancelled" ? "goal-cancelled" : "goal-status",
+        actor: "navigator",
+        fromStatus: previousStatus,
+        toStatus: patch.status,
+        message: patch.error || patch.synthesis,
+      });
+    }
     this.emit();
     return next;
   }
@@ -130,6 +194,11 @@ class NavigatorService {
   }
 
   removeGoal(id: string): void {
+    this.pushGoalEvent(id, {
+      kind: "goal-removed",
+      actor: "navigator",
+      message: "Goal removed from active list",
+    });
     delete this.state.goals[id];
     for (const h of Object.values(this.state.huddles)) {
       if (h.goalId === id) delete this.state.huddles[h.id];
@@ -157,9 +226,12 @@ class NavigatorService {
       huddleId: s.huddleId,
       status: s.assignedAgentId || s.huddleId ? "assigned" : "pending",
       jobIds: [],
+      retries: 0,
       order: s.order ?? idx,
       createdAt: now,
       updatedAt: now,
+      lastTransitionAt: now,
+      lifecycle: [],
     }));
     const next: NavigatorGoal = {
       ...goal,
@@ -168,6 +240,14 @@ class NavigatorService {
       updatedAt: now,
     };
     this.state.goals[goalId] = next;
+    for (const subgoal of created) {
+      this.pushSubgoalEvent(goalId, subgoal.id, {
+        kind: "subgoal-created",
+        actor: "navigator",
+        toStatus: subgoal.status,
+        message: subgoal.title,
+      });
+    }
     this.emit();
     return created;
   }
@@ -177,12 +257,104 @@ class NavigatorService {
     if (!goal) throw new Error(`Unknown goal: ${goalId}`);
     const idx = goal.subgoals.findIndex((s) => s.id === subgoalId);
     if (idx < 0) throw new Error(`Unknown subgoal: ${subgoalId}`);
-    const updated: NavigatorSubgoal = { ...goal.subgoals[idx], ...patch, id: subgoalId, goalId, updatedAt: Date.now() };
+    const now = Date.now();
+    const previous = goal.subgoals[idx];
+    const updated: NavigatorSubgoal = {
+      ...previous,
+      ...patch,
+      id: subgoalId,
+      goalId,
+      updatedAt: now,
+      lastTransitionAt: now,
+    };
+    if (patch.status && patch.status !== previous.status) {
+      if (patch.status === "executing" && !updated.startedAt) updated.startedAt = now;
+      if (patch.status === "completed" || patch.status === "failed" || patch.status === "skipped") {
+        updated.completedAt = now;
+      }
+    }
+    if (patch.jobIds && patch.jobIds.length > 0) {
+      updated.latestJobId = patch.jobIds[patch.jobIds.length - 1];
+    }
     const subgoals = [...goal.subgoals];
     subgoals[idx] = updated;
     this.state.goals[goalId] = { ...goal, subgoals, updatedAt: Date.now() };
+    if (patch.status && patch.status !== previous.status) {
+      this.pushSubgoalEvent(goalId, subgoalId, {
+        kind: "subgoal-status",
+        actor: "navigator",
+        fromStatus: previous.status,
+        toStatus: patch.status,
+        message: patch.reason || patch.result || patch.error,
+        jobId: updated.latestJobId,
+      });
+    }
+    if (patch.jobIds && patch.jobIds.length > 0) {
+      this.pushSubgoalEvent(goalId, subgoalId, {
+        kind: "subgoal-job-linked",
+        actor: "navigator",
+        message: "Linked execution job",
+        jobId: patch.jobIds[patch.jobIds.length - 1],
+      });
+    }
     this.recomputeGoalStatus(goalId);
     return updated;
+  }
+
+  controlSubgoal(
+    goalId: string,
+    subgoalId: string,
+    input: {
+      status?: NavigatorSubgoalStatus;
+      reason?: string;
+      result?: string;
+      error?: string;
+      assignedAgentId?: string;
+      huddleId?: string;
+      appendJobId?: string;
+      actor?: string;
+      note?: string;
+      incrementRetries?: boolean;
+    },
+  ): NavigatorSubgoal {
+    const goal = this.state.goals[goalId];
+    if (!goal) throw new Error(`Unknown goal: ${goalId}`);
+    const sub = goal.subgoals.find((s) => s.id === subgoalId);
+    if (!sub) throw new Error(`Unknown subgoal: ${subgoalId}`);
+
+    const nextJobIds = input.appendJobId ? [...sub.jobIds, input.appendJobId] : sub.jobIds;
+    const nextRetries = input.incrementRetries ? (sub.retries || 0) + 1 : sub.retries;
+
+    const updated = this.updateSubgoal(goalId, subgoalId, {
+      status: input.status ?? sub.status,
+      reason: input.reason ?? sub.reason,
+      result: input.result ?? sub.result,
+      error: input.error ?? sub.error,
+      assignedAgentId: input.assignedAgentId !== undefined ? input.assignedAgentId : sub.assignedAgentId,
+      huddleId: input.huddleId !== undefined ? input.huddleId : sub.huddleId,
+      jobIds: nextJobIds,
+      retries: nextRetries,
+    });
+
+    if (input.note) {
+      this.pushSubgoalEvent(goalId, subgoalId, {
+        kind: "subgoal-note",
+        actor: input.actor || "operator",
+        message: input.note,
+        jobId: input.appendJobId,
+      });
+      this.emit();
+    }
+
+    return updated;
+  }
+
+  getGoalLifecycle(goalId: string): NavigatorLifecycleEvent[] {
+    const goal = this.state.goals[goalId];
+    if (!goal) return [];
+    const goalEvents = goal.lifecycle || [];
+    const subgoalEvents = goal.subgoals.flatMap((s) => s.lifecycle || []);
+    return [...goalEvents, ...subgoalEvents].sort((a, b) => a.timestamp - b.timestamp);
   }
 
   private recomputeGoalStatus(goalId: string): void {
@@ -191,12 +363,24 @@ class NavigatorService {
     if (goal.status === "cancelled" || goal.status === "failed") { this.emit(); return; }
     const subs = goal.subgoals;
     if (subs.length === 0) { this.emit(); return; }
+    const prev = goal.status;
     if (subs.some((s) => s.status === "failed")) {
       this.state.goals[goalId] = { ...goal, status: "failed", updatedAt: Date.now() };
+    } else if (subs.some((s) => s.status === "blocked" || s.status === "paused")) {
+      this.state.goals[goalId] = { ...goal, status: "blocked", updatedAt: Date.now() };
     } else if (subs.every((s) => s.status === "completed" || s.status === "skipped")) {
       this.state.goals[goalId] = { ...goal, status: "completed", updatedAt: Date.now() };
     } else if (subs.some((s) => s.status === "executing" || s.status === "consulting")) {
       this.state.goals[goalId] = { ...goal, status: "executing", updatedAt: Date.now() };
+    }
+    const next = this.state.goals[goalId]?.status;
+    if (next && next !== prev) {
+      this.pushGoalEvent(goalId, {
+        kind: "goal-status",
+        actor: "navigator",
+        fromStatus: prev,
+        toStatus: next,
+      });
     }
     this.emit();
   }
@@ -227,6 +411,12 @@ class NavigatorService {
       updatedAt: now,
     };
     this.state.huddles[huddle.id] = huddle;
+    this.pushGoalEvent(input.goalId, {
+      kind: "huddle-created",
+      actor: "navigator",
+      subgoalId: input.subgoalId,
+      message: `Huddle ${huddle.id} registered`,
+    });
     this.updateSubgoal(input.goalId, input.subgoalId, { huddleId: huddle.id, status: "consulting" });
     return huddle;
   }
@@ -236,6 +426,13 @@ class NavigatorService {
     if (!h) throw new Error(`Unknown huddle: ${id}`);
     const next: NavigatorHuddle = { ...h, ...patch, id, updatedAt: Date.now() };
     this.state.huddles[id] = next;
+    this.pushGoalEvent(next.goalId, {
+      kind: "huddle-status",
+      actor: "navigator",
+      subgoalId: next.subgoalId,
+      fromStatus: h.status,
+      toStatus: next.status,
+    });
     this.emit();
     return next;
   }

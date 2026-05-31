@@ -247,6 +247,7 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     updateJob,
     addArtifact,
     removeJob,
+    stopJob,
     clearJobs,
     allArtifacts,
     importArtifact,

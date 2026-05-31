@@ -10,12 +10,29 @@ export const broadcastMessageCommand: CommandDefinition = {
     args: {
         group_id: { name: "group_id", type: "group", description: "Group ID", required: true },
         message: { name: "message", type: "string", description: "Message Content", required: true },
-        sender_id: { name: "sender_id", type: "agent", description: "Sender Agent ID", required: false } // optional, defaults to first member
+        sender_id: { name: "sender_id", type: "agent", description: "Sender Agent ID", required: false }, // optional, defaults to first member
+        await_responses: {
+            name: "await_responses",
+            type: "boolean",
+            description: "If true, waits for all recipient AI responses before completing the job (slower).",
+            required: false,
+            defaultValue: false,
+        }
     },
     output: "Confirmation",
-    outputSchema: { type: "object", additionalProperties: true },
+    outputSchema: {
+        type: "object",
+        properties: {
+            success: { type: "boolean" },
+            count: { type: "number" },
+            status: { type: "string", enum: ["queued", "delivered"] },
+            messageIds: { type: "array", items: { type: "string" } },
+        },
+        additionalProperties: true,
+    },
     execute: async (args, context) => {
         const { group_id, message, sender_id } = args;
+        const awaitResponses = Boolean(args.await_responses);
         const { agents, channels, groups, setMessages, setActiveChannels, addLog } = context.workspace;
 
         const group = groups.find((g: Group) => g.id === group_id);
@@ -66,7 +83,7 @@ export const broadcastMessageCommand: CommandDefinition = {
             if (receiver.prompt) {
                 // Async call
                 promises.push(
-                    callAgentAI(receiver, sender, msg.content, ch.type, [])
+                    callAgentAI(receiver, sender, msg.content, ch.type, [], undefined, context)
                         .then(response => ({ msgId, response, status: "delivered" }))
                         .catch(() => ({ msgId, response: "Error", status: "failed" }))
                 );
@@ -78,30 +95,41 @@ export const broadcastMessageCommand: CommandDefinition = {
         // Initial update with "sending" status
         setMessages((prev: Message[]) => [...prev, ...newMessages]);
 
-        // Wait for all responses
-        const results = await Promise.all(promises);
+        const settleResponses = async () => {
+            const results = await Promise.all(promises);
 
-        // Update messages with responses
-        setMessages((prev: Message[]) => prev.map((m: Message) => {
-            const res = results.find(r => r.msgId === m.id);
-            return res ? { ...m, response: res.response, status: res.status as Message["status"] } : m;
-        }));
+            // Update messages with responses
+            setMessages((prev: Message[]) => prev.map((m: Message) => {
+                const res = results.find(r => r.msgId === m.id);
+                return res ? { ...m, response: res.response, status: res.status as Message["status"] } : m;
+            }));
 
-        addLog("Broadcast complete");
+            addLog("Broadcast complete");
 
-        // Write responses to shared storage
-        context.storage.lastBroadcastResponses = results;
-        context.storage.lastBroadcastCount = newMessages.length;
+            // Write responses to shared storage
+            context.storage.lastBroadcastResponses = results;
+            context.storage.lastBroadcastCount = newMessages.length;
 
-        // Produce deliverable with broadcast results
-        context.addDeliverable({
-            key: 'broadcast-results',
-            name: `Broadcast to ${group.name}`,
-            type: 'json',
-            content: JSON.stringify({ group: group.name, message, responses: results }, null, 2),
-            tags: ['broadcast', `group:${group.name}`],
-        });
+            // Produce deliverable with broadcast results
+            context.addDeliverable({
+                key: 'broadcast-results',
+                name: `Broadcast to ${group.name}`,
+                type: 'json',
+                content: JSON.stringify({ group: group.name, message, responses: results }, null, 2),
+                tags: ['broadcast', `group:${group.name}`],
+            });
 
-        return { success: true, count: newMessages.length };
+            return results;
+        };
+
+        const messageIds = newMessages.map((m) => m.id);
+
+        if (!awaitResponses) {
+            void settleResponses();
+            return { success: true, count: newMessages.length, status: "queued", messageIds };
+        }
+
+        await settleResponses();
+        return { success: true, count: newMessages.length, status: "delivered", messageIds };
     }
 };
