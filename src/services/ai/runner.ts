@@ -559,7 +559,7 @@ export async function runChatTurn(
         toolResults[index] = {
           id: block.id,
           content: result.error
-            ? JSON.stringify({ error: result.error })
+            ? `[TOOL ERROR] ${result.name} failed. ${JSON.stringify({ error: result.error })} — The call FAILED. Do not claim success. Read the error, then either retry with corrected args or tell the user it failed.`
             : JSON.stringify(result.result ?? { success: true }),
           isError: !!result.error,
         };
