@@ -100,9 +100,19 @@ function ToolCallCard({ tc, collapseSignal }: { tc: NonNullable<ChatMessage["too
         setExpanded(false);
     }, [collapseSignal]);
 
+    const showBody = expanded || isPending;
+
     return (
-        <div className={`tool-call-card ${isError ? "tool-call-card--error" : isPending ? "tool-call-card--pending" : "tool-call-card--success"}`}>
-            <div className="tool-call-card__header">
+        <div className={`tool-call-card ${isError ? "tool-call-card--error" : isPending ? "tool-call-card--pending" : "tool-call-card--success"}${showBody ? " tool-call-card--expanded" : " tool-call-card--collapsed"}`}>
+            <div
+                className="tool-call-card__header"
+                role={canExpand ? "button" : undefined}
+                tabIndex={canExpand ? 0 : undefined}
+                onClick={canExpand ? () => setExpanded(v => !v) : undefined}
+                onKeyDown={canExpand ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded(v => !v); } } : undefined}
+                style={canExpand ? { cursor: "pointer" } : undefined}
+                aria-expanded={canExpand ? expanded : undefined}
+            >
                 <Wrench size={12} className="tool-call-card__icon" />
                 <span className="tool-call-card__name">{tc.name}</span>
                 {tc.jobId && (
@@ -117,25 +127,19 @@ function ToolCallCard({ tc, collapseSignal }: { tc: NonNullable<ChatMessage["too
                         : <CheckCircle size={12} className="tool-call-card__status tool-call-card__status--success" />}
                 <span className={`tool-call-card__state tool-call-card__state--${statusLabel}`}>{statusLabel}</span>
                 {!isPending && <span className="tool-call-card__duration">{tc.duration_ms}ms</span>}
+                {canExpand && (
+                    expanded
+                        ? <ChevronDown size={11} className="tool-call-card__chevron" />
+                        : <ChevronRight size={11} className="tool-call-card__chevron" />
+                )}
             </div>
-            {inputSummary && <div className="tool-call-card__args">{inputSummary}</div>}
-            {resultSummary && <div className="tool-call-card__result">{resultSummary}</div>}
-            {canExpand && (
-                <button
-                    type="button"
-                    className="tool-call-card__toggle"
-                    onClick={() => setExpanded(v => !v)}
-                    aria-expanded={expanded}
-                >
-                    {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                    {expanded ? "Collapse response" : "Expand full response"}
-                </button>
-            )}
-            {expanded && (
+            {showBody && inputSummary && <div className="tool-call-card__args">{inputSummary}</div>}
+            {showBody && resultSummary && <div className="tool-call-card__result">{resultSummary}</div>}
+            {showBody && expanded && (
                 <pre className="tool-call-card__payload">{detailText}</pre>
             )}
             {isError && tc.error && <div className="tool-call-card__error">{tc.error}</div>}
-            {artifacts.length > 0 && (
+            {showBody && artifacts.length > 0 && (
                 <div className="tool-call-card__artifacts">
                     <FileText size={10} />
                     <span className="tool-call-card__artifacts-label">Artifacts ({artifacts.length})</span>

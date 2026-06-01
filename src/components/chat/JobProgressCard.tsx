@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
     CheckCircle, XCircle, Loader, Clock, SkipForward,
-    Database, Package, Layers, ChevronRight, AlertTriangle, Keyboard, Wrench, FileText,
+    Database, Package, Layers, ChevronRight, ChevronDown, AlertTriangle, Keyboard, Wrench, FileText,
 } from "lucide-react";
 import { useJobsContext } from "@/context/JobsContext";
 import type { Job, JobStep } from "@/types";
@@ -348,10 +348,22 @@ export function JobProgressCard({ jobId, toolCalls = [] }: JobProgressCardProps)
         setShowDetails(true);
     }, [isDone, isFailed, job.id]);
 
+    const isTerminal = isDone || isFailed;
+    const collapseToTitle = isTerminal && !showDetails;
+    const canToggle = true;
+
     return (
-        <div className={`jpc jpc--${displayStatus}`}>
+        <div className={`jpc jpc--${displayStatus}${collapseToTitle ? " jpc--collapsed" : ""}`}>
             <div className="jpc__face jpc__face--front">
-                <div className="jpc__header">
+                <div
+                    className="jpc__header"
+                    role={canToggle ? "button" : undefined}
+                    tabIndex={canToggle ? 0 : undefined}
+                    onClick={canToggle ? () => setShowDetails(v => !v) : undefined}
+                    onKeyDown={canToggle ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setShowDetails(v => !v); } } : undefined}
+                    aria-expanded={canToggle ? showDetails : undefined}
+                    style={canToggle ? { cursor: "pointer" } : undefined}
+                >
                     <div className="jpc__title-row">
                         <Layers size={12} className="jpc__icon" />
                         <span className="jpc__name">{job.type}</span>
@@ -363,30 +375,29 @@ export function JobProgressCard({ jobId, toolCalls = [] }: JobProgressCardProps)
                             {displayStatus === "failed" && "error"}
                             {isAwaitingInput && "awaiting input"}
                         </span>
+                        {showDetails
+                            ? <ChevronDown size={11} className="jpc__chevron" />
+                            : <ChevronRight size={11} className="jpc__chevron" />}
                     </div>
-                    {total > 0 && (
+                    {!collapseToTitle && total > 0 && (
                         <ProgressBar completed={completed} total={total} failed={failed} />
                     )}
                 </div>
 
-                <div className="jpc__compact-stats">
-                    <span className="jpc__compact-chip">Steps {completed}/{total || 0}</span>
-                    <span className="jpc__compact-chip">Commands {toolCalls.length}</span>
-                    <span className="jpc__compact-chip">Deliverables {deliverables.length}</span>
-                </div>
+                {!collapseToTitle && (
+                    <div className="jpc__compact-stats">
+                        <span className="jpc__compact-chip">Steps {completed}/{total || 0}</span>
+                        <span className="jpc__compact-chip">Commands {toolCalls.length}</span>
+                        <span className="jpc__compact-chip">Deliverables {deliverables.length}</span>
+                    </div>
+                )}
 
-                <div className="jpc__activity" title={latestActivity}>
-                    <span className="jpc__activity-label">Activity</span>
-                    <span className="jpc__activity-text">{latestActivity}</span>
-                </div>
-
-                <button
-                    type="button"
-                    className="jpc__details-toggle"
-                    onClick={() => setShowDetails((v) => !v)}
-                >
-                    {showDetails ? "Hide details" : "Show details"}
-                </button>
+                {!collapseToTitle && (
+                    <div className="jpc__activity" title={latestActivity}>
+                        <span className="jpc__activity-label">Activity</span>
+                        <span className="jpc__activity-text">{latestActivity}</span>
+                    </div>
+                )}
 
                 {showDetails && <div className="jpc__back-content">
                     <div className="jpc__meta-grid">

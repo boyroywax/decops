@@ -149,7 +149,13 @@ export class CommandRegistry {
                 if (argDef.defaultValue !== undefined) {
                     (args as Record<string, unknown>)[argName] = argDef.defaultValue;
                 } else if (argDef.required !== false && !(isBatch && argName !== 'items')) {
-                    throw new Error(`Missing required argument: ${argName}`);
+                    const requiredArgs = Object.entries(command.args)
+                        .filter(([, d]) => d.required !== false && d.defaultValue === undefined)
+                        .map(([n, d]) => `${n}: ${d.type}`)
+                        .join(', ');
+                    throw new Error(
+                        `[${command.id}] Missing required argument: ${argName}. Required args: { ${requiredArgs} }.`,
+                    );
                 }
             }
 
