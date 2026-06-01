@@ -14,6 +14,7 @@ function toWorkspaceContext(context: CommandContext): WorkspaceContext {
     messages: context.workspace.getMessages?.() ?? context.workspace.messages,
     networks: context.ecosystem.networks,
     bridges: context.ecosystem.bridges,
+    artifacts: context.jobs.allArtifacts,
     jobs: context.jobs.getQueue(),
   };
 }

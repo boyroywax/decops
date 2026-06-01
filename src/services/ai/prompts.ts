@@ -4,7 +4,7 @@
  * Extracted from services/ai.ts for modularity.
  */
 
-import type { Agent, Channel, Group, Message, Network, Bridge, Job, JobRequest } from "@/types";
+import type { Agent, Channel, Group, Message, Network, Bridge, Job, JobRequest, JobArtifact } from "@/types";
 import { TOOLKITS } from "@/services/toolkits";
 import type { Libp2pSnapshot } from "@/toolkits/libp2p";
 import type { HeliaSnapshot } from "@/toolkits/helia";
@@ -34,11 +34,21 @@ export interface WorkspaceContext {
   messages: Message[];
   networks: Network[];
   bridges: Bridge[];
+  artifacts?: JobArtifact[];
   addJob?: (job: JobRequest) => void;
   jobs: Job[];
   /** Live p2p runtime snapshot (libp2p / helia / orbitdb). Optional so
    *  legacy callers that only carry workspace data still typecheck. */
   p2p?: WorkspaceP2PContext;
+}
+
+/** Runtime wall-clock context stamped into every system prompt build so
+ *  the model can reason about "today", deadlines, and recency correctly. */
+export function buildCurrentDateTimeContext(now: Date = new Date()): string {
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const iso = now.toISOString();
+  const local = now.toLocaleString();
+  return `CURRENT DATE/TIME: ${iso} (local: ${local}, tz: ${timeZone})`;
 }
 
 function shortPeer(id: string | null | undefined): string {
@@ -91,6 +101,7 @@ export function buildWorkspaceSystemPrompt(
   ctx: WorkspaceContext,
   opts: { recalledMemory?: CollectiveMemoryEntry[]; isDarkAgent?: boolean; ragContext?: string } = {},
 ): string {
+  const nowContext = buildCurrentDateTimeContext();
   const agentSummary = ctx.agents.length > 0
     ? ctx.agents.map(a => `  - "${a.name}" (${a.role}, DID: ${a.did.slice(0, 24)}…)`).join("\n")
     : "  (none)";
@@ -130,6 +141,16 @@ export function buildWorkspaceSystemPrompt(
       if (delivCount > 0) info += `, ${delivCount} deliverables`;
       if (hasStorage) info += `, storage: {${Object.keys(j.storage!).join(', ')}}`;
       return info;
+    }).join("\n")
+    : "  (none)";
+
+  const recentArtifacts = (ctx.artifacts ?? []).slice(0, 8);
+  const artifactSummary = recentArtifacts.length > 0
+    ? recentArtifacts.map((artifact) => {
+      const tags = artifact.tags && artifact.tags.length > 0
+        ? ` tags=[${artifact.tags.join(", ")}]`
+        : "";
+      return `  - ${artifact.name} (${artifact.type})${tags}`;
     }).join("\n")
     : "  (none)";
 
@@ -180,6 +201,8 @@ export function buildWorkspaceSystemPrompt(
 
   return `You are the Mesh Workspace AI Assistant. You help the user manage their decentralized agent collaboration workspace.
 
+${nowContext}
+
 CURRENT WORKSPACE STATE:
 ═══════════════════════
 Agents (${ctx.agents.length}):
@@ -202,6 +225,9 @@ Bridges: ${ctx.bridges.length}
 Jobs (recent ${Math.min(ctx.jobs.length, 8)} of ${ctx.jobs.length}):
 ${jobSummary}
 
+Artifacts (recent ${Math.min((ctx.artifacts ?? []).length, 8)} of ${(ctx.artifacts ?? []).length}):
+${artifactSummary}
+
 Agent Toolkit Bindings:
 ${toolkitSummary}
 ${p2pSection}${memorySection}${ragSection}
@@ -222,20 +248,20 @@ TOOL USE:
 Your tool surface is intentionally small. Most operational work should follow this simple job workflow:
 
 1. Identify that a tool/command needs to run.
-2. Search workspace RAG for the relevant tools/commands and context.
+2. Search workspace RAG for the relevant tools/commands and context (default discovery path).
 3. Select the needed commands and create one job with a flat serial step list whenever possible.
 4. Execute the job and wait for output.
 5. If there is an error, diagnose it and rerun the job if possible.
 
 - **create_job(commandId, args, description?)** — queue ANY registered workspace command as a job. This is your primary action tool. The tool call waits for the spawned job to finish and returns its result.
-- **list_available_commands(toolkitId?, search?)** — discover commands you may run via create_job. Use this BEFORE create_job whenever you don't already know the exact commandId.
+- **list_available_commands(toolkitId?, search?)** — fallback command catalog. Use this only when RAG lookup did not resolve a confident commandId.
 - **get_command_schema(commandId)** — inspect a single command's args (types, required fields, defaults, enums) before calling create_job.
 - **list_toolkits / list_agents / list_channels / list_queued_jobs / list_agent_toolkits** — read-only inspectors.
 - **enable_toolkit / disable_toolkit / set_agent_toolkits** — request capability changes on agents.
 
 When the active chat agent has explicit toolkit bindings, the commands inside those toolkits are ALSO exposed as direct tools (faster, no discovery step needed). Otherwise — use the create_job pattern: discover → inspect (if unsure) → create_job.
 
-Do NOT invent command ids. If the user asks for an action and you don't see a matching direct tool, call list_available_commands first.
+Do NOT invent command ids. If the user asks for an action and you don't see a matching direct tool, call search_workspace_rag first, then list_available_commands only if needed.
 
 When a task truly needs multiple dependent actions, prefer one flat serial job rather than narrating each step. Use create_job for a single command and queue_new_job only when the serial step list is genuinely multi-step.
 

@@ -28,7 +28,7 @@ const PLAYBOOK: Record<string, ToolkitPlaybookEntry> = {
       "The user wants repeatable execution, visibility, or cancellation support.",
     ],
     workflow: [
-      "Discover commandId via list_available_commands.",
+      "Discover commandId via search_workspace_rag first; use list_available_commands only if RAG does not resolve a reliable command name.",
       "Use create_job for one-shot operations and queue_new_job for explicit multi-step plans.",
       "Model data flow with storageDefaults + output mappings + input bindings.",
     ],

@@ -27,7 +27,8 @@ export interface ParsedThinking {
  *  top. */
 export type ParsedSegment =
   | { type: "thinking"; thinking: ParsedThinking }
-  | { type: "text"; text: string };
+    | { type: "text"; text: string }
+    | { type: "action"; action: ParsedAction };
 
 export interface Conversation {
     id: string;

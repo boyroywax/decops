@@ -201,7 +201,9 @@ export async function runChatTurn(
   // Capped so a stubborn model can't burn the round budget.
   const FABRICATION_RETRY_BUDGET = 2;
   let fabricationRetries = 0;
-  const CONTINUATION_RETRY_BUDGET = 2;
+  // Continuation retries can introduce long post-answer waits when the model
+  // has already produced a usable response. Keep disabled by default.
+  const CONTINUATION_RETRY_BUDGET = 0;
   let continuationRetries = 0;
   const NO_PROGRESS_RETRY_BUDGET = 2;
   let noProgressRetries = 0;
@@ -216,6 +218,9 @@ export async function runChatTurn(
   const directAnswerSignalRegex = /\b(done|completed|finished|summary|in short|based on|i found|here\s+are|here's|result)\b/i;
   const serializedToolCallRegex = /<(?:longcat_tool_call|tool_call|tooluse)[^>]*>|<(?:longcat_arg_key|longcat_arg_value|arg_key|arg_value)[^>]*>/i;
   const serializedToolNameRegex = /<longcat_tool_call>\s*([^\n<]+)/i;
+  const pseudoToolJsonRegex = /```(?:json|yaml)?[\s\S]{0,800}(?:"tool"\s*:|"tool_name"\s*:|"tool_use"\s*:|"function"\s*:\s*\{|"arguments"\s*:|"commandId"\s*:|"name"\s*:\s*"(?:create_job|queue_new_job|list_available_commands))/i;
+  const pseudoToolFnCallRegex = /\b(?:create_job|queue_new_job|list_available_commands|get_command_schema|navigator_start_subgoal)\s*\(/i;
+  const pseudoToolNarrationRegex = /\b(?:tool[_ -]?use|function[_ -]?call|invoking\s+tool|calling\s+tool|executing\s+tool)\b/i;
   const toolNames = (tools || []).map(t => t.name).filter(Boolean);
 
   const findMentionedToolName = (text: string): string | null => {
@@ -421,9 +426,23 @@ export async function runChatTurn(
       // ───── No tools requested → done (with anti-fabrication check) ─────
       if (toolUseBlocks.length === 0) {
         const truncatedByTokenLimit = finishReason === "max_tokens" || finishReason === "length";
+        const declaredNeedsTools = declaredToolsRegex.test(roundText);
         const narratedToolName = detectNarratedToolName(roundText);
         const fabricatedResultCue = detectFabricatedResultCue(roundText);
         const serializedToolCallDetected = serializedToolCallRegex.test(roundText);
+        const pseudoStructuredToolDetected =
+          pseudoToolJsonRegex.test(roundText) ||
+          pseudoToolFnCallRegex.test(roundText);
+        const hasVisibleResponse = roundText.trim().length > 0;
+        const allowNoToolRetry = !hasVisibleResponse || roundText.trim().length < 48;
+        const looksSubstantiveAnswer = (() => {
+          const trimmed = roundText.trim();
+          if (!trimmed) return false;
+          if (trimmed.length >= 180) return true;
+          if (/\n\s*(?:[-*]|\d+\.)\s+/.test(trimmed)) return true;
+          if (/[.!?]$/.test(trimmed) && trimmed.length >= 90) return true;
+          return false;
+        })();
         const serializedToolName = (() => {
           if (!serializedToolCallDetected) return null;
           const m = roundText.match(serializedToolNameRegex);
@@ -433,19 +452,40 @@ export async function runChatTurn(
           workflowMarkerRegex.test(roundText) &&
           planningNarrationRegex.test(roundText) &&
           !directAnswerSignalRegex.test(roundText);
+        const explicitPseudoExecutionCue =
+          !!narratedToolName ||
+          !!fabricatedResultCue ||
+          serializedToolCallDetected ||
+          pseudoStructuredToolDetected;
+
         const needsFabricationRetry =
+          allowNoToolRetry &&
           wantsTools &&
           fabricationRetries < FABRICATION_RETRY_BUDGET &&
-          (declaredToolsRegex.test(roundText) || !!narratedToolName || !!fabricatedResultCue || serializedToolCallDetected);
+          (
+            explicitPseudoExecutionCue ||
+            (declaredNeedsTools && explicitPseudoExecutionCue)
+          );
+
+        const suspiciousNoToolTurn =
+          allowNoToolRetry &&
+          wantsTools &&
+          (
+            explicitPseudoExecutionCue ||
+            (declaredNeedsTools && explicitPseudoExecutionCue)
+          );
 
         const needsNoProgressRetry =
+          allowNoToolRetry &&
           wantsTools &&
           noProgressRetries < NO_PROGRESS_RETRY_BUDGET &&
           !needsFabricationRetry &&
-          appearsLikePlanningNarration;
+          appearsLikePlanningNarration &&
+          !looksSubstantiveAnswer;
 
         const claimsPlatformLimitation = capabilityRefusalRegex.test(roundText);
         const needsCapabilityRefusalRetry =
+          allowNoToolRetry &&
           wantsTools &&
           capabilityRefusalRetries < CAPABILITY_REFUSAL_RETRY_BUDGET &&
           !needsFabricationRetry &&
@@ -469,6 +509,30 @@ export async function runChatTurn(
           });
           callbacks.onRoundEnd?.(round);
           continue;
+        }
+
+        // Final guardrail: if retries are exhausted and the model still
+        // narrates or serializes fake tool execution, do not surface the
+        // hallucinated text to the user. Return a deterministic execution
+        // failure message instead.
+        if (suspiciousNoToolTurn && fabricationRetries >= FABRICATION_RETRY_BUDGET) {
+          const guardrailText = "[Execution blocked] The model produced a narration/pseudo tool call without emitting a real structured tool_use block. No tools were executed. Please retry; the next turn must emit an actual tool call.";
+          callbacks.onToken?.(guardrailText);
+          callbacks.onRoundEnd?.(round);
+          perfLog("ai.run_chat_turn.complete", {
+            model,
+            provider,
+            reason: "error",
+            roundsUsed: round + 1,
+            toolCallCount: allToolCalls.length,
+            totalDurationMs: Math.round(perfNow() - turnStart),
+          });
+          return {
+            text: fullText ? `${fullText}\n\n${guardrailText}` : guardrailText,
+            toolCalls: allToolCalls,
+            reason: "error",
+            error: "Blocked hallucinated tool narration",
+          };
         }
 
         if (needsNoProgressRetry) {

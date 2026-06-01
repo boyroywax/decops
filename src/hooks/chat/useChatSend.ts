@@ -513,6 +513,11 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
                     )
                 );
 
+                // Streaming transport is complete at this point. Drop loading
+                // immediately so the UI doesn't show a post-response wait
+                // while we persist the final assistant turn.
+                setLoading(false);
+
                 if (cancelledRunIdRef.current === runId) return;
 
                 // Collect jobIds from tool calls for inline progress tracking
@@ -524,12 +529,13 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
                 // visible text, skip the assistant bubble but still persist
                 // the conversation so prior context is not lost.
                 const trimmed = response.trim();
+                const hasResponse = response.length > 0;
                 // Persist the assistant turn if there's text OR tool calls
                 const hasToolCalls = toolCalls.length > 0;
-                const finalMsgs = trimmed || hasToolCalls
+                const finalMsgs = hasResponse || hasToolCalls
                     ? [...updatedMsgs, {
                         role: "assistant" as const,
-                        content: trimmed,
+                        content: hasResponse ? response : "[Completed]",
                         toolCalls: hasToolCalls ? toolCalls : undefined,
                         jobIds: collectedJobIds.length > 0 ? collectedJobIds : undefined,
                     }]

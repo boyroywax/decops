@@ -62,6 +62,10 @@ const DIRECT_TOOL_COMMANDS = new Set([
   "navigator_start_subgoal",
 ]);
 
+// Keep chat turns responsive: if a tool-backed job does not finish quickly,
+// return a deferred status and let inline job cards track completion.
+const TOOL_RESULT_SOFT_WAIT_MS = 1800;
+
 function shouldAutoWrapToolCommand(toolName: string): boolean {
   const def = registry.get(toolName);
   if (!def) return false;
@@ -70,34 +74,27 @@ function shouldAutoWrapToolCommand(toolName: string): boolean {
   return !isReadOnlyToolCommand(def);
 }
 
-async function queueJobAndWait(
-  jobType: string,
-  jobRequest: Record<string, unknown>,
-  context: CommandContext,
-  timeoutMs: number,
-): Promise<{ jobId?: string; result: unknown }> {
-  const queued = await registry.execute(
-    "queue_new_job",
-    {
-      type: jobType,
-      request: jobRequest,
-      steps: [{ commandId: jobType, args: jobRequest }],
-      mode: "serial",
-    },
-    context,
-  );
+async function settleOrDefer<T>(
+  promise: Promise<T>,
+  waitMs: number,
+  fallback: T,
+): Promise<T> {
+  let timedOut = false;
+  const timer = new Promise<T>((resolve) => {
+    setTimeout(() => {
+      timedOut = true;
+      resolve(fallback);
+    }, waitMs);
+  });
+  const result = await Promise.race([promise, timer]);
+  return timedOut ? fallback : result;
+}
 
-  const jobId =
-    queued && typeof queued === "object" && "jobId" in (queued as Record<string, unknown>)
-      ? String((queued as Record<string, unknown>).jobId)
-      : undefined;
-
-  if (!jobId) {
-    return { jobId: undefined, result: queued ?? { success: true } };
-  }
-
-  const result = await watchChildJob(jobId, timeoutMs);
-  return { jobId, result };
+function shouldWaitForDirectToolJobResult(toolName: string): boolean {
+  // Orchestration commands spawn jobs that are already tracked by job cards.
+  // Waiting here can stall the chat turn for up to the child-job timeout.
+  if (toolName === "queue_new_job" || toolName === "create_job") return false;
+  return true;
 }
 
 // ── Execution ──────────────────────────────────────
@@ -130,11 +127,19 @@ export async function executeToolCall(
         queued && typeof queued === "object" && "jobId" in (queued as Record<string, unknown>)
           ? String((queued as Record<string, unknown>).jobId)
           : undefined;
-      const result = jobId ? await watchChildJob(jobId, resolveToolTimeout(toolName)) : queued;
+      const waitForResult = shouldWaitForDirectToolJobResult(toolName);
+      const deferredResult = { _deferred: true, status: "running", jobId, message: `Job ${jobId?.slice(0, 8)} is still running.` };
+      const result = waitForResult && jobId
+        ? await settleOrDefer(
+          watchChildJob(jobId, resolveToolTimeout(toolName)),
+          TOOL_RESULT_SOFT_WAIT_MS,
+          deferredResult,
+        )
+        : (queued ?? { status: "queued", jobId });
       const duration_ms = Math.round(performance.now() - start);
       perfLog("commands.execute_tool_call", {
         toolName,
-        mode: "direct-tool-command",
+        mode: waitForResult ? "direct-tool-command" : "direct-tool-command-no-wait",
         durationMs: duration_ms,
         timeoutMs: resolveToolTimeout(toolName),
         hasJobId: !!jobId,
@@ -151,12 +156,28 @@ export async function executeToolCall(
 
     if (shouldAutoWrapToolCommand(toolName)) {
       const jobRequest = { ...toolInput, _toolUseId: toolUseId };
-      const { jobId, result } = await queueJobAndWait(
-        toolName,
-        jobRequest,
+      const queued = await registry.execute(
+        "queue_new_job",
+        {
+          type: toolName,
+          request: jobRequest,
+          steps: [{ commandId: toolName, args: jobRequest }],
+          mode: "serial",
+        },
         context,
-        resolveToolTimeout(toolName),
       );
+      const jobId =
+        queued && typeof queued === "object" && "jobId" in (queued as Record<string, unknown>)
+          ? String((queued as Record<string, unknown>).jobId)
+          : undefined;
+
+      const result = jobId
+        ? await settleOrDefer(
+          watchChildJob(jobId, resolveToolTimeout(toolName)),
+          TOOL_RESULT_SOFT_WAIT_MS,
+          { _deferred: true, status: "running", jobId, message: `Job ${jobId.slice(0, 8)} is still running.` },
+        )
+        : (queued ?? { status: "queued" });
       const duration_ms = Math.round(performance.now() - start);
       perfLog("commands.execute_tool_call", {
         toolName,
@@ -204,7 +225,7 @@ export async function executeToolCall(
     }
 
     // Wait for the job executor to complete this job
-    const result = await new Promise<unknown>((resolve, reject) => {
+    const waitForJobResult = new Promise<unknown>((resolve, reject) => {
       registerPendingToolJob(jobId, { resolve, reject });
 
       // Timeout safety — don't block the tool loop forever.
@@ -218,6 +239,11 @@ export async function executeToolCall(
         }
       }, timeout);
     });
+    const result = await settleOrDefer(
+      waitForJobResult,
+      TOOL_RESULT_SOFT_WAIT_MS,
+      { _deferred: true, status: "running", jobId, message: `Job ${jobId.slice(0, 8)} is still running.` },
+    );
 
     const duration_ms = Math.round(performance.now() - start);
     perfLog("commands.execute_tool_call", {

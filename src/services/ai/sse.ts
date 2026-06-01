@@ -30,6 +30,7 @@ export async function parseAnthropicSSE(
   callbacks: AnthropicSSECallbacks,
   signal?: AbortSignal,
 ): Promise<{ contentBlocks: SSEContentBlock[]; stopReason: string }> {
+  const IDLE_AFTER_OUTPUT_MS = 2500;
   const reader = response.body!.getReader();
   if (signal) {
     signal.addEventListener("abort", () => { reader.cancel(); }, { once: true });
@@ -41,6 +42,8 @@ export async function parseAnthropicSSE(
   const contentBlocks: SSEContentBlock[] = [];
   let currentBlockIndex = -1;
   let currentToolInput = "";
+  let shouldStop = false;
+  let hasVisibleOutput = false;
   // Track whether we're inside a native Anthropic thinking block.
   // When the model uses its built-in thinking mode, the SSE stream emits
   // content_block_start with type "thinking" and thinking_delta events.
@@ -49,8 +52,14 @@ export async function parseAnthropicSSE(
   let inThinkingBlock = false;
 
   try {
-    while (true) {
-      const { done, value } = await reader.read();
+      while (true) {
+        const readPromise = reader.read();
+        const { done, value } = hasVisibleOutput
+          ? await Promise.race<ReadableStreamReadResult<Uint8Array>>([
+              readPromise,
+              new Promise((resolve) => setTimeout(() => resolve({ done: true, value: undefined as any }), IDLE_AFTER_OUTPUT_MS)),
+            ])
+          : await readPromise;
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
@@ -93,6 +102,7 @@ export async function parseAnthropicSSE(
               const idx = event.index ?? currentBlockIndex;
               if (delta.type === "text_delta" && delta.text) {
                 callbacks.onText(delta.text);
+                  hasVisibleOutput = true;
                 const block = contentBlocks[idx];
                 if (block && block.type === "text") {
                   block.text = (block.text || "") + delta.text;
@@ -127,11 +137,18 @@ export async function parseAnthropicSSE(
               break;
             }
             case "message_delta": {
-              if (event.delta?.stop_reason) stopReason = event.delta.stop_reason;
+                if (event.delta?.stop_reason) {
+                  stopReason = event.delta.stop_reason;
+                  // Some gateways delay or drop message_stop while already
+                  // signaling stop_reason. Exit early once the model marks
+                  // the turn complete to avoid post-response wait.
+                  shouldStop = true;
+                }
               break;
             }
             case "message_stop": {
               callbacks.onMessageStop();
+              shouldStop = true;
               break;
             }
             case "error": {
@@ -142,7 +159,9 @@ export async function parseAnthropicSSE(
         } catch {
           // Skip malformed JSON lines
         }
+        if (shouldStop) break;
       }
+      if (shouldStop) break;
     }
   } finally {
     // If the stream ended mid-thinking, close the fence so the block
@@ -175,6 +194,7 @@ export async function parseOpenAISSE(
   callbacks: OpenAISSECallbacks,
   signal?: AbortSignal,
 ): Promise<{ text: string; toolCalls: Array<{ id: string; name: string; arguments: string }>; finishReason: string | null }> {
+  const IDLE_AFTER_OUTPUT_MS = 2500;
   const reader = response.body!.getReader();
   if (signal) {
     signal.addEventListener("abort", () => { reader.cancel(); }, { once: true });
@@ -185,12 +205,20 @@ export async function parseOpenAISSE(
   // Accumulate tool call deltas keyed by index.
   const toolCallByIndex: Array<{ id: string; name: string; arguments: string }> = [];
   let finishReason: string | null = null;
+  let shouldStop = false;
+  let hasVisibleOutput = false;
   // Track whether we've announced start for a given tool-call index.
   const startedIndexes = new Set<number>();
 
   try {
-    while (true) {
-      const { done, value } = await reader.read();
+      while (true) {
+        const readPromise = reader.read();
+        const { done, value } = hasVisibleOutput
+          ? await Promise.race<ReadableStreamReadResult<Uint8Array>>([
+              readPromise,
+              new Promise((resolve) => setTimeout(() => resolve({ done: true, value: undefined as any }), IDLE_AFTER_OUTPUT_MS)),
+            ])
+          : await readPromise;
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split("\n");
@@ -199,18 +227,24 @@ export async function parseOpenAISSE(
         const trimmed = line.trim();
         if (!trimmed.startsWith("data:")) continue;
         const payload = trimmed.slice(5).trim();
-        if (!payload || payload === "[DONE]") continue;
+        if (!payload) continue;
+        if (payload === "[DONE]") {
+          shouldStop = true;
+          break;
+        }
         try {
           const event = JSON.parse(payload);
           const delta = event?.choices?.[0]?.delta;
           const choiceFinishReason = event?.choices?.[0]?.finish_reason;
           if (typeof choiceFinishReason === "string" && choiceFinishReason.length > 0) {
             finishReason = choiceFinishReason;
+            shouldStop = true;
           }
           if (!delta) continue;
           // Text content delta
           if (typeof delta.content === "string" && delta.content.length > 0) {
             full += delta.content;
+              hasVisibleOutput = true;
             callbacks.onText(delta.content);
           }
           // Tool call deltas — each delta may contain partial tool_calls
@@ -237,7 +271,9 @@ export async function parseOpenAISSE(
         } catch {
           // skip malformed line
         }
+        if (shouldStop) break;
       }
+      if (shouldStop) break;
     }
   } finally {
     reader.releaseLock();

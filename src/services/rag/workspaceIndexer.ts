@@ -40,6 +40,7 @@ function normalizeWorkspaceId(workspaceId?: string | null): string {
 }
 
 function buildSummaryDoc(ctx: WorkspaceContext, workspaceId: string, timestamp: string): RagDocument {
+  const artifacts = ctx.artifacts ?? [];
   const agentNames = ctx.agents.slice(0, 30).map((a) => a.name).join(", ");
   const groupNames = ctx.groups.slice(0, 20).map((g) => g.name).join(", ");
   const networkNames = ctx.networks.slice(0, 20).map((n) => n.name).join(", ");
@@ -59,6 +60,7 @@ function buildSummaryDoc(ctx: WorkspaceContext, workspaceId: string, timestamp: 
       `Channels: ${ctx.channels.length}. Groups: ${ctx.groups.length}.`,
       `Networks: ${ctx.networks.length}. Bridges: ${ctx.bridges.length}.`,
       `Recent jobs: ${ctx.jobs.slice(-5).map((j) => `${j.type}:${j.status}`).join(", ") || "none"}.`,
+      `Artifacts: ${artifacts.length}. Recent: ${artifacts.slice(0, 8).map((a) => `${a.name}(${a.type})`).join(", ") || "none"}.`,
       `Toolkits: ${TOOLKITS.length}. Toolkit names: ${toolkitNames || "none"}.`,
       `Available commands: ${commandCount}.`,
       `Bridges: ${ctx.bridges.length}.`,
@@ -426,6 +428,32 @@ function buildDocs(ctx: WorkspaceContext, workspaceId?: string | null): RagDocum
     });
   }
 
+  const artifacts = ctx.artifacts ?? [];
+  for (const artifact of artifacts.slice(0, 80)) {
+    const tags = artifact.tags?.join(", ") || "none";
+    const body = artifact.content
+      ? artifact.content.slice(0, 4000)
+      : artifact.url
+        ? `artifact-url: ${artifact.url}`
+        : "(no artifact body)";
+
+    docs.push({
+      id: `ws:${resolvedWorkspaceId}:artifact:${artifact.id}`,
+      workspaceId: resolvedWorkspaceId,
+      entityType: "artifact",
+      entityId: artifact.id,
+      tags: ["artifact", artifact.type, ...(artifact.tags || [])],
+      updatedAt: timestamp,
+      text: [
+        `Artifact ${artifact.name} (${artifact.id}).`,
+        `Type: ${artifact.type}. Source: ${artifact.source || "unknown"}. CreatedAt: ${artifact.createdAt || "unknown"}.`,
+        `Description: ${artifact.description || "none"}.`,
+        `Tags: ${tags}.`,
+        body,
+      ].join("\n"),
+    });
+  }
+
   const recentMessages = ctx.messages.slice(-60);
   for (let i = 0; i < recentMessages.length; i += 10) {
     const chunk = recentMessages.slice(i, i + 10);
@@ -469,6 +497,7 @@ function buildFingerprint(ctx: WorkspaceContext, workspaceId?: string | null): s
   const resolvedWorkspaceId = normalizeWorkspaceId(workspaceId);
   const lastMsg = ctx.messages.length > 0 ? ctx.messages[ctx.messages.length - 1] : null;
   const lastJob = ctx.jobs.length > 0 ? ctx.jobs[ctx.jobs.length - 1] : null;
+  const artifacts = ctx.artifacts ?? [];
 
   const digest = (parts: string[], limit = 80): string =>
     parts.slice(0, limit).sort().join("|");
@@ -491,6 +520,10 @@ function buildFingerprint(ctx: WorkspaceContext, workspaceId?: string | null): s
   );
   const bridgeDigest = digest(
     ctx.bridges.map((b) => `${b.id}:${b.fromNetworkId}:${b.toNetworkId}:${b.fromAgentId}:${b.toAgentId}:${b.type}`),
+    120,
+  );
+  const artifactDigest = digest(
+    artifacts.map((a) => `${a.id}:${a.type}:${a.name}:${a.createdAt || "-"}:${a.description || "-"}:${(a.tags || []).join(",")}:${a.content || a.url || "-"}`),
     120,
   );
 
@@ -527,6 +560,8 @@ function buildFingerprint(ctx: WorkspaceContext, workspaceId?: string | null): s
     `nd:${networkDigest}`,
     `b:${ctx.bridges.length}`,
     `bd:${bridgeDigest}`,
+    `ar:${artifacts.length}`,
+    `ard:${artifactDigest}`,
     `j:${ctx.jobs.length}:${lastJob?.id || "-"}:${lastJob?.status || "-"}`,
     `tk:${TOOLKITS.length}`,
     `cmd:${commandRegistry.getAll().filter((c) => !c.hidden).length}`,
@@ -599,7 +634,7 @@ export function markWorkspaceIndexDirty(workspaceId?: string | null): void {
 
 export function scheduleWorkspaceIndex(
   ctx: WorkspaceContext,
-  reason: "workspace-update" | "workspace-switch" | "message-burst" = "workspace-update",
+  reason: "workspace-update" | "workspace-switch" | "message-burst" | "artifact-update" = "workspace-update",
 ): void {
   ensureNavigatorIndexSync();
   const policy = getWorkspaceRagPolicy();
@@ -615,6 +650,7 @@ export function scheduleWorkspaceIndex(
 
   const mustIndexImmediately =
     reason === "workspace-switch" ||
+    reason === "artifact-update" ||
     messageDelta >= policy.messageBatchSize;
 
   const pendingTimer = pendingTimerByWorkspace.get(workspaceId);

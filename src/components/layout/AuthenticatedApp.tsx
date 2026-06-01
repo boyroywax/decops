@@ -501,9 +501,10 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     messages: workspaceRef.current.messages,
     networks: ecosystemRef.current.networks,
     bridges: ecosystemRef.current.bridges,
+    artifacts: allArtifacts,
     addJob,
     jobs: jobsRef.current,
-  }), [activeWorkspaceId, addJob]);
+  }), [activeWorkspaceId, addJob, allArtifacts]);
 
   // Stored snapshot — initialised once, refreshed only by user-send
   // (via the prop callback ChatPanel invokes) or agent request.
@@ -522,6 +523,13 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
 
   const lastMessageId = workspace.messages.length > 0 ? workspace.messages[workspace.messages.length - 1]?.id : null;
   const lastJob = jobs.length > 0 ? jobs[jobs.length - 1] : null;
+  const artifactFingerprint = useMemo(
+    () => allArtifacts
+      .slice(0, 80)
+      .map((a) => `${a.id}:${a.type}:${a.name}:${a.createdAt || "-"}:${a.description || "-"}:${(a.tags || []).join(",")}:${a.content || a.url || "-"}`)
+      .join("|"),
+    [allArtifacts],
+  );
 
   // Background reindex policy: mark dirty and debounce indexing as workspace
   // entities mutate. Query-time retrieval still performs a freshness guard.
@@ -541,12 +549,19 @@ export function AuthenticatedApp({ notebook }: AuthenticatedAppProps) {
     jobs.length,
     lastJob?.id,
     lastJob?.status,
+    allArtifacts.length,
+    artifactFingerprint,
   ]);
 
   useEffect(() => {
     const snapshot = buildChatWorkspaceContext();
     scheduleWorkspaceIndex(snapshot, "workspace-switch");
   }, [activeWorkspaceId, buildChatWorkspaceContext]);
+
+  useEffect(() => {
+    const snapshot = buildChatWorkspaceContext();
+    scheduleWorkspaceIndex(snapshot, "artifact-update");
+  }, [artifactFingerprint, buildChatWorkspaceContext]);
 
   const isSideChat = chatPosition === "left" || chatPosition === "right";
 

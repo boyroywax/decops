@@ -266,7 +266,7 @@ export const navigatorSummonHuddleCommand: CommandDefinition = {
 export const navigatorStatusCommand: CommandDefinition = {
   id: "navigator_status",
   description:
-    "Report the navigator's current goals + huddles. Without args returns the active goal; pass goalId to inspect a specific one.",
+    "Report the navigator's current goals + huddles. Without args returns a configurable summary window; pass goalId to inspect a specific goal.",
   tags: ["navigator", "query"],
   rbac: ["orchestrator", "builder"],
   args: {
@@ -283,6 +283,34 @@ export const navigatorStatusCommand: CommandDefinition = {
       required: false,
       defaultValue: false,
     },
+    maxGoals: {
+      name: "maxGoals",
+      type: "number",
+      description: "Maximum goals to return in summary mode (default 20).",
+      required: false,
+      defaultValue: 20,
+    },
+    maxHuddles: {
+      name: "maxHuddles",
+      type: "number",
+      description: "Maximum huddles to return in summary mode (default 20).",
+      required: false,
+      defaultValue: 20,
+    },
+    maxSubgoals: {
+      name: "maxSubgoals",
+      type: "number",
+      description: "Maximum subgoals to include when goalId is provided (default 50).",
+      required: false,
+      defaultValue: 50,
+    },
+    maxLifecycleEvents: {
+      name: "maxLifecycleEvents",
+      type: "number",
+      description: "Maximum lifecycle events when includeLifecycle=true (default 200).",
+      required: false,
+      defaultValue: 200,
+    },
   },
   output: "JSON snapshot of goals + huddles.",
   outputSchema: {
@@ -294,27 +322,89 @@ export const navigatorStatusCommand: CommandDefinition = {
       goals: { type: "array" },
       goal: { type: "object" },
       huddles: { type: "array" },
+      lifecycle: { type: "array" },
+      truncation: { type: "object" },
     },
   },
   execute: async (args) => {
     const snap = navigatorService.snapshot();
+    const clamp = (value: unknown, fallback: number, min: number, max: number): number => {
+      if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+      return Math.max(min, Math.min(max, Math.floor(value)));
+    };
+
+    const maxGoals = clamp(args.maxGoals, 20, 1, 200);
+    const maxHuddles = clamp(args.maxHuddles, 20, 1, 200);
+    const maxSubgoals = clamp(args.maxSubgoals, 50, 1, 500);
+    const maxLifecycleEvents = clamp(args.maxLifecycleEvents, 200, 1, 2000);
+
     if (typeof args.goalId === "string") {
       const goal = navigatorService.getGoal(args.goalId);
       const huddles = navigatorService.listHuddlesForGoal(args.goalId);
       const includeLifecycle = args.includeLifecycle === true;
+      if (!goal) {
+        return {
+          goal: null,
+          huddles: [],
+          lifecycle: includeLifecycle ? [] : undefined,
+          error: `Navigator goal not found: ${args.goalId}`,
+        };
+      }
+
+      const fullLifecycle = includeLifecycle ? navigatorService.getGoalLifecycle(args.goalId) : [];
+      const lifecycle = includeLifecycle ? fullLifecycle.slice(-maxLifecycleEvents) : undefined;
+
+      const subgoals = goal.subgoals.slice(0, maxSubgoals);
       return {
-        goal,
+        goal: {
+          ...goal,
+          subgoals,
+        },
         huddles,
-        lifecycle: includeLifecycle ? navigatorService.getGoalLifecycle(args.goalId) : undefined,
+        lifecycle,
+        truncation: {
+          subgoalsReturned: subgoals.length,
+          subgoalsTotal: goal.subgoals.length,
+          subgoalsTruncated: subgoals.length < goal.subgoals.length,
+          lifecycleReturned: lifecycle?.length ?? 0,
+          lifecycleTotal: fullLifecycle.length,
+          lifecycleTruncated: includeLifecycle ? ((lifecycle?.length ?? 0) < fullLifecycle.length) : false,
+        },
       };
     }
+
+    const goals = snap.goals.slice(0, maxGoals).map((g) => ({
+      id: g.id,
+      title: g.title,
+      status: g.status,
+      subgoals: g.subgoals.length,
+      updatedAt: g.updatedAt,
+    }));
+    const huddles = snap.huddles
+      .slice(0, maxHuddles)
+      .map((h) => ({
+        id: h.id,
+        goalId: h.goalId,
+        subgoalId: h.subgoalId,
+        status: h.status,
+        members: h.members.length,
+        updatedAt: h.updatedAt,
+      }));
+
     return {
       activeGoalId: snap.activeGoalId,
       goalCount: snap.goals.length,
       huddleCount: snap.huddles.length,
-      goals: snap.goals.slice(0, 5).map((g) => ({
-        id: g.id, title: g.title, status: g.status, subgoals: g.subgoals.length,
-      })),
+      goals,
+      huddles,
+      truncation: {
+        goalsReturned: goals.length,
+        goalsTotal: snap.goals.length,
+        goalsTruncated: goals.length < snap.goals.length,
+        huddlesReturned: huddles.length,
+        huddlesTotal: snap.huddles.length,
+        huddlesTruncated: huddles.length < snap.huddles.length,
+      },
     };
   },
 };

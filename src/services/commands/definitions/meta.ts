@@ -34,7 +34,7 @@ const SYSTEM_RESERVED = new Set<string>([
 export const createJobCommand: CommandDefinition = {
   id: "create_job",
   description:
-    "Queue any registered workspace command as a job. This is the primary way to take action — first discover commands with list_available_commands (optionally inspect with get_command_schema), then call create_job with the chosen commandId and its args. Returns the queued jobId; the tool call waits for the spawned job to complete and returns its result.",
+    "Queue any registered workspace command as a job. This is the primary way to take action — first discover commands with workspace RAG (fallback: list_available_commands; optionally inspect with get_command_schema), then call create_job with the chosen commandId and its args. Returns the queued jobId; the tool call waits for the spawned job to complete and returns its result.",
   tags: ["job", "system", "meta"],
   rbac: ["orchestrator", "builder", "researcher", "curator", "validator"],
   args: {
@@ -42,7 +42,7 @@ export const createJobCommand: CommandDefinition = {
       name: "commandId",
       type: "string",
       description:
-        "ID of the command to run as a job. Must be a registered command (use list_available_commands to discover).",
+        "ID of the command to run as a job. Must be a registered command (prefer workspace RAG discovery; fallback to list_available_commands).",
       required: true,
     },
     args: {
@@ -74,7 +74,7 @@ export const createJobCommand: CommandDefinition = {
     const def = registry.get(commandId);
     if (!def) {
       throw new Error(
-        `Unknown commandId "${commandId}". Call list_available_commands to discover available commands.`,
+        `Unknown commandId "${commandId}". Call search_workspace_rag first (fallback: list_available_commands) to discover available commands.`,
       );
     }
     if (def.hidden) {

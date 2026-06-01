@@ -156,6 +156,30 @@
   flex-shrink: 0;
 }
 
+.tool-call-card__state {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 999px;
+}
+
+.tool-call-card__state--completed {
+  color: #00e5a0;
+  background: rgba(0, 229, 160, 0.12);
+}
+
+.tool-call-card__state--failed {
+  color: #ff7d7d;
+  background: rgba(255, 100, 100, 0.14);
+}
+
+.tool-call-card__state--pending {
+  color: #7dd3fc;
+  background: rgba(56, 189, 248, 0.14);
+}
+
 .tool-call-card__status--success {
   color: #00e5a0;
 }
@@ -194,6 +218,110 @@
   font-size: 10px;
   color: #ff6464;
   margin-top: 2px;
+}
+
+.tool-call-card__result {
+  font-size: 10px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.76));
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  padding: 4px 6px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tool-call-card__toggle {
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted, rgba(255, 255, 255, 0.62));
+  border-radius: 5px;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 6px;
+  cursor: pointer;
+}
+
+.tool-call-card__toggle:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #7dd3fc;
+}
+
+.tool-call-card__payload {
+  margin-top: 4px;
+  margin-bottom: 0;
+  padding: 6px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(2, 6, 23, 0.55);
+  color: rgba(226, 232, 240, 0.9);
+  font-family: var(--font-mono, "JetBrains Mono", monospace);
+  font-size: 10px;
+  line-height: 1.35;
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.job-progress-section {
+  margin-top: 8px;
+}
+
+.mb-inline-progress {
+  margin-top: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: rgba(56, 189, 248, 0.07);
+  padding: 8px;
+}
+
+.mb-inline-progress__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.mb-inline-progress__title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+  color: var(--text-muted, rgba(255, 255, 255, 0.6));
+}
+
+.mb-inline-progress__pct {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7dd3fc;
+}
+
+.mb-inline-progress__track {
+  width: 100%;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.mb-inline-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #38bdf8, #00e5a0);
+  transition: width 180ms ease;
+}
+
+.mb-inline-progress__detail {
+  margin-top: 5px;
+  font-size: 10px;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.68));
 }
 
 /* ── Tool Call Artifacts ── */

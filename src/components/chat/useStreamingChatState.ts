@@ -80,7 +80,7 @@ export function useStreamingChatState() {
     setStreamingToolCalls(prev => {
       const updated = [...prev];
       let idx = -1;
-      for (let i = updated.length - 1; i >= 0; i--) {
+      for (let i = 0; i < updated.length; i++) {
         if (updated[i].name === display.name && updated[i].duration_ms === 0) {
           idx = i;
           break;

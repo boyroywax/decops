@@ -6,7 +6,7 @@
  * live storage keys, deliverable status, and final result.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
     CheckCircle, XCircle, Loader, Clock, SkipForward,
     Database, Package, Layers, ChevronRight, AlertTriangle, Keyboard, Wrench, FileText,
@@ -128,7 +128,7 @@ function ProgressBar({ completed, total, failed }: { completed: number; total: n
                 />
             </div>
             <span className="jpc-progress__label">
-                {completed}/{total}
+                {pct}% ({completed}/{total})
                 {hasFailed ? ` (${failed} failed)` : ""}
             </span>
         </div>
@@ -277,8 +277,6 @@ interface JobProgressCardProps {
 }
 
 export function JobProgressCard({ jobId, toolCalls = [] }: JobProgressCardProps) {
-    const [isFlipped, setIsFlipped] = useState(false);
-    const [animationState, setAnimationState] = useState<"idle" | "pressing" | "flipping">("idle");
     const { jobs } = useJobsContext();
     const job: Job | undefined = useMemo(
         () => jobs.find((j: Job) => j.id === jobId),
@@ -286,11 +284,10 @@ export function JobProgressCard({ jobId, toolCalls = [] }: JobProgressCardProps)
     );
 
     if (!job) {
-        return (
-            <div className="jpc jpc--not-found">
-                <Clock size={12} /> Job pending…
-            </div>
-        );
+        // Suppress stale placeholder cards: if a message references a job id
+        // that is no longer in memory, we hide the card instead of pinning a
+        // permanent "pending" tile in chat history.
+        return null;
     }
 
     const steps = job.steps || [];
@@ -303,6 +300,7 @@ export function JobProgressCard({ jobId, toolCalls = [] }: JobProgressCardProps)
     const pendingReplies = getPendingRepliesCount(job);
     const isQueued = job.status === "queued";
     const isAwaitingInput = job.status === "awaiting-input";
+    const [showDetails, setShowDetails] = useState(!(isDone || isFailed));
     const hasToolErrors = toolCalls.some(tc => !!tc.error);
     const displayStatus: "queued" | "running" | "completed" | "failed" | "awaiting-input" =
         isAwaitingInput
@@ -327,34 +325,6 @@ export function JobProgressCard({ jobId, toolCalls = [] }: JobProgressCardProps)
         || (toolCalls[toolCalls.length - 1]?.name)
         || "No activity yet";
 
-    const handleFlip = () => {
-        if (isFlipped) {
-            setAnimationState("flipping");
-            setIsFlipped(false);
-            setTimeout(() => setAnimationState("idle"), 600);
-            return;
-        }
-        if (animationState !== "idle") return;
-        setAnimationState("pressing");
-        setTimeout(() => {
-            setIsFlipped(true);
-            setAnimationState("flipping");
-            setTimeout(() => setAnimationState("idle"), 600);
-        }, 170);
-    };
-
-    const getTransform = () => {
-        if (isFlipped) return "rotateY(180deg)";
-        if (animationState === "pressing") return "scale(0.95) rotateY(-12deg)";
-        return "scale(1) rotateY(0deg)";
-    };
-
-    const getTransitionClass = () => {
-        if (animationState === "pressing") return "jpc__inner--pressing";
-        if (animationState === "flipping" || isFlipped) return "jpc__inner--flipping";
-        return "";
-    };
-
     const formatTimestamp = (ts?: number) => {
         if (!ts) return "-";
         return new Date(ts).toLocaleString();
@@ -370,100 +340,103 @@ export function JobProgressCard({ jobId, toolCalls = [] }: JobProgressCardProps)
         return `${minutes}m ${remSeconds}s`;
     };
 
+    useEffect(() => {
+        if (isDone || isFailed) {
+            setShowDetails(false);
+            return;
+        }
+        setShowDetails(true);
+    }, [isDone, isFailed, job.id]);
+
     return (
-        <div
-            className={`jpc jpc--${displayStatus}${(isFlipped || animationState !== "idle") ? " jpc--elevated" : ""}`}
-            onClick={handleFlip}
-        >
-            <div className={`jpc__inner ${getTransitionClass()}`} style={{ transform: getTransform() }}>
-                <div className="jpc__face jpc__face--front">
-                    <div className="jpc__header">
-                        <div className="jpc__title-row">
-                            <Layers size={12} className="jpc__icon" />
-                            <span className="jpc__name">{job.type}</span>
-                            <ModeBadge mode={job.mode} />
-                            <span className={`jpc__status jpc__status--${displayStatus}`}>
-                                {isQueued && "queued"}
-                                {isRunning && "running"}
-                                {displayStatus === "completed" && "completed"}
-                                {displayStatus === "failed" && "error"}
-                                {isAwaitingInput && "awaiting input"}
-                            </span>
-                        </div>
-                        {total > 0 && (
-                            <ProgressBar completed={completed} total={total} failed={failed} />
-                        )}
+        <div className={`jpc jpc--${displayStatus}`}>
+            <div className="jpc__face jpc__face--front">
+                <div className="jpc__header">
+                    <div className="jpc__title-row">
+                        <Layers size={12} className="jpc__icon" />
+                        <span className="jpc__name">{job.type}</span>
+                        <ModeBadge mode={job.mode} />
+                        <span className={`jpc__status jpc__status--${displayStatus}`}>
+                            {isQueued && "queued"}
+                            {isRunning && "running"}
+                            {displayStatus === "completed" && "completed"}
+                            {displayStatus === "failed" && "error"}
+                            {isAwaitingInput && "awaiting input"}
+                        </span>
                     </div>
-
-                    <div className="jpc__compact-stats">
-                        <span className="jpc__compact-chip">Steps {completed}/{total || 0}</span>
-                        <span className="jpc__compact-chip">Commands {toolCalls.length}</span>
-                        <span className="jpc__compact-chip">Deliverables {deliverables.length}</span>
-                    </div>
-
-                    <div className="jpc__activity" title={latestActivity}>
-                        <span className="jpc__activity-label">Activity</span>
-                        <span className="jpc__activity-text">{latestActivity}</span>
-                    </div>
-
+                    {total > 0 && (
+                        <ProgressBar completed={completed} total={total} failed={failed} />
+                    )}
                 </div>
 
-                <div className="jpc__face jpc__face--back">
-                    <div className="jpc__back-header">
-                        <span className="jpc__back-title">Job Details</span>
-                        <span className="jpc__back-dot">●</span>
-                    </div>
-
-                    <div className="jpc__back-content">
-                        <div className="jpc__meta-grid">
-                            <div className="jpc__meta-item"><span>ID</span><code>{job.id.slice(0, 12)}</code></div>
-                            <div className="jpc__meta-item"><span>Created</span><span>{formatTimestamp(job.createdAt)}</span></div>
-                            <div className="jpc__meta-item"><span>Updated</span><span>{formatTimestamp(job.updatedAt)}</span></div>
-                            <div className="jpc__meta-item"><span>Duration</span><span>{formatDuration(durationMs)}</span></div>
-                        </div>
-
-                        <ToolCallList toolCalls={toolCalls} />
-
-                        {steps.length > 0 && (
-                            <div className="jpc__steps">
-                                {steps.map((s, i) => (
-                                    <StepRow key={s.id || i} step={s} index={i} />
-                                ))}
-                            </div>
-                        )}
-
-                        {(isRunning || isDone || isFailed) && <StorageSnapshot storage={storage} />}
-
-                        {(isRunning || isDone || isFailed) && <DeliverablesStatus deliverables={deliverables} storage={storage} />}
-
-                        {isAwaitingInput && job.pendingPrompt && (
-                            <div className="jpc__awaiting-input">
-                                <Keyboard size={11} />
-                                <span>Waiting for input: {job.pendingPrompt.promptText}</span>
-                            </div>
-                        )}
-
-                        {isDone && job.result && (
-                            <div className="jpc__result">
-                                <CheckCircle size={11} />
-                                <span>{job.result.length > 160 ? job.result.slice(0, 160) + "…" : job.result}</span>
-                            </div>
-                        )}
-                        {isFailed && job.result && (
-                            <div className="jpc__error">
-                                <XCircle size={11} />
-                                <span>{job.result.length > 160 ? job.result.slice(0, 160) + "…" : job.result}</span>
-                            </div>
-                        )}
-                        {pendingReplies > 0 && (
-                            <div className="jpc__result">
-                                <Clock size={11} />
-                                <span>{pendingReplies} repl{pendingReplies === 1 ? "y" : "ies"} still processing in background</span>
-                            </div>
-                        )}
-                        <CompletionDetailsView resultDetails={job.resultDetails} />
-                    </div>
+                <div className="jpc__compact-stats">
+                    <span className="jpc__compact-chip">Steps {completed}/{total || 0}</span>
+                    <span className="jpc__compact-chip">Commands {toolCalls.length}</span>
+                    <span className="jpc__compact-chip">Deliverables {deliverables.length}</span>
                 </div>
+
+                <div className="jpc__activity" title={latestActivity}>
+                    <span className="jpc__activity-label">Activity</span>
+                    <span className="jpc__activity-text">{latestActivity}</span>
+                </div>
+
+                <button
+                    type="button"
+                    className="jpc__details-toggle"
+                    onClick={() => setShowDetails((v) => !v)}
+                >
+                    {showDetails ? "Hide details" : "Show details"}
+                </button>
+
+                {showDetails && <div className="jpc__back-content">
+                    <div className="jpc__meta-grid">
+                        <div className="jpc__meta-item"><span>ID</span><code>{job.id.slice(0, 12)}</code></div>
+                        <div className="jpc__meta-item"><span>Created</span><span>{formatTimestamp(job.createdAt)}</span></div>
+                        <div className="jpc__meta-item"><span>Updated</span><span>{formatTimestamp(job.updatedAt)}</span></div>
+                        <div className="jpc__meta-item"><span>Duration</span><span>{formatDuration(durationMs)}</span></div>
+                    </div>
+
+                    <ToolCallList toolCalls={toolCalls} />
+
+                    {steps.length > 0 && (
+                        <div className="jpc__steps">
+                            {steps.map((s, i) => (
+                                <StepRow key={s.id || i} step={s} index={i} />
+                            ))}
+                        </div>
+                    )}
+
+                    {(isRunning || isDone || isFailed) && <StorageSnapshot storage={storage} />}
+
+                    {(isRunning || isDone || isFailed) && <DeliverablesStatus deliverables={deliverables} storage={storage} />}
+
+                    {isAwaitingInput && job.pendingPrompt && (
+                        <div className="jpc__awaiting-input">
+                            <Keyboard size={11} />
+                            <span>Waiting for input: {job.pendingPrompt.promptText}</span>
+                        </div>
+                    )}
+
+                    {isDone && job.result && (
+                        <div className="jpc__result">
+                            <CheckCircle size={11} />
+                            <span>{job.result.length > 160 ? job.result.slice(0, 160) + "…" : job.result}</span>
+                        </div>
+                    )}
+                    {isFailed && job.result && (
+                        <div className="jpc__error">
+                            <XCircle size={11} />
+                            <span>{job.result.length > 160 ? job.result.slice(0, 160) + "…" : job.result}</span>
+                        </div>
+                    )}
+                    {pendingReplies > 0 && (
+                        <div className="jpc__result">
+                            <Clock size={11} />
+                            <span>{pendingReplies} repl{pendingReplies === 1 ? "y" : "ies"} still processing in background</span>
+                        </div>
+                    )}
+                    <CompletionDetailsView resultDetails={job.resultDetails} />
+                </div>}
             </div>
         </div>
     );

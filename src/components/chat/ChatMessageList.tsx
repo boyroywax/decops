@@ -138,7 +138,13 @@ export function ChatMessageList({
               <span className="chat-panel__system-notice-text">{m.content.replace(/^\[workspace update\]\s*/, "")}</span>
             </div>
           ) : (
-            <MessageBubble msg={m} context={context} setView={setView} onStopPromptAction={handleStopPromptAction} />
+            <MessageBubble
+              msg={m}
+              context={context}
+              setView={setView}
+              onStopPromptAction={handleStopPromptAction}
+              isLatestMessage={i === messages.length - 1}
+            />
           )}
           {!m.systemNotice && m.role === "assistant" && !loading && (
             <div className="chat-message-actions" aria-label="Message feedback and retry actions">
@@ -209,6 +215,7 @@ export function ChatMessageList({
           setView={setView}
           onStopPromptAction={handleStopPromptAction}
           isStreaming
+          isLatestMessage
         />
       )}
       {streamState.streamingText !== null && streamState.roundPhase === "drafting" && !streamState.streamingText && (

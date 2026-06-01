@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMessage, WorkspaceContext } from "@/services/ai";
 import { parseActions } from "./utils";
 import type { ParsedSegment } from "./types";
@@ -10,7 +10,7 @@ import { useJobsContext } from "@/context/JobsContext";
 import { useArchitectContext, ArchitectInlinePanel } from "@/toolkits/architect";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import type { ViewId } from "@/types";
-import { CheckCircle, AlertTriangle, Wrench, Loader, FileText } from "lucide-react";
+import { CheckCircle, AlertTriangle, Wrench, Loader, FileText, ChevronDown, ChevronRight } from "lucide-react";
 import "../../styles/components/message-bubble.css";
 
 interface MessageBubbleProps {
@@ -18,7 +18,33 @@ interface MessageBubbleProps {
     context: WorkspaceContext;
     setView?: (v: ViewId) => void;
     isStreaming?: boolean;
+    isLatestMessage?: boolean;
     onStopPromptAction?: (choice: "finish" | "stop" | "stop-and-job", prompt: NonNullable<ChatMessage["stopPrompt"]>) => void;
+}
+
+function formatToolValue(value: unknown): string {
+    if (value === undefined) return "undefined";
+    if (typeof value === "string") return value;
+    try {
+        return JSON.stringify(value, null, 2);
+    } catch {
+        return String(value);
+    }
+}
+
+function summarizeToolResult(result: unknown): string {
+    if (result == null) return "";
+    if (typeof result === "string") {
+        const trimmed = result.trim();
+        return trimmed.length > 240 ? `${trimmed.slice(0, 240)}...` : trimmed;
+    }
+    try {
+        const json = JSON.stringify(result);
+        return json.length > 240 ? `${json.slice(0, 240)}...` : json;
+    } catch {
+        const fallback = String(result);
+        return fallback.length > 240 ? `${fallback.slice(0, 240)}...` : fallback;
+    }
 }
 
 function extractArtifactIds(result: any): string[] {
@@ -42,10 +68,23 @@ function formatTimeSince(ts: number): string {
     return new Date(ts).toLocaleDateString();
 }
 
-function ToolCallCard({ tc }: { tc: NonNullable<ChatMessage["toolCalls"]>[number] }) {
+function ToolCallCard({ tc, collapseSignal }: { tc: NonNullable<ChatMessage["toolCalls"]>[number]; collapseSignal: number }) {
     const { allArtifacts } = useJobsContext();
+    const [expanded, setExpanded] = useState(false);
     const isError = !!tc.error;
     const isPending = tc.duration_ms === 0 && !tc.error && !tc.result;
+    const statusLabel = isPending ? "pending" : isError ? "failed" : "completed";
+    const resultSummary = !isPending && !isError ? summarizeToolResult(tc.result) : "";
+    const detailPayload = useMemo(() => ({
+        name: tc.name,
+        jobId: tc.jobId ?? null,
+        duration_ms: tc.duration_ms,
+        input: tc.input,
+        result: tc.result,
+        error: tc.error ?? null,
+    }), [tc]);
+    const detailText = useMemo(() => formatToolValue(detailPayload), [detailPayload]);
+    const canExpand = !isPending;
     const inputSummary = Object.entries(tc.input)
         .map(([key, value]) => `${key}: ${typeof value === "string" ? value : JSON.stringify(value)}`)
         .join(", ");
@@ -55,6 +94,10 @@ function ToolCallCard({ tc }: { tc: NonNullable<ChatMessage["toolCalls"]>[number
         const idSet = new Set(artifactIds.map(id => id.toLowerCase()));
         return allArtifacts.filter(artifact => idSet.has(artifact.id.toLowerCase()));
     }, [artifactIds, allArtifacts]);
+
+    useEffect(() => {
+        setExpanded(false);
+    }, [collapseSignal]);
 
     return (
         <div className={`tool-call-card ${isError ? "tool-call-card--error" : isPending ? "tool-call-card--pending" : "tool-call-card--success"}`}>
@@ -71,9 +114,25 @@ function ToolCallCard({ tc }: { tc: NonNullable<ChatMessage["toolCalls"]>[number
                     : isError
                         ? <AlertTriangle size={12} className="tool-call-card__status tool-call-card__status--error" />
                         : <CheckCircle size={12} className="tool-call-card__status tool-call-card__status--success" />}
+                <span className={`tool-call-card__state tool-call-card__state--${statusLabel}`}>{statusLabel}</span>
                 {!isPending && <span className="tool-call-card__duration">{tc.duration_ms}ms</span>}
             </div>
             {inputSummary && <div className="tool-call-card__args">{inputSummary}</div>}
+            {resultSummary && <div className="tool-call-card__result">{resultSummary}</div>}
+            {canExpand && (
+                <button
+                    type="button"
+                    className="tool-call-card__toggle"
+                    onClick={() => setExpanded(v => !v)}
+                    aria-expanded={expanded}
+                >
+                    {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                    {expanded ? "Collapse response" : "Expand full response"}
+                </button>
+            )}
+            {expanded && (
+                <pre className="tool-call-card__payload">{detailText}</pre>
+            )}
             {isError && tc.error && <div className="tool-call-card__error">{tc.error}</div>}
             {artifacts.length > 0 && (
                 <div className="tool-call-card__artifacts">
@@ -99,6 +158,7 @@ function ToolCallCard({ tc }: { tc: NonNullable<ChatMessage["toolCalls"]>[number
 function findLastStreamingThought(segments: ParsedSegment[]): number {
     for (let i = segments.length - 1; i >= 0; i--) {
         if (segments[i].type === "thinking") return i;
+        if (segments[i].type === "action") return -1;
         const t = segments[i] as { type: "text"; text: string };
         if (t.text?.trim()) return -1;
     }
@@ -109,10 +169,14 @@ function isTextSeg(seg: ParsedSegment): seg is { type: "text"; text: string } {
     return seg.type === "text";
 }
 
-export default function MessageBubble({ msg, context, setView, isStreaming, onStopPromptAction }: MessageBubbleProps) {
+function isActionSeg(seg: ParsedSegment): seg is { type: "action"; action: any } {
+    return seg.type === "action";
+}
+
+export default function MessageBubble({ msg, context, setView, isStreaming, isLatestMessage, onStopPromptAction }: MessageBubbleProps) {
     const { jobs } = useJobsContext();
     const isUser = msg.role === "user";
-    const { cleanText, actions, segments } = parseActions(msg.content);
+    const { cleanText, segments } = parseActions(msg.content);
     const architect = useArchitectContext();
     const canUseLiveArchitect = !!msg.architectCard?.live && !!architect;
     const [showOlderJobs, setShowOlderJobs] = useState(false);
@@ -148,15 +212,49 @@ export default function MessageBubble({ msg, context, setView, isStreaming, onSt
         () => standaloneToolCalls.filter(toolCall => !!toolCall.error),
         [standaloneToolCalls],
     );
-    const standaloneNonFailedToolCalls = useMemo(
-        () => standaloneToolCalls.filter(toolCall => !toolCall.error),
-        [standaloneToolCalls],
-    );
+    const allToolCalls = msg.toolCalls || [];
+    const jobStatusById = useMemo(() => {
+        const map = new Map<string, string>();
+        for (const job of jobs) map.set(job.id, job.status);
+        return map;
+    }, [jobs]);
+    const isTerminalJobStatus = (status: string | undefined): boolean => {
+        if (!status) return true;
+        return status !== "queued" && status !== "running" && status !== "awaiting-input";
+    };
+    const visibleToolCalls = useMemo(() => allToolCalls.filter(tc => {
+        const isPending = tc.duration_ms === 0 && !tc.error && !tc.result;
+        if (!isPending) return true;
+
+        // Pending rows without a job id are only meaningful during the active stream.
+        if (!tc.jobId) return !!isStreaming;
+
+        const status = jobStatusById.get(tc.jobId);
+
+        // Hide stale pending rows once a job reaches terminal state.
+        if (isTerminalJobStatus(status)) return false;
+
+        return true;
+    }), [allToolCalls, jobStatusById, isStreaming]);
+    const completedToolCalls = visibleToolCalls.filter(tc => tc.duration_ms > 0 && !tc.error).length;
+    const failedToolCalls = visibleToolCalls.filter(tc => !!tc.error).length;
+    const pendingToolCalls = visibleToolCalls.filter(tc => tc.duration_ms === 0 && !tc.error && !tc.result).length;
+    const resolvedToolCalls = completedToolCalls + failedToolCalls;
+    const toolProgressPct = visibleToolCalls.length > 0
+        ? Math.round((resolvedToolCalls / visibleToolCalls.length) * 100)
+        : 0;
+    const collapseSignal = useMemo(() => {
+        if (isStreaming) return 0;
+        return isLatestMessage ? 0 : 1;
+    }, [isLatestMessage, isStreaming]);
 
     const toolCallsByJobId = useMemo(() => {
         const grouped = new Map<string, NonNullable<ChatMessage["toolCalls"]>>();
         for (const toolCall of msg.toolCalls || []) {
             if (!toolCall.jobId) continue;
+            const status = jobStatusById.get(toolCall.jobId);
+            const isPending = toolCall.duration_ms === 0 && !toolCall.error && !toolCall.result;
+            if (isPending && isTerminalJobStatus(status)) continue;
             const existing = grouped.get(toolCall.jobId) || [];
             existing.push(toolCall);
             grouped.set(toolCall.jobId, existing);
@@ -168,7 +266,7 @@ export default function MessageBubble({ msg, context, setView, isStreaming, onSt
             grouped.set(latestJobId, [...existing, ...standaloneFailedToolCalls]);
         }
         return grouped;
-    }, [msg.toolCalls, latestJobId, standaloneFailedToolCalls]);
+    }, [msg.toolCalls, latestJobId, standaloneFailedToolCalls, jobStatusById]);
 
     const latestOlderJobId = olderJobIds[0];
     const latestOlderJob = useMemo(
@@ -193,6 +291,54 @@ export default function MessageBubble({ msg, context, setView, isStreaming, onSt
             return () => clearTimeout(t);
         }
     }, [olderJobIds.length]);
+
+    const commandBlocks = (
+        <>
+            {visibleToolCalls.length > 0 && (
+                <div className="tool-calls-section">
+                    <div className="tool-calls-section__label">
+                        <Wrench size={11} /> Command completion ({toolProgressPct}% · {resolvedToolCalls}/{visibleToolCalls.length})
+                    </div>
+                    {visibleToolCalls.map((toolCall, index) => (
+                        <ToolCallCard key={`${toolCall.name}-${index}`} tc={toolCall} collapseSignal={collapseSignal} />
+                    ))}
+                </div>
+            )}
+
+            {latestJobId && (
+                <div className="job-progress-section">
+                    <JobProgressCard jobId={latestJobId} toolCalls={toolCallsByJobId.get(latestJobId) || []} />
+                    {olderJobIds.length > 0 && (
+                        <div className="job-progress-section__collapse">
+                            <button
+                                type="button"
+                                className="job-progress-section__toggle"
+                                onClick={() => setShowOlderJobs(v => !v)}
+                            >
+                                <span className="job-progress-section__toggle-text">
+                                    {showOlderJobs ? "Hide earlier jobs" : "Show earlier jobs"}
+                                </span>
+                                <span className={`job-progress-section__counter job-progress-section__counter--${olderCounterTone}${isOlderCounterAnimating ? " job-progress-section__counter--animating" : ""}`}>
+                                    {olderJobIds.length}
+                                </span>
+                            </button>
+                            {showOlderJobs && (
+                                <div className="job-progress-section__older">
+                                    {olderJobIds.map(jobId => (
+                                        <JobProgressCard
+                                            key={jobId}
+                                            jobId={jobId}
+                                            toolCalls={toolCallsByJobId.get(jobId) || []}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+        </>
+    );
 
     return (
         <div className={`mb-row ${isUser ? "mb-row--user" : "mb-row--assistant"}`}>
@@ -237,25 +383,54 @@ export default function MessageBubble({ msg, context, setView, isStreaming, onSt
                     <span style={{ whiteSpace: "pre-wrap" }}>{cleanText}</span>
                 ) : (
                     <>
+                        {segments.length === 0 && commandBlocks}
                         {/* Render segments in order: thinking cards interleaved
                             with their surrounding prose so each thought appears
                             inline where it was written, not stacked at the top. */}
                         {segments.length > 0 ? (
                             <div className="segments-section">
-                                {segments.map((seg, i) =>
-                                    isTextSeg(seg) ? (
-                                        seg.text.trim()
-                                            ? <MarkdownContent key={`c-${i}`} content={seg.text} />
-                                            : null
-                                    ) : (
-                                        <ThinkingCard
-                                            key={`t-${i}`}
-                                            thinking={seg.thinking}
-                                            isLatest={i === segments.length - 1 || (() => { const last = segments[segments.length - 1]; return i === segments.length - 2 && isTextSeg(last) && !last.text.trim(); })()}
-                                            isStreaming={!!isStreaming && i === findLastStreamingThought(segments)}
-                                        />
-                                    ),
-                                )}
+                                {(() => {
+                                    const firstActionIdx = segments.findIndex(isActionSeg);
+                                    const firstThinkingIdx = segments.findIndex(seg => seg.type === "thinking");
+                                    const firstTextIdx = segments.findIndex(isTextSeg);
+                                    const inlineInsertIdx = firstActionIdx >= 0
+                                        ? firstActionIdx
+                                        : (firstThinkingIdx >= 0 ? firstThinkingIdx : (firstTextIdx >= 0 ? firstTextIdx : 0));
+                                    return segments.map((seg, i) => {
+                                    if (isTextSeg(seg)) {
+                                            if (!seg.text.trim()) {
+                                                return i === inlineInsertIdx
+                                                    ? <div key={`cmd-${i}`}>{commandBlocks}</div>
+                                                    : null;
+                                            }
+                                            return (
+                                                <Fragment key={`seg-text-${i}`}>
+                                                    {i === inlineInsertIdx && firstActionIdx < 0 && commandBlocks}
+                                                    <MarkdownContent content={seg.text} />
+                                                    {i === inlineInsertIdx && firstActionIdx >= 0 && commandBlocks}
+                                                </Fragment>
+                                            );
+                                    }
+                                    if (isActionSeg(seg)) {
+                                            return (
+                                                <Fragment key={`seg-action-${i}`}>
+                                                    <ActionCard action={seg.action} context={context} />
+                                                    {i === inlineInsertIdx && commandBlocks}
+                                                </Fragment>
+                                            );
+                                    }
+                                    return (
+                                            <Fragment key={`seg-thinking-${i}`}>
+                                                <ThinkingCard
+                                                    thinking={seg.thinking}
+                                                    isLatest={i === segments.length - 1 || (() => { const last = segments[segments.length - 1]; return i === segments.length - 2 && isTextSeg(last) && !last.text.trim(); })()}
+                                                    isStreaming={!!isStreaming && i === findLastStreamingThought(segments)}
+                                                />
+                                                {i === inlineInsertIdx && commandBlocks}
+                                            </Fragment>
+                                    );
+                                    });
+                                })()}
                             </div>
                         ) : cleanText ? (
                             <MarkdownContent content={cleanText} />
@@ -267,14 +442,20 @@ export default function MessageBubble({ msg, context, setView, isStreaming, onSt
 
                 {isStreaming && cleanText && <span className="mb-streaming-cursor">▊</span>}
 
-                {standaloneNonFailedToolCalls.length > 0 && orderedJobIds.length === 0 && (
-                    <div className="tool-calls-section">
-                        <div className="tool-calls-section__label">
-                            <Wrench size={11} /> Tools used ({standaloneNonFailedToolCalls.length})
+                {isStreaming && !cleanText && (
+                    <div className="mb-inline-progress" role="status" aria-live="polite">
+                        <div className="mb-inline-progress__meta">
+                            <span className="mb-inline-progress__title">Composing commands</span>
+                            <span className="mb-inline-progress__pct">{toolProgressPct}%</span>
                         </div>
-                        {standaloneNonFailedToolCalls.map((toolCall, index) => (
-                            <ToolCallCard key={`${toolCall.name}-${index}`} tc={toolCall} />
-                        ))}
+                        <div className="mb-inline-progress__track">
+                            <div className="mb-inline-progress__fill" style={{ width: `${toolProgressPct}%` }} />
+                        </div>
+                        <div className="mb-inline-progress__detail">
+                            {visibleToolCalls.length > 0
+                                ? `${resolvedToolCalls}/${visibleToolCalls.length} complete${pendingToolCalls > 0 ? `, ${pendingToolCalls} running` : ""}`
+                                : "Preparing execution plan"}
+                        </div>
                     </div>
                 )}
             </div>

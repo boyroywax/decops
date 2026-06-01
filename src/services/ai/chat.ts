@@ -8,6 +8,7 @@ import { ROLES } from "@/constants";
 import { TOOLKITS } from "@/services/toolkits";
 import { getToolsForAgent } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
+import { buildCurrentDateTimeContext } from "./prompts";
 import type { WorkspaceContext } from "./prompts";
 import { getAgentModel } from "./models";
 import {
@@ -78,9 +79,11 @@ export async function callAgentAI(
   commandContext?: CommandContext,
 ): Promise<string> {
   const model = getAgentModel(agent.id);
+  const nowContext = buildCurrentDateTimeContext();
 
   const systemPrompt = [
     `You are "${agent.name}", a ${ROLES.find(r => r.id === agent.role)?.label} agent in a decentralized mesh workspace.`,
+    nowContext,
     `Your DID: ${agent.did}`,
     `Communication channel type: ${channelType}`,
     agent.prompt ? `\nYour core directive:\n${agent.prompt}` : "",
@@ -238,12 +241,14 @@ async function runAgentChatTurn(
 
 /** Shared system-prompt builder for direct user↔agent chats. */
 export function buildAgentChatSystemPrompt(agent: Agent, toolCount: number): string {
+  const nowContext = buildCurrentDateTimeContext();
   const role = ROLES.find(r => r.id === agent.role);
   const enabledToolkitIds = (agent.toolkits || []).map(t => t.toolkitId);
   const toolkitPlaybookSection = buildToolkitUsageGuide(enabledToolkitIds, { maxToolkits: 6 });
   const includeRagPlaybook = enabledToolkitIds.includes("workspace-rag");
   return [
     `You are "${agent.name}", a ${role?.label || agent.role} agent in a decentralized mesh workspace.`,
+    nowContext,
     `Your DID: ${agent.did}`,
     agent.prompt ? `\nYour core directive:\n${agent.prompt}` : "",
     agent.toolkits && agent.toolkits.length > 0

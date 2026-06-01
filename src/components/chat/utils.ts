@@ -104,6 +104,7 @@ export function parseActions(text: string): {
             try {
                 const action = JSON.parse(match[2].trim());
                 actions.push(action);
+                segments.push({ type: "action", action });
             } catch {
                 // Keep unparseable action blocks as visible text
                 segments.push({ type: "text", text: match[0] });

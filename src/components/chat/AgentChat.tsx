@@ -45,7 +45,7 @@ export function AgentChat({ agent }: AgentChatProps) {
     for (const m of messagesAll) {
       if (m.channelId !== channelId) continue;
       out.push({ role: "user", content: m.content });
-      if (m.response) out.push({ role: "assistant", content: m.response });
+      if (m.response !== null) out.push({ role: "assistant", content: m.response || "[Completed]" });
     }
     return out;
   }, [messagesAll, channelId]);
@@ -173,6 +173,9 @@ export function AgentChat({ agent }: AgentChatProps) {
           commandContext ?? undefined,
         )
       );
+      // Streaming has completed; stop showing loading immediately while we
+      // persist the turn and enrich it with tool-call metadata.
+      setLoading(false);
       const collectedJobIds = toolCalls.filter(tc => tc.jobId).map(tc => tc.jobId!);
       setLiveTurns(prev => ({
         ...prev,
@@ -184,11 +187,10 @@ export function AgentChat({ agent }: AgentChatProps) {
       // Persist the response. Store the text (even empty) so the
       // history builder can still render tool-call cards attached to
       // this assistant turn. Only skip if truly nothing to show.
-      const trimmed = response.trim();
       setMessages((prev) =>
         prev.map((m) =>
           m.id === msgId
-            ? { ...m, response: trimmed, status: "delivered" }
+            ? { ...m, response: response.length > 0 ? response : "[Completed]", status: "delivered" }
             : m
         )
       );
@@ -263,6 +265,7 @@ export function AgentChat({ agent }: AgentChatProps) {
                 key={i}
                 msg={msg}
                 context={bubbleContext}
+                isLatestMessage={i === history.length - 1}
               />
             ))}
             {streamState.streamingText !== null && (
@@ -275,6 +278,7 @@ export function AgentChat({ agent }: AgentChatProps) {
                 }}
                 context={bubbleContext}
                 isStreaming
+                isLatestMessage
               />
             )}
             {loading && streamState.streamingText !== null && streamState.roundPhase === "drafting" && !streamState.streamingText && (

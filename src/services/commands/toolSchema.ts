@@ -56,6 +56,9 @@ const MAX_ANTHROPIC_TOOLS = 128;
 
 export const TOOL_PRIORITY_ORDER = [
   "create_job",
+  "workspace_rag_status",
+  "search_workspace_rag",
+  "index_workspace_rag",
   "list_available_commands",
   "get_command_schema",
   "list_toolkits",
