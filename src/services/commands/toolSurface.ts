@@ -32,6 +32,13 @@ import {
 const DEFAULT_AGENT_TOOL_IDS = new Set<string>([
   // Meta / orchestration
   "create_job",
+  // Workspace RAG — the PRIMARY command-discovery surface. Always
+  // available so agents can semantically search the registry instead
+  // of paging through `list_available_commands`.
+  "search_workspace_rag",
+  "workspace_rag_status",
+  "index_workspace_rag",
+  // Fallback discovery (only when RAG can't resolve a command).
   "list_available_commands",
   "get_command_schema",
   "query_workspace",

@@ -33,10 +33,10 @@ export function useSendOrchestrator(options: UseSendOrchestratorOptions) {
         lastActivityAt = perfNow();
         run.callbacks.onToken(token);
       },
-      onToolCallStart: (name, input) => {
+      onToolCallStart: (name, input, opts) => {
         sawToolCall = true;
         lastActivityAt = perfNow();
-        run.callbacks.onToolCallStart?.(name, input);
+        run.callbacks.onToolCallStart?.(name, input, opts);
       },
       onToolCallComplete: (display) => {
         lastActivityAt = perfNow();

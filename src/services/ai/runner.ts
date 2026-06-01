@@ -51,8 +51,15 @@ export interface ChatRunCallbacks {
   onToken?: (token: string) => void;
   /** Fired when the model starts a tool call. `input` is empty during the
    *  streaming `content_block_start` event; the populated version arrives
-   *  again via `onToolCallStart` immediately before execution. */
-  onToolCallStart?: (name: string, input: Record<string, unknown>) => void;
+   *  again via `onToolCallStart` immediately before execution.
+   *  `opts.textOffset` (when present) is the assistant-text length at
+   *  the moment the tool call began streaming, used by the UI for
+   *  chronological inline rendering. */
+  onToolCallStart?: (
+    name: string,
+    input: Record<string, unknown>,
+    opts?: { textOffset?: number },
+  ) => void;
   /** Fired when a tool call completes (success or error). Includes any
    *  `jobId` the command spawned so the chat can render a JobProgressCard. */
   onToolCallComplete?: (display: ToolCallDisplay) => void;
@@ -177,7 +184,7 @@ export async function runChatTurn(
     tools,
     commandContext,
     maxRounds = 8,
-    maxTokens = 4096,
+    maxTokens = 8192,
     stream = false,
   } = options;
 
@@ -209,10 +216,16 @@ export async function runChatTurn(
   let noProgressRetries = 0;
   const CAPABILITY_REFUSAL_RETRY_BUDGET = 2;
   let capabilityRefusalRetries = 0;
+  const SELF_DOUBT_RETRY_BUDGET = 2;
+  let selfDoubtRetries = 0;
   const declaredToolsRegex = /```thinking[\s\S]*?Needs tools:\s*yes\b/i;
   const narratedToolVerbRegex = /\b(run(?:ning)?|call(?:ing)?|invoke(?:d|s|ing)?|use(?:d|s|ing)?|execut(?:e|ed|es|ing)|queue(?:d|s|ing)?|trigger(?:ed|s|ing)?)\b/i;
   const fabricatedResultRegex = /\b(tool|command|job)\b[\s\S]{0,32}\b(returned|returns|result|results|output|completed|failed|succeeded|queued|created|deployed)\b|\b(result|output)\s*:\s*\{|\bjob[\s_-]?id\s*[:=]/i;
   const capabilityRefusalRegex = /\b(i\s+cannot\s+emit|unable\s+to\s+emit|cannot\s+emit)\b[\s\S]{0,80}\btool[_ -]?use\b|\btool[_ -]?use\s+xml\b|\bfundamental\s+limitation\b|\bcurrent\s+configuration\b[\s\S]{0,40}\blimitation\b|\bblocked\s+by\s+the\s+guardian\b/i;
+  // Self-doubt cascade: model contradicts its own tool_results by claiming
+  // the tools "didn't execute" or "failed silently". This is a hallucinated
+  // refusal that poisons the rest of the conversation.
+  const selfDoubtRegex = /\b(?:tool\s+calls?\s+(?:didn't|did\s+not|aren't|are\s+not)\s+(?:go(?:ing)?\s+through|execut(?:e|ing)|work(?:ing)?))\b|\b(?:failed\s+silently|failing\s+silently)\b|\b(?:i\s+have\s+not\s+been\s+(?:successfully\s+)?executing\s+tools?)\b|\b(?:my\s+(?:previous\s+)?(?:tool|command)\s+calls?\s+(?:didn't|did\s+not|don't|haven't)\s+(?:actually\s+)?(?:execute|run|go\s+through|work))\b|\b(?:i('ve|\s+have)\s+been\s+(?:fabricating|narrating)\s+(?:results?|output))\b|\b(?:i\s+(?:cannot|can't)\s+(?:promise|verify|confirm)\s+(?:you\s+)?anything)\b/i;
   const planningNarrationRegex = /\b(i\s+will|i'll|let\s+me|next\s+i|then\s+i|going\s+to|about\s+to)\b/i;
   const workflowMarkerRegex = /```thinking|(?:^|\n)\s*(Plan|Next|Assess):/i;
   const directAnswerSignalRegex = /\b(done|completed|finished|summary|in short|based on|i found|here\s+are|here's|result)\b/i;
@@ -268,6 +281,13 @@ export async function runChatTurn(
     for (let round = 0; round < maxRounds; round++) {
       const roundStart = perfNow();
       let firstTokenMs: number | null = null;
+      // Cumulative msg.content length at the start of this round. Each
+      // SSE parser reports `textOffset` relative to its own round, but
+      // the chat UI splits msg.content (which spans every round) by
+      // these offsets — so we add the running base before forwarding to
+      // the UI. Without this, every round-2+ tool card collapses to the
+      // top of the bubble instead of appearing inline at its true spot.
+      const roundTextOffsetBase = fullText.length;
       const roundOnToken = (token: string): void => {
         if (firstTokenMs === null) firstTokenMs = Math.round(perfNow() - roundStart);
         callbacks.onToken?.(token);
@@ -325,9 +345,7 @@ export async function runChatTurn(
               roundText += token;
               roundOnToken(token);
             },
-            onToolUseStart: (block) => {
-              callbacks.onToolCallStart?.(block.name, {});
-            },
+            onToolUseStart: () => { /* execution callback fired later */ },
             onToolUseInput: () => { /* accumulated internally */ },
             onContentBlockStop: () => { /* no-op */ },
             onMessageStop: () => { /* no-op */ },
@@ -370,9 +388,7 @@ export async function runChatTurn(
                 roundText += delta;
                 roundOnToken(delta);
               },
-              onToolUseStart: (block) => {
-                callbacks.onToolCallStart?.(block.name, {});
-              },
+              onToolUseStart: () => { /* execution callback fired later */ },
               onToolUseInput: () => { /* accumulated internally */ },
             },
             callbacks.signal,
@@ -385,7 +401,13 @@ export async function runChatTurn(
             if (tc.id && tc.name) {
               let input: Record<string, unknown> = {};
               try { input = JSON.parse(tc.arguments || "{}"); } catch { /* ignore */ }
-              sseToolUseBlocks.push({ type: "tool_use", id: tc.id, name: tc.name, input });
+              sseToolUseBlocks.push({
+                type: "tool_use",
+                id: tc.id,
+                name: tc.name,
+                input,
+                textOffset: tc.textOffset,
+              });
               streamedToolUseIds.add(tc.id);
             }
           }
@@ -491,6 +513,22 @@ export async function runChatTurn(
           !needsFabricationRetry &&
           claimsPlatformLimitation;
 
+        // Self-doubt cascade: if the model contradicts its own tool_results
+        // by claiming the runtime didn't execute its tools, force a retry
+        // that points it back at the actual tool_result content. We only
+        // engage when there ARE tool results in scope (otherwise the model's
+        // doubt could be legitimate).
+        const claimsSelfDoubt = selfDoubtRegex.test(roundText);
+        const hasObservableToolResults = allToolCalls.some(
+          tc => tc.duration_ms > 0 || !!tc.result || !!tc.error,
+        );
+        const needsSelfDoubtRetry =
+          selfDoubtRetries < SELF_DOUBT_RETRY_BUDGET &&
+          !needsFabricationRetry &&
+          !needsCapabilityRefusalRetry &&
+          claimsSelfDoubt &&
+          hasObservableToolResults;
+
         if (
           needsFabricationRetry
         ) {
@@ -560,6 +598,26 @@ export async function runChatTurn(
           apiMessages.push({
             role: "user",
             content: "[SYSTEM TOOL-CALL CLARIFICATION] Do not claim platform/guardian/configuration limits about structured tool_use. In this runtime, tool calls are emitted by your provider output channel, not by writing XML in prose. If tools are needed, emit one real tool_use now. If no tool is needed, answer directly with no execution claims.",
+          });
+          callbacks.onRoundEnd?.(round);
+          continue;
+        }
+
+        if (needsSelfDoubtRetry) {
+          selfDoubtRetries++;
+          if (rawAssistantContent && Array.isArray(rawAssistantContent) && rawAssistantContent.length > 0) {
+            apiMessages.push({ role: "assistant", content: rawAssistantContent });
+          } else if (roundText) {
+            apiMessages.push({ role: "assistant", content: roundText });
+          }
+          const toolResultSummary = allToolCalls
+            .filter(tc => tc.duration_ms > 0 || !!tc.result || !!tc.error)
+            .slice(-5)
+            .map(tc => `- ${tc.name}: ${tc.error ? `error="${String(tc.error).slice(0, 120)}"` : "success"}${tc.jobId ? ` (jobId=${tc.jobId.slice(0, 8)})` : ""}`)
+            .join("\n");
+          apiMessages.push({
+            role: "user",
+            content: `[SYSTEM TRUTH-CHECK] Your previous turn falsely claimed your tool calls didn't execute or "failed silently". That is a hallucination. The runtime DID execute your tool calls and the structured tool_result blocks are in your context above. Recent observed tool results in this turn:\n${toolResultSummary || "(see tool_result blocks above)"}\n\nStop apologizing. Stop disbelieving your own tool results. Re-read the most recent tool_result content and either (a) cite concrete values from it in a final answer, or (b) emit ONE more real tool_use to advance the user's request. Do not write another apology.`,
           });
           callbacks.onRoundEnd?.(round);
           continue;
@@ -638,11 +696,48 @@ export async function runChatTurn(
 
       if (useStream) {
         // Anthropic SSE round → append assistant content blocks directly so
-        // the tool_use_ids match.
-        apiMessages.push({ role: "assistant", content: assistantForResults });
+        // the tool_use_ids match. Sanitize:
+        //   1. Drop sparse/undefined entries — native thinking blocks
+        //      leave holes in `contentBlocks` because we don't echo them
+        //      back (we lack the `signature` field).
+        //   2. Drop empty text blocks. Anthropic rejects assistant content
+        //      that includes a text block with empty/whitespace-only text
+        //      alongside tool_use, with a "text content blocks must be
+        //      non-empty" 400. This is the most common cause of the
+        //      "response stops after first tool call" symptom.
+        //   3. Strip our internal `textOffset` field from tool_use blocks
+        //      so the API only sees its own schema.
+        const sanitized = Array.isArray(assistantForResults)
+          ? (assistantForResults as Array<Record<string, unknown> | undefined>)
+              .filter((b): b is Record<string, unknown> => !!b && typeof b === "object")
+              .map((b) => {
+                if (b.type === "tool_use") {
+                  const { textOffset: _omit, ...rest } = b as { textOffset?: number } & Record<string, unknown>;
+                  return rest;
+                }
+                return b;
+              })
+              .filter((b) => {
+                if (b.type === "text") {
+                  const t = typeof b.text === "string" ? b.text : "";
+                  return t.length > 0 && t.trim().length > 0;
+                }
+                return true;
+              })
+          : assistantForResults;
+        apiMessages.push({ role: "assistant", content: sanitized });
       }
 
       if (roundText) fullText += roundText;
+
+      // Rebase each tool_use's textOffset onto the cumulative msg.content
+      // length so the chat bubble can place it inline at the true position
+      // across multi-round turns.
+      for (const block of toolUseBlocks) {
+        if (typeof block.textOffset === "number") {
+          block.textOffset = block.textOffset + roundTextOffsetBase;
+        }
+      }
 
       // Execute all tool calls in this round concurrently. Each call is
       // already serialized internally through the job queue, so running
@@ -650,7 +745,50 @@ export async function runChatTurn(
       // independent commands — it does not break job ordering semantics.
       const toolResults: { id: string; content: string; isError?: boolean }[] = new Array(toolUseBlocks.length);
       await Promise.all(toolUseBlocks.map(async (block, index) => {
-        callbacks.onToolCallStart?.(block.name, block.input || {});
+        callbacks.onToolCallStart?.(block.name, block.input || {}, { textOffset: block.textOffset });
+
+        // Redundancy guardrail: list_available_commands is fallback-only.
+        // The first call within a turn is allowed; subsequent calls in the
+        // same turn are short-circuited with a synthetic tool_result that
+        // redirects the model to the workspace RAG. This prevents the
+        // model from spinning on the catalog instead of acting.
+        const isListAvailableCall = (name: string, input: Record<string, unknown> | undefined): boolean => {
+          if (name === "list_available_commands") return true;
+          // Catch create_job(commandId="list_available_commands") wrappers.
+          if ((name === "create_job" || name === "queue_new_job") && input) {
+            if (typeof input.commandId === "string" && input.commandId === "list_available_commands") return true;
+            if (Array.isArray((input as { steps?: unknown }).steps)) {
+              const steps = (input as { steps: Array<Record<string, unknown>> }).steps;
+              if (steps.some(s => typeof s?.commandId === "string" && s.commandId === "list_available_commands")) return true;
+            }
+          }
+          return false;
+        };
+        const priorListAvailableCount = allToolCalls.filter(
+          tc => isListAvailableCall(tc.name, tc.input as Record<string, unknown> | undefined),
+        ).length;
+        if (isListAvailableCall(block.name, block.input || {}) && priorListAvailableCount >= 1) {
+          const redirect = {
+            error: "REDIRECT",
+            message:
+              "list_available_commands has already been called in this turn. Do NOT call it again (directly or via create_job). Use search_workspace_rag with a focused multi-word query (e.g. 'destroy network', 'create channel between agents'). If you already have the command id you need, call create_job with that commandId directly. If you need argument shape, call get_command_schema with the specific commandId.",
+          };
+          const display: ToolCallDisplay = {
+            name: block.name,
+            input: block.input || {},
+            result: redirect,
+            duration_ms: 0,
+            textOffset: block.textOffset,
+          };
+          allToolCalls.push(display);
+          callbacks.onToolCallComplete?.(display);
+          toolResults[index] = {
+            id: block.id,
+            content: JSON.stringify(redirect),
+            isError: false,
+          };
+          return;
+        }
 
         const intercept = callbacks.interceptToolCall?.(block.name, block.input || {});
         if (intercept) {
@@ -660,6 +798,7 @@ export async function runChatTurn(
             result: intercept.result,
             error: intercept.error,
             duration_ms: 0,
+            textOffset: block.textOffset,
           };
           allToolCalls.push(display);
           callbacks.onToolCallComplete?.(display);
@@ -685,6 +824,7 @@ export async function runChatTurn(
           error: result.error,
           duration_ms: result.duration_ms,
           jobId: result.jobId,
+          textOffset: block.textOffset,
         };
         allToolCalls.push(display);
         callbacks.onToolCallComplete?.(display);
@@ -717,7 +857,16 @@ export async function runChatTurn(
         apiMessages.push(...resultMsgs);
       }
 
-      if (roundText) fullText += "\n\n";
+      // Emit the inter-round separator through the token stream so the
+      // chat UI's msg.content stays byte-aligned with `fullText` — every
+      // round-2+ tool card relies on cumulative `textOffset`s indexing
+      // into msg.content. If we only mutate fullText here, persisted
+      // content would gain "\n\n" boundaries the live UI never saw and
+      // every offset past round 1 would be off-by-two-per-boundary.
+      if (roundText) {
+        roundOnToken("\n\n");
+        fullText += "\n\n";
+      }
       perfLog("ai.run_chat_turn.round", {
         model,
         provider,
@@ -775,8 +924,13 @@ export async function runChatTurn(
       toolCallCount: allToolCalls.length,
       totalDurationMs: Math.round(perfNow() - turnStart),
     });
+    // Surface the error to the user even when earlier rounds already
+    // produced text. Returning `fullText || error_msg` silently dropped
+    // the error whenever round 1 had emitted output, making mid-loop API
+    // failures look like the model just stopped responding.
+    const visibleError = `\n\n[Chat error: ${msg}]`;
     return {
-      text: fullText || `[Chat error: ${msg}]`,
+      text: fullText ? `${fullText}${visibleError}` : `[Chat error: ${msg}]`,
       toolCalls: allToolCalls,
       reason: "error",
       error: msg,

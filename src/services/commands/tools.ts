@@ -128,7 +128,13 @@ export async function executeToolCall(
           ? String((queued as Record<string, unknown>).jobId)
           : undefined;
       const waitForResult = shouldWaitForDirectToolJobResult(toolName);
-      const deferredResult = { _deferred: true, status: "running", jobId, message: `Job ${jobId?.slice(0, 8)} is still running.` };
+      const deferredResult = {
+        _deferred: true,
+        status: "running",
+        jobId,
+        success: true,
+        message: `[DEFERRED] Job ${jobId?.slice(0, 8)} (command: ${toolName}) was successfully queued and is executing now. This tool call SUCCEEDED — the work is in progress, NOT failed. Do NOT re-issue this command. To check the outcome, call get_job_status with jobId="${jobId}" in a later round, or proceed with the next step of the user's request.`,
+      };
       const result = waitForResult && jobId
         ? await settleOrDefer(
           watchChildJob(jobId, resolveToolTimeout(toolName)),
@@ -175,7 +181,13 @@ export async function executeToolCall(
         ? await settleOrDefer(
           watchChildJob(jobId, resolveToolTimeout(toolName)),
           TOOL_RESULT_SOFT_WAIT_MS,
-          { _deferred: true, status: "running", jobId, message: `Job ${jobId.slice(0, 8)} is still running.` },
+          {
+            _deferred: true,
+            status: "running",
+            jobId,
+            success: true,
+            message: `[DEFERRED] Job ${jobId.slice(0, 8)} (command: ${toolName}) was successfully queued and is executing now. This tool call SUCCEEDED — the work is in progress, NOT failed. Do NOT re-issue this command. To check the outcome, call get_job_status with jobId="${jobId}" in a later round, or proceed with the next step of the user's request.`,
+          },
         )
         : (queued ?? { status: "queued" });
       const duration_ms = Math.round(performance.now() - start);
@@ -235,14 +247,20 @@ export async function executeToolCall(
       setTimeout(() => {
         if (hasPendingToolJob(jobId)) {
           deletePendingToolJob(jobId);
-          resolve({ _timeout: true, message: `Job ${jobId.slice(0, 8)} is still running after ${timeout / 1000}s` });
+          resolve({ _timeout: true, success: true, jobId, message: `[DEFERRED] Job ${jobId.slice(0, 8)} is still executing after ${timeout / 1000}s. This tool call SUCCEEDED — the work is in progress, NOT failed. Do NOT re-issue this command. Call get_job_status with jobId="${jobId}" later to retrieve the final outcome.` });
         }
       }, timeout);
     });
     const result = await settleOrDefer(
       waitForJobResult,
       TOOL_RESULT_SOFT_WAIT_MS,
-      { _deferred: true, status: "running", jobId, message: `Job ${jobId.slice(0, 8)} is still running.` },
+      {
+        _deferred: true,
+        status: "running",
+        jobId,
+        success: true,
+        message: `[DEFERRED] Job ${jobId.slice(0, 8)} (command: ${toolName}) was successfully queued and is executing now. This tool call SUCCEEDED — the work is in progress, NOT failed. Do NOT re-issue this command. To check the outcome, call get_job_status with jobId="${jobId}" in a later round, or proceed with the next step of the user's request.`,
+      },
     );
 
     const duration_ms = Math.round(performance.now() - start);

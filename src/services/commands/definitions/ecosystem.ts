@@ -329,8 +329,8 @@ export const destroyNetworkCommand: CommandDefinition = {
         id: {
             name: "id",
             type: "network",
-            description: "ID of the network to destroy",
-            required: true
+            description: "ID of the network to destroy. Either `id` (single) or `ids` (batch) must be provided.",
+            required: false
         },
         cascade: {
             name: "cascade",
@@ -342,7 +342,7 @@ export const destroyNetworkCommand: CommandDefinition = {
         ids: {
             name: "ids",
             type: "array",
-            description: "Batch mode: array of network IDs to destroy. Overrides single id.",
+            description: "Batch mode: array of network IDs to destroy. Use this to remove multiple (or all) networks in one call. Either `id` (single) or `ids` (batch) must be provided.",
             required: false,
         }
     },
@@ -351,7 +351,10 @@ export const destroyNetworkCommand: CommandDefinition = {
     execute: async (args, context: CommandContext) => {
         const targetIds = args.ids
             ? (Array.isArray(args.ids) ? args.ids : [args.ids])
-            : [args.id];
+            : (args.id ? [args.id] : []);
+        if (targetIds.length === 0) {
+            throw new Error("destroy_network requires either `id` (single network ID) or `ids` (array of network IDs).");
+        }
 
         const { setNetworks, setBridges, networks } = context.ecosystem;
         const totalRemoved: Record<string, number> = { networks: 0, bridges: 0 };

@@ -1,4 +1,5 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import type { ChatMessage, WorkspaceContext } from "@/services/ai";
 import { parseActions } from "./utils";
 import type { ParsedSegment } from "./types";
@@ -179,9 +180,6 @@ export default function MessageBubble({ msg, context, setView, isStreaming, isLa
     const { cleanText, segments } = parseActions(msg.content);
     const architect = useArchitectContext();
     const canUseLiveArchitect = !!msg.architectCard?.live && !!architect;
-    const [showOlderJobs, setShowOlderJobs] = useState(false);
-    const [isOlderCounterAnimating, setIsOlderCounterAnimating] = useState(false);
-    const previousOlderCountRef = useRef<number>(0);
 
     // Resolve the chat agent that authored this message so we can tint
     // the bubble in its banner color scheme. We deliberately do NOT fall
@@ -268,40 +266,19 @@ export default function MessageBubble({ msg, context, setView, isStreaming, isLa
         return grouped;
     }, [msg.toolCalls, latestJobId, standaloneFailedToolCalls, jobStatusById]);
 
-    const latestOlderJobId = olderJobIds[0];
-    const latestOlderJob = useMemo(
-        () => jobs.find(job => job.id === latestOlderJobId),
-        [jobs, latestOlderJobId],
-    );
-    const latestOlderJobHasToolErrors = !!latestOlderJobId && (toolCallsByJobId.get(latestOlderJobId) || []).some(tc => !!tc.error);
-    const olderCounterTone: "success" | "error" =
-        latestOlderJob?.status === "failed" || (latestOlderJob?.status === "completed" && latestOlderJobHasToolErrors)
-            ? "error"
-            : "success";
-
-    useEffect(() => {
-        if (previousOlderCountRef.current === 0) {
-            previousOlderCountRef.current = olderJobIds.length;
-            return;
-        }
-        if (olderJobIds.length !== previousOlderCountRef.current) {
-            previousOlderCountRef.current = olderJobIds.length;
-            setIsOlderCounterAnimating(true);
-            const t = setTimeout(() => setIsOlderCounterAnimating(false), 700);
-            return () => clearTimeout(t);
-        }
-    }, [olderJobIds.length]);
 
     const commandBlocks = (
         <>
-            {visibleToolCalls.length > 0 && (
+            {visibleToolCalls.filter(tc => !tc.jobId).length > 0 && (
                 <div className="tool-calls-section">
                     <div className="tool-calls-section__label">
                         <Wrench size={11} /> Command completion ({toolProgressPct}% · {resolvedToolCalls}/{visibleToolCalls.length})
                     </div>
-                    {visibleToolCalls.map((toolCall, index) => (
-                        <ToolCallCard key={`${toolCall.name}-${index}`} tc={toolCall} collapseSignal={collapseSignal} />
-                    ))}
+                    {visibleToolCalls
+                        .filter(tc => !tc.jobId)
+                        .map((toolCall, index) => (
+                            <ToolCallCard key={`${toolCall.name}-${index}`} tc={toolCall} collapseSignal={collapseSignal} />
+                        ))}
                 </div>
             )}
 
@@ -309,30 +286,14 @@ export default function MessageBubble({ msg, context, setView, isStreaming, isLa
                 <div className="job-progress-section">
                     <JobProgressCard jobId={latestJobId} toolCalls={toolCallsByJobId.get(latestJobId) || []} />
                     {olderJobIds.length > 0 && (
-                        <div className="job-progress-section__collapse">
-                            <button
-                                type="button"
-                                className="job-progress-section__toggle"
-                                onClick={() => setShowOlderJobs(v => !v)}
-                            >
-                                <span className="job-progress-section__toggle-text">
-                                    {showOlderJobs ? "Hide earlier jobs" : "Show earlier jobs"}
-                                </span>
-                                <span className={`job-progress-section__counter job-progress-section__counter--${olderCounterTone}${isOlderCounterAnimating ? " job-progress-section__counter--animating" : ""}`}>
-                                    {olderJobIds.length}
-                                </span>
-                            </button>
-                            {showOlderJobs && (
-                                <div className="job-progress-section__older">
-                                    {olderJobIds.map(jobId => (
-                                        <JobProgressCard
-                                            key={jobId}
-                                            jobId={jobId}
-                                            toolCalls={toolCallsByJobId.get(jobId) || []}
-                                        />
-                                    ))}
-                                </div>
-                            )}
+                        <div className="job-progress-section__older">
+                            {olderJobIds.map(jobId => (
+                                <JobProgressCard
+                                    key={jobId}
+                                    jobId={jobId}
+                                    toolCalls={toolCallsByJobId.get(jobId) || []}
+                                />
+                            ))}
                         </div>
                     )}
                 </div>
@@ -381,7 +342,126 @@ export default function MessageBubble({ msg, context, setView, isStreaming, isLa
                     />
                 ) : isUser ? (
                     <span style={{ whiteSpace: "pre-wrap" }}>{cleanText}</span>
-                ) : (
+                ) : (() => {
+                    // Chronological interleave path: when any tool call carries
+                    // a textOffset (captured at SSE start time), splice the per-
+                    // call ToolCallCards and their JobProgressCards into the raw
+                    // content at exactly the position they occurred during
+                    // streaming, instead of grouping all command panels at the
+                    // top or bottom of the bubble.
+                    const toolCallsWithOffsets = (msg.toolCalls || [])
+                        .map((tc, idx) => ({ tc, idx }))
+                        .filter(({ tc }) => typeof tc.textOffset === "number")
+                        .sort((a, b) => (a.tc.textOffset! - b.tc.textOffset!));
+                    const useInterleaved = toolCallsWithOffsets.length > 0;
+
+                    const renderFragmentSegments = (fragment: string, keyBase: string) => {
+                        const { segments: fragSegments, cleanText: fragClean } = parseActions(fragment);
+                        if (fragSegments.length === 0) {
+                            return fragClean ? <MarkdownContent key={`${keyBase}-md`} content={fragClean} /> : null;
+                        }
+                        return (
+                            <Fragment key={keyBase}>
+                                {fragSegments.map((seg, i) => {
+                                    if (isTextSeg(seg)) {
+                                        return seg.text.trim()
+                                            ? <MarkdownContent key={`${keyBase}-t-${i}`} content={seg.text} />
+                                            : null;
+                                    }
+                                    if (isActionSeg(seg)) {
+                                        return <ActionCard key={`${keyBase}-a-${i}`} action={seg.action} context={context} />;
+                                    }
+                                    return (
+                                        <ThinkingCard
+                                            key={`${keyBase}-th-${i}`}
+                                            thinking={seg.thinking}
+                                            isLatest={i === fragSegments.length - 1 || (() => { const last = fragSegments[fragSegments.length - 1]; return i === fragSegments.length - 2 && isTextSeg(last) && !last.text.trim(); })()}
+                                            isStreaming={!!isStreaming && i === findLastStreamingThought(fragSegments)}
+                                        />
+                                    );
+                                })}
+                            </Fragment>
+                        );
+                    };
+
+                    if (useInterleaved) {
+                        const pieces: ReactNode[] = [];
+                        let cursor = 0;
+                        const seenJobs = new Set<string>();
+                        const totalLen = msg.content.length;
+
+                        for (const { tc, idx } of toolCallsWithOffsets) {
+                            const off = Math.max(cursor, Math.min(tc.textOffset!, totalLen));
+                            if (off > cursor) {
+                                const frag = msg.content.slice(cursor, off);
+                                const node = renderFragmentSegments(frag, `frag-${cursor}-${off}`);
+                                if (node) pieces.push(node);
+                                cursor = off;
+                            }
+
+                            const isPending = tc.duration_ms === 0 && !tc.error && !tc.result;
+                            const status = tc.jobId ? jobStatusById.get(tc.jobId) : undefined;
+                            // Only render the standalone ToolCallCard for
+                            // tool calls that have NO jobId — those are the
+                            // only ones that don't already get represented
+                            // by a JobProgressCard. Otherwise the bubble
+                            // would show two cards for the same command.
+                            const showToolCall = !tc.jobId && (
+                                !isPending || !!isStreaming
+                            );
+
+                            if (showToolCall) {
+                                pieces.push(
+                                    <ToolCallCard key={`itc-${idx}`} tc={tc} collapseSignal={collapseSignal} />,
+                                );
+                            }
+
+                            if (tc.jobId && !seenJobs.has(tc.jobId)) {
+                                seenJobs.add(tc.jobId);
+                                const jobIsTerminallyHidden = isPending && isTerminalJobStatus(status);
+                                if (!jobIsTerminallyHidden) {
+                                    pieces.push(
+                                        <div className="job-progress-section" key={`ijp-${tc.jobId}`}>
+                                            <JobProgressCard
+                                                jobId={tc.jobId}
+                                                toolCalls={toolCallsByJobId.get(tc.jobId) || []}
+                                            />
+                                        </div>,
+                                    );
+                                }
+                            }
+                        }
+
+                        if (cursor < totalLen) {
+                            const frag = msg.content.slice(cursor);
+                            const node = renderFragmentSegments(frag, `frag-tail-${cursor}`);
+                            if (node) pieces.push(node);
+                        }
+
+                        return (
+                            <>
+                                <div className="segments-section">{pieces}</div>
+                                {olderJobIds.length > 0 && (
+                                    <div className="job-progress-section">
+                                        <div className="job-progress-section__older">
+                                            {olderJobIds.map(jobId => (
+                                                <JobProgressCard
+                                                    key={jobId}
+                                                    jobId={jobId}
+                                                    toolCalls={toolCallsByJobId.get(jobId) || []}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        );
+                    }
+
+                    // Legacy path (no offsets, e.g. persisted messages from
+                    // before this change, or non-streaming providers): keep
+                    // the existing single-anchor inline placement.
+                    return (
                     <>
                         {segments.length === 0 && commandBlocks}
                         {/* Render segments in order: thinking cards interleaved
@@ -438,7 +518,8 @@ export default function MessageBubble({ msg, context, setView, isStreaming, isLa
                             <span className="mb-streaming-cursor">●</span>
                         ) : null}
                     </>
-                )}
+                    );
+                })()}
 
                 {isStreaming && cleanText && <span className="mb-streaming-cursor">▊</span>}
 

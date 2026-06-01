@@ -45,7 +45,8 @@ const indexWorkspaceRagCommand: CommandDefinition = {
 
 const searchWorkspaceRagCommand: CommandDefinition = {
   id: "search_workspace_rag",
-  description: "Run semantic retrieval over indexed workspace documents.",
+  description:
+    "PRIMARY command-discovery tool. Run this FIRST whenever you need to find a command, recall workspace state, or ground a plan. The workspace RAG index includes every registered command (id, description, args) plus agents, channels, jobs, artifacts, and prior decisions, and returns ranked semantic matches. Use focused multi-word queries (e.g. 'create channel between agents', 'queue helia ipfs upload'). Prefer this over `list_available_commands`, which is fallback-only.",
   tags: ["rag", "workspace", "search", "vector"],
   rbac: ["orchestrator", "builder", "researcher", "curator", "validator"],
   args: {

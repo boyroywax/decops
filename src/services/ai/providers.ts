@@ -260,6 +260,11 @@ export interface ToolUseBlock {
   id: string;
   name: string;
   input: Record<string, unknown>;
+  /** Length of streamed assistant text emitted before this tool call
+   *  began. Used by the chat UI to interleave tool/job cards in
+   *  chronological order with surrounding prose. Optional because
+   *  non-streaming providers cannot observe it. */
+  textOffset?: number;
 }
 
 /** Check if a response contains tool use (returns blocks for Anthropic/OpenAI/OpenRouter, empty for others) */

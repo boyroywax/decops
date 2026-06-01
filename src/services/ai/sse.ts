@@ -22,6 +22,8 @@ export type SSEToolUseBlock = {
   id: string;
   name: string;
   input: Record<string, unknown>;
+  /** Total length of assistant text emitted before this tool_use began. */
+  textOffset?: number;
 };
 export type SSEContentBlock = SSETextBlock | SSEToolUseBlock;
 
@@ -30,7 +32,12 @@ export async function parseAnthropicSSE(
   callbacks: AnthropicSSECallbacks,
   signal?: AbortSignal,
 ): Promise<{ contentBlocks: SSEContentBlock[]; stopReason: string }> {
-  const IDLE_AFTER_OUTPUT_MS = 2500;
+  // Fallback idle timeout — only armed AFTER the model has signaled its
+  // own stop (`message_delta.stop_reason`). Without that gate we'd kill
+  // the stream during normal mid-message thinking pauses, truncating the
+  // assistant's response. Some gateways drop `message_stop`, so once
+  // stop_reason arrives we wait briefly for any tail bytes and then exit.
+  const POST_STOP_REASON_IDLE_MS = 5000;
   const reader = response.body!.getReader();
   if (signal) {
     signal.addEventListener("abort", () => { reader.cancel(); }, { once: true });
@@ -43,7 +50,11 @@ export async function parseAnthropicSSE(
   let currentBlockIndex = -1;
   let currentToolInput = "";
   let shouldStop = false;
-  let hasVisibleOutput = false;
+  let stopReasonSeen = false;
+  // Running length of assistant text emitted via callbacks.onText so far.
+  // Captured per-tool-use-block so the UI can interleave tool cards with
+  // prose in chronological order.
+  let emittedTextLen = 0;
   // Track whether we're inside a native Anthropic thinking block.
   // When the model uses its built-in thinking mode, the SSE stream emits
   // content_block_start with type "thinking" and thinking_delta events.
@@ -54,10 +65,10 @@ export async function parseAnthropicSSE(
   try {
       while (true) {
         const readPromise = reader.read();
-        const { done, value } = hasVisibleOutput
+        const { done, value } = stopReasonSeen
           ? await Promise.race<ReadableStreamReadResult<Uint8Array>>([
               readPromise,
-              new Promise((resolve) => setTimeout(() => resolve({ done: true, value: undefined as any }), IDLE_AFTER_OUTPUT_MS)),
+              new Promise((resolve) => setTimeout(() => resolve({ done: true, value: undefined as any }), POST_STOP_REASON_IDLE_MS)),
             ])
           : await readPromise;
       if (done) break;
@@ -86,6 +97,7 @@ export async function parseAnthropicSSE(
                   id: block.id,
                   name: block.name,
                   input: {},
+                  textOffset: emittedTextLen,
                 };
                 currentToolInput = "";
                 callbacks.onToolUseStart({ id: block.id, name: block.name });
@@ -94,6 +106,7 @@ export async function parseAnthropicSSE(
                 // fence so parseActions() can extract it downstream.
                 inThinkingBlock = true;
                 callbacks.onText("```thinking\n");
+                emittedTextLen += "```thinking\n".length;
               }
               break;
             }
@@ -102,7 +115,7 @@ export async function parseAnthropicSSE(
               const idx = event.index ?? currentBlockIndex;
               if (delta.type === "text_delta" && delta.text) {
                 callbacks.onText(delta.text);
-                  hasVisibleOutput = true;
+                emittedTextLen += delta.text.length;
                 const block = contentBlocks[idx];
                 if (block && block.type === "text") {
                   block.text = (block.text || "") + delta.text;
@@ -114,6 +127,7 @@ export async function parseAnthropicSSE(
                 // Native thinking delta — pass through as-is so it ends
                 // up inside the ```thinking fence we opened above.
                 callbacks.onText(delta.thinking);
+                emittedTextLen += delta.thinking.length;
               }
               break;
             }
@@ -131,6 +145,7 @@ export async function parseAnthropicSSE(
               if (inThinkingBlock) {
                 // Close the ```thinking fence.
                 callbacks.onText("\n```\n");
+                emittedTextLen += "\n```\n".length;
                 inThinkingBlock = false;
               }
               callbacks.onContentBlockStop();
@@ -139,10 +154,14 @@ export async function parseAnthropicSSE(
             case "message_delta": {
                 if (event.delta?.stop_reason) {
                   stopReason = event.delta.stop_reason;
-                  // Some gateways delay or drop message_stop while already
-                  // signaling stop_reason. Exit early once the model marks
-                  // the turn complete to avoid post-response wait.
-                  shouldStop = true;
+                  // Mark the turn as complete from the model's side, but
+                  // KEEP READING. Anthropic frequently emits trailing
+                  // events (final content_block_stop, message_stop) after
+                  // stop_reason, and some content_block_delta text can
+                  // still arrive between stop_reason and message_stop.
+                  // The post-stop_reason idle race below ensures we still
+                  // exit promptly if the gateway omits message_stop.
+                  stopReasonSeen = true;
                 }
               break;
             }
@@ -168,6 +187,7 @@ export async function parseAnthropicSSE(
     // is still parseable.
     if (inThinkingBlock) {
       callbacks.onText("\n```\n");
+      emittedTextLen += "\n```\n".length;
       inThinkingBlock = false;
     }
     reader.releaseLock();
@@ -193,8 +213,7 @@ export async function parseOpenAISSE(
   response: Response,
   callbacks: OpenAISSECallbacks,
   signal?: AbortSignal,
-): Promise<{ text: string; toolCalls: Array<{ id: string; name: string; arguments: string }>; finishReason: string | null }> {
-  const IDLE_AFTER_OUTPUT_MS = 2500;
+): Promise<{ text: string; toolCalls: Array<{ id: string; name: string; arguments: string; textOffset?: number }>; finishReason: string | null }> {
   const reader = response.body!.getReader();
   if (signal) {
     signal.addEventListener("abort", () => { reader.cancel(); }, { once: true });
@@ -203,20 +222,23 @@ export async function parseOpenAISSE(
   let buffer = "";
   let full = "";
   // Accumulate tool call deltas keyed by index.
-  const toolCallByIndex: Array<{ id: string; name: string; arguments: string }> = [];
+  const toolCallByIndex: Array<{ id: string; name: string; arguments: string; textOffset?: number }> = [];
   let finishReason: string | null = null;
   let shouldStop = false;
-  let hasVisibleOutput = false;
+  // Fallback idle timeout, only armed AFTER the provider sets a
+  // finish_reason. Without this gate we'd kill the stream during
+  // normal mid-response pauses and truncate the answer.
+  const POST_FINISH_REASON_IDLE_MS = 5000;
   // Track whether we've announced start for a given tool-call index.
   const startedIndexes = new Set<number>();
 
   try {
       while (true) {
         const readPromise = reader.read();
-        const { done, value } = hasVisibleOutput
+        const { done, value } = finishReason !== null
           ? await Promise.race<ReadableStreamReadResult<Uint8Array>>([
               readPromise,
-              new Promise((resolve) => setTimeout(() => resolve({ done: true, value: undefined as any }), IDLE_AFTER_OUTPUT_MS)),
+              new Promise((resolve) => setTimeout(() => resolve({ done: true, value: undefined as any }), POST_FINISH_REASON_IDLE_MS)),
             ])
           : await readPromise;
       if (done) break;
@@ -244,7 +266,6 @@ export async function parseOpenAISSE(
           // Text content delta
           if (typeof delta.content === "string" && delta.content.length > 0) {
             full += delta.content;
-              hasVisibleOutput = true;
             callbacks.onText(delta.content);
           }
           // Tool call deltas — each delta may contain partial tool_calls
@@ -252,7 +273,7 @@ export async function parseOpenAISSE(
             for (const tc of delta.tool_calls) {
               const idx = tc.index ?? 0;
               if (!toolCallByIndex[idx]) {
-                toolCallByIndex[idx] = { id: "", name: "", arguments: "" };
+                toolCallByIndex[idx] = { id: "", name: "", arguments: "", textOffset: full.length };
               }
               const entry = toolCallByIndex[idx];
               if (tc.id) entry.id = tc.id;

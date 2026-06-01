@@ -67,6 +67,9 @@ export interface ToolCallDisplay {
   error?: string;
   duration_ms: number;
   jobId?: string;
+  /** Length (in characters) of streamed assistant text emitted before this
+   *  tool call began. Drives chronological interleaving in MessageBubble. */
+  textOffset?: number;
 }
 
 export async function callAgentAI(

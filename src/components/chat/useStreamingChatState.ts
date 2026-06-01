@@ -68,11 +68,11 @@ export function useStreamingChatState() {
     }
   }, [flushTokens]);
 
-  const onToolCallStart = useCallback((name: string) => {
+  const onToolCallStart = useCallback((name: string, opts?: { textOffset?: number }) => {
     setRoundPhase("idle");
     setStreamingToolCalls(prev => [
       ...prev,
-      { name, input: {}, result: null, duration_ms: 0 },
+      { name, input: {}, result: null, duration_ms: 0, textOffset: opts?.textOffset },
     ]);
   }, []);
 
@@ -86,8 +86,14 @@ export function useStreamingChatState() {
           break;
         }
       }
-      if (idx >= 0) updated[idx] = display;
-      else updated.push(display);
+      // Preserve the textOffset captured at start time when the runner's
+      // completion display lacks one (e.g. interceptors).
+      const merged: ToolCallDisplay = {
+        ...display,
+        textOffset: display.textOffset ?? (idx >= 0 ? updated[idx].textOffset : undefined),
+      };
+      if (idx >= 0) updated[idx] = merged;
+      else updated.push(merged);
       return updated;
     });
   }, []);
@@ -116,7 +122,7 @@ export function useStreamingChatState() {
   const buildCallbacks = useCallback((signal?: AbortSignal): StreamCallbacks => ({
     onToken,
     signal,
-    onToolCallStart: (name) => onToolCallStart(name),
+    onToolCallStart: (name, _input, opts) => onToolCallStart(name, opts),
     onToolCallComplete,
     onRoundEnd,
   }), [onToken, onToolCallStart, onToolCallComplete, onRoundEnd]);

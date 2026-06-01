@@ -20,7 +20,11 @@ export interface StreamCallbacks {
    *  emit synthetic chunks so the UI still updates progressively. */
   onToken: (token: string) => void;
   /** Called when a tool call starts executing (UI feedback). */
-  onToolCallStart?: (name: string, input: Record<string, unknown>) => void;
+  onToolCallStart?: (
+    name: string,
+    input: Record<string, unknown>,
+    opts?: { textOffset?: number },
+  ) => void;
   /** Called when a tool call completes. */
   onToolCallComplete?: (display: ToolCallDisplay) => void;
   /** Called after each provider round finishes (after any tool exec). UI

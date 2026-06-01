@@ -100,7 +100,7 @@ export const createJobCommand: CommandDefinition = {
 export const listAvailableCommandsCommand: CommandDefinition = {
   id: "list_available_commands",
   description:
-    "List commands the agent can execute via create_job. Optionally filter by toolkitId or a search substring. Returns id, description, toolkit, and a short arg summary for each.",
+    "FALLBACK ONLY. Do not call this first. Discover commands via `search_workspace_rag` (the workspace RAG index contains every command, its description, and arg schema and returns ranked semantic matches). Call `list_available_commands` ONLY if RAG search has failed to surface a relevant command after at least one attempt, or if you need a deterministic alphabetical enumeration filtered by toolkit. Returns id, description, toolkit, and a short arg summary.",
   tags: ["meta", "discovery", "query"],
   rbac: ["orchestrator", "builder", "researcher", "curator", "validator"],
   args: {
