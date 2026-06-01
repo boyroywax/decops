@@ -441,10 +441,10 @@ export default function MessageBubble({ msg, context, setView, isStreaming, isLa
                         return (
                             <>
                                 <div className="segments-section">{pieces}</div>
-                                {olderJobIds.length > 0 && (
+                                {olderJobIds.filter(id => !seenJobs.has(id)).length > 0 && (
                                     <div className="job-progress-section">
                                         <div className="job-progress-section__older">
-                                            {olderJobIds.map(jobId => (
+                                            {olderJobIds.filter(id => !seenJobs.has(id)).map(jobId => (
                                                 <JobProgressCard
                                                     key={jobId}
                                                     jobId={jobId}
@@ -522,23 +522,6 @@ export default function MessageBubble({ msg, context, setView, isStreaming, isLa
                 })()}
 
                 {isStreaming && cleanText && <span className="mb-streaming-cursor">▊</span>}
-
-                {isStreaming && !cleanText && (
-                    <div className="mb-inline-progress" role="status" aria-live="polite">
-                        <div className="mb-inline-progress__meta">
-                            <span className="mb-inline-progress__title">Composing commands</span>
-                            <span className="mb-inline-progress__pct">{toolProgressPct}%</span>
-                        </div>
-                        <div className="mb-inline-progress__track">
-                            <div className="mb-inline-progress__fill" style={{ width: `${toolProgressPct}%` }} />
-                        </div>
-                        <div className="mb-inline-progress__detail">
-                            {visibleToolCalls.length > 0
-                                ? `${resolvedToolCalls}/${visibleToolCalls.length} complete${pendingToolCalls > 0 ? `, ${pendingToolCalls} running` : ""}`
-                                : "Preparing execution plan"}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );
