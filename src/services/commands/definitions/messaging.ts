@@ -11,7 +11,7 @@ export const sendMessageCommand: CommandDefinition = {
         from_agent_id: {
             name: "from_agent_id",
             type: "agent",
-            description: "The sender — select an agent, or 'You' to send as the current user",
+            description: "The sender. Use the literal string 'user' to send as the current user (this is the right choice when an LLM/orchestrator is invoking this tool on behalf of the user). Otherwise pass an existing agent's id or name.",
             required: true,
             includeUserOption: true,
         },
@@ -61,8 +61,9 @@ export const sendMessageCommand: CommandDefinition = {
         const allAgents = [...liveAgents, ...(context.storage._agents || [])];
         const allChannels = [...liveChannels, ...(context.storage._channels || [])];
 
-        // 1. Resolve sender — 'user' keyword maps to the current user's DID
-        const isUserSender = from_agent_id === 'user';
+        // 1. Resolve sender — 'user' / 'you' keywords map to the current user's DID
+        const senderKey = typeof from_agent_id === 'string' ? from_agent_id.trim().toLowerCase() : '';
+        const isUserSender = senderKey === 'user' || senderKey === 'you';
         const userDid = context.auth?.user?.did;
         const fromAgent = isUserSender
             ? { id: userDid || 'user', name: context.auth?.user?.profile?.name || 'User', prompt: '' }

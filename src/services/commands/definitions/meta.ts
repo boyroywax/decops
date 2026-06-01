@@ -34,7 +34,7 @@ const SYSTEM_RESERVED = new Set<string>([
 export const createJobCommand: CommandDefinition = {
   id: "create_job",
   description:
-    "Queue any registered workspace command as a job. This is the primary way to take action — first discover commands with workspace RAG (fallback: list_available_commands; optionally inspect with get_command_schema), then call create_job with the chosen commandId and its args. Returns the queued jobId; the tool call waits for the spawned job to complete and returns its result.",
+    "Queue any registered workspace command as a job. This is the primary way to take action — first discover commands with workspace RAG (fallback: list_available_commands; optionally inspect with get_command_schema), then call create_job with the chosen commandId and its args. The inner command's arguments go INSIDE the `args` object (NOT at the top level). Example: to send a message, call create_job with { commandId: 'send_message', args: { from_agent_id: 'user', to_agent_id: '<agent-id>', message: 'hi' } }. Returns the queued jobId; the tool call waits for the spawned job to complete and returns its result.",
   tags: ["job", "system", "meta"],
   rbac: ["orchestrator", "builder", "researcher", "curator", "validator"],
   args: {
@@ -83,6 +83,35 @@ export const createJobCommand: CommandDefinition = {
     const jobArgs =
       (args.args as Record<string, unknown> | undefined) ??
       ({} as Record<string, unknown>);
+
+    // Pre-flight: validate that all required inner-command args are
+    // present in `jobArgs` before queuing. This catches the common
+    // model mistake of placing inner-command fields at the top level
+    // of create_job's args (or omitting `args` entirely) and gives a
+    // single clear error with the expected schema and a usage example,
+    // rather than letting the job queue and fail later with a less
+    // contextual message.
+    const requiredInnerArgs = Object.entries(def.args || {})
+      .filter(([, d]) => d.required !== false && d.defaultValue === undefined);
+    const missingInner = requiredInnerArgs
+      .filter(([n]) => jobArgs[n] === undefined || jobArgs[n] === null)
+      .map(([n]) => n);
+    if (missingInner.length > 0) {
+      const schemaSummary = requiredInnerArgs
+        .map(([n, d]) => `${n}: ${d.type}`)
+        .join(", ");
+      const exampleArgs = requiredInnerArgs.reduce<Record<string, string>>((acc, [n, d]) => {
+        acc[n] = `<${d.type}>`;
+        return acc;
+      }, {});
+      throw new Error(
+        `create_job for "${commandId}" is missing required inner args: ${missingInner.join(", ")}. ` +
+          `Required schema: { ${schemaSummary} }. ` +
+          `Inner-command fields go inside the \`args\` object, NOT at the top level. ` +
+          `Correct shape: { commandId: "${commandId}", args: ${JSON.stringify(exampleArgs)} }.`,
+      );
+    }
+
     const queued = context.jobs.addJob({
       type: commandId,
       request: jobArgs,
