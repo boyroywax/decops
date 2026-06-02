@@ -380,6 +380,20 @@ export function useJobExecutor({
                                 }
                             }
 
+                            const failedResults = results.filter(r => r.status === 'failed');
+                            if (failedResults.length > 0) {
+                                const detail = failedResults
+                                    .map(r => {
+                                        const step = queuedJob.steps!.find(s => s.id === r.stepId);
+                                        const name = step?.name || step?.commandId || r.stepId;
+                                        return `${name}: ${r.error || 'unknown error'}`;
+                                    })
+                                    .join("; ");
+                                throw new Error(
+                                    `${failedResults.length}/${results.length} parallel step(s) failed — ${detail}`,
+                                );
+                            }
+
                             completionDetails = {
                                 summary: "All steps completed",
                                 mode: "parallel",

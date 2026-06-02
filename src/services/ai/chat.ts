@@ -123,14 +123,18 @@ export async function callAgentAI(
           tools,
           commandContext,
           maxRounds: 6,
-          maxTokens: 1200,
+          // Per-round budget. Tool-use turns need headroom for preamble +
+          // tool args in round 1 AND the post-tool final answer in round 2.
+          // 1200 was too tight and produced silent mid-sentence truncation
+          // both before and after the tool call.
+          maxTokens: 4096,
           stream: false,
         },
       );
       return result.text;
     }
 
-    const req = buildProviderRequest(model, systemPrompt, messages, 1000);
+    const req = buildProviderRequest(model, systemPrompt, messages, 2048);
     const response = await fetch(req.url, {
       method: "POST",
       headers: req.headers,
@@ -143,7 +147,17 @@ export async function callAgentAI(
     const data = await response.json();
     return parseProviderResponse(model, data);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const baseMsg = err instanceof Error ? err.message : String(err);
+    const cause = err instanceof Error ? (err as { cause?: unknown }).cause : undefined;
+    let causeMsg: string | undefined;
+    if (cause) {
+      causeMsg = cause instanceof Error
+        ? cause.message
+        : typeof cause === "object"
+          ? (() => { try { return JSON.stringify(cause); } catch { return String(cause); } })()
+          : String(cause);
+    }
+    const msg = causeMsg && !baseMsg.includes(causeMsg) ? `${baseMsg} — ${causeMsg}` : baseMsg;
     return `[Agent error: ${msg}]`;
   }
 }
@@ -228,7 +242,8 @@ async function runAgentChatTurn(
       tools: tools.length > 0 ? tools : undefined,
       commandContext,
       maxRounds: tools.length > 0 ? 6 : 1,
-      maxTokens: 1500,
+      // Per-round budget — see callAgentAI for the same rationale.
+      maxTokens: 4096,
       stream: options.stream && (provider === "anthropic" || provider === "openai" || provider === "openrouter"),
     },
     {

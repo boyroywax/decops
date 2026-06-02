@@ -44,6 +44,18 @@ export const collectiveMemoryModule: ToolkitModule = {
       commandId: "list_collective_memory",
     },
     {
+      id: "memory.archive",
+      name: "Archive Collective Memory",
+      description: "Export collective memories to a JSON archive artifact.",
+      commandId: "archive_collective_memory",
+    },
+    {
+      id: "memory.import",
+      name: "Import Collective Memory Archive",
+      description: "Import memory entries from JSON archive artifacts.",
+      commandId: "import_collective_memory_archive",
+    },
+    {
       id: "memory.mode",
       name: "Set Agent Memory Mode",
       description: "Toggle an agent between collective memory and dark (isolated) mode.",

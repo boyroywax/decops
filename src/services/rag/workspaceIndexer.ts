@@ -611,6 +611,13 @@ export async function ensureWorkspaceIndexed(ctx: WorkspaceContext): Promise<voi
       })),
     );
 
+    // Wipe prior docs for this workspace before writing the fresh set so
+    // deleted entities (agents/channels/groups/networks/bridges/jobs/etc.)
+    // don't linger in search results. Without this, `upsertMany` only
+    // overwrites docs whose ids reappear — anything removed from the
+    // workspace stays in the vector store forever and keeps surfacing
+    // through `search_workspace_rag`.
+    await ragVectorStore.removeByWorkspace(workspaceId);
     await ragVectorStore.upsertMany(rows);
     fingerprintByWorkspace.set(workspaceId, nextFingerprint);
     dirtyByWorkspace.set(workspaceId, false);

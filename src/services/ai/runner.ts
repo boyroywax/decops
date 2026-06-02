@@ -140,6 +140,43 @@ function missingKeyMessage(): string {
   return "⚠️ No API key configured. Go to **LLM Manager → Providers** to add your API key.";
 }
 
+/** Build a descriptive error message that includes `err.cause` when present.
+ *  Browser/runtime fetch failures surface as `TypeError("Failed to fetch")`
+ *  or `TypeError("network error")` with the real reason hidden on `.cause`
+ *  (e.g. `{ code: "ECONNRESET" }`, a nested Error, or `{ status, statusText }`).
+ *  Without unwrapping cause we expose useless one-liners to the user. */
+function describeError(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  let msg = err.message || err.name || "Unknown error";
+  const cause = (err as { cause?: unknown }).cause;
+  if (cause) {
+    const causeMsg = cause instanceof Error
+      ? cause.message
+      : typeof cause === "object"
+        ? (() => {
+            try { return JSON.stringify(cause); } catch { return String(cause); }
+          })()
+        : String(cause);
+    if (causeMsg && !msg.includes(causeMsg)) msg = `${msg} — ${causeMsg}`;
+  }
+  return msg;
+}
+
+/** Cap on JSON-serialized tool_result payload size (in characters).
+ *  Oversized payloads (e.g. RAG hits with embedding vectors, job results
+ *  with large stored artifact bodies, full message dumps) replay through
+ *  every subsequent round of the same turn, compounding into context-
+ *  window overflows. 32 KB ≈ 8 K tokens — plenty for the model to act on,
+ *  small enough that 8 of them still fit comfortably below 100 K tokens. */
+const MAX_TOOL_RESULT_CHARS = 32_000;
+
+function truncateToolResultPayload(toolName: string, content: string): string {
+  if (content.length <= MAX_TOOL_RESULT_CHARS) return content;
+  const head = content.slice(0, MAX_TOOL_RESULT_CHARS - 400);
+  const droppedChars = content.length - head.length;
+  return `${head}\n…\n[TOOL RESULT TRUNCATED] ${toolName} returned ${content.length} chars; ${droppedChars} chars removed to fit context. If you need the full payload, narrow the query, lower the limit, or read a specific id from the visible portion above.`;
+}
+
 /** Yield to the event loop so React can flush state updates. */
 function microYield(): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, 0));
@@ -237,7 +274,14 @@ export async function runChatTurn(
       const useOpenAIStream = supportsOpenAIStream;
 
       // ───── Provider call ─────
-      if (useStream) {
+      const runProviderCall = async (): Promise<void> => {
+        // Reset per-attempt accumulators so a retry doesn't double-count
+        // tokens from a partially-streamed prior attempt.
+        roundText = "";
+        toolUseBlocks = [];
+        rawAssistantContent = null;
+        finishReason = null;
+        if (useStream) {
         // Anthropic SSE path.
         const body: Record<string, unknown> = {
           model,
@@ -369,10 +413,47 @@ export async function runChatTurn(
             : data.content;
         }
       }
+      };
+
+      try {
+        await runProviderCall();
+      } catch (providerErr) {
+        // Retry once on transient fetch failures (TypeError from `fetch`,
+        // 5xx, 429, ECONNRESET, mid-stream socket close). Honour aborts and
+        // missing-key errors by rethrowing immediately. Without this retry
+        // a single connection blip during concurrent sub-agent fetches kills
+        // the whole turn and the agent silently stops replying.
+        if (providerErr instanceof DOMException && providerErr.name === "AbortError") throw providerErr;
+        if (callbacks.signal?.aborted) throw providerErr;
+        const errMsg = describeError(providerErr);
+        if (isMissingKeyError(errMsg)) throw providerErr;
+        const isTransient =
+          providerErr instanceof TypeError ||
+          /network|fetch failed|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up|aborted|terminated|429|5\d\d/i.test(errMsg);
+        if (!isTransient) throw providerErr;
+        perfLog("ai.run_chat_turn.retry", {
+          model,
+          provider,
+          round,
+          error: errMsg,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 750));
+        await runProviderCall();
+      }
 
       // ───── No tools requested → done ─────
       if (toolUseBlocks.length === 0) {
         if (roundText) fullText += roundText;
+        // Surface max_tokens truncation explicitly. Without this notice
+        // the assistant's reply just stops mid-sentence and the user has
+        // no signal that the model wanted to write more.
+        const isMaxTokens =
+          finishReason === "max_tokens" || finishReason === "length";
+        if (isMaxTokens) {
+          const notice = "\n\n[Response truncated — model hit max_tokens. Increase per-round budget or ask it to continue.]";
+          callbacks.onToken?.(notice);
+          fullText += notice;
+        }
         callbacks.onRoundEnd?.(round);
         perfLog("ai.run_chat_turn.round", {
           model,
@@ -560,7 +641,7 @@ export async function runChatTurn(
           id: block.id,
           content: result.error
             ? `[TOOL ERROR] ${result.name} failed. ${JSON.stringify({ error: result.error })} — The call FAILED. Do not claim success. Read the error, then either retry with corrected args or tell the user it failed.`
-            : JSON.stringify(result.result ?? { success: true }),
+            : truncateToolResultPayload(result.name, JSON.stringify(result.result ?? { success: true })),
           isError: !!result.error,
         };
       }));
@@ -631,7 +712,7 @@ export async function runChatTurn(
       });
       return { text: fullText || "[Cancelled]", toolCalls: allToolCalls, reason: "aborted" };
     }
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = describeError(err);
     if (isMissingKeyError(msg)) {
       perfLog("ai.run_chat_turn.complete", {
         model,

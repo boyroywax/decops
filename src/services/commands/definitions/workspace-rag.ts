@@ -99,11 +99,33 @@ const searchWorkspaceRagCommand: CommandDefinition = {
     });
 
     context.storage.lastWorkspaceRagResults = hits;
+
+    // Strip the raw embedding vectors and clamp doc text before returning
+    // to callers. The model receives this payload as a JSON-stringified
+    // tool_result; embeddings (1536 floats per hit ~20K chars each) and
+    // full artifact bodies (up to 4000 chars per doc) compound across
+    // rounds and blow past provider context windows. The embedding is
+    // never useful to the model and the full text is rarely needed —
+    // a 600-char snippet is enough for the model to choose a command or
+    // recall an entity. Full bodies remain on `context.storage` for
+    // tools that need them.
+    const trimmedHits = hits.map((h) => {
+      const text = typeof h.text === "string" ? h.text : "";
+      return {
+        id: h.id,
+        entityType: h.entityType,
+        entityId: h.entityId,
+        tags: h.tags,
+        score: Math.round(h.score * 1000) / 1000,
+        snippet: text.length > 600 ? `${text.slice(0, 600)}…` : text,
+      };
+    });
+
     return {
       query,
       workspaceId,
-      count: hits.length,
-      hits,
+      count: trimmedHits.length,
+      hits: trimmedHits,
     };
   },
 };

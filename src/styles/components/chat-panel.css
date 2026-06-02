@@ -1571,7 +1571,9 @@
 }
 
 .memories-modal {
-  background: var(--bg-elevated, #161b22);
+  background:
+    linear-gradient(rgba(18, 22, 28, 0.98), rgba(18, 22, 28, 0.98)),
+    var(--bg-elevated, #161b22);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   width: min(520px, 92vw);
@@ -1611,6 +1613,32 @@
   overflow: auto;
 }
 
+.memories-modal__tabs {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  margin-bottom: 4px;
+}
+
+.memories-modal__tab {
+  background: transparent;
+  border: none;
+  color: var(--text-ghost);
+  font-size: var(--text-xs);
+  border-radius: 7px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.memories-modal__tab--active {
+  color: var(--text-bright);
+  background: rgba(0, 229, 160, 0.15);
+}
+
 .memories-modal__label {
   font-size: var(--text-xs);
   color: var(--text-ghost);
@@ -1625,7 +1653,7 @@
 .memories-modal__textarea,
 .memories-modal__input,
 .memories-modal__select {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.35);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   color: var(--text-bright);
@@ -1661,6 +1689,12 @@
   margin-top: 8px;
 }
 
+.memories-modal__ok {
+  color: #34d399;
+  font-size: var(--text-xs);
+  margin-top: 8px;
+}
+
 .memories-modal__footer {
   display: flex;
   justify-content: flex-end;
@@ -1692,6 +1726,167 @@
 
 .memories-modal__btn-primary:hover {
   background: rgba(0, 229, 160, 0.25);
+}
+
+.memories-modal__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 4px;
+}
+
+.memories-modal__footer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 10px;
+  color: var(--text-subtle);
+}
+
+/* ═══ Light theme overrides ═══ */
+[data-theme="light"] .memories-modal__backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .memories-modal {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.98)),
+    #ffffff;
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
+}
+
+[data-theme="light"] .memories-modal__tabs {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .memories-modal__tab {
+  color: rgba(0, 0, 0, 0.65);
+}
+
+[data-theme="light"] .memories-modal__tab--active {
+  color: #0f172a;
+  background: rgba(0, 229, 160, 0.2);
+}
+
+[data-theme="light"] .memories-modal__textarea,
+[data-theme="light"] .memories-modal__input,
+[data-theme="light"] .memories-modal__select {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 0, 0, 0.14);
+  color: #0f172a;
+}
+
+[data-theme="light"] .memories-modal__btn-secondary {
+  background: rgba(0, 0, 0, 0.04);
+  color: rgba(0, 0, 0, 0.72);
+  border-color: rgba(0, 0, 0, 0.14);
+}
+
+/* ═══ Solar theme overrides ═══ */
+[data-theme="solar"] .memories-modal__backdrop {
+  background: rgba(15, 10, 5, 0.7);
+}
+
+[data-theme="solar"] .memories-modal {
+  background:
+    linear-gradient(rgba(28, 20, 11, 0.98), rgba(28, 20, 11, 0.98)),
+    #1c140b;
+  border-color: rgba(120, 80, 20, 0.22);
+  box-shadow: 0 12px 36px rgba(10, 7, 3, 0.45);
+  color: #f9e9c7;
+}
+
+[data-theme="solar"] .memories-modal__header,
+[data-theme="solar"] .memories-modal__footer,
+[data-theme="solar"] .memories-modal__meta-row {
+  border-color: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .memories-modal__title {
+  color: #f9e9c7;
+}
+
+[data-theme="solar"] .memories-modal__label {
+  color: #e7cfa6;
+}
+
+[data-theme="solar"] .memories-modal__hint {
+  color: rgba(231, 207, 166, 0.78);
+}
+
+[data-theme="solar"] .memories-modal__close {
+  color: #e7cfa6;
+}
+
+[data-theme="solar"] .memories-modal__close:hover {
+  color: #f9e9c7;
+}
+
+[data-theme="solar"] .memories-modal__tabs {
+  background: rgba(120, 80, 20, 0.08);
+  border-color: rgba(120, 80, 20, 0.18);
+}
+
+[data-theme="solar"] .memories-modal__tab {
+  color: rgba(243, 226, 198, 0.78);
+}
+
+[data-theme="solar"] .memories-modal__tab--active {
+  color: #f9e9c7;
+  background: rgba(245, 158, 11, 0.24);
+}
+
+[data-theme="solar"] .memories-modal__textarea,
+[data-theme="solar"] .memories-modal__input,
+[data-theme="solar"] .memories-modal__select {
+  background: rgba(18, 12, 7, 0.78);
+  border-color: rgba(120, 80, 20, 0.22);
+  color: #f9e9c7;
+}
+
+[data-theme="solar"] .memories-modal__textarea::placeholder,
+[data-theme="solar"] .memories-modal__input::placeholder {
+  color: rgba(231, 207, 166, 0.62);
+}
+
+[data-theme="solar"] .memories-modal__select option {
+  background: #1c140b;
+  color: #f9e9c7;
+}
+
+[data-theme="solar"] .memories-modal__btn-secondary {
+  background: rgba(120, 80, 20, 0.14);
+  color: #e7cfa6;
+  border-color: rgba(120, 80, 20, 0.28);
+}
+
+[data-theme="solar"] .memories-modal__btn-primary {
+  background: rgba(245, 158, 11, 0.22);
+  color: #f9e9c7;
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+[data-theme="solar"] .memories-modal__btn-primary:hover {
+  background: rgba(245, 158, 11, 0.32);
+}
+
+[data-theme="solar"] .memories-modal__error {
+  color: #fecaca;
+}
+
+[data-theme="solar"] .memories-modal__ok {
+  color: #86efac;
+}
+
+[data-theme="solar"] .memories-modal__footer-meta {
+  color: rgba(231, 207, 166, 0.72);
 }
 
 /* ─── Ecosystem Panel (chat-panel sibling of ConversationsList) ─── */

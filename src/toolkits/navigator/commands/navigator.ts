@@ -695,6 +695,13 @@ export const navigatorStartSubgoalCommand: CommandDefinition = {
           from_agent_id: "user",
           to_agent_id: targetAgentId,
           message: `[Navigator goal ${goalId} · sub-goal ${subgoalId}] ${instruction}`,
+          // Wait for the recipient's AI response before resolving the
+          // job. Without this the send_message command returns at
+          // status:"queued" the moment the message hits the bus, so
+          // watchChildJob in tools.ts settles immediately and the
+          // navigator subgoal looks done before the assignee has even
+          // started thinking.
+          await_response: true,
         },
       });
     } else {
@@ -710,6 +717,7 @@ export const navigatorStartSubgoalCommand: CommandDefinition = {
         request: {
           group_id: groupId,
           message: `[Navigator goal ${goalId} · sub-goal ${subgoalId} · huddle ${huddle.id}] ${instruction}`,
+          await_responses: true,
         },
       });
     }

@@ -391,6 +391,14 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
         !!conversationEcosystemSelection &&
         messages.length === 0;
 
+    // Keep the header badge and rendered conversations panel in sync by
+    // counting only top-level conversations (exclude ecosystem-scoped DM/
+    // broadcast threads that are routed through Ecosystem mode).
+    const visibleConversations = useMemo(
+        () => conversations.filter(c => !c.ecosystemKind),
+        [conversations],
+    );
+
     // §2.2 — send pipeline, stop controls, /cmd queue, prompt modal
     const {
         send, stopStreaming, handleStopPromptAction,
@@ -439,7 +447,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
 
             {/* Header */}
             <ChatPanelHeader
-                conversationsCount={conversations.length}
+                conversationsCount={visibleConversations.length}
                 showConvos={showConvos}
                 showMemories={showMemories}
                 showEcosystem={showEcosystem}
@@ -462,7 +470,7 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
                 ecosystem messages, or chat */}
             {showConvos ? (
                 <ConversationsList
-                    conversations={conversations.filter(c => !c.ecosystemKind)}
+                    conversations={visibleConversations}
                     activeId={activeId}
                     onSwitch={switchTo}
                     onDelete={deleteConvo}

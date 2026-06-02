@@ -213,6 +213,112 @@ export function listAllCollectiveMemory(workspaceId?: string): CollectiveMemoryE
 }
 
 /** Enable or disable a memory entry without deleting it. */
+interface UpdateCollectiveMemoryInput {
+  content?: string;
+  tags?: string[];
+  importance?: number;
+  scope?: "workspace" | "global";
+  workspaceId?: string;
+  disabled?: boolean;
+}
+
+export interface ImportCollectiveMemoryOptions {
+  mode?: "upsert" | "skip-existing";
+}
+
+export interface ImportCollectiveMemoryResult {
+  imported: number;
+  updated: number;
+  skipped: number;
+  total: number;
+}
+
+function normalizeImportedEntry(entry: CollectiveMemoryEntry): CollectiveMemoryEntry | null {
+  const content = String(entry.content || "").trim();
+  if (!content) return null;
+  const scope = entry.scope === "global" ? "global" : "workspace";
+  const createdAt = Number.isNaN(new Date(entry.createdAt).getTime()) ? nowIso() : entry.createdAt;
+  const updatedAt = Number.isNaN(new Date(entry.updatedAt).getTime()) ? createdAt : entry.updatedAt;
+
+  return {
+    id: String(entry.id || crypto.randomUUID()),
+    content,
+    tags: normalizeTags(entry.tags),
+    createdAt,
+    updatedAt,
+    sourceAgentId: entry.sourceAgentId,
+    sourceAgentName: entry.sourceAgentName,
+    workspaceId: entry.workspaceId,
+    conversationId: entry.conversationId,
+    scope,
+    importance: clampImportance(entry.importance),
+    disabled: !!entry.disabled,
+    metadata: entry.metadata,
+  };
+}
+
+export function updateCollectiveMemory(
+  id: string,
+  patch: UpdateCollectiveMemoryInput,
+): CollectiveMemoryEntry | null {
+  const state = loadState();
+  let updated: CollectiveMemoryEntry | null = null;
+  const nextEntries = state.entries.map(e => {
+    if (e.id !== id) return e;
+    const next: CollectiveMemoryEntry = { ...e, updatedAt: nowIso() };
+    if (patch.content !== undefined) next.content = patch.content;
+    if (patch.tags !== undefined) next.tags = normalizeTags(patch.tags);
+    if (patch.importance !== undefined) next.importance = clampImportance(patch.importance);
+    if (patch.scope !== undefined) next.scope = patch.scope;
+    if (patch.workspaceId !== undefined) next.workspaceId = patch.workspaceId || undefined;
+    if (patch.disabled !== undefined) next.disabled = patch.disabled;
+    updated = next;
+    return next;
+  });
+  if (!updated) return null;
+  saveState({ version: 1, entries: nextEntries });
+  return updated;
+}
+
+export function importCollectiveMemoryEntries(
+  entries: CollectiveMemoryEntry[],
+  options: ImportCollectiveMemoryOptions = {},
+): ImportCollectiveMemoryResult {
+  const mode = options.mode === "skip-existing" ? "skip-existing" : "upsert";
+  const state = loadState();
+  const byId = new Map<string, CollectiveMemoryEntry>(state.entries.map(e => [e.id, e]));
+  let imported = 0;
+  let updated = 0;
+  let skipped = 0;
+
+  for (const candidate of entries) {
+    const normalized = normalizeImportedEntry(candidate);
+    if (!normalized) {
+      skipped += 1;
+      continue;
+    }
+
+    const exists = byId.has(normalized.id);
+    if (exists && mode === "skip-existing") {
+      skipped += 1;
+      continue;
+    }
+
+    byId.set(normalized.id, normalized);
+    if (exists) updated += 1;
+    else imported += 1;
+  }
+
+  saveState(trimState({ version: 1, entries: Array.from(byId.values()) }));
+
+  return {
+    imported,
+    updated,
+    skipped,
+    total: imported + updated + skipped,
+  };
+}
+
 export function setCollectiveMemoryDisabled(id: string, disabled: boolean): CollectiveMemoryEntry | null {
   const state = loadState();
   let updated: CollectiveMemoryEntry | null = null;
