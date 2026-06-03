@@ -524,6 +524,38 @@
   background: rgba(255, 255, 255, 0.16);
 }
 
+.mc-nav {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.38);
+  color: var(--text-primary, #fff);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mc-nav:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.04);
+}
+
+.mc-nav:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.mc-nav--left {
+  margin-right: 10px;
+}
+
+.mc-nav--right {
+  margin-left: 10px;
+}
+
 .mc-textarea,
 .mc-input,
 .mc-select {
@@ -749,4 +781,24 @@
   border-color: rgba(201, 146, 57, 0.35);
   background: rgba(120, 80, 20, 0.2);
   color: #f9e9c7;
+}
+
+[data-theme="light"] .mc-nav {
+  border-color: rgba(0, 0, 0, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+}
+
+[data-theme="light"] .mc-nav:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="solar"] .mc-nav {
+  border-color: rgba(201, 146, 57, 0.35);
+  background: rgba(120, 80, 20, 0.25);
+  color: #f9e9c7;
+}
+
+[data-theme="solar"] .mc-nav:hover:not(:disabled) {
+  background: rgba(201, 146, 57, 0.25);
 }

@@ -9,6 +9,7 @@ import {
 import {
   buildCollectiveMemoryArchiveManifest,
   MEMORY_ARCHIVE_KIND,
+  MEMORY_ARCHIVE_SCHEMA,
 } from "@/services/collectiveMemoryArchive";
 
 describe("Collective memory archive commands", () => {
@@ -52,31 +53,33 @@ describe("Collective memory archive commands", () => {
 
     const result = await cmd!.execute({ name: "memory-archive.json", includeDisabled: true }, context);
     expect(result.success).toBe(true);
-    expect(result.summary.count).toBe(1);
+    expect(result.memory.id).toBeDefined();
     expect(mockArtifacts).toHaveLength(1);
 
     const artifactPayload = JSON.parse(mockArtifacts[0].content);
     expect(artifactPayload.kind).toBe(MEMORY_ARCHIVE_KIND);
-    expect(Array.isArray(artifactPayload.entries)).toBe(true);
-    expect(artifactPayload.entries[0].content).toContain("schema version 2");
+    expect(artifactPayload.schema).toBe(MEMORY_ARCHIVE_SCHEMA);
+    expect(artifactPayload.spec.memory.content).toContain("schema version 2");
+    expect(artifactPayload.metadata.labels.scope).toBe("workspace");
+    expect(artifactPayload.metadata.annotations.filter_scope).toBe("all");
+    expect(mockArtifacts[0].tags).toContain("scope:workspace");
   });
 
   it("imports only artifacts matching memory archive manifest", async () => {
     const manifest = buildCollectiveMemoryArchiveManifest({
+      name: "memory-import-fixture",
       workspaceId: "ws-1",
-      entries: [
-        {
-          id: "mem-import-1",
-          content: "Imported memory from artifact",
-          tags: ["imported", "artifact"],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          scope: "workspace",
-          workspaceId: "ws-1",
-          importance: 3,
-          disabled: false,
-        },
-      ],
+      memory: {
+        id: "mem-import-1",
+        content: "Imported memory from artifact",
+        tags: ["imported", "artifact"],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        scope: "workspace",
+        workspaceId: "ws-1",
+        importance: 3,
+        disabled: false,
+      },
     });
 
     mockArtifacts.push(

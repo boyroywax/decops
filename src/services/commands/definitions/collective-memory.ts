@@ -6,13 +6,15 @@ import {
   listCollectiveMemory,
   listAllCollectiveMemory,
   forgetCollectiveMemory,
-  importCollectiveMemoryEntries,
 } from "@/services/collectiveMemory";
 import {
-  buildCollectiveMemoryArchiveManifest,
   collectiveMemoryArchiveJsonSchema,
   parseCollectiveMemoryArchive,
 } from "@/services/collectiveMemoryArchive";
+import {
+  buildCollectiveMemoryArchiveArtifactFromMemory,
+  importCollectiveMemoryArchivePayload,
+} from "@/services/collectiveMemoryArchiveWorkflow";
 
 export const COLLECTIVE_MEMORY_COMMAND_IDS = [
   "remember_collective_memory",
@@ -214,14 +216,14 @@ const forgetCollectiveMemoryCommand: CommandDefinition = {
 
 const archiveCollectiveMemoryCommand: CommandDefinition = {
   id: "archive_collective_memory",
-  description: "Export collective memory entries to a JSON artifact using the memory-archive manifest schema.",
+  description: "Export a single collective memory entry to a JSON artifact using the v0 memory schema.",
   tags: ["memory", "collective", "archive", "artifact", "export"],
   rbac: ["orchestrator", "builder", "curator", "researcher"],
   args: {
     name: {
       name: "name",
       type: "string",
-      description: "Optional artifact name (defaults to collective-memory-archive-<date>.json)",
+      description: "Optional artifact name (defaults to memory-<id>-archive-<date>.json)",
       required: false,
     },
     query: {
@@ -252,21 +254,20 @@ const archiveCollectiveMemoryCommand: CommandDefinition = {
       required: false,
       defaultValue: true,
     },
-    limit: {
-      name: "limit",
-      type: "number",
-      description: "Maximum entries to archive (1-5000)",
+    id: {
+      name: "id",
+      type: "string",
+      description: "Optional specific memory id to export. If omitted, first match from filters is exported.",
       required: false,
-      defaultValue: 500,
     },
   },
-  output: "Created JSON artifact containing a collective-memory archive manifest.",
+  output: "Created JSON artifact containing a single-memory v0 archive manifest.",
   outputSchema: {
     type: "object",
     properties: {
       success: { type: "boolean" },
       artifact: { type: "object" },
-      summary: { type: "object" },
+      memory: { type: "object" },
       schema: { type: "object" },
     },
   },
@@ -274,7 +275,7 @@ const archiveCollectiveMemoryCommand: CommandDefinition = {
     const workspaceId = context.workspaceManager?.currentId || undefined;
     const scope = args.scope === "workspace" || args.scope === "global" ? args.scope : "all";
     const includeDisabled = args.includeDisabled !== false;
-    const limit = Math.max(1, Math.min(5000, Number(args.limit ?? 500)));
+    const idFilter = args.id ? String(args.id) : "";
     const tagFilter = Array.isArray(args.tags)
       ? args.tags.map(String).map((t: string) => t.trim().toLowerCase()).filter(Boolean)
       : [];
@@ -305,43 +306,41 @@ const archiveCollectiveMemoryCommand: CommandDefinition = {
       });
     }
 
-    entries = entries.slice(0, limit);
+    if (idFilter) {
+      entries = entries.filter((entry) => entry.id === idFilter);
+    }
 
-    const manifest = buildCollectiveMemoryArchiveManifest({
-      workspaceId,
-      filters: {
-        query: String(args.query || "") || undefined,
-        tags: tagFilter.length > 0 ? tagFilter : undefined,
-        scope,
-        includeDisabled,
-        limit,
-      },
-      entries,
-    });
+    if (entries.length === 0) {
+      throw new Error("No memory entry matched the requested filters.");
+    }
+
+    const memory = entries[0];
 
     const datePart = new Date().toISOString().slice(0, 10);
-    const artifactName = String(args.name || `collective-memory-archive-${datePart}.json`);
-    const artifact = {
-      id: crypto.randomUUID(),
+    const artifactName = String(args.name || `memory-${memory.id.slice(0, 8)}-archive-${datePart}.json`);
+    const { manifest, artifact } = buildCollectiveMemoryArchiveArtifactFromMemory({
+      memory,
       name: artifactName,
-      type: "json" as const,
-      content: JSON.stringify(manifest, null, 2),
-      tags: [
-        "type:json",
-        "memory:archive",
-        "memory:collective",
-        `scope:${scope}`,
-      ],
-      createdAt: Date.now(),
-      description: `Collective memory archive with ${manifest.summary.count} entries`,
-      source: "command" as const,
-    };
+      workspaceId,
+      annotations: {
+        query: String(args.query || ""),
+        filter_scope: scope,
+      },
+      labels: {
+        source: "archive_collective_memory",
+      },
+      identity: {
+        sourceAgentId: memory.sourceAgentId,
+        sourceAgentName: memory.sourceAgentName,
+      },
+      source: "command",
+    });
 
     context.jobs.importArtifact(artifact);
     context.storage.lastArtifactId = artifact.id;
     context.storage.lastCollectiveMemoryArchiveArtifactId = artifact.id;
     context.storage.lastCollectiveMemoryArchive = manifest;
-    context.workspace.addLog(`CollectiveMemory: archived ${manifest.summary.count} entries to artifact ${artifact.name}`);
+    context.workspace.addLog(`CollectiveMemory: archived memory ${memory.id.slice(0, 8)} to artifact ${artifact.name}`);
 
     return {
       success: true,
@@ -351,7 +350,7 @@ const archiveCollectiveMemoryCommand: CommandDefinition = {
         type: artifact.type,
         createdAt: artifact.createdAt,
       },
-      summary: manifest.summary,
+      memory,
       schema: collectiveMemoryArchiveJsonSchema,
       ref: `[[artifact:${artifact.id}|${artifact.name}]]`,
     };
@@ -410,8 +409,12 @@ const importCollectiveMemoryArchiveCommand: CommandDefinition = {
       imported: { type: "number" },
       updated: { type: "number" },
       skipped: { type: "number" },
+      wouldImport: { type: "number" },
+      wouldUpdate: { type: "number" },
+      wouldSkip: { type: "number" },
       dryRun: { type: "boolean" },
       invalidArtifacts: { type: "array" },
+      warningArtifacts: { type: "array" },
     },
   },
   execute: async (args, context) => {
@@ -438,7 +441,12 @@ const importCollectiveMemoryArchiveCommand: CommandDefinition = {
     let imported = 0;
     let updated = 0;
     let skipped = 0;
+    let wouldImport = 0;
+    let wouldUpdate = 0;
+    let wouldSkip = 0;
     const invalidArtifacts: Array<{ id: string; name: string; reason: string }> = [];
+    const warningArtifacts: Array<{ id: string; name: string; warnings: string[] }> = [];
+    const existingIds = new Set(listAllCollectiveMemory().map((entry) => entry.id));
 
     for (const artifact of candidates) {
       if (typeof artifact.content !== "string") {
@@ -459,16 +467,49 @@ const importCollectiveMemoryArchiveCommand: CommandDefinition = {
         });
         continue;
       }
+      if (parsed.errors.length > 0) {
+        warningArtifacts.push({
+          id: artifact.id,
+          name: artifact.name,
+          warnings: parsed.errors,
+        });
+      }
 
       artifactsImported += 1;
 
       if (!dryRun) {
-        const result = importCollectiveMemoryEntries(parsed.manifest.entries, { mode });
+        const importedResult = importCollectiveMemoryArchivePayload({
+          payload: parsed.manifest,
+          mode,
+        });
+        if (!importedResult.success) {
+          invalidArtifacts.push({
+            id: artifact.id,
+            name: artifact.name,
+            reason: importedResult.errors.join("; "),
+          });
+          artifactsImported -= 1;
+          continue;
+        }
+        const result = importedResult.result;
         imported += result.imported;
         updated += result.updated;
         skipped += result.skipped;
       } else {
-        imported += parsed.manifest.entries.length;
+        const memoryId = parsed.manifest.spec.memory.id;
+        if (existingIds.has(memoryId)) {
+          if (mode === "upsert") {
+            updated += 1;
+            wouldUpdate += 1;
+          } else {
+            skipped += 1;
+            wouldSkip += 1;
+          }
+        } else {
+          imported += 1;
+          wouldImport += 1;
+          existingIds.add(memoryId);
+        }
       }
     }
 
@@ -481,7 +522,11 @@ const importCollectiveMemoryArchiveCommand: CommandDefinition = {
       imported,
       updated,
       skipped,
+      wouldImport,
+      wouldUpdate,
+      wouldSkip,
       invalidArtifacts,
+      warningArtifacts,
     };
 
     context.storage.lastCollectiveMemoryImport = summary;

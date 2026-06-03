@@ -1,81 +1,86 @@
 import type { CollectiveMemoryEntry } from "@/services/collectiveMemory";
 
-export const MEMORY_ARCHIVE_KIND = "collective-memory-archive" as const;
-export const MEMORY_ARCHIVE_VERSION = "1.0" as const;
+export const MEMORY_ARCHIVE_KIND = "v0" as const;
+export const MEMORY_ARCHIVE_SCHEMA = "collective-memory" as const;
+
+interface CollectiveMemoryArchiveMetadata {
+  annotations?: Record<string, string>;
+  labels?: Record<string, string>;
+  name: string;
+  workspace?: string;
+  identity?: Record<string, unknown>;
+  timestamps: {
+    createdAt: string;
+    updatedAt: string;
+    exportedAt: string;
+  };
+}
 
 export interface CollectiveMemoryArchiveManifest {
   kind: typeof MEMORY_ARCHIVE_KIND;
-  version: typeof MEMORY_ARCHIVE_VERSION;
-  exportedAt: string;
-  workspaceId?: string;
-  filters?: {
-    query?: string;
-    tags?: string[];
-    scope?: "workspace" | "global" | "all";
-    includeDisabled?: boolean;
-    limit?: number;
+  schema: typeof MEMORY_ARCHIVE_SCHEMA;
+  metadata: CollectiveMemoryArchiveMetadata;
+  spec: {
+    memory: CollectiveMemoryEntry;
   };
-  summary: {
-    count: number;
-    activeCount: number;
-    disabledCount: number;
-  };
-  entries: CollectiveMemoryEntry[];
 }
 
 export const collectiveMemoryArchiveJsonSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
-  $id: "https://decops.io/schemas/collective-memory-archive-v1.schema.json",
+  $id: "https://decops.io/schemas/collective-memory-archive-v0.schema.json",
   title: "CollectiveMemoryArchiveManifest",
   type: "object",
-  required: ["kind", "version", "exportedAt", "summary", "entries"],
+  required: ["kind", "schema", "metadata", "spec"],
   additionalProperties: false,
   properties: {
     kind: { const: MEMORY_ARCHIVE_KIND },
-    version: { const: MEMORY_ARCHIVE_VERSION },
-    exportedAt: { type: "string", format: "date-time" },
-    workspaceId: { type: "string" },
-    filters: {
+    schema: { const: MEMORY_ARCHIVE_SCHEMA },
+    metadata: {
       type: "object",
+      required: ["name", "timestamps"],
       additionalProperties: false,
       properties: {
-        query: { type: "string" },
-        tags: { type: "array", items: { type: "string" } },
-        scope: { enum: ["workspace", "global", "all"] },
-        includeDisabled: { type: "boolean" },
-        limit: { type: "number" },
+        annotations: { type: "object", additionalProperties: { type: "string" } },
+        labels: { type: "object", additionalProperties: { type: "string" } },
+        name: { type: "string" },
+        workspace: { type: "string" },
+        identity: { type: "object", additionalProperties: true },
+        timestamps: {
+          type: "object",
+          required: ["createdAt", "updatedAt", "exportedAt"],
+          additionalProperties: false,
+          properties: {
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+            exportedAt: { type: "string", format: "date-time" },
+          },
+        },
       },
     },
-    summary: {
+    spec: {
       type: "object",
-      required: ["count", "activeCount", "disabledCount"],
+      required: ["memory"],
       additionalProperties: false,
       properties: {
-        count: { type: "number" },
-        activeCount: { type: "number" },
-        disabledCount: { type: "number" },
-      },
-    },
-    entries: {
-      type: "array",
-      items: {
-        type: "object",
-        required: ["id", "content", "tags", "createdAt", "updatedAt", "scope", "importance"],
-        additionalProperties: true,
-        properties: {
-          id: { type: "string" },
-          content: { type: "string" },
-          tags: { type: "array", items: { type: "string" } },
-          createdAt: { type: "string", format: "date-time" },
-          updatedAt: { type: "string", format: "date-time" },
-          sourceAgentId: { type: "string" },
-          sourceAgentName: { type: "string" },
-          workspaceId: { type: "string" },
-          conversationId: { type: "string" },
-          scope: { enum: ["workspace", "global"] },
-          importance: { type: "number" },
-          disabled: { type: "boolean" },
-          metadata: { type: "object" },
+        memory: {
+          type: "object",
+          required: ["id", "content", "tags", "createdAt", "updatedAt", "scope", "importance"],
+          additionalProperties: true,
+          properties: {
+            id: { type: "string" },
+            content: { type: "string" },
+            tags: { type: "array", items: { type: "string" } },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+            sourceAgentId: { type: "string" },
+            sourceAgentName: { type: "string" },
+            workspaceId: { type: "string" },
+            conversationId: { type: "string" },
+            scope: { enum: ["workspace", "global"] },
+            importance: { type: "number" },
+            disabled: { type: "boolean" },
+            metadata: { type: "object" },
+          },
         },
       },
     },
@@ -111,52 +116,96 @@ function asEntry(value: unknown): CollectiveMemoryEntry | null {
   };
 }
 
-function parseArchiveManifest(raw: Record<string, unknown>): CollectiveMemoryArchiveManifest {
-  const entries = Array.isArray(raw.entries)
-    ? raw.entries.map(asEntry).filter((e): e is CollectiveMemoryEntry => !!e)
-    : [];
+function parseV0Manifest(raw: Record<string, unknown>): CollectiveMemoryArchiveManifest | null {
+  const spec = raw.spec && typeof raw.spec === "object" ? (raw.spec as Record<string, unknown>) : null;
+  const memory = spec ? asEntry(spec.memory) : null;
+  if (!memory) return null;
 
-  const activeCount = entries.filter(e => !e.disabled).length;
-  const disabledCount = entries.length - activeCount;
+  const metadata = raw.metadata && typeof raw.metadata === "object"
+    ? (raw.metadata as Record<string, unknown>)
+    : {};
+  const timestamps = metadata.timestamps && typeof metadata.timestamps === "object"
+    ? (metadata.timestamps as Record<string, unknown>)
+    : {};
 
   return {
     kind: MEMORY_ARCHIVE_KIND,
-    version: MEMORY_ARCHIVE_VERSION,
-    exportedAt: String(raw.exportedAt || new Date().toISOString()),
-    workspaceId: raw.workspaceId ? String(raw.workspaceId) : undefined,
-    filters: raw.filters && typeof raw.filters === "object"
-      ? {
-          query: (raw.filters as Record<string, unknown>).query
-            ? String((raw.filters as Record<string, unknown>).query)
-            : undefined,
-          tags: asStringArray((raw.filters as Record<string, unknown>).tags),
-          scope: (raw.filters as Record<string, unknown>).scope === "workspace"
-            ? "workspace"
-            : (raw.filters as Record<string, unknown>).scope === "global"
-              ? "global"
-              : "all",
-          includeDisabled: !!(raw.filters as Record<string, unknown>).includeDisabled,
-          limit: typeof (raw.filters as Record<string, unknown>).limit === "number"
-            ? Number((raw.filters as Record<string, unknown>).limit)
-            : undefined,
-        }
-      : undefined,
-    summary: {
-      count: entries.length,
-      activeCount,
-      disabledCount,
+    schema: MEMORY_ARCHIVE_SCHEMA,
+    metadata: {
+      annotations: metadata.annotations && typeof metadata.annotations === "object"
+        ? Object.fromEntries(
+            Object.entries(metadata.annotations as Record<string, unknown>).map(([k, v]) => [k, String(v)]),
+          )
+        : undefined,
+      labels: metadata.labels && typeof metadata.labels === "object"
+        ? Object.fromEntries(
+            Object.entries(metadata.labels as Record<string, unknown>).map(([k, v]) => [k, String(v)]),
+          )
+        : undefined,
+      name: String(metadata.name || `memory-${memory.id.slice(0, 8)}-archive`),
+      workspace: metadata.workspace ? String(metadata.workspace) : undefined,
+      identity: metadata.identity && typeof metadata.identity === "object"
+        ? (metadata.identity as Record<string, unknown>)
+        : undefined,
+      timestamps: {
+        createdAt: String(timestamps.createdAt || memory.createdAt || new Date().toISOString()),
+        updatedAt: String(timestamps.updatedAt || memory.updatedAt || memory.createdAt || new Date().toISOString()),
+        exportedAt: String(timestamps.exportedAt || new Date().toISOString()),
+      },
     },
-    entries,
+    spec: { memory },
+  };
+}
+
+function parseLegacyV1Manifest(raw: Record<string, unknown>): { manifest: CollectiveMemoryArchiveManifest | null; warnings: string[] } {
+  const entries = Array.isArray(raw.entries)
+    ? raw.entries.map(asEntry).filter((e): e is CollectiveMemoryEntry => !!e)
+    : [];
+  const warnings: string[] = [];
+  const memory = entries[0];
+  if (!memory) return { manifest: null, warnings };
+  if (entries.length > 1) {
+    warnings.push(`legacy_multi_entry_truncated: received ${entries.length} entries; only first entry was converted to v0 spec.memory`);
+  }
+
+  const filters = raw.filters && typeof raw.filters === "object"
+    ? (raw.filters as Record<string, unknown>)
+    : null;
+
+  return {
+    warnings,
+    manifest: {
+    kind: MEMORY_ARCHIVE_KIND,
+    schema: MEMORY_ARCHIVE_SCHEMA,
+    metadata: {
+      annotations: {
+        migrated_from: "collective-memory-archive@1.0",
+        query: filters?.query ? String(filters.query) : "",
+      },
+      labels: {
+        scope: memory.scope,
+      },
+      name: `memory-${memory.id.slice(0, 8)}-archive`,
+      workspace: raw.workspaceId ? String(raw.workspaceId) : memory.workspaceId,
+      identity: {
+        sourceAgentId: memory.sourceAgentId,
+        sourceAgentName: memory.sourceAgentName,
+      },
+      timestamps: {
+        createdAt: memory.createdAt,
+        updatedAt: memory.updatedAt,
+        exportedAt: String(raw.exportedAt || new Date().toISOString()),
+      },
+    },
+    spec: { memory },
+    },
   };
 }
 
 export function isCollectiveMemoryArchiveManifest(value: unknown): value is CollectiveMemoryArchiveManifest {
   if (!value || typeof value !== "object") return false;
   const raw = value as Record<string, unknown>;
-  if (raw.kind !== MEMORY_ARCHIVE_KIND) return false;
-  if (raw.version !== MEMORY_ARCHIVE_VERSION) return false;
-  if (!Array.isArray(raw.entries)) return false;
-  return true;
+  return raw.kind === MEMORY_ARCHIVE_KIND && raw.schema === MEMORY_ARCHIVE_SCHEMA;
 }
 
 export function parseCollectiveMemoryArchive(
@@ -176,40 +225,48 @@ export function parseCollectiveMemoryArchive(
   }
 
   const raw = parsed as Record<string, unknown>;
-  if (raw.kind !== MEMORY_ARCHIVE_KIND) {
-    return { manifest: null, errors: [`kind must be '${MEMORY_ARCHIVE_KIND}'`] };
-  }
-  if (raw.version !== MEMORY_ARCHIVE_VERSION) {
-    return { manifest: null, errors: [`version must be '${MEMORY_ARCHIVE_VERSION}'`] };
-  }
-  if (!Array.isArray(raw.entries)) {
-    return { manifest: null, errors: ["entries must be an array"] };
+  if (raw.kind === MEMORY_ARCHIVE_KIND && raw.schema === MEMORY_ARCHIVE_SCHEMA) {
+    const manifest = parseV0Manifest(raw);
+    if (!manifest) return { manifest: null, errors: ["spec.memory is required and must be a valid memory entry"] };
+    return { manifest, errors: [] };
   }
 
-  const manifest = parseArchiveManifest(raw);
-  return { manifest, errors: [] };
+  // Backward compatibility for v1 payloads that used entries[]/summary/filters.
+  if (raw.kind === "collective-memory-archive" && raw.version === "1.0") {
+    const legacy = parseLegacyV1Manifest(raw);
+    if (!legacy.manifest) return { manifest: null, errors: ["legacy entries[] must include at least one valid memory entry"] };
+    return { manifest: legacy.manifest, errors: legacy.warnings };
+  }
+
+  return { manifest: null, errors: ["unsupported archive kind/schema"] };
 }
 
 export function buildCollectiveMemoryArchiveManifest(input: {
+  name?: string;
   workspaceId?: string;
-  filters?: CollectiveMemoryArchiveManifest["filters"];
-  entries: CollectiveMemoryEntry[];
+  annotations?: Record<string, string>;
+  labels?: Record<string, string>;
+  identity?: Record<string, unknown>;
+  memory: CollectiveMemoryEntry;
 }): CollectiveMemoryArchiveManifest {
-  const entries = input.entries;
-  const activeCount = entries.filter(e => !e.disabled).length;
-  const disabledCount = entries.length - activeCount;
+  const memory = input.memory;
+  const exportedAt = new Date().toISOString();
 
   return {
     kind: MEMORY_ARCHIVE_KIND,
-    version: MEMORY_ARCHIVE_VERSION,
-    exportedAt: new Date().toISOString(),
-    workspaceId: input.workspaceId,
-    filters: input.filters,
-    summary: {
-      count: entries.length,
-      activeCount,
-      disabledCount,
+    schema: MEMORY_ARCHIVE_SCHEMA,
+    metadata: {
+      annotations: input.annotations,
+      labels: input.labels,
+      name: input.name || `memory-${memory.id.slice(0, 8)}-archive`,
+      workspace: input.workspaceId || memory.workspaceId,
+      identity: input.identity,
+      timestamps: {
+        createdAt: memory.createdAt,
+        updatedAt: memory.updatedAt,
+        exportedAt,
+      },
     },
-    entries,
+    spec: { memory },
   };
 }

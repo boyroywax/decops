@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Plus, Trash2, X, Tag as TagIcon, Bot, Globe, Folder, Maximize2, Brain, Sparkles, Copy } from "lucide-react";
+import { Plus, Trash2, X, Tag as TagIcon, Bot, Globe, Folder, Maximize2, Brain, Sparkles, Copy, ChevronLeft, ChevronRight } from "lucide-react";
 import { useJobsContext } from "@/context/JobsContext";
 import {
     listAllCollectiveMemory,
-    importCollectiveMemoryEntries,
     rememberCollectiveMemory,
     forgetCollectiveMemory,
     setCollectiveMemoryDisabled,
@@ -12,9 +11,10 @@ import {
     type CollectiveMemoryEntry,
 } from "@/services/collectiveMemory";
 import {
-    buildCollectiveMemoryArchiveManifest,
-    parseCollectiveMemoryArchive,
-} from "@/services/collectiveMemoryArchive";
+    buildCollectiveMemoryArchiveArtifactFromManifest,
+    buildCollectiveMemoryArchiveArtifactFromMemory,
+    importCollectiveMemoryArchivePayload,
+} from "@/services/collectiveMemoryArchiveWorkflow";
 import type { JobArtifact } from "@/types";
 
 interface MemoriesPanelProps {
@@ -25,10 +25,10 @@ interface AddModalProps {
     workspaceId: string | null | undefined;
     onClose: () => void;
     artifacts: JobArtifact[];
-    onCreated: () => void;
+    onChanged: () => void;
 }
 
-function AddMemoryModal({ workspaceId, onClose, artifacts, onCreated }: AddModalProps) {
+function AddMemoryModal({ workspaceId, onClose, artifacts, onChanged }: AddModalProps) {
     const { importArtifact } = useJobsContext();
     const [content, setContent] = useState("");
     const [tagsInput, setTagsInput] = useState("");
@@ -64,7 +64,7 @@ function AddMemoryModal({ workspaceId, onClose, artifacts, onCreated }: AddModal
                 .split(",")
                 .map(t => t.trim())
                 .filter(Boolean);
-            const entry = rememberCollectiveMemory({
+            rememberCollectiveMemory({
                 content: trimmed,
                 tags,
                 importance,
@@ -72,38 +72,37 @@ function AddMemoryModal({ workspaceId, onClose, artifacts, onCreated }: AddModal
                 workspaceId: scope === "workspace" ? workspaceId || undefined : undefined,
                 sourceAgentName: "User",
             });
-            onCreated();
+            onChanged();
+            onClose();
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
         }
-    }, [content, tagsInput, importance, scope, workspaceId, onCreated]);
+    }, [content, tagsInput, importance, scope, workspaceId, onChanged, onClose]);
 
     const runArchiveImport = useCallback((rawContent: string) => {
         setError(null);
         setImportSummary(null);
-        const parsed = parseCollectiveMemoryArchive(rawContent);
-        if (!parsed.manifest) {
-            setError(`Invalid memory archive: ${parsed.errors.join("; ")}`);
+        const imported = importCollectiveMemoryArchivePayload({ payload: rawContent, mode: importMode });
+        if (!imported.success) {
+            setError(`Invalid memory archive: ${imported.errors.join("; ")}`);
             return;
         }
 
-        const result = importCollectiveMemoryEntries(parsed.manifest.entries, { mode: importMode });
-        const summary = `Imported ${result.imported}, updated ${result.updated}, skipped ${result.skipped}.`;
+        const warnings = imported.warnings.length > 0 ? ` Warnings: ${imported.warnings.join("; ")}.` : "";
+        const result = imported.result;
+        const summary = `Imported ${result.imported}, updated ${result.updated}, skipped ${result.skipped}.${warnings}`;
         setImportSummary(summary);
 
-        const archiveArtifact = {
-            id: crypto.randomUUID(),
+        const { artifact: archiveArtifact } = buildCollectiveMemoryArchiveArtifactFromManifest({
+            manifest: imported.manifest,
             name: `memory-import-${new Date().toISOString().slice(0, 10)}.json`,
-            type: "json" as const,
-            content: JSON.stringify(parsed.manifest, null, 2),
-            tags: ["type:json", "memory:archive", "memory:collective", "source:import"],
-            createdAt: Date.now(),
-            description: `Imported collective memory archive (${parsed.manifest.summary.count} entries)`,
-            source: "command" as const,
-        };
+            tags: ["source:import"],
+            description: `Imported collective memory archive (${imported.manifest.spec.memory.id.slice(0, 8)}…)`,
+            source: "command",
+        });
         importArtifact(archiveArtifact);
-        onCreated();
-    }, [importArtifact, importMode, onCreated]);
+        onChanged();
+    }, [importArtifact, importMode, onChanged]);
 
     const importFromSelectedArtifact = useCallback(() => {
         setError(null);
@@ -374,6 +373,10 @@ function MemoryCard({
 interface DetailModalProps {
     entry: CollectiveMemoryEntry;
     workspaceId: string | null | undefined;
+    canPrev: boolean;
+    canNext: boolean;
+    onPrev: () => void;
+    onNext: () => void;
     onClose: () => void;
     onChanged: () => void;
     onDeleted: () => void;
@@ -387,7 +390,7 @@ const IMPORTANCE_COLORS: Record<number, string> = {
     5: "#f87171",
 };
 
-function MemoryDetailModal({ entry, workspaceId, onClose, onChanged, onDeleted }: DetailModalProps) {
+function MemoryDetailModal({ entry, workspaceId, canPrev, canNext, onPrev, onNext, onClose, onChanged, onDeleted }: DetailModalProps) {
     const { importArtifact } = useJobsContext();
     const backdropRef = useRef<HTMLDivElement>(null);
     const [content, setContent] = useState(entry.content);
@@ -398,6 +401,20 @@ function MemoryDetailModal({ entry, workspaceId, onClose, onChanged, onDeleted }
     const [error, setError] = useState<string | null>(null);
     const [notice, setNotice] = useState<string | null>(null);
     const [confirmDelete, setConfirmDelete] = useState(false);
+
+    // Chevron navigation swaps `entry` while keeping the modal mounted.
+    // Re-sync all editable/view state so each memory card reflects the
+    // newly selected entry end-to-end (content, tags, flags, notices, etc.).
+    useEffect(() => {
+        setContent(entry.content);
+        setTagsInput(entry.tags.join(", "));
+        setImportance(entry.importance);
+        setScope(entry.scope);
+        setDisabled(!!entry.disabled);
+        setError(null);
+        setNotice(null);
+        setConfirmDelete(false);
+    }, [entry]);
 
     const accent = IMPORTANCE_COLORS[importance] || "#a1a1aa";
 
@@ -476,33 +493,21 @@ function MemoryDetailModal({ entry, workspaceId, onClose, onChanged, onDeleted }
             updatedAt: new Date().toISOString(),
         };
 
-        const manifest = buildCollectiveMemoryArchiveManifest({
-            workspaceId: workspaceId || undefined,
-            filters: {
-                query: draftEntry.id,
-                scope: draftEntry.scope,
-                includeDisabled: true,
-                limit: 1,
-            },
-            entries: [draftEntry],
-        });
-
-        const artifact = {
-            id: crypto.randomUUID(),
+        const { artifact } = buildCollectiveMemoryArchiveArtifactFromMemory({
+            memory: draftEntry,
             name: `memory-${draftEntry.id.slice(0, 8)}-archive.json`,
-            type: "json" as const,
-            content: JSON.stringify(manifest, null, 2),
-            tags: [
-                "type:json",
-                "memory:archive",
-                "memory:collective",
-                `memory:id:${draftEntry.id}`,
-                `scope:${draftEntry.scope}`,
-            ],
-            createdAt: Date.now(),
+            workspaceId: workspaceId || undefined,
+            annotations: {
+                source: "memories-modal",
+            },
+            identity: {
+                sourceAgentId: draftEntry.sourceAgentId,
+                sourceAgentName: draftEntry.sourceAgentName,
+                by: draftEntry.metadata?.by,
+            },
             description: `Collective memory export for ${draftEntry.id.slice(0, 8)}…`,
-            source: "command" as const,
-        };
+            source: "command",
+        });
 
         importArtifact(artifact);
         setNotice(`Exported to artifact: ${artifact.name}`);
@@ -516,6 +521,16 @@ function MemoryDetailModal({ entry, workspaceId, onClose, onChanged, onDeleted }
             className="tc-backdrop"
             onClick={(e) => { if (e.target === backdropRef.current) onClose(); }}
         >
+            <button
+                type="button"
+                className="mc-nav mc-nav--left"
+                onClick={onPrev}
+                disabled={!canPrev}
+                aria-label="Previous memory"
+                title="Previous memory"
+            >
+                <ChevronLeft size={18} />
+            </button>
             <div className="tc-card mc-card" style={{ "--tc-accent": accent } as React.CSSProperties}>
                 <button className="tc-close" onClick={onClose} aria-label="Close">
                     <X size={18} />
@@ -713,6 +728,16 @@ function MemoryDetailModal({ entry, workspaceId, onClose, onChanged, onDeleted }
                     <span>updated {new Date(entry.updatedAt).toLocaleString()}</span>
                 </div>
             </div>
+            <button
+                type="button"
+                className="mc-nav mc-nav--right"
+                onClick={onNext}
+                disabled={!canNext}
+                aria-label="Next memory"
+                title="Next memory"
+            >
+                <ChevronRight size={18} />
+            </button>
         </div>,
         document.body,
     );
@@ -743,8 +768,7 @@ export function MemoriesPanel({ workspaceId }: MemoriesPanelProps) {
         refresh();
     }, [refresh]);
 
-    const handleCreated = useCallback(() => {
-        setShowModal(false);
+    const handleChanged = useCallback(() => {
         refresh();
     }, [refresh]);
 
@@ -757,6 +781,21 @@ export function MemoriesPanel({ workspaceId }: MemoriesPanelProps) {
             (e.sourceAgentName || "").toLowerCase().includes(q),
         );
     }, [entries, query]);
+
+    const detailEntries = filtered;
+    const detailIndex = detailId ? detailEntries.findIndex(e => e.id === detailId) : -1;
+    const canPrev = detailIndex > 0;
+    const canNext = detailIndex >= 0 && detailIndex < detailEntries.length - 1;
+
+    const openPrev = useCallback(() => {
+        if (detailIndex <= 0) return;
+        setDetailId(detailEntries[detailIndex - 1].id);
+    }, [detailEntries, detailIndex]);
+
+    const openNext = useCallback(() => {
+        if (detailIndex < 0 || detailIndex >= detailEntries.length - 1) return;
+        setDetailId(detailEntries[detailIndex + 1].id);
+    }, [detailEntries, detailIndex]);
 
     return (
         <div className="chat-panel__memories" data-testid="chat-panel-memories">
@@ -800,7 +839,7 @@ export function MemoriesPanel({ workspaceId }: MemoriesPanelProps) {
                     workspaceId={workspaceId}
                     artifacts={allArtifacts}
                     onClose={() => setShowModal(false)}
-                    onCreated={handleCreated}
+                    onChanged={handleChanged}
                 />
             )}
 
@@ -811,6 +850,10 @@ export function MemoriesPanel({ workspaceId }: MemoriesPanelProps) {
                     <MemoryDetailModal
                         entry={detailEntry}
                         workspaceId={workspaceId}
+                        canPrev={canPrev}
+                        canNext={canNext}
+                        onPrev={openPrev}
+                        onNext={openNext}
                         onClose={() => setDetailId(null)}
                         onChanged={refresh}
                         onDeleted={() => { setDetailId(null); refresh(); }}
