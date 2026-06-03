@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "@/types";
-import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor, Globe, Users, Radio, Boxes, Pin, Database, Layers, Server, HardDrive, Workflow, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor, Globe, Users, Radio, Boxes, Pin, Database, Layers, Server, HardDrive, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ChatPosition } from "@/context/ThemeContext";
 import { ActionManager } from "@/components/actions/ActionManager";
 import { ArtifactsPanel } from "./ArtifactsPanel";
@@ -13,8 +13,6 @@ import { useHeliaMetrics } from "@/toolkits/helia";
 import { useKuboMetrics } from "@/toolkits/kubo";
 import { useOrbitdbMetrics } from "@/toolkits/orbitdb";
 import { useOrbitdbServerMetrics } from "@/toolkits/orbitdb-server";
-import { useOrchestratorMetrics } from "@/toolkits/orchestrator";
-import "@/toolkits/orchestrator/styles/orchestrator.css";
 import "../../styles/components/footer.css";
 import "../../styles/components/llm-manager.css";
 
@@ -71,7 +69,6 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
     const kuboMetrics = useKuboMetrics();
     const orbitdbMetrics = useOrbitdbMetrics();
     const orbitdbServerMetrics = useOrbitdbServerMetrics();
-    const orchestratorMetrics = useOrchestratorMetrics();
 
     const [lohkCollapsed, setLohkCollapsed] = useState<boolean>(() => {
         try { return localStorage.getItem("decops:footer-lohk-collapsed") === "1"; }
@@ -106,11 +103,6 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
         setView("orbitdb-server");
         orbitdbServerMetrics.acknowledgeDatabases();
     }, [setView, orbitdbServerMetrics]);
-
-    const handleOpenOrchestrator = useCallback(() => {
-        setView("orchestrator");
-        orchestratorMetrics.acknowledgeDrift();
-    }, [setView, orchestratorMetrics]);
 
     const handleOpenInEditor = useCallback((artifact: JobArtifact) => {
         // If editor is already mounted, load directly
@@ -428,38 +420,6 @@ export function Footer({ agents, channels, groups, messages, networks, bridges, 
                     </button>
                     </div>
 
-                    <button
-                        type="button"
-                        className={`footer__metric footer__metric--orchestrator${orchestratorMetrics.pendingDrift > 0 ? " footer__metric--alert" : ""}`}
-                        onClick={handleOpenOrchestrator}
-                        title={[
-                            `Orchestrator \u2014 ${orchestratorMetrics.healthyStacks}/${orchestratorMetrics.totalStacks} stack(s) healthy`,
-                            orchestratorMetrics.driftedStacks > 0
-                                ? `${orchestratorMetrics.driftedStacks} stack(s) drifted`
-                                : "no drift",
-                            orchestratorMetrics.activeManifestName
-                                ? `Active manifest: ${orchestratorMetrics.activeManifestName}`
-                                : "No manifest linked to active stack",
-                        ].join(" \u00b7 ")}
-                    >
-                        <Workflow size={11} />
-                        <span className="footer__metric-value">
-                            {orchestratorMetrics.healthyStacks}
-                            {orchestratorMetrics.totalStacks > orchestratorMetrics.healthyStacks && (
-                                <span className="footer__metric-total">/{orchestratorMetrics.totalStacks}</span>
-                            )}
-                        </span>
-                        {orchestratorMetrics.driftedStacks > 0 && (
-                            <>
-                                <span className="footer__metric-sep" aria-hidden="true">·</span>
-                                <AlertTriangle size={11} />
-                                <span className="footer__metric-value">{orchestratorMetrics.driftedStacks}</span>
-                            </>
-                        )}
-                        {orchestratorMetrics.pendingDrift > 0 && (
-                            <span className="footer__metric-pulse" aria-hidden="true" />
-                        )}
-                    </button>
                 </div>
 
                 <div className="footer__controls">
