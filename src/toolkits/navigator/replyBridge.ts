@@ -132,7 +132,7 @@ export function startNavigatorSubgoalExecution(
   return null;
 }
 
-function getNextExecutionGroup(goal: NavigatorGoal): NavigatorSubgoal[] {
+export function getNextExecutionGroup(goal: NavigatorGoal): NavigatorSubgoal[] {
   const processOrder = buildGoalProcessOrder(goal);
   const subgoalsById = new Map(goal.subgoals.map((subgoal) => [subgoal.id, subgoal] as const));
   for (const group of processOrder.groups) {
