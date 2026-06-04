@@ -1,6 +1,27 @@
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const { addJobMock, workspaceContextMock } = vi.hoisted(() => ({
+  addJobMock: vi.fn(),
+  workspaceContextMock: {
+    agents: [],
+    messages: [],
+  },
+}));
+
+vi.mock("@/context/JobsContext", () => ({
+  useJobsContext: () => ({
+    addJob: addJobMock,
+    jobs: [],
+  }),
+}));
+
+vi.mock("@/context/WorkspaceContext", () => ({
+  useWorkspaceContext: () => workspaceContextMock,
+}));
+
 import { navigatorService } from "@/toolkits/navigator/service";
-import { getNextExecutionGroup, startNavigatorSubgoalExecution } from "@/toolkits/navigator/replyBridge";
+import { getNextExecutionGroup, startNavigatorSubgoalExecution, useNavigatorExecutionBridge } from "@/toolkits/navigator/replyBridge";
 
 const STORAGE_KEY = "decops.navigator.state.v1";
 
@@ -8,6 +29,7 @@ describe("startNavigatorSubgoalExecution", () => {
   beforeEach(() => {
     localStorage.removeItem(STORAGE_KEY);
     navigatorService.reset();
+    addJobMock.mockReset();
   });
 
   it("dispatches direct sub-goals with await_response=true", () => {
@@ -123,5 +145,93 @@ describe("startNavigatorSubgoalExecution", () => {
     currentGoal = navigatorService.getGoal(goal.id)!;
     const secondGroup = getNextExecutionGroup(currentGoal);
     expect(secondGroup.map((subgoal) => subgoal.title)).toEqual(["Step 2"]);
+  });
+
+  it("does not start the next execution order while the current order is still executing", async () => {
+    const goal = navigatorService.createGoal({ prompt: "Goal prompt", title: "Goal" });
+    const created = navigatorService.addSubgoals(goal.id, [
+      {
+        title: "Step 1",
+        instruction: "Run 1",
+        assignedAgentId: "agent-a",
+        order: 1,
+      },
+      {
+        title: "Step 2",
+        instruction: "Run 2",
+        assignedAgentId: "agent-b",
+        order: 2,
+      },
+    ]);
+
+    navigatorService.controlSubgoal(goal.id, created[0].id, {
+      status: "executing",
+      appendJobId: "job-step-1",
+      actor: "navigator",
+      note: "step 1 already running",
+    });
+    navigatorService.updateGoal(goal.id, { autoRun: true, status: "executing" });
+
+    renderHook(() => useNavigatorExecutionBridge());
+
+    await waitFor(() => {
+      expect(addJobMock).not.toHaveBeenCalled();
+    });
+
+    const stepTwo = navigatorService.getGoal(goal.id)?.subgoals.find((subgoal) => subgoal.id === created[1].id);
+    expect(stepTwo?.status).toBe("assigned");
+  });
+
+  it("starts the next execution order after the current order completes", async () => {
+    addJobMock.mockImplementation((job: { request: Record<string, unknown> }) => ({
+      id: "job-step-2",
+      request: job.request,
+    }));
+
+    const goal = navigatorService.createGoal({ prompt: "Goal prompt", title: "Goal" });
+    const created = navigatorService.addSubgoals(goal.id, [
+      {
+        title: "Step 1",
+        instruction: "Run 1",
+        assignedAgentId: "agent-a",
+        order: 1,
+      },
+      {
+        title: "Step 2",
+        instruction: "Run 2",
+        assignedAgentId: "agent-b",
+        order: 2,
+      },
+    ]);
+
+    navigatorService.controlSubgoal(goal.id, created[0].id, {
+      status: "executing",
+      appendJobId: "job-step-1",
+      actor: "navigator",
+      note: "step 1 already running",
+    });
+    navigatorService.updateGoal(goal.id, { autoRun: true, status: "executing" });
+
+    renderHook(() => useNavigatorExecutionBridge());
+
+    act(() => {
+      navigatorService.controlSubgoal(goal.id, created[0].id, {
+        status: "completed",
+        actor: "navigator",
+        note: "step 1 finished",
+      });
+    });
+
+    await waitFor(() => {
+      expect(addJobMock).toHaveBeenCalledTimes(1);
+    });
+
+    const payload = addJobMock.mock.calls[0]?.[0] as { request: Record<string, unknown> };
+    expect(payload.request.await_response).toBe(true);
+    expect(payload.request.to_agent_id).toBe("agent-b");
+
+    const stepTwo = navigatorService.getGoal(goal.id)?.subgoals.find((subgoal) => subgoal.id === created[1].id);
+    expect(stepTwo?.status).toBe("executing");
+    expect(stepTwo?.jobIds).toContain("job-step-2");
   });
 });
