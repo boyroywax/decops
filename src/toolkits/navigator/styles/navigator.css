@@ -754,8 +754,10 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   padding: 16px;
   gap: 12px;
+  overflow: hidden;
   color: var(--text-primary, #e4e4e7);
   /* Inherit accent tokens from navigator-root ancestor */
   --nav2-accent: var(--navigator-accent, #22d3ee);
@@ -891,7 +893,29 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.nav2-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.nav2-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.nav2-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+.nav2-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 
 /* ── Goal card ────────────────────────────────────────────────────────────── */
@@ -1028,6 +1052,29 @@
   gap: 10px;
   padding: 0 12px 12px;
   border-top: 1px solid var(--border-subtle, rgba(255,255,255,0.06));
+  max-height: min(62vh, 620px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.nav2-goal__body::-webkit-scrollbar {
+  width: 7px;
+}
+
+.nav2-goal__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.nav2-goal__body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+}
+
+.nav2-goal__body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
 }
 .nav2-goal__prompt {
   margin: 0;
@@ -1457,6 +1504,12 @@
 .nav2-pill--decided      { background: rgba(34,197,94,0.15);   color: #86efac; }
 .nav2-pill--abandoned    { background: rgba(120,113,108,0.15); color: #a8a29e; }
 .nav2-pill--awaiting-input { background: rgba(245,158,11,0.15); color: #fde68a; }
+
+@media (max-width: 900px) {
+  .nav2-goal__body {
+    max-height: min(68vh, 560px);
+  }
+}
 
 /* ── Light-theme overrides for nav2- ──────────────────────────────────────── */
 [data-theme="light"] .nav2-root {

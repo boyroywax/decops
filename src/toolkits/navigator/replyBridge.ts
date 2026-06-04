@@ -1,9 +1,12 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useJobsContext } from "@/context/JobsContext";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import type { Job, Message } from "@/types";
-import type { NavigatorSubgoal } from "./types";
+import type { NavigatorGoal, NavigatorSubgoal } from "./types";
 import { navigatorService } from "./service";
+import { buildGoalProcessOrder } from "./navigatorGoalArchive";
+
+type JobsRuntime = ReturnType<typeof useJobsContext>;
 
 function getJobMessageIds(job: Job): string[] {
   const ids = new Set<string>();
@@ -58,6 +61,146 @@ function summarizeDeliveredReplies(messages: Message[], agentNameById: Map<strin
       return `${agentName}: ${String(message.response).trim()}`;
     })
     .join("\n\n");
+}
+
+export function startNavigatorSubgoalExecution(
+  goalId: string,
+  subgoal: NavigatorSubgoal,
+  jobsCtx: JobsRuntime,
+): { jobId: string; dispatch: "agent" | "huddle" } | null {
+  if (subgoal.status === "completed" || subgoal.status === "skipped" || subgoal.status === "executing") {
+    return null;
+  }
+
+  const instruction = subgoal.instruction || subgoal.title;
+
+  if (subgoal.assignedAgentId) {
+    const job = jobsCtx.addJob({
+      type: "send_message",
+      request: {
+        from_agent_id: "user",
+        to_agent_id: subgoal.assignedAgentId,
+        message: `[Navigator goal ${goalId} · sub-goal ${subgoal.id}] ${instruction}`,
+        await_response: true,
+      },
+    });
+    navigatorService.controlSubgoal(goalId, subgoal.id, {
+      status: "executing",
+      appendJobId: job.id,
+      actor: "navigator",
+      note: `Started via direct agent dispatch (job ${job.id})`,
+    });
+    return { jobId: job.id, dispatch: "agent" };
+  }
+
+  if (subgoal.huddleId) {
+    const huddle = navigatorService.listHuddlesForGoal(goalId).find((item) => item.id === subgoal.huddleId);
+    if (!huddle) {
+      navigatorService.controlSubgoal(goalId, subgoal.id, {
+        status: "blocked",
+        reason: `Huddle ${subgoal.huddleId} not found`,
+        actor: "navigator",
+        note: `Start requested but huddle ${subgoal.huddleId} is missing`,
+      });
+      return null;
+    }
+
+    const groupId = huddle.groupId.startsWith("job:") ? huddle.groupId.slice(4) : huddle.groupId;
+    const job = jobsCtx.addJob({
+      type: "broadcast_message",
+      request: {
+        group_id: groupId,
+        message: `[Navigator goal ${goalId} · sub-goal ${subgoal.id} · huddle ${huddle.id}] ${instruction}`,
+        await_responses: true,
+      },
+    });
+    navigatorService.controlSubgoal(goalId, subgoal.id, {
+      status: "executing",
+      appendJobId: job.id,
+      actor: "navigator",
+      note: `Started via huddle dispatch (job ${job.id})`,
+    });
+    return { jobId: job.id, dispatch: "huddle" };
+  }
+
+  navigatorService.controlSubgoal(goalId, subgoal.id, {
+    status: "blocked",
+    reason: "Sub-goal has no assignee",
+    actor: "navigator",
+    note: "Cannot start sub-goal without assigned agent or huddle",
+  });
+  return null;
+}
+
+function getNextExecutionGroup(goal: NavigatorGoal): NavigatorSubgoal[] {
+  const processOrder = buildGoalProcessOrder(goal);
+  const subgoalsById = new Map(goal.subgoals.map((subgoal) => [subgoal.id, subgoal] as const));
+  for (const group of processOrder.groups) {
+    const members = group.subgoals
+      .map((item) => subgoalsById.get(item.id))
+      .filter((subgoal): subgoal is NavigatorSubgoal => !!subgoal);
+    if (members.some((subgoal) => subgoal.status !== "completed" && subgoal.status !== "skipped")) {
+      return members;
+    }
+  }
+  return [];
+}
+
+export function useNavigatorExecutionBridge(): void {
+  const jobsCtx = useJobsContext();
+  const [snapshot, setSnapshot] = useState(() => navigatorService.snapshot());
+
+  useEffect(() => {
+    const unsubscribe = navigatorService.subscribe(setSnapshot);
+    return () => { unsubscribe(); };
+  }, []);
+
+  useEffect(() => {
+    for (const goal of snapshot.goals) {
+      if (!goal.autoRun) continue;
+
+      if (goal.status === "completed" || goal.status === "cancelled" || goal.status === "failed") {
+        if (goal.autoRun) navigatorService.updateGoal(goal.id, { autoRun: false });
+        continue;
+      }
+
+      const group = getNextExecutionGroup(goal);
+      if (group.length === 0) {
+        navigatorService.updateGoal(goal.id, { autoRun: false });
+        continue;
+      }
+
+      if (group.some((subgoal) => subgoal.status === "executing" || subgoal.status === "consulting")) {
+        continue;
+      }
+
+      if (group.some((subgoal) => subgoal.status === "paused" || subgoal.status === "blocked" || subgoal.status === "failed")) {
+        continue;
+      }
+
+      const ready = group.filter((subgoal) => subgoal.status === "assigned");
+      if (ready.length === 0) {
+        const pending = group.filter((subgoal) => subgoal.status === "pending");
+        if (pending.length > 0) {
+          navigatorService.updateGoal(goal.id, {
+            status: "blocked",
+            autoRun: false,
+            error: `Cannot start step with ${pending.length} unassigned sub-goal(s).`,
+          });
+        }
+        continue;
+      }
+
+      let started = 0;
+      for (const subgoal of ready) {
+        if (startNavigatorSubgoalExecution(goal.id, subgoal, jobsCtx)) started++;
+      }
+
+      if (started > 0 && goal.status !== "executing") {
+        navigatorService.updateGoal(goal.id, { status: "executing", error: undefined });
+      }
+    }
+  }, [jobsCtx, snapshot.goals]);
 }
 
 export function useNavigatorReplyBridge(): void {

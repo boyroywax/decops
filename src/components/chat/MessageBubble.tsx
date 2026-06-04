@@ -11,7 +11,8 @@ import { useJobsContext } from "@/context/JobsContext";
 import { useArchitectContext, ArchitectInlinePanel } from "@/toolkits/architect";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import type { ViewId } from "@/types";
-import { CheckCircle, AlertTriangle, Wrench, Loader, FileText, ChevronDown, ChevronRight } from "lucide-react";
+import { CheckCircle, AlertTriangle, Wrench, Loader, FileText, ChevronDown, ChevronRight, Users } from "lucide-react";
+import { extractDispatchCandidate, parseDispatchResultEnvelope } from "@/services/ai/subAgentDispatch";
 import "../../styles/components/message-bubble.css";
 
 interface MessageBubbleProps {
@@ -54,6 +55,122 @@ function extractArtifactIds(result: any): string[] {
     if (result.result && Array.isArray(result.result.artifactIds)) return result.result.artifactIds;
     if (result.jobResult && Array.isArray(result.jobResult.artifactIds)) return result.jobResult.artifactIds;
     return [];
+}
+
+interface SubAgentDispatchMeta {
+    dispatchId?: string;
+    via: string;
+    target: string;
+    messageIds?: string[];
+    plotId?: string;
+    directive?: string;
+    expectedFormat?: string;
+    status: "blocked" | "dispatched" | "failed" | "completed";
+}
+
+interface DispatchOutcome {
+    status: SubAgentDispatchMeta["status"];
+    summary?: string;
+}
+
+function parseSubAgentDispatch(tc: NonNullable<ChatMessage["toolCalls"]>[number]): SubAgentDispatchMeta | null {
+    if (tc.subAgentDispatch) {
+        return {
+            dispatchId: tc.subAgentDispatch.dispatchId,
+            via: tc.subAgentDispatch.via,
+            target: tc.subAgentDispatch.target,
+            messageIds: tc.subAgentDispatch.messageIds,
+            plotId: tc.subAgentDispatch.plotId,
+            directive: tc.subAgentDispatch.directive,
+            expectedFormat: tc.subAgentDispatch.expectedFormat,
+            status: tc.subAgentDispatch.status,
+        };
+    }
+
+    const candidate = extractDispatchCandidate(tc.name, tc.input || {});
+    if (!candidate || !candidate.message.includes("[SUB-AGENT DISPATCH]")) return null;
+    return {
+        dispatchId: candidate.envelope.dispatchId,
+        via: candidate.via,
+        target: candidate.target,
+        plotId: candidate.envelope.plotId,
+        directive: candidate.envelope.directive,
+        expectedFormat: candidate.envelope.expectedFormat,
+        status: tc.error ? "failed" : "dispatched",
+    };
+}
+
+function resolveDispatchOutcome(meta: SubAgentDispatchMeta, context: WorkspaceContext): DispatchOutcome {
+    if (meta.status === "blocked" || meta.status === "failed" || meta.status === "completed") {
+        return { status: meta.status };
+    }
+    const ids = meta.messageIds || [];
+    if (ids.length === 0) return { status: meta.status };
+    const hits = context.messages.filter((m) => ids.includes(m.id));
+    if (hits.length === 0) return { status: meta.status };
+    if (hits.some((m) => m.status === "failed")) return { status: "failed" };
+
+    const done = hits.every((m) => m.status === "delivered" || m.status === "no-prompt");
+    if (!meta.dispatchId) {
+        return { status: done ? "completed" : "dispatched" };
+    }
+
+    const resultEnvelopes = hits
+        .map((m) => (typeof m.response === "string" ? parseDispatchResultEnvelope(m.response) : null))
+        .filter((v): v is NonNullable<typeof v> => !!v);
+    const matching = resultEnvelopes.filter((e) => e.dispatchId === meta.dispatchId);
+    const failureResult = matching.find((e) => (e.status || "").toLowerCase() === "failed");
+    if (failureResult) {
+        return { status: "failed", summary: failureResult.summary };
+    }
+
+    const completedResult = done && matching.length > 0 ? matching[matching.length - 1] : null;
+    if (completedResult) {
+        return { status: "completed", summary: completedResult.summary };
+    }
+
+    return { status: "dispatched" };
+}
+
+function SubAgentDispatchCard({ meta, context }: { meta: SubAgentDispatchMeta; context: WorkspaceContext }) {
+    const outcome = resolveDispatchOutcome(meta, context);
+    const statusLabel = outcome.status;
+    return (
+        <div className="subagent-dispatch-card">
+            <div className="subagent-dispatch-card__head">
+                <Users size={11} />
+                <span className="subagent-dispatch-card__title">Sub-agent dispatch</span>
+                <span className="subagent-dispatch-card__via">{meta.via}</span>
+                <span className={`subagent-dispatch-card__status subagent-dispatch-card__status--${outcome.status}`}>{statusLabel}</span>
+            </div>
+            <div className="subagent-dispatch-card__row">
+                <span className="subagent-dispatch-card__label">target</span>
+                <code>{meta.target}</code>
+            </div>
+            {meta.plotId && (
+                <div className="subagent-dispatch-card__row">
+                    <span className="subagent-dispatch-card__label">plot</span>
+                    <code>{meta.plotId}</code>
+                </div>
+            )}
+            {meta.dispatchId && (
+                <div className="subagent-dispatch-card__row">
+                    <span className="subagent-dispatch-card__label">dispatch</span>
+                    <code>{meta.dispatchId}</code>
+                </div>
+            )}
+            {meta.expectedFormat && (
+                <div className="subagent-dispatch-card__row">
+                    <span className="subagent-dispatch-card__label">expected</span>
+                    <code>{meta.expectedFormat}</code>
+                </div>
+            )}
+            {outcome.summary && (
+                <div className="subagent-dispatch-card__summary">{outcome.summary}</div>
+            )}
+            {meta.directive && <div className="subagent-dispatch-card__directive">{meta.directive}</div>}
+        </div>
+    );
 }
 
 /** Compact relative timestamp for the bubble meta header. */
@@ -238,6 +355,10 @@ export default function MessageBubble({ msg, context, setView, isStreaming, isLa
 
         return true;
     }), [allToolCalls, jobStatusById, isStreaming]);
+    const subAgentDispatches = useMemo(
+        () => visibleToolCalls.map((tc) => ({ tc, meta: parseSubAgentDispatch(tc) })).filter((entry): entry is { tc: NonNullable<ChatMessage["toolCalls"]>[number]; meta: SubAgentDispatchMeta } => !!entry.meta),
+        [visibleToolCalls],
+    );
     const completedToolCalls = visibleToolCalls.filter(tc => tc.duration_ms > 0 && !tc.error).length;
     const failedToolCalls = visibleToolCalls.filter(tc => !!tc.error).length;
     const pendingToolCalls = visibleToolCalls.filter(tc => tc.duration_ms === 0 && !tc.error && !tc.result).length;
@@ -273,6 +394,17 @@ export default function MessageBubble({ msg, context, setView, isStreaming, isLa
 
     const commandBlocks = (
         <>
+            {subAgentDispatches.length > 0 && (
+                <div className="subagent-dispatch-section">
+                    <div className="tool-calls-section__label">
+                        <Users size={11} /> Sub-agent dispatches ({subAgentDispatches.length})
+                    </div>
+                    {subAgentDispatches.map(({ tc, meta }, index) => (
+                        <SubAgentDispatchCard key={`subagent-${tc.name}-${index}`} meta={meta} context={context} />
+                    ))}
+                </div>
+            )}
+
             {visibleToolCalls.filter(tc => !tc.jobId).length > 0 && (
                 <div className="tool-calls-section">
                     <div className="tool-calls-section__label">

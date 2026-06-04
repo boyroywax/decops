@@ -573,3 +573,423 @@
   text-decoration: underline;
   padding: 0;
 }
+
+/* Cognition tab */
+
+.llm-cognition {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.llm-cognition__grid {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: var(--space-md);
+}
+
+.llm-cognition__sidebar,
+.llm-cognition__editor {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+}
+
+.llm-cognition__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.llm-cognition__sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.llm-cognition__count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.llm-cognition__profile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.llm-cognition__profile-item {
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  cursor: pointer;
+}
+
+.llm-cognition__profile-item--active {
+  border-color: rgba(0, 229, 160, 0.35);
+  background: rgba(0, 229, 160, 0.08);
+  color: #b6ffe8;
+}
+
+.llm-cognition__profile-name {
+  font-size: var(--text-xs);
+}
+
+.llm-cognition__profile-id {
+  font-size: 10px;
+  opacity: 0.7;
+  font-family: var(--font-mono);
+}
+
+.llm-cognition__create,
+.llm-cognition__artifact-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.llm-cognition__artifact-label {
+  font-size: 10px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.llm-cognition__editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.llm-cognition__meta-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 140px auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.llm-cognition__strict {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
+.llm-cognition__description,
+.llm-cognition__node-objective {
+  width: 100%;
+  min-height: 70px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 8px;
+  resize: vertical;
+  font-size: var(--text-xs);
+}
+
+.llm-cognition__actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.llm-cognition__mindmap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.llm-cognition__mindmap-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.llm-cognition__mindmap-head h4 {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.llm-cognition__node-list,
+.llm-cognition__edge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.llm-cognition__node-card {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.llm-cognition__node-row,
+.llm-cognition__edge-row {
+  display: grid;
+  gap: 6px;
+  align-items: center;
+}
+
+.llm-cognition__node-row {
+  grid-template-columns: 1fr 1.2fr 190px auto;
+}
+
+.llm-cognition__edge-row {
+  grid-template-columns: 1fr auto 1fr 1.5fr auto;
+}
+
+.llm-cognition__arrow {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.llm-cognition__msg {
+  font-size: var(--text-xs);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.llm-cognition__msg--ok {
+  background: rgba(0, 229, 160, 0.09);
+  color: #00e5a0;
+}
+
+.llm-cognition__msg--err {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+.llm-cognition__empty {
+  padding: var(--space-md);
+  text-align: center;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 980px) {
+  .llm-cognition__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .llm-cognition__meta-row {
+    grid-template-columns: 1fr;
+  }
+
+  .llm-cognition__node-row,
+  .llm-cognition__edge-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sub-agents tab */
+
+.llm-subagents {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.llm-subagents__grid {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: var(--space-md);
+}
+
+.llm-subagents__sidebar,
+.llm-subagents__editor {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+}
+
+.llm-subagents__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.llm-subagents__sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.llm-subagents__count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+.llm-subagents__profile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.llm-subagents__profile-item {
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-muted);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  cursor: pointer;
+}
+
+.llm-subagents__profile-item--active {
+  border-color: rgba(0, 229, 160, 0.35);
+  background: rgba(0, 229, 160, 0.08);
+  color: #b6ffe8;
+}
+
+.llm-subagents__profile-name {
+  font-size: var(--text-xs);
+}
+
+.llm-subagents__profile-id,
+.llm-subagents__profile-meta {
+  font-size: 10px;
+  opacity: 0.7;
+  font-family: var(--font-mono);
+}
+
+.llm-subagents__editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.llm-subagents__editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.llm-subagents__editor-title {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.llm-subagents__editor-subtitle {
+  font-size: 10px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+}
+
+.llm-subagents__actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.llm-subagents__plot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.llm-subagents__plot {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.16);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.llm-subagents__plot-top,
+.llm-subagents__plot-row {
+  display: grid;
+  gap: 6px;
+  align-items: center;
+}
+
+.llm-subagents__plot-top {
+  grid-template-columns: 1fr 1.2fr auto auto;
+}
+
+.llm-subagents__plot-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+.llm-subagents__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
+.llm-subagents__textarea {
+  width: 100%;
+  min-height: 72px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  padding: 8px;
+  resize: vertical;
+  font-size: var(--text-xs);
+}
+
+.llm-subagents__msg {
+  font-size: var(--text-xs);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.llm-subagents__msg--ok {
+  background: rgba(0, 229, 160, 0.09);
+  color: #00e5a0;
+}
+
+.llm-subagents__msg--err {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+.llm-subagents__empty {
+  padding: var(--space-md);
+  text-align: center;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 980px) {
+  .llm-subagents__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .llm-subagents__plot-top,
+  .llm-subagents__plot-row {
+    grid-template-columns: 1fr;
+  }
+}

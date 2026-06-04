@@ -123,13 +123,14 @@ export function useConversations(workspaceId?: string | null) {
     useEffect(() => { initialScrollDone.current = false; }, [activeId]);
 
     useEffect(() => {
-        if (!initialScrollDone.current && messages.length > 0) {
+        if (showConvos || messages.length === 0) return;
+        if (!initialScrollDone.current) {
             requestAnimationFrame(() => {
                 endRef.current?.scrollIntoView({ behavior: "instant" });
             });
             initialScrollDone.current = true;
         }
-    }, [messages.length]);
+    }, [messages.length, activeId, showConvos]);
 
     // ── CRUD ──
     const updateConversation = useCallback((id: string, msgs: ChatMessage[]) => {

@@ -187,6 +187,7 @@ export type ToolkitId =
   | "logging"
   | "collective-memory"
   | "workspace-rag"
+  | "agent-cognition"
   | "libp2p"
   | "helia"
   | "kubo"

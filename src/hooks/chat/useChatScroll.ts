@@ -36,6 +36,14 @@ export function useChatScroll({
   activeId,
   focusTick,
 }: UseChatScrollParams) {
+  useEffect(() => {
+    if (!showConvos && activeId) {
+      requestAnimationFrame(() => {
+        endRef.current?.scrollIntoView({ behavior: "instant" });
+      });
+    }
+  }, [showConvos, activeId, endRef]);
+
   // Smooth scroll for new messages / streaming updates
   useEffect(() => {
     if (initialScrollDone.current) {

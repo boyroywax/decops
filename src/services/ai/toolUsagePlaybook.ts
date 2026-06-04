@@ -85,6 +85,18 @@ const PLAYBOOK: Record<string, ToolkitPlaybookEntry> = {
       "Remember concise, self-contained facts after meaningful outcomes.",
     ],
   },
+  "agent-cognition": {
+    name: "Agent Cognition",
+    useWhen: [
+      "You need to customize how an agent thinks, plans, executes, and adapts over feedback loops.",
+      "The user asks for different reasoning styles per agent or task type.",
+    ],
+    workflow: [
+      "List or inspect profiles first, then bind the selected profile to the target agent.",
+      "Render the protocol to verify nodes/transitions before running critical workflows.",
+      "Use strict loops for deterministic delivery; adaptive loops for uncertain discovery tasks.",
+    ],
+  },
   studio: {
     name: "Studio",
     useWhen: [

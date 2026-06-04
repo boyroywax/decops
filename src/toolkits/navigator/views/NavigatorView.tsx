@@ -21,7 +21,8 @@ import type {
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import { useJobsContext } from "@/context/JobsContext";
 import type { Job, Message } from "@/types";
-import { buildGoalArchiveArtifact } from "../navigatorGoalArchive";
+import { buildGoalArchiveArtifact, buildGoalProcessOrder } from "../navigatorGoalArchive";
+import { startNavigatorSubgoalExecution } from "../replyBridge";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Utility helpers
@@ -398,7 +399,7 @@ function AddSubgoalForm({ goalId, agents, huddles, onAdded, onCancel }: {
 
 function GoalCard({
   goal, huddles, agents, jobsById, messagesById, agentNameById,
-  isActive, onSelect, onCancel, onRemove, onStartSubgoal, onControlSubgoal, onArchive,
+  isActive, onSelect, onCancel, onRemove, onStartGoal, onStartSubgoal, onControlSubgoal, onArchive,
 }: {
   goal: NavigatorGoal;
   huddles: NavigatorHuddle[];
@@ -410,6 +411,7 @@ function GoalCard({
   onSelect: () => void;
   onCancel: () => void;
   onRemove: () => void;
+  onStartGoal: () => void;
   onStartSubgoal: (sg: NavigatorSubgoal) => void;
   onControlSubgoal: (sg: NavigatorSubgoal, action: SubgoalControlAction) => void;
   onArchive: () => void;
@@ -422,8 +424,10 @@ function GoalCard({
 
   const huddleOptions: HuddleOption[] = huddles.map((h) => ({ id: h.id, label: `huddle (${h.members.length})` }));
   const progress = getGoalProgress(goal, jobsById);
+  const processOrder = buildGoalProcessOrder(goal);
   const alerts = buildGoalAlerts(goal);
   const isTerminal = goal.status === "completed" || goal.status === "cancelled" || goal.status === "failed";
+  const canStartGoal = !isTerminal && goal.subgoals.length > 0 && !goal.autoRun;
 
   const lifecycleEvents = navigatorService.getGoalLifecycle(goal.id)
     .sort((a, b) => b.timestamp - a.timestamp)
@@ -460,6 +464,17 @@ function GoalCard({
         <span className="nav2-goal__title">{goal.title}</span>
         <StatusPill status={goal.status} />
         <div className="nav2-goal__header-actions" onClick={(e) => e.stopPropagation()}>
+          {!isTerminal ? (
+            <button
+              type="button"
+              className="nav2-goal__action-btn"
+              title={canStartGoal ? `Start goal (${processOrder.strategy})` : goal.autoRun ? "Goal is already auto-running" : "Add sub-goals before starting"}
+              onClick={onStartGoal}
+              disabled={!canStartGoal}
+            >
+              <Play size={12} />
+            </button>
+          ) : null}
           <button
             type="button"
             className="nav2-goal__action-btn nav2-goal__action-btn--archive"
@@ -511,6 +526,22 @@ function GoalCard({
       {!collapsed ? (
         <div className="nav2-goal__body">
           <p className="nav2-goal__prompt">{goal.prompt}</p>
+
+          <div className="nav2-goal__section-head nav2-goal__section-head--execution">
+            <span>Execution</span>
+            <span className="nav2-chip nav2-chip--muted">strategy: {processOrder.strategy}</span>
+            {!isTerminal ? (
+              <button
+                type="button"
+                className="nav2-btn-ghost"
+                disabled={!canStartGoal}
+                onClick={(e) => { e.stopPropagation(); onStartGoal(); }}
+                title={canStartGoal ? "Start goal using ordered sub-goal execution" : goal.autoRun ? "Goal is already auto-running" : "Add sub-goals before starting"}
+              >
+                <Play size={11} /> {goal.autoRun ? "Running" : "Start goal"}
+              </button>
+            ) : null}
+          </div>
 
           {/* Quick stats */}
           <div className="nav2-goal__stats-row">
@@ -682,27 +713,18 @@ export function NavigatorView() {
   }, [snap.goals]);
 
   const startSubgoal = (goalId: string) => (sub: NavigatorSubgoal) => {
-    if (!jobsCtx) return;
-    const instruction = sub.instruction || sub.title;
-    if (sub.assignedAgentId) {
-      const job = jobsCtx.addJob({
-        type: "send_message",
-        request: { from_agent_id: "user", to_agent_id: sub.assignedAgentId, message: `[Navigator goal ${goalId} · sub-goal ${sub.id}] ${instruction}` },
-      });
-      navigatorService.updateSubgoal(goalId, sub.id, { status: "executing", jobIds: [...sub.jobIds, job.id] });
-    } else if (sub.huddleId) {
-      const huddle = navigatorService.listHuddlesForGoal(goalId).find((h) => h.id === sub.huddleId);
-      if (!huddle) {
-        navigatorService.controlSubgoal(goalId, sub.id, { status: "blocked", reason: `Huddle ${sub.huddleId} not found`, actor: "navigator", note: `Start requested but huddle ${sub.huddleId} is missing` });
-        return;
-      }
-      const groupId = huddle.groupId.startsWith("job:") ? huddle.groupId.slice(4) : huddle.groupId;
-      const job = jobsCtx.addJob({
-        type: "broadcast_message",
-        request: { group_id: groupId, message: `[Navigator goal ${goalId} · sub-goal ${sub.id} · huddle ${huddle.id}] ${instruction}` },
-      });
-      navigatorService.updateSubgoal(goalId, sub.id, { status: "executing", jobIds: [...sub.jobIds, job.id] });
-    }
+    startNavigatorSubgoalExecution(goalId, sub, jobsCtx);
+  };
+
+  const startGoal = (goal: NavigatorGoal) => {
+    if (goal.status === "completed" || goal.status === "cancelled" || goal.status === "failed") return;
+    navigatorService.updateGoal(goal.id, {
+      autoRun: true,
+      error: undefined,
+      status: goal.subgoals.some((subgoal) => subgoal.status === "executing" || subgoal.status === "consulting")
+        ? goal.status
+        : "executing",
+    });
   };
 
   const controlSubgoal = (goalId: string) => (sub: NavigatorSubgoal, action: SubgoalControlAction) => {
@@ -819,6 +841,7 @@ export function NavigatorView() {
               onSelect={() => navigatorService.setActiveGoal(g.id)}
               onCancel={() => navigatorService.cancelGoal(g.id)}
               onRemove={() => navigatorService.removeGoal(g.id)}
+              onStartGoal={() => startGoal(g)}
               onStartSubgoal={startSubgoal(g.id)}
               onControlSubgoal={controlSubgoal(g.id)}
               onArchive={() => archiveGoal(g)}

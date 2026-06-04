@@ -33,7 +33,26 @@ export interface NavigatorGoalArchiveManifest {
   metadata: NavigatorGoalArchiveMetadata;
   spec: {
     goal: NavigatorGoal;
+    processOrder: NavigatorGoalProcessOrder;
   };
+}
+
+export interface NavigatorGoalProcessOrderGroup {
+  step: number;
+  execution: "sequential" | "parallel";
+  order: number;
+  subgoals: Array<{
+    id: string;
+    title: string;
+    status: string;
+    order: number;
+  }>;
+}
+
+export interface NavigatorGoalProcessOrder {
+  strategy: "sequential" | "parallel" | "mixed";
+  summary: string;
+  groups: NavigatorGoalProcessOrderGroup[];
 }
 
 export interface BuildGoalArchiveArtifactInput {
@@ -45,12 +64,64 @@ export interface BuildGoalArchiveArtifactInput {
   tags?: string[];
 }
 
+export function buildGoalProcessOrder(goal: NavigatorGoal): NavigatorGoalProcessOrder {
+  const indexed = goal.subgoals.map((subgoal, index) => ({
+    subgoal,
+    index,
+    order: Number.isFinite(subgoal.order) ? Number(subgoal.order) : index + 1,
+  }));
+
+  const sorted = [...indexed].sort((a, b) => {
+    if (a.order !== b.order) return a.order - b.order;
+    return a.index - b.index;
+  });
+
+  const orderKeys = Array.from(new Set(sorted.map((item) => item.order))).sort((a, b) => a - b);
+
+  const groups: NavigatorGoalProcessOrderGroup[] = orderKeys.map((order, idx) => {
+    const members = sorted.filter((item) => item.order === order);
+    return {
+      step: idx + 1,
+      execution: members.length > 1 ? "parallel" : "sequential",
+      order,
+      subgoals: members.map(({ subgoal }) => ({
+        id: subgoal.id,
+        title: subgoal.title,
+        status: subgoal.status,
+        order,
+      })),
+    };
+  });
+
+  const parallelGroups = groups.filter((g) => g.execution === "parallel").length;
+  const strategy: NavigatorGoalProcessOrder["strategy"] =
+    groups.length <= 1
+      ? (parallelGroups > 0 ? "parallel" : "sequential")
+      : (parallelGroups > 0 ? "mixed" : "sequential");
+
+  const summary = groups.length === 0
+    ? "No subgoals defined."
+    : groups.map((group) => {
+      if (group.execution === "parallel") {
+        return `Step ${group.step}: run ${group.subgoals.length} subgoals in parallel (${group.subgoals.map((s) => s.title).join("; ")})`;
+      }
+      return `Step ${group.step}: run ${group.subgoals[0].title} sequentially`;
+    }).join(". ");
+
+  return {
+    strategy,
+    summary,
+    groups,
+  };
+}
+
 export function buildGoalArchiveManifest(
   input: BuildGoalArchiveArtifactInput,
 ): NavigatorGoalArchiveManifest {
   const now = new Date().toISOString();
   const safeName = input.name
     || `goal-${input.goal.id.slice(0, 8)}-archive`;
+  const processOrder = buildGoalProcessOrder(input.goal);
 
   return {
     kind: GOAL_ARCHIVE_KIND,
@@ -65,6 +136,9 @@ export function buildGoalArchiveManifest(
       annotations: {
         goalId: input.goal.id,
         subgoalCount: String(input.goal.subgoals.length),
+        processStrategy: processOrder.strategy,
+        processSteps: String(processOrder.groups.length),
+        parallelSteps: String(processOrder.groups.filter((g) => g.execution === "parallel").length),
         ...(input.annotations ?? {}),
       },
       timestamps: {
@@ -75,7 +149,10 @@ export function buildGoalArchiveManifest(
         exportedAt: now,
       },
     },
-    spec: { goal: input.goal },
+    spec: {
+      goal: input.goal,
+      processOrder,
+    },
   };
 }
 

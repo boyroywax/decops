@@ -104,6 +104,8 @@ export interface NavigatorGoal {
   lifecycle?: NavigatorLifecycleEvent[];
   createdAt: number;
   updatedAt: number;
+  /** When true, Navigator should auto-start eligible sub-goal batches using order-based execution groups. */
+  autoRun?: boolean;
   /** Free-form synthesis once all sub-goals complete. */
   synthesis?: string;
   error?: string;

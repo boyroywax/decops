@@ -307,6 +307,35 @@
 .agent-detail__model-option-tier--fast { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
 .agent-detail__model-option-tier--standard { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
 
+/* Cognition Profile Selector */
+
+.agent-detail__cognition-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.agent-detail__cognition-select {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  padding: 8px 10px;
+  outline: none;
+}
+
+.agent-detail__cognition-select:focus {
+  border-color: rgba(0, 229, 160, 0.35);
+  box-shadow: 0 0 0 2px rgba(0, 229, 160, 0.12);
+}
+
+.agent-detail__cognition-hint {
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+}
+
 /* Prompt */
 
 .agent-detail__prompt {

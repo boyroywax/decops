@@ -42,6 +42,7 @@ import {
 import type { ToolUseBlock, ProviderMessage } from "./providers";
 import { parseAnthropicSSE, parseOpenAISSE } from "./sse";
 import { perfLog, perfNow } from "@/services/perf";
+import { extractDispatchCandidate } from "./subAgentDispatch";
 
 // ── Public types ──────────────────────────────────────────────────────────
 
@@ -74,7 +75,16 @@ export interface ChatRunCallbacks {
   interceptToolCall?: (
     name: string,
     input: Record<string, unknown>,
-  ) => { content: string; isError?: boolean; result?: unknown; error?: string } | null | undefined;
+  ) => {
+    content: string;
+    isError?: boolean;
+    result?: unknown;
+    error?: string;
+    subAgentDispatch?: ToolCallDisplay["subAgentDispatch"];
+  } | null | undefined;
+  /** Finalization guard. Return a reason string to block end-turn and force
+   *  another round (the reason is injected back as a user instruction). */
+  shouldBlockEndTurn?: (ctx: { round: number; roundText: string; allToolCalls: ToolCallDisplay[] }) => string | null | undefined;
   /** Abort the run. Both the SSE reader and the in-flight fetch are
    *  cancelled. The runner returns whatever text + tool calls accumulated
    *  so far. */
@@ -175,6 +185,28 @@ function truncateToolResultPayload(toolName: string, content: string): string {
   const head = content.slice(0, MAX_TOOL_RESULT_CHARS - 400);
   const droppedChars = content.length - head.length;
   return `${head}\n…\n[TOOL RESULT TRUNCATED] ${toolName} returned ${content.length} chars; ${droppedChars} chars removed to fit context. If you need the full payload, narrow the query, lower the limit, or read a specific id from the visible portion above.`;
+}
+
+function extractDispatchMessageIds(result: unknown): string[] {
+  const ids = new Set<string>();
+  const pick = (obj: unknown): void => {
+    if (!obj || typeof obj !== "object") return;
+    const rec = obj as Record<string, unknown>;
+    if (typeof rec.messageId === "string" && rec.messageId.trim()) ids.add(rec.messageId.trim());
+    if (Array.isArray(rec.messageIds)) {
+      for (const id of rec.messageIds) {
+        if (typeof id === "string" && id.trim()) ids.add(id.trim());
+      }
+    }
+  };
+
+  pick(result);
+  if (result && typeof result === "object") {
+    const rec = result as Record<string, unknown>;
+    pick(rec.result);
+    pick(rec.jobResult);
+  }
+  return Array.from(ids);
 }
 
 /** Yield to the event loop so React can flush state updates. */
@@ -454,6 +486,31 @@ export async function runChatTurn(
           callbacks.onToken?.(notice);
           fullText += notice;
         }
+
+        const completionBlockReason = callbacks.shouldBlockEndTurn?.({
+          round,
+          roundText,
+          allToolCalls,
+        });
+        if (completionBlockReason) {
+          const reminder = `\n\n[Dispatch enforcement] ${completionBlockReason}`;
+          callbacks.onToken?.(reminder);
+          fullText += reminder;
+          apiMessages.push({ role: "user", content: reminder });
+          callbacks.onRoundEnd?.(round);
+          perfLog("ai.run_chat_turn.round", {
+            model,
+            provider,
+            round,
+            toolUseBlocks: 0,
+            roundTextLength: roundText.length,
+            firstTokenMs,
+            roundDurationMs: Math.round(perfNow() - roundStart),
+            completionBlocked: true,
+          });
+          continue;
+        }
+
         callbacks.onRoundEnd?.(round);
         perfLog("ai.run_chat_turn.round", {
           model,
@@ -600,6 +657,17 @@ export async function runChatTurn(
 
         const intercept = callbacks.interceptToolCall?.(block.name, block.input || {});
         if (intercept) {
+          const parsedDispatch = extractDispatchCandidate(block.name, block.input || {});
+          const dispatchId = intercept.subAgentDispatch?.dispatchId
+            || parsedDispatch?.envelope.dispatchId
+            || `dispatch-${block.id}`;
+          const normalizedInterceptDispatch = intercept.subAgentDispatch
+            ? {
+              ...intercept.subAgentDispatch,
+              dispatchId,
+              status: intercept.subAgentDispatch.status || (intercept.isError ? "blocked" : "dispatched"),
+            }
+            : undefined;
           const display: ToolCallDisplay = {
             name: block.name,
             input: block.input || {},
@@ -607,6 +675,17 @@ export async function runChatTurn(
             error: intercept.error,
             duration_ms: 0,
             textOffset: block.textOffset,
+            subAgentDispatch: normalizedInterceptDispatch || (parsedDispatch
+              ? {
+                dispatchId,
+                via: parsedDispatch.via,
+                target: parsedDispatch.target,
+                plotId: parsedDispatch.envelope.plotId,
+                directive: parsedDispatch.envelope.directive,
+                expectedFormat: parsedDispatch.envelope.expectedFormat,
+                status: intercept.isError ? "blocked" : "dispatched",
+              }
+              : undefined),
           };
           allToolCalls.push(display);
           callbacks.onToolCallComplete?.(display);
@@ -625,6 +704,10 @@ export async function runChatTurn(
           commandContext,
         );
 
+        const parsedDispatch = extractDispatchCandidate(block.name, block.input || {});
+        const dispatchMessageIds = extractDispatchMessageIds(result.result);
+        const dispatchId = parsedDispatch?.envelope.dispatchId || `dispatch-${block.id}`;
+
         const display: ToolCallDisplay = {
           name: result.name,
           input: result.input,
@@ -633,6 +716,18 @@ export async function runChatTurn(
           duration_ms: result.duration_ms,
           jobId: result.jobId,
           textOffset: block.textOffset,
+          subAgentDispatch: parsedDispatch
+            ? {
+              dispatchId,
+              via: parsedDispatch.via,
+              target: parsedDispatch.target,
+              messageIds: dispatchMessageIds,
+              plotId: parsedDispatch.envelope.plotId,
+              directive: parsedDispatch.envelope.directive,
+              expectedFormat: parsedDispatch.envelope.expectedFormat,
+              status: result.error ? "failed" : "dispatched",
+            }
+            : undefined,
         };
         allToolCalls.push(display);
         callbacks.onToolCallComplete?.(display);

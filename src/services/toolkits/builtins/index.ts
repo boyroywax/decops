@@ -29,6 +29,7 @@ import { workspaceMgmtModule } from "./workspace-mgmt";
 import { loggingModule } from "./logging";
 import { collectiveMemoryModule } from "./collective-memory";
 import { workspaceRagModule } from "./workspace-rag";
+import { agentCognitionModule } from "@/toolkits/cognition";
 
 // ── Capability toolkits (external integrations) ─
 import { webCrawlerModule } from "./web-crawler";
@@ -45,6 +46,7 @@ export const builtinModules: ToolkitModule[] = [
   loggingModule,
   collectiveMemoryModule,
   workspaceRagModule,
+  agentCognitionModule,
   // Command-group toolkits
   agentManagementModule,
   infrastructureModule,
@@ -74,6 +76,7 @@ export {
   loggingModule,
   collectiveMemoryModule,
   workspaceRagModule,
+  agentCognitionModule,
   agentManagementModule,
   infrastructureModule,
   ecosystemModule,

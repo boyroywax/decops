@@ -122,6 +122,14 @@ export function AgentChat({ agent }: AgentChatProps) {
   }, [history.length, loading, streamState.streamingText, streamState.streamingToolCalls.length]);
 
   useEffect(() => {
+    if (!collapsed && history.length > 0) {
+      requestAnimationFrame(() => {
+        endRef.current?.scrollIntoView({ behavior: "instant" });
+      });
+    }
+  }, [collapsed, agent.id, history.length]);
+
+  useEffect(() => {
     if (!collapsed) inputRef.current?.focus();
   }, [collapsed]);
 

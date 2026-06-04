@@ -131,6 +131,7 @@ class NavigatorService {
       prompt: input.prompt,
       title: input.title ?? input.prompt.slice(0, 80),
       status: "draft",
+      autoRun: false,
       subgoals: [],
       thid: uuid(),
       networkIds: input.networkIds ?? [],
@@ -173,6 +174,9 @@ class NavigatorService {
       if (patch.status === "executing" && !next.startedAt) next.startedAt = now;
       if ((patch.status === "completed" || patch.status === "failed" || patch.status === "cancelled") && !next.completedAt) {
         next.completedAt = now;
+      }
+      if (patch.status === "completed" || patch.status === "failed" || patch.status === "cancelled") {
+        next.autoRun = false;
       }
     }
     this.state.goals[id] = next;

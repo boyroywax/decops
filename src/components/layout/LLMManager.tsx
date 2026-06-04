@@ -15,9 +15,19 @@ import {
   X, Key, Cpu, Zap, RefreshCw, Trash2,
   ChevronDown, ChevronUp, Eye, EyeOff,
   ChevronsUp, ChevronsDown, Plus, Server, Globe,
-  Bot, MessageCircle, ImageIcon,
+  Bot, MessageCircle, ImageIcon, Brain, Download, Upload, Save, Users,
 } from "lucide-react";
 import { useLLM, type ProviderId, type LivenessStatus, type LLMModel, type OllamaInstance } from "@/context/LLMContext";
+import { useJobsContext } from "@/context/JobsContext";
+import { agentCognitionService } from "@/toolkits/cognition/service";
+import type {
+  AgentCognitionProfileManifest,
+  CognitionEdge,
+  CognitionNode,
+  CognitionStageId,
+  CognitionSubAgentPlot,
+  CognitionSubAgentTriggerStage,
+} from "@/toolkits/cognition/types";
 import "../../styles/components/llm-manager.css";
 
 // ── Props (same shape as other footer drawers) ──
@@ -30,7 +40,22 @@ interface LLMManagerProps {
   onToggleExpand: () => void;
 }
 
-type Tab = "providers" | "models";
+type Tab = "providers" | "models" | "cognition" | "subagents";
+
+const COGNITION_STAGES: CognitionStageId[] = [
+  "intent-analysis",
+  "planning",
+  "tool-execution",
+  "result-assessment",
+  "adaptation",
+  "completion",
+];
+
+const SUBAGENT_TRIGGER_STAGES: CognitionSubAgentTriggerStage[] = ["any", ...COGNITION_STAGES];
+
+function cloneManifest(manifest: AgentCognitionProfileManifest): AgentCognitionProfileManifest {
+  return JSON.parse(JSON.stringify(manifest)) as AgentCognitionProfileManifest;
+}
 
 // ── Liveness dot ──
 
@@ -442,6 +467,746 @@ function ModelsTab() {
   );
 }
 
+function CognitionTab() {
+  const { allArtifacts, importArtifact } = useJobsContext();
+  const [profiles, setProfiles] = useState<AgentCognitionProfileManifest[]>(() => agentCognitionService.listProfiles());
+  const [selectedProfileId, setSelectedProfileId] = useState<string>(() => profiles[0]?.spec.profileId || "");
+  const [draft, setDraft] = useState<AgentCognitionProfileManifest | null>(() => {
+    const initial = profiles[0];
+    return initial ? cloneManifest(initial) : null;
+  });
+  const [newProfileId, setNewProfileId] = useState("");
+  const [newProfileName, setNewProfileName] = useState("");
+  const [importArtifactId, setImportArtifactId] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const cognitionArtifacts = allArtifacts.filter((artifact) => agentCognitionService.isCognitionProfileArtifact(artifact));
+
+  const refreshProfiles = useCallback((nextSelectedId?: string) => {
+    const next = agentCognitionService.listProfiles();
+    setProfiles(next);
+    const fallbackId = next[0]?.spec.profileId || "";
+    const targetId = nextSelectedId && next.some((p) => p.spec.profileId === nextSelectedId)
+      ? nextSelectedId
+      : fallbackId;
+    setSelectedProfileId(targetId);
+    const selected = next.find((p) => p.spec.profileId === targetId);
+    setDraft(selected ? cloneManifest(selected) : null);
+  }, []);
+
+  const setDraftField = <K extends keyof AgentCognitionProfileManifest["metadata"]>(key: K, value: AgentCognitionProfileManifest["metadata"][K]) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        metadata: {
+          ...prev.metadata,
+          [key]: value,
+          timestamps: {
+            ...prev.metadata.timestamps,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      };
+    });
+  };
+
+  const setNode = (nodeId: string, patch: Partial<CognitionNode>) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const nextNodeId = patch.id?.trim();
+      return {
+        ...prev,
+        spec: {
+          ...prev.spec,
+          nodes: prev.spec.nodes.map((node) => (node.id === nodeId ? { ...node, ...patch } : node)),
+          edges: nextNodeId && nextNodeId !== nodeId
+            ? prev.spec.edges.map((edge) => ({
+              ...edge,
+              from: edge.from === nodeId ? nextNodeId : edge.from,
+              to: edge.to === nodeId ? nextNodeId : edge.to,
+            }))
+            : prev.spec.edges,
+        },
+      };
+    });
+  };
+
+  const removeNode = (nodeId: string) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const nextNodes = prev.spec.nodes.filter((node) => node.id !== nodeId);
+      return {
+        ...prev,
+        spec: {
+          ...prev.spec,
+          nodes: nextNodes,
+          edges: prev.spec.edges.filter((edge) => edge.from !== nodeId && edge.to !== nodeId),
+        },
+      };
+    });
+  };
+
+  const addNode = () => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const nodeNum = prev.spec.nodes.length + 1;
+      const nodeId = `node-${nodeNum}-${Math.random().toString(36).slice(2, 5)}`;
+      const nextNode: CognitionNode = {
+        id: nodeId,
+        title: `Node ${nodeNum}`,
+        stage: "planning",
+        objective: "Define objective",
+        prompts: ["What must happen in this stage?"],
+        outputFields: ["summary"],
+      };
+      return {
+        ...prev,
+        spec: {
+          ...prev.spec,
+          nodes: [...prev.spec.nodes, nextNode],
+        },
+      };
+    });
+  };
+
+  const setEdge = (edgeIndex: number, patch: Partial<CognitionEdge>) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const nextEdges = [...prev.spec.edges];
+      nextEdges[edgeIndex] = { ...nextEdges[edgeIndex], ...patch };
+      return {
+        ...prev,
+        spec: {
+          ...prev.spec,
+          edges: nextEdges,
+        },
+      };
+    });
+  };
+
+  const addEdge = () => {
+    setDraft((prev) => {
+      if (!prev || prev.spec.nodes.length < 2) return prev;
+      const from = prev.spec.nodes[0].id;
+      const to = prev.spec.nodes[1].id;
+      return {
+        ...prev,
+        spec: {
+          ...prev.spec,
+          edges: [...prev.spec.edges, { from, to, condition: "always" }],
+        },
+      };
+    });
+  };
+
+  const removeEdge = (edgeIndex: number) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        spec: {
+          ...prev.spec,
+          edges: prev.spec.edges.filter((_, index) => index !== edgeIndex),
+        },
+      };
+    });
+  };
+
+  const handleSelectProfile = (profileId: string) => {
+    setSelectedProfileId(profileId);
+    const profile = profiles.find((p) => p.spec.profileId === profileId);
+    setDraft(profile ? cloneManifest(profile) : null);
+    setError(null);
+    setNotice(null);
+  };
+
+  const handleCreateProfile = () => {
+    setError(null);
+    setNotice(null);
+    const profileId = (newProfileId.trim() || `profile-${Math.random().toString(36).slice(2, 8)}`).toLowerCase();
+    if (profiles.some((p) => p.spec.profileId === profileId)) {
+      setError(`Profile id ${profileId} already exists.`);
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const nextProfile: AgentCognitionProfileManifest = {
+      kind: "v0",
+      schema: "agent-cognition-profile",
+      metadata: {
+        name: newProfileName.trim() || "Custom Cognition Profile",
+        labels: { mode: "adaptive" },
+        annotations: { description: "Custom cognition profile" },
+        timestamps: { createdAt: now, updatedAt: now },
+      },
+      spec: {
+        profileId,
+        version: "1.0.0",
+        strictLoop: true,
+        subAgentPlots: [],
+        nodes: [
+          {
+            id: "intent",
+            title: "Intent Analysis",
+            stage: "intent-analysis",
+            objective: "Understand user intent and constraints.",
+            prompts: ["What is the user requesting?", "What constraints apply?"],
+            outputFields: ["intent", "constraints"],
+          },
+          {
+            id: "plan",
+            title: "Planning",
+            stage: "planning",
+            objective: "Choose a practical execution strategy.",
+            prompts: ["What is the next best action sequence?"],
+            outputFields: ["plan"],
+          },
+        ],
+        edges: [{ from: "intent", to: "plan", condition: "intent clear" }],
+      },
+    };
+
+    try {
+      agentCognitionService.upsertProfile(nextProfile);
+      setNewProfileId("");
+      setNewProfileName("");
+      refreshProfiles(profileId);
+      setNotice(`Created profile ${profileId}.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleSaveProfile = () => {
+    if (!draft) return;
+    setError(null);
+    setNotice(null);
+    try {
+      const stamped: AgentCognitionProfileManifest = {
+        ...draft,
+        metadata: {
+          ...draft.metadata,
+          timestamps: {
+            ...draft.metadata.timestamps,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      };
+      agentCognitionService.upsertProfile(stamped);
+      refreshProfiles(stamped.spec.profileId);
+      setNotice(`Saved profile ${stamped.spec.profileId}.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleDeleteProfile = () => {
+    if (!draft) return;
+    setError(null);
+    setNotice(null);
+    try {
+      agentCognitionService.deleteProfile(draft.spec.profileId);
+      refreshProfiles();
+      setNotice(`Deleted profile ${draft.spec.profileId}.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleExportArtifact = () => {
+    if (!draft) return;
+    setError(null);
+    setNotice(null);
+    const artifact = agentCognitionService.buildProfileArtifact({
+      profile: draft,
+      tags: ["mindmap", "toolkit:agent-cognition"],
+      source: "command",
+      description: `Cognition profile mind-map: ${draft.metadata.name}`,
+    });
+    importArtifact(artifact);
+    setNotice(`Exported ${draft.spec.profileId} to artifacts.`);
+  };
+
+  const handleImportArtifact = () => {
+    if (!importArtifactId) return;
+    setError(null);
+    setNotice(null);
+    const selected = cognitionArtifacts.find((artifact) => artifact.id === importArtifactId);
+    if (!selected) {
+      setError("Select a cognition artifact first.");
+      return;
+    }
+    try {
+      const manifest = agentCognitionService.upsertProfileFromArtifact(selected);
+      refreshProfiles(manifest.spec.profileId);
+      setNotice(`Imported profile ${manifest.spec.profileId} from ${selected.name}.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  return (
+    <div className="llm-cognition">
+      <p className="llm-section-desc">
+        Build composable cognition profiles as node-and-edge mind maps, then bind them to agents.
+      </p>
+
+      <div className="llm-cognition__grid">
+        <aside className="llm-cognition__sidebar">
+          <div className="llm-cognition__sidebar-head">
+            <span>Profiles</span>
+            <span className="llm-cognition__count">{profiles.length}</span>
+          </div>
+          <div className="llm-cognition__profile-list">
+            {profiles.map((profile) => (
+              <button
+                key={profile.spec.profileId}
+                className={`llm-cognition__profile-item${selectedProfileId === profile.spec.profileId ? " llm-cognition__profile-item--active" : ""}`}
+                onClick={() => handleSelectProfile(profile.spec.profileId)}
+              >
+                <div className="llm-cognition__profile-name">{profile.metadata.name}</div>
+                <div className="llm-cognition__profile-id">{profile.spec.profileId}</div>
+              </button>
+            ))}
+          </div>
+
+          <div className="llm-cognition__create">
+            <input
+              className="input"
+              placeholder="new profile id"
+              value={newProfileId}
+              onChange={(e) => setNewProfileId(e.target.value)}
+            />
+            <input
+              className="input"
+              placeholder="profile name"
+              value={newProfileName}
+              onChange={(e) => setNewProfileName(e.target.value)}
+            />
+            <button className="btn btn-primary btn-xs" onClick={handleCreateProfile}>
+              <Plus size={11} /> Create profile
+            </button>
+          </div>
+
+          <div className="llm-cognition__artifact-box">
+            <div className="llm-cognition__artifact-label">Artifact import</div>
+            <select className="input" value={importArtifactId} onChange={(e) => setImportArtifactId(e.target.value)}>
+              <option value="">Select artifact</option>
+              {cognitionArtifacts.map((artifact) => (
+                <option key={artifact.id} value={artifact.id}>
+                  {artifact.name}
+                </option>
+              ))}
+            </select>
+            <button className="btn btn-ghost btn-xs" onClick={handleImportArtifact}>
+              <Upload size={11} /> Import artifact
+            </button>
+          </div>
+        </aside>
+
+        <section className="llm-cognition__editor">
+          {!draft ? (
+            <div className="llm-cognition__empty">No cognition profile selected.</div>
+          ) : (
+            <>
+              <div className="llm-cognition__meta-row">
+                <input
+                  className="input"
+                  value={draft.metadata.name}
+                  onChange={(e) => setDraftField("name", e.target.value)}
+                />
+                <input
+                  className="input"
+                  value={draft.spec.profileId}
+                  onChange={(e) => {
+                    const nextId = e.target.value.toLowerCase();
+                    setDraft((prev) => prev ? { ...prev, spec: { ...prev.spec, profileId: nextId } } : prev);
+                  }}
+                />
+                <select
+                  className="input"
+                  value={draft.metadata.labels.mode}
+                  onChange={(e) => setDraft((prev) => prev ? {
+                    ...prev,
+                    metadata: {
+                      ...prev.metadata,
+                      labels: { ...prev.metadata.labels, mode: e.target.value as "linear" | "adaptive" },
+                    },
+                  } : prev)}
+                >
+                  <option value="linear">linear</option>
+                  <option value="adaptive">adaptive</option>
+                </select>
+                <label className="llm-cognition__strict">
+                  <input
+                    type="checkbox"
+                    checked={draft.spec.strictLoop}
+                    onChange={(e) => setDraft((prev) => prev ? { ...prev, spec: { ...prev.spec, strictLoop: e.target.checked } } : prev)}
+                  />
+                  strict loop
+                </label>
+              </div>
+
+              <textarea
+                className="llm-cognition__description"
+                value={draft.metadata.annotations.description || ""}
+                onChange={(e) => setDraft((prev) => prev ? {
+                  ...prev,
+                  metadata: {
+                    ...prev.metadata,
+                    annotations: {
+                      ...prev.metadata.annotations,
+                      description: e.target.value,
+                    },
+                  },
+                } : prev)}
+                placeholder="Profile description"
+              />
+
+              <div className="llm-cognition__actions">
+                <button className="btn btn-primary btn-xs" onClick={handleSaveProfile}><Save size={11} /> Save profile</button>
+                <button className="btn btn-ghost btn-xs" onClick={handleExportArtifact}><Download size={11} /> Export to artifacts</button>
+                <button className="btn btn-ghost btn-xs" onClick={handleDeleteProfile}><Trash2 size={11} /> Delete profile</button>
+              </div>
+
+              <div className="llm-cognition__mindmap">
+                <div className="llm-cognition__mindmap-head">
+                  <h4>Mind-map nodes</h4>
+                  <button className="btn btn-ghost btn-xs" onClick={addNode}><Plus size={11} /> Add node</button>
+                </div>
+                <div className="llm-cognition__node-list">
+                  {draft.spec.nodes.map((node) => (
+                    <div key={node.id} className="llm-cognition__node-card">
+                      <div className="llm-cognition__node-row">
+                        <input className="input" value={node.id} onChange={(e) => setNode(node.id, { id: e.target.value })} />
+                        <input className="input" value={node.title} onChange={(e) => setNode(node.id, { title: e.target.value })} />
+                        <select className="input" value={node.stage} onChange={(e) => setNode(node.id, { stage: e.target.value as CognitionStageId })}>
+                          {COGNITION_STAGES.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
+                        </select>
+                        <button className="btn btn-ghost btn-xs" onClick={() => removeNode(node.id)}><Trash2 size={11} /></button>
+                      </div>
+                      <textarea
+                        className="llm-cognition__node-objective"
+                        value={node.objective}
+                        onChange={(e) => setNode(node.id, { objective: e.target.value })}
+                        placeholder="Node objective"
+                      />
+                      <input
+                        className="input"
+                        value={node.prompts.join(" | ")}
+                        onChange={(e) => setNode(node.id, { prompts: e.target.value.split("|").map((v) => v.trim()).filter(Boolean) })}
+                        placeholder="Prompts separated by |"
+                      />
+                      <input
+                        className="input"
+                        value={node.outputFields.join(",")}
+                        onChange={(e) => setNode(node.id, { outputFields: e.target.value.split(",").map((v) => v.trim()).filter(Boolean) })}
+                        placeholder="Output fields separated by commas"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="llm-cognition__mindmap-head">
+                  <h4>Edges</h4>
+                  <button className="btn btn-ghost btn-xs" onClick={addEdge}><Plus size={11} /> Add edge</button>
+                </div>
+                <div className="llm-cognition__edge-list">
+                  {draft.spec.edges.map((edge, index) => (
+                    <div className="llm-cognition__edge-row" key={`${edge.from}-${edge.to}-${index}`}>
+                      <select className="input" value={edge.from} onChange={(e) => setEdge(index, { from: e.target.value })}>
+                        {draft.spec.nodes.map((node) => <option key={`from-${node.id}`} value={node.id}>{node.id}</option>)}
+                      </select>
+                      <span className="llm-cognition__arrow">→</span>
+                      <select className="input" value={edge.to} onChange={(e) => setEdge(index, { to: e.target.value })}>
+                        {draft.spec.nodes.map((node) => <option key={`to-${node.id}`} value={node.id}>{node.id}</option>)}
+                      </select>
+                      <input
+                        className="input"
+                        value={edge.condition}
+                        onChange={(e) => setEdge(index, { condition: e.target.value })}
+                        placeholder="condition"
+                      />
+                      <button className="btn btn-ghost btn-xs" onClick={() => removeEdge(index)}><Trash2 size={11} /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {notice && <div className="llm-cognition__msg llm-cognition__msg--ok">{notice}</div>}
+          {error && <div className="llm-cognition__msg llm-cognition__msg--err">{error}</div>}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function createEmptySubAgentPlot(index: number): CognitionSubAgentPlot {
+  const uid = Math.random().toString(36).slice(2, 7);
+  return {
+    id: `plot-${index}-${uid}`,
+    name: `Sub-agent Plot ${index}`,
+    enabled: true,
+    triggerStage: "result-assessment",
+    triggerCondition: "confidence < 0.6 OR unresolved_unknowns > 0",
+    target: "specialist-agent",
+    directiveTemplate: "Investigate unresolved unknowns and return a concise remediation plan.",
+    contextFields: ["intent", "constraints", "assessment"],
+    resultPattern: {
+      expectedFormat: "json",
+      requiredOutputs: ["summary", "findings", "recommendations"],
+      successCriteria: "Includes actionable findings with clear next-step recommendation.",
+      failureSignal: "No evidence or no recommendation returned.",
+    },
+  };
+}
+
+function SubAgentsTab() {
+  const [profiles, setProfiles] = useState<AgentCognitionProfileManifest[]>(() => agentCognitionService.listProfiles());
+  const [selectedProfileId, setSelectedProfileId] = useState<string>(() => profiles[0]?.spec.profileId || "");
+  const [draft, setDraft] = useState<AgentCognitionProfileManifest | null>(() => {
+    const initial = profiles[0];
+    return initial ? cloneManifest(initial) : null;
+  });
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const refreshProfiles = useCallback((nextSelectedId?: string) => {
+    const next = agentCognitionService.listProfiles();
+    setProfiles(next);
+    const fallbackId = next[0]?.spec.profileId || "";
+    const targetId = nextSelectedId && next.some((p) => p.spec.profileId === nextSelectedId)
+      ? nextSelectedId
+      : fallbackId;
+    setSelectedProfileId(targetId);
+    const selected = next.find((p) => p.spec.profileId === targetId);
+    setDraft(selected ? cloneManifest(selected) : null);
+  }, []);
+
+  const handleSelectProfile = (profileId: string) => {
+    setSelectedProfileId(profileId);
+    const profile = profiles.find((p) => p.spec.profileId === profileId);
+    setDraft(profile ? cloneManifest(profile) : null);
+    setNotice(null);
+    setError(null);
+  };
+
+  const setPlot = (plotId: string, patch: Partial<CognitionSubAgentPlot>) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        spec: {
+          ...prev.spec,
+          subAgentPlots: prev.spec.subAgentPlots.map((plot) =>
+            plot.id === plotId ? { ...plot, ...patch } : plot,
+          ),
+        },
+      };
+    });
+  };
+
+  const setPlotResultPattern = (plotId: string, patch: Partial<CognitionSubAgentPlot["resultPattern"]>) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        spec: {
+          ...prev.spec,
+          subAgentPlots: prev.spec.subAgentPlots.map((plot) =>
+            plot.id === plotId
+              ? { ...plot, resultPattern: { ...plot.resultPattern, ...patch } }
+              : plot,
+          ),
+        },
+      };
+    });
+  };
+
+  const addPlot = () => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const index = prev.spec.subAgentPlots.length + 1;
+      return {
+        ...prev,
+        spec: {
+          ...prev.spec,
+          subAgentPlots: [...prev.spec.subAgentPlots, createEmptySubAgentPlot(index)],
+        },
+      };
+    });
+  };
+
+  const removePlot = (plotId: string) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        spec: {
+          ...prev.spec,
+          subAgentPlots: prev.spec.subAgentPlots.filter((plot) => plot.id !== plotId),
+        },
+      };
+    });
+  };
+
+  const saveProfilePlots = () => {
+    if (!draft) return;
+    setNotice(null);
+    setError(null);
+    try {
+      const stamped: AgentCognitionProfileManifest = {
+        ...draft,
+        metadata: {
+          ...draft.metadata,
+          timestamps: {
+            ...draft.metadata.timestamps,
+            updatedAt: new Date().toISOString(),
+          },
+        },
+      };
+      agentCognitionService.upsertProfile(stamped);
+      refreshProfiles(stamped.spec.profileId);
+      setNotice(`Saved ${stamped.spec.subAgentPlots.length} sub-agent plot(s) on ${stamped.spec.profileId}.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  return (
+    <div className="llm-subagents">
+      <p className="llm-section-desc">
+        Configure sub-agent usage plots per cognition profile. Each plot defines trigger parameters, dispatch directives, and expected result patterns.
+      </p>
+
+      <div className="llm-subagents__grid">
+        <aside className="llm-subagents__sidebar">
+          <div className="llm-subagents__sidebar-head">
+            <span>Cognition profiles</span>
+            <span className="llm-subagents__count">{profiles.length}</span>
+          </div>
+          <div className="llm-subagents__profile-list">
+            {profiles.map((profile) => (
+              <button
+                key={profile.spec.profileId}
+                className={`llm-subagents__profile-item${selectedProfileId === profile.spec.profileId ? " llm-subagents__profile-item--active" : ""}`}
+                onClick={() => handleSelectProfile(profile.spec.profileId)}
+              >
+                <div className="llm-subagents__profile-name">{profile.metadata.name}</div>
+                <div className="llm-subagents__profile-id">{profile.spec.profileId}</div>
+                <div className="llm-subagents__profile-meta">plots: {profile.spec.subAgentPlots.length}</div>
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <section className="llm-subagents__editor">
+          {!draft ? (
+            <div className="llm-subagents__empty">No cognition profile selected.</div>
+          ) : (
+            <>
+              <div className="llm-subagents__editor-head">
+                <div>
+                  <div className="llm-subagents__editor-title">{draft.metadata.name}</div>
+                  <div className="llm-subagents__editor-subtitle">{draft.spec.profileId}</div>
+                </div>
+                <div className="llm-subagents__actions">
+                  <button className="btn btn-ghost btn-xs" onClick={addPlot}><Plus size={11} /> Add plot</button>
+                  <button className="btn btn-primary btn-xs" onClick={saveProfilePlots}><Save size={11} /> Save plots</button>
+                </div>
+              </div>
+
+              <div className="llm-subagents__plot-list">
+                {draft.spec.subAgentPlots.length === 0 ? (
+                  <div className="llm-subagents__empty">No sub-agent plots yet. Add one to define dispatch behavior.</div>
+                ) : draft.spec.subAgentPlots.map((plot) => (
+                  <div className="llm-subagents__plot" key={plot.id}>
+                    <div className="llm-subagents__plot-top">
+                      <input className="input" value={plot.id} onChange={(e) => setPlot(plot.id, { id: e.target.value })} />
+                      <input className="input" value={plot.name} onChange={(e) => setPlot(plot.id, { name: e.target.value })} />
+                      <label className="llm-subagents__toggle">
+                        <input type="checkbox" checked={plot.enabled} onChange={(e) => setPlot(plot.id, { enabled: e.target.checked })} />
+                        enabled
+                      </label>
+                      <button className="btn btn-ghost btn-xs" onClick={() => removePlot(plot.id)}><Trash2 size={11} /></button>
+                    </div>
+
+                    <div className="llm-subagents__plot-row">
+                      <select className="input" value={plot.triggerStage} onChange={(e) => setPlot(plot.id, { triggerStage: e.target.value as CognitionSubAgentTriggerStage })}>
+                        {SUBAGENT_TRIGGER_STAGES.map((stage) => <option key={stage} value={stage}>{stage}</option>)}
+                      </select>
+                      <input className="input" value={plot.target} onChange={(e) => setPlot(plot.id, { target: e.target.value })} placeholder="target agent or role" />
+                    </div>
+
+                    <input
+                      className="input"
+                      value={plot.triggerCondition}
+                      onChange={(e) => setPlot(plot.id, { triggerCondition: e.target.value })}
+                      placeholder="trigger condition (example: confidence < 0.6)"
+                    />
+
+                    <textarea
+                      className="llm-subagents__textarea"
+                      value={plot.directiveTemplate}
+                      onChange={(e) => setPlot(plot.id, { directiveTemplate: e.target.value })}
+                      placeholder="directive template for dispatched sub-agent"
+                    />
+
+                    <input
+                      className="input"
+                      value={plot.contextFields.join(",")}
+                      onChange={(e) => setPlot(plot.id, { contextFields: e.target.value.split(",").map((v) => v.trim()).filter(Boolean) })}
+                      placeholder="context fields (comma separated)"
+                    />
+
+                    <div className="llm-subagents__plot-row">
+                      <input
+                        className="input"
+                        value={plot.resultPattern.expectedFormat}
+                        onChange={(e) => setPlotResultPattern(plot.id, { expectedFormat: e.target.value })}
+                        placeholder="expected format"
+                      />
+                      <input
+                        className="input"
+                        value={plot.resultPattern.requiredOutputs.join(",")}
+                        onChange={(e) => setPlotResultPattern(plot.id, {
+                          requiredOutputs: e.target.value.split(",").map((v) => v.trim()).filter(Boolean),
+                        })}
+                        placeholder="required outputs (comma separated)"
+                      />
+                    </div>
+
+                    <input
+                      className="input"
+                      value={plot.resultPattern.successCriteria}
+                      onChange={(e) => setPlotResultPattern(plot.id, { successCriteria: e.target.value })}
+                      placeholder="success criteria"
+                    />
+
+                    <input
+                      className="input"
+                      value={plot.resultPattern.failureSignal}
+                      onChange={(e) => setPlotResultPattern(plot.id, { failureSignal: e.target.value })}
+                      placeholder="failure signal"
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {notice && <div className="llm-subagents__msg llm-subagents__msg--ok">{notice}</div>}
+          {error && <div className="llm-subagents__msg llm-subagents__msg--err">{error}</div>}
+        </section>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Drawer Panel ──
 
 export function LLMManager({ onClose, height, setHeight, isExpanded, onToggleExpand }: LLMManagerProps) {
@@ -483,6 +1248,8 @@ export function LLMManager({ onClose, height, setHeight, isExpanded, onToggleExp
   const tabs: { id: Tab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: "providers", label: "Providers", icon: <Key size={11} /> },
     { id: "models", label: "Models", icon: <Cpu size={11} /> },
+    { id: "cognition", label: "Cognition", icon: <Brain size={11} /> },
+    { id: "subagents", label: "Sub-agents", icon: <Users size={11} /> },
   ];
 
   return (
@@ -546,6 +1313,8 @@ export function LLMManager({ onClose, height, setHeight, isExpanded, onToggleExp
         )}
 
         {tab === "models" && <ModelsTab />}
+        {tab === "cognition" && <CognitionTab />}
+        {tab === "subagents" && <SubAgentsTab />}
       </div>
     </div>
   );

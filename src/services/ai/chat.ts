@@ -24,6 +24,8 @@ import {
   WORKSPACE_RAG_PLAYBOOK,
 } from "./toolUsagePlaybook";
 import { prepareWorkspaceTurn } from "./workspaceTurn";
+import { agentCognitionService } from "@/toolkits/cognition/service";
+import { extractDispatchCandidate, matchesPlotTrigger, parseDispatchEnvelope } from "./subAgentDispatch";
 
 export interface ChatMessage {
   id?: string;
@@ -70,6 +72,142 @@ export interface ToolCallDisplay {
   /** Length (in characters) of streamed assistant text emitted before this
    *  tool call began. Drives chronological interleaving in MessageBubble. */
   textOffset?: number;
+  /** Structured dispatch metadata for sub-agent routing cards. */
+  subAgentDispatch?: {
+    dispatchId?: string;
+    via: string;
+    target: string;
+    messageIds?: string[];
+    plotId?: string;
+    directive?: string;
+    expectedFormat?: string;
+    status: "blocked" | "dispatched" | "failed" | "completed";
+  };
+}
+
+function buildDispatchIntercept(enabledPlots: { id: string }[]) {
+  if (enabledPlots.length === 0) return undefined;
+
+  return (name: string, input: Record<string, unknown>) => {
+    const dispatch = extractDispatchCandidate(name, input);
+    if (!dispatch) return null;
+
+    const envelope = dispatch.envelope;
+    if (!dispatch.message.includes("[SUB-AGENT DISPATCH]")) {
+      const error = {
+        error: "SUBAGENT_DISPATCH_ENVELOPE_REQUIRED",
+        message: "Dispatch blocked: include [SUB-AGENT DISPATCH] envelope with dispatch-id, plot, directive, and expected-format fields.",
+      };
+      return {
+        content: JSON.stringify(error),
+        isError: true,
+        result: error,
+        error: error.message,
+        subAgentDispatch: {
+          dispatchId: envelope.dispatchId,
+          via: dispatch.via,
+          target: dispatch.target,
+          plotId: envelope.plotId,
+          directive: envelope.directive,
+          expectedFormat: envelope.expectedFormat,
+          status: "blocked" as const,
+        },
+      };
+    }
+
+    const matchedPlot = envelope.plotId
+      ? enabledPlots.find((plot) => plot.id === envelope.plotId)
+      : undefined;
+    if (!matchedPlot) {
+      const error = {
+        error: "SUBAGENT_DISPATCH_PLOT_REQUIRED",
+        message: `Dispatch blocked: plot id is missing or unknown. Use one of: ${enabledPlots.map((plot) => plot.id).join(", ")}`,
+      };
+      return {
+        content: JSON.stringify(error),
+        isError: true,
+        result: error,
+        error: error.message,
+        subAgentDispatch: {
+          dispatchId: envelope.dispatchId,
+          via: dispatch.via,
+          target: dispatch.target,
+          plotId: envelope.plotId,
+          directive: envelope.directive,
+          expectedFormat: envelope.expectedFormat,
+          status: "blocked" as const,
+        },
+      };
+    }
+
+    if (!envelope.dispatchId || envelope.dispatchId.length < 6) {
+      const error = {
+        error: "SUBAGENT_DISPATCH_ID_REQUIRED",
+        message: "Dispatch blocked: dispatch-id is required and must be at least 6 characters.",
+      };
+      return {
+        content: JSON.stringify(error),
+        isError: true,
+        result: error,
+        error: error.message,
+        subAgentDispatch: {
+          dispatchId: envelope.dispatchId,
+          via: dispatch.via,
+          target: dispatch.target,
+          plotId: envelope.plotId,
+          directive: envelope.directive,
+          expectedFormat: envelope.expectedFormat,
+          status: "blocked" as const,
+        },
+      };
+    }
+
+    if (!envelope.directive || envelope.directive.length < 12) {
+      const error = {
+        error: "SUBAGENT_DISPATCH_DIRECTIVE_REQUIRED",
+        message: "Dispatch blocked: directive is required and must be specific.",
+      };
+      return {
+        content: JSON.stringify(error),
+        isError: true,
+        result: error,
+        error: error.message,
+        subAgentDispatch: {
+          dispatchId: envelope.dispatchId,
+          via: dispatch.via,
+          target: dispatch.target,
+          plotId: envelope.plotId,
+          directive: envelope.directive,
+          expectedFormat: envelope.expectedFormat,
+          status: "blocked" as const,
+        },
+      };
+    }
+
+    if (!envelope.expectedFormat) {
+      const error = {
+        error: "SUBAGENT_DISPATCH_RESULT_PATTERN_REQUIRED",
+        message: "Dispatch blocked: expected-format is required in the dispatch envelope.",
+      };
+      return {
+        content: JSON.stringify(error),
+        isError: true,
+        result: error,
+        error: error.message,
+        subAgentDispatch: {
+          dispatchId: envelope.dispatchId,
+          via: dispatch.via,
+          target: dispatch.target,
+          plotId: envelope.plotId,
+          directive: envelope.directive,
+          expectedFormat: envelope.expectedFormat,
+          status: "blocked" as const,
+        },
+      };
+    }
+
+    return null;
+  };
 }
 
 export async function callAgentAI(
@@ -83,6 +221,12 @@ export async function callAgentAI(
 ): Promise<string> {
   const model = getAgentModel(agent.id);
   const nowContext = buildCurrentDateTimeContext();
+  const dispatchEnvelope = message.includes("[SUB-AGENT DISPATCH]")
+    ? parseDispatchEnvelope(message)
+    : undefined;
+  const subAgentResultProtocol = dispatchEnvelope?.dispatchId
+    ? `\nSUB-AGENT RESULT PROTOCOL: This message is a delegated sub-agent dispatch. Your reply MUST begin with:\n[SUB-AGENT RESULT]\ndispatch-id: ${dispatchEnvelope.dispatchId}\nstatus: <completed|failed>\nsummary: <one-line summary>\nThen provide the detailed result body.`
+    : "";
 
   const systemPrompt = [
     `You are "${agent.name}", a ${ROLES.find(r => r.id === agent.role)?.label} agent in a decentralized mesh workspace.`,
@@ -98,6 +242,7 @@ export async function callAgentAI(
       : "",
     crossNetworkCtx ? `\nCROSS-NETWORK BRIDGE: This message comes from "${senderAgent.name}" in the "${crossNetworkCtx}" network. You are in a different network. Acknowledge the cross-network context.` : "",
     `\nYou are receiving a message from "${senderAgent.name}" (${ROLES.find(r => r.id === senderAgent.role)?.label}, DID: ${senderAgent.did}).`,
+    subAgentResultProtocol,
     `Respond concisely and in-character. Keep responses under 150 words. If you have structured output, use markdown formatting.`,
   ].filter(Boolean).join("\n");
 
@@ -227,6 +372,19 @@ async function runAgentChatTurn(
     ? getToolsForAgent(agent)
     : [];
 
+  const cognitionProfile = agentCognitionService.resolveProfileForAgent(agent);
+  const enabledPlots = (cognitionProfile.spec.subAgentPlots || []).filter((plot) => plot.enabled);
+  const matchedPlots = enabledPlots.filter((plot) => matchesPlotTrigger(plot, userMessage));
+  const dispatchIntercept = buildDispatchIntercept(enabledPlots);
+  let hasSuccessfulDispatch = false;
+
+  const handleToolCallComplete = (display: ToolCallDisplay): void => {
+    if (display.subAgentDispatch && display.subAgentDispatch.status === "dispatched") {
+      hasSuccessfulDispatch = true;
+    }
+    options.onToolCallComplete?.(display);
+  };
+
   const systemPrompt = buildAgentChatSystemPrompt(agent, tools.length);
 
   const messages: ChatTurnMessage[] = [
@@ -249,8 +407,14 @@ async function runAgentChatTurn(
     {
       onToken: options.onToken,
       onToolCallStart: options.onToolCallStart,
-      onToolCallComplete: options.onToolCallComplete,
+      onToolCallComplete: handleToolCallComplete,
       onRoundEnd: options.onRoundEnd,
+      interceptToolCall: dispatchIntercept,
+      shouldBlockEndTurn: ({ round }) => {
+        if (matchedPlots.length === 0 || hasSuccessfulDispatch) return null;
+        const plotIds = matchedPlots.map((plot) => plot.id).join(", ");
+        return `Sub-agent dispatch required for matched plot(s): ${plotIds}. Emit one valid dispatch envelope before finalizing (round ${round + 1}).`;
+      },
       signal: options.signal,
     },
   );
@@ -264,6 +428,7 @@ export function buildAgentChatSystemPrompt(agent: Agent, toolCount: number): str
   const enabledToolkitIds = (agent.toolkits || []).map(t => t.toolkitId);
   const toolkitPlaybookSection = buildToolkitUsageGuide(enabledToolkitIds, { maxToolkits: 6 });
   const includeRagPlaybook = enabledToolkitIds.includes("workspace-rag");
+  const cognitionProtocol = agentCognitionService.renderProtocolForAgent(agent);
   return [
     `You are "${agent.name}", a ${role?.label || agent.role} agent in a decentralized mesh workspace.`,
     nowContext,
@@ -278,23 +443,9 @@ export function buildAgentChatSystemPrompt(agent: Agent, toolCount: number): str
        toolCount > 0
          ? `\nYou have ${toolCount} tools available. Most operational work should follow a simple job workflow: identify the needed tool, search RAG for commands/context, select the commands, create one flat serial job when possible, execute it, then diagnose/retry if needed. Commands from your bound toolkits ALSO appear as direct tools — prefer those when available.
 
-You MUST follow the Reasoning Protocol on every turn:
+      You MUST follow the configured cognition protocol on every turn:
 
-Begin EVERY turn with a single fenced \`\`\`thinking block in this exact format (before any tool call, before any prose):
-
-\`\`\`thinking
-Confidence: high|medium|low — one short sentence on how clearly you understand the request.
-Needs tools: yes|no — one short sentence on why.
-       Plan: one short sentence. If "Needs tools: yes", name the next job or command and keep the job shape as flat and serial as possible.
-\`\`\`
-
-Then either (a) call exactly one tool, or (b) reply directly if no tools are needed.
-
-After every tool result, your very next output MUST be a second \`\`\`thinking block:
-\`\`\`thinking
-Assess: one short sentence — did the result match the plan? Cite the key field.
-Next: one short sentence — call another tool (name it) OR finalize the answer.
-\`\`\`
+      ${cognitionProtocol.text}
 
 If a tool errors or returns unexpected output, the Assess line MUST start with "ERROR:" or "UNEXPECTED:" and Next MUST describe a corrective plan (different args, different command, or ask the user). Re-approach with the new information — do not blindly retry. Never invent tool results. Keep each line under 140 characters.
 

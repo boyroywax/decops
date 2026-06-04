@@ -10,7 +10,7 @@
  * The chat-agent persona switcher (Architect/Code/etc.) lives in the
  * chat input bar — not here.
  */
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { Globe, ArrowLeftRight, Hexagon, Link2, User, X } from "lucide-react";
 import type {
   Agent,
@@ -68,6 +68,7 @@ export function EcosystemMessagesList({
   bridges,
   bridgeMessages,
 }: EcosystemMessagesListProps) {
+  const endRef = useRef<HTMLDivElement>(null);
   const { rows, header } = useMemo(() => {
     const rs: Row[] = [];
     let hdr: { icon: ReactNode; title: string; subtitle?: string } = {
@@ -243,6 +244,12 @@ export function EcosystemMessagesList({
     return { rows: rs, header: hdr };
   }, [selection, agents, channels, groups, messages, networks, bridges, bridgeMessages]);
 
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      endRef.current?.scrollIntoView({ behavior: "instant", block: "end" });
+    });
+  }, [selection, rows.length]);
+
   return (
     <div className="chat-eco-msgs">
       <div className="chat-eco-msgs__header">
@@ -304,6 +311,7 @@ export function EcosystemMessagesList({
             );
           })
         )}
+        <div ref={endRef} />
       </div>
     </div>
   );

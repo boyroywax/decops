@@ -21,6 +21,7 @@ import { downloadAgentAieos, aieosToAgent, validateAieos } from "@/utils/aieos";
 import { AieosEditor } from "./AieosEditor";
 import { AgentRuntimePanel } from "@/components/shared/AgentRuntimePanel";
 import { useLLM } from "@/context/LLMContext";
+import { agentCognitionService } from "@/toolkits/cognition/service";
 import "../../styles/components/agent-detail.css";
 
 interface AgentDetailViewProps {
@@ -117,6 +118,78 @@ function AgentModelPicker({ agentId, recommendedModel }: { agentId: string; reco
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function AgentCognitionProfileSelector({ agent, updateAgent }: { agent: Agent; updateAgent?: (id: string, patch: Partial<Agent>) => void }) {
+  const profiles = agentCognitionService.listProfiles();
+  const cognitionBinding = (agent.toolkits || []).find((t) => t.toolkitId === "agent-cognition");
+  const selectedProfileId = (cognitionBinding?.config?.profileId as string | undefined) || "__default__";
+
+  const setProfile = (nextProfileId: string) => {
+    if (!updateAgent) return;
+
+    const toolkitBindings = [...(agent.toolkits || [])];
+    const existingIndex = toolkitBindings.findIndex((t) => t.toolkitId === "agent-cognition");
+
+    if (nextProfileId === "__default__") {
+      if (existingIndex >= 0) {
+        const existing = toolkitBindings[existingIndex];
+        const nextConfig = { ...(existing.config || {}) };
+        delete nextConfig.profileId;
+        toolkitBindings[existingIndex] = {
+          ...existing,
+          config: nextConfig,
+        };
+      }
+      updateAgent(agent.id, { toolkits: toolkitBindings });
+      return;
+    }
+
+    if (existingIndex >= 0) {
+      const existing = toolkitBindings[existingIndex];
+      toolkitBindings[existingIndex] = {
+        ...existing,
+        config: {
+          ...(existing.config || {}),
+          profileId: nextProfileId,
+        },
+      };
+    } else {
+      toolkitBindings.push({
+        toolkitId: "agent-cognition",
+        enabledAt: new Date().toISOString(),
+        config: { profileId: nextProfileId },
+      });
+    }
+
+    updateAgent(agent.id, { toolkits: toolkitBindings });
+  };
+
+  return (
+    <div className="agent-detail__section">
+      <div className="agent-detail__section-title">
+        <Brain size={11} style={{ display: "inline", verticalAlign: "middle" }} /> Cognition Profile
+      </div>
+      <div className="agent-detail__cognition-row">
+        <select
+          className="agent-detail__cognition-select"
+          value={selectedProfileId}
+          onChange={(e) => setProfile(e.target.value)}
+          disabled={!updateAgent}
+        >
+          <option value="__default__">Default (Linear v1)</option>
+          {profiles.map((profile) => (
+            <option key={profile.spec.profileId} value={profile.spec.profileId}>
+              {profile.metadata.name} ({profile.spec.profileId})
+            </option>
+          ))}
+        </select>
+        <div className="agent-detail__cognition-hint">
+          {cognitionBinding ? "Bound to agent-cognition toolkit" : "Selecting a profile enables agent-cognition toolkit"}
+        </div>
+      </div>
     </div>
   );
 }
@@ -371,6 +444,9 @@ export function AgentDetailView({
 
       {/* LLM Model */}
       <AgentModelPicker agentId={agent.id} recommendedModel={agent.recommendedModel} />
+
+      {/* Cognition Profile */}
+      <AgentCognitionProfileSelector agent={agent} updateAgent={updateAgent} />
 
       {/* Toolkits */}
       <AgentToolkitsSection agent={agent} navigateTo={navigateTo} networkId={networkId} groupId={groupId} updateAgent={updateAgent} />
