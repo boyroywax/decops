@@ -252,7 +252,7 @@ describe("runChatTurn: tool-use loop", () => {
         expect(executeToolCall).toHaveBeenCalledTimes(3);
     });
 
-    it("retries when the model narrates a tool call without structured tool_use", async () => {
+    it("returns narration as-is when no structured tool_use is emitted", async () => {
         mockFetch
             .mockResolvedValueOnce(jsonResponse({ content: [] }))
             .mockResolvedValueOnce(jsonResponse({ content: [] }));
@@ -275,12 +275,12 @@ describe("runChatTurn: tool-use loop", () => {
         });
 
         expect(result.reason).toBe("end_turn");
-        expect(result.text).toBe("No tools needed. Done.");
-        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(result.text).toBe("I am running create_agent now.");
+        expect(mockFetch).toHaveBeenCalledTimes(1);
         expect(executeToolCall).not.toHaveBeenCalled();
     });
 
-    it("retries when the model fabricates tool results without structured tool_use", async () => {
+    it("returns fabricated-result narration as-is when no structured tool_use is emitted", async () => {
         mockFetch
             .mockResolvedValueOnce(jsonResponse({ content: [] }))
             .mockResolvedValueOnce(jsonResponse({ content: [] }));
@@ -303,8 +303,8 @@ describe("runChatTurn: tool-use loop", () => {
         });
 
         expect(result.reason).toBe("end_turn");
-        expect(result.text).toBe("I cannot verify that without invoking a tool.");
-        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(result.text).toBe("Tool create_agent completed successfully. Result: {\"id\":\"a1\"}");
+        expect(mockFetch).toHaveBeenCalledTimes(1);
         expect(executeToolCall).not.toHaveBeenCalled();
     });
 });

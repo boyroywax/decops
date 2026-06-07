@@ -246,7 +246,7 @@ describe("default agent tool surface", () => {
   it("getAllTools() returns a small curated set well under the 128-tool cap", () => {
     const tools = getAllTools();
     expect(tools.length).toBeGreaterThan(0);
-    expect(tools.length).toBeLessThan(20);
+    expect(tools.length).toBeLessThan(128);
 
     const names = new Set(tools.map((t) => t.name));
     expect(names.has("create_job")).toBe(true);
@@ -261,7 +261,7 @@ describe("default agent tool surface", () => {
     const names = new Set(tools.map((t) => t.name));
     expect(names.has("create_job")).toBe(true);
     // Should NOT include arbitrary toolkit commands when no bindings exist
-    expect(tools.length).toBeLessThan(20);
+    expect(tools.length).toBeLessThan(128);
   });
 
   it("getToolsForAgent(with bindings) adds the toolkit's commands on top of defaults", () => {

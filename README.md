@@ -43,12 +43,33 @@ This project provides a React-based interface for visualizing and interacting wi
 
 ## Testing
 
-Currently, the project focuses on type safety via TypeScript. You can run the type check with:
+This project has an automated Vitest suite in addition to TypeScript checks.
+
+Run type checking:
 
 ```bash
 npm run typecheck
 ```
-(No unit test suite is currently configured).
+
+Run all tests:
+
+```bash
+npm test
+```
+
+Run targeted evaluation suites:
+
+```bash
+npm run test:prompt-eval
+npm run test:behavior-eval
+npm run test:behavior-trace-batch
+```
+
+Generate coverage:
+
+```bash
+npm run test:coverage
+```
 
 ## Note on Usage
 

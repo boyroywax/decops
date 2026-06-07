@@ -106,6 +106,38 @@ export default defineConfig(({ mode }) => ({
             reporter: ['text', 'json', 'html'],
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) {
+                        if (id.includes('/src/toolkits/')) return 'toolkits';
+                        return undefined;
+                    }
+
+                    if (
+                        id.includes('/@libp2p/') ||
+                        id.includes('/libp2p/') ||
+                        id.includes('/@multiformats/')
+                    ) {
+                        return 'p2p-vendor';
+                    }
+
+                    if (
+                        id.includes('/helia/') ||
+                        id.includes('/@helia/') ||
+                        id.includes('/kubo-rpc-client/') ||
+                        id.includes('/@orbitdb/') ||
+                        id.includes('/didcomm/')
+                    ) {
+                        return 'decentralized-vendor';
+                    }
+
+                    return undefined;
+                },
+            },
+        },
+    },
     server: {
         host: true,
         port: 5173,

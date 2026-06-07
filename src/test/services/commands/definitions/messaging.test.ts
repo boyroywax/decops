@@ -43,7 +43,8 @@ describe('sendMessageCommand', () => {
         const args = {
             from_agent_id: 'agent-1',
             to_agent_id: 'agent-2',
-            message: 'Hello'
+            message: 'Hello',
+            await_response: true,
         };
 
         // Mock AI response
@@ -106,7 +107,8 @@ describe('sendMessageCommand', () => {
         const args = {
             from_agent_id: 'user',
             to_agent_id: 'agent-2',
-            message: 'Hi from user'
+            message: 'Hi from user',
+            await_response: true,
         };
 
         vi.mocked(aiService.callAgentAI).mockResolvedValue("Agent reply to user");

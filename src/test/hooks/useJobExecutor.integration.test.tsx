@@ -133,9 +133,16 @@ describe("useJobExecutor — React integration [§2.1]", () => {
             expect(registry.execute).toHaveBeenCalledWith("cmd_test", { foo: "bar" }, expect.any(Object));
         });
 
-        // Finally: status transitions to "completed" with the result
+        // Finally: status transitions to "completed" with completion details
         await waitFor(() => {
-            expect(props.updateJobStatus).toHaveBeenCalledWith("job-success", "completed", "ok-result");
+            expect(props.updateJobStatus).toHaveBeenCalledWith(
+                "job-success",
+                "completed",
+                expect.any(String),
+                expect.objectContaining({
+                    finalResult: "ok-result",
+                }),
+            );
         });
 
         // A "Job Started" + "Job Completed" notebook entry should have fired

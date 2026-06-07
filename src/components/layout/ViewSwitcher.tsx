@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import type { ViewId, NavContext, ToolkitId } from "@/types";
 import { NetworksView } from "@/components/views/NetworksView";
 import { NetworkDetailView } from "@/components/views/NetworkDetailView";
@@ -7,8 +8,6 @@ import { AgentsView } from "@/components/views/AgentsView";
 import { ChannelsView } from "@/components/views/ChannelsView";
 import { ChannelDetailView } from "@/components/views/ChannelDetailView";
 import { GroupsView } from "@/components/views/GroupsView";
-import { ToolkitDetailView } from "@/components/views/ToolkitDetailView";
-import { ToolKitsView } from "@/components/views/ToolKitsView";
 import { NetworkView } from "@/components/views/NetworkView";
 import { ArtifactsView } from "@/components/views/ArtifactsView";
 import { ActivityView } from "@/components/views/ActivityView";
@@ -17,6 +16,16 @@ import { SystemView } from "@/components/views/SystemView";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { Breadcrumb } from "./Breadcrumb";
 import type { WorkspaceContextType } from "@/context/WorkspaceContext";
+
+const ToolkitDetailView = lazy(async () => {
+    const mod = await import("@/components/views/ToolkitDetailView");
+    return { default: mod.ToolkitDetailView };
+});
+
+const ToolKitsView = lazy(async () => {
+    const mod = await import("@/components/views/ToolKitsView");
+    return { default: mod.ToolKitsView };
+});
 
 interface ViewSwitcherProps {
     view: ViewId;
@@ -336,18 +345,22 @@ export function ViewSwitcher({
             return (
                 <>
                     {breadcrumb}
-                    <ToolkitDetailView
-                        toolkitId={navContext.toolkitId as ToolkitId}
-                        navigateTo={navigateTo}
-                    />
+                    <Suspense fallback={<div>Loading toolkit...</div>}>
+                        <ToolkitDetailView
+                            toolkitId={navContext.toolkitId as ToolkitId}
+                            navigateTo={navigateTo}
+                        />
+                    </Suspense>
                 </>
             );
         }
         return (
             <ErrorBoundary>
-                <ToolKitsView
-                    navigateTo={navigateTo}
-                />
+                <Suspense fallback={<div>Loading toolkits...</div>}>
+                    <ToolKitsView
+                        navigateTo={navigateTo}
+                    />
+                </Suspense>
             </ErrorBoundary>
         );
     }

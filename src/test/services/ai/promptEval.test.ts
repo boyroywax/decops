@@ -46,7 +46,7 @@ const workspacePromptRules: PromptEvalRule[] = [
 ];
 
 const agentPromptRules: PromptEvalRule[] = [
-  { id: "reasoning-protocol", pattern: /You MUST follow the Reasoning Protocol/i, weight: 1, required: true },
+  { id: "reasoning-protocol", pattern: /You MUST follow the configured cognition protocol/i, weight: 1, required: true },
   { id: "job-playbook-header", pattern: "JOB EXECUTION PLAYBOOK:", weight: 1, required: true },
   { id: "job-playbook-queue", pattern: /queue_new_job/i, weight: 1 },
   { id: "rag-playbook-header", pattern: "WORKSPACE RAG PLAYBOOK:", weight: 1, required: true },

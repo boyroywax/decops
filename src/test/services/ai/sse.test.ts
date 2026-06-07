@@ -49,6 +49,7 @@ describe("parseOpenAISSE", () => {
         id: "call_1",
         name: "deploy_network",
         arguments: '{"config":{}}',
+        textOffset: 0,
       },
     ]);
   });
