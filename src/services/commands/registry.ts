@@ -3,6 +3,7 @@ import { CommandDefinition, CommandArgType, CommandContext } from "./types";
 import { dryRunCommand, dryRunJob, type DryRunResult, type DryRunJobResult } from "./dryRun";
 import { assertRBAC } from "./rbac";
 import type { JobStep } from "@/types";
+import { logAggregator } from "@/services/logging";
 
 /** Shape of an entity that resolveEntityName looks up — needs id and (optionally) name. */
 interface NamedEntity {
@@ -80,7 +81,7 @@ export class CommandRegistry {
 
     register(command: CommandDefinition) {
         if (this.commands.has(command.id)) {
-            console.warn(`Command ${command.id} is already registered. Overwriting.`);
+            logAggregator.log("warn", `Command ${command.id} is already registered. Overwriting.`, { sourceKit: "commands.registry" });
         }
         this.commands.set(command.id, command);
     }

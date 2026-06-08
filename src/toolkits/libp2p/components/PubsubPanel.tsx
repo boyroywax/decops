@@ -54,7 +54,7 @@ export function PubsubPanel({
 
     const totals = useMemo(() => {
         let inN = 0, outN = 0;
-        for (const m of messages) (m.direction === "in" ? inN++ : outN++);
+        for (const m of messages) { if (m.direction === "in") inN++; else outN++; }
         return { inN, outN };
     }, [messages]);
 

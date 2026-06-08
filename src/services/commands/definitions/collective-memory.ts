@@ -82,7 +82,7 @@ const rememberCollectiveMemoryCommand: CommandDefinition = {
       : null;
 
     if (sourceAgent?.isDarkAgent) {
-      throw new Error(`Agent \"${sourceAgent.name}\" is in dark mode and cannot write to collective memory.`);
+      throw new Error(`Agent "${sourceAgent.name}" is in dark mode and cannot write to collective memory.`);
     }
 
     const entry = rememberCollectiveMemory({
@@ -589,7 +589,7 @@ const setAgentMemoryModeCommand: CommandDefinition = {
       }),
     );
 
-    context.workspace.addLog(`Agent \"${target.name}\" memory mode set to ${mode}`);
+    context.workspace.addLog(`Agent "${target.name}" memory mode set to ${mode}`);
     return {
       agentId: target.id,
       agentName: target.name,

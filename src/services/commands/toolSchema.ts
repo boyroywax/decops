@@ -8,6 +8,7 @@
  * external callers.
  */
 import type { CommandDefinition, CommandArg, CommandArgType } from "./types";
+import { logAggregator } from "@/services/logging";
 
 // ── Anthropic Tool Schema Types ────────────────────
 
@@ -157,9 +158,11 @@ export function capForAnthropic(cmds: CommandDefinition[]): CommandDefinition[] 
 
   const kept = sorted.slice(0, MAX_ANTHROPIC_TOOLS);
   const dropped = sorted.slice(MAX_ANTHROPIC_TOOLS).map((c) => c.id);
-  // eslint-disable-next-line no-console
-  console.warn(
+
+  logAggregator.log(
+    "warn",
     `[tools] ${cmds.length} commands exceeds Anthropic's ${MAX_ANTHROPIC_TOOLS}-tool limit; dropping ${dropped.length}: ${dropped.join(", ")}`,
+    { sourceKit: "commands.toolSchema" }
   );
   return kept;
 }

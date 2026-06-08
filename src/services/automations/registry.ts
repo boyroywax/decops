@@ -1,11 +1,12 @@
 
 import { AutomationDefinition } from "./types";
+import { logAggregator } from "@/services/logging";
 
 const registry = new Map<string, AutomationDefinition>();
 
 export function registerAutomation(def: AutomationDefinition) {
     if (registry.has(def.id)) {
-        console.warn(`Overwriting automation definition: ${def.id}`);
+        logAggregator.log("warn", `Overwriting automation definition: ${def.id}`, { sourceKit: "automations.registry" });
     }
     registry.set(def.id, def);
 }

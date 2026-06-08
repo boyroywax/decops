@@ -56,7 +56,6 @@ export function logAudit(
     });
   } catch {
     // Logger must never throw.
-    // eslint-disable-next-line no-console
     console.error(`[logAudit:${event}]`, data);
   }
 }

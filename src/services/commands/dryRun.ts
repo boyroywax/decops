@@ -481,7 +481,6 @@ export function dryRunJob(
           if (s.name) acc[s.name] = s;
           return acc;
         }, {});
-        // eslint-disable-next-line no-new-func
         const fn = new Function("steps", "context", `return ${step.condition}`);
         conditionMet = Boolean(fn(stepMap, context));
       } catch {

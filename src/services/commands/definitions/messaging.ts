@@ -76,7 +76,7 @@ export const sendMessageCommand: CommandDefinition = {
         if (!toAgent) throw new Error(`Recipient agent '${to_agent_id}' not found`);
 
         // 3. Find or validate channel (skip channel requirement when user is the sender)
-        let channel = allChannels.find(c =>
+        const channel = allChannels.find(c =>
             (c.from === fromAgent.id && c.to === toAgent.id) ||
             (c.from === toAgent.id && c.to === fromAgent.id)
         );

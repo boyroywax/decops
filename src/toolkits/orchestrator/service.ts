@@ -388,7 +388,7 @@ class OrchestratorManager {
         for (const spec of specs) {
             try {
                 const snap = libp2pService.snapshot();
-                let existing = snap.nodes.find((n) => n.label === spec.name) ?? null;
+                const existing = snap.nodes.find((n) => n.label === spec.name) ?? null;
                 let runtimeNodeId: string;
                 let action: OrchestratorOperationResult["action"] = "noop";
                 if (!existing) {
@@ -431,7 +431,7 @@ class OrchestratorManager {
         for (const spec of specs) {
             try {
                 const snap = heliaService.snapshot();
-                let existing = snap.nodes.find((n) => n.label === spec.name) ?? null;
+                const existing = snap.nodes.find((n) => n.label === spec.name) ?? null;
                 let runtimeNodeId: string;
                 let action: OrchestratorOperationResult["action"] = "noop";
                 if (!existing) {
@@ -478,7 +478,7 @@ class OrchestratorManager {
         for (const spec of specs) {
             try {
                 const snap = orbitdbService.snapshot();
-                let existing = snap.nodes.find((n) => n.label === spec.name) ?? null;
+                const existing = snap.nodes.find((n) => n.label === spec.name) ?? null;
                 let runtimeNodeId: string;
                 let action: OrchestratorOperationResult["action"] = "noop";
                 if (!existing) {
@@ -526,7 +526,7 @@ class OrchestratorManager {
         for (const spec of specs) {
             try {
                 const snap = kuboService.snapshot();
-                let existing = snap.nodes.find((n) => n.label === spec.name) ?? null;
+                const existing = snap.nodes.find((n) => n.label === spec.name) ?? null;
                 let runtimeNodeId: string;
                 let action: OrchestratorOperationResult["action"] = "noop";
                 if (!existing) {

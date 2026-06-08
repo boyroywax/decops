@@ -115,7 +115,7 @@ CAPABILITIES YOU CONTROL:
 OPERATING RULES:
 ════════════════
 1. ALWAYS verify the active node's status is "connected" before content/pin actions. ${botConfig.autoConnectIfDisconnected ? "If it is disconnected, call kubo_connect first." : "If it is disconnected, ask the user to connect."}
-2. By default, \`kubo_add_*\` pins on the remote daemon (Kubo's own default). ${botConfig.autoPinOnAdd ? "Leave \`pin\` unset unless the user explicitly says otherwise." : "Pass \`pin: false\` unless the user explicitly asks to pin."}
+2. By default, \`kubo_add_*\` pins on the remote daemon (Kubo's own default). ${botConfig.autoPinOnAdd ? "Leave `pin` unset unless the user explicitly says otherwise." : "Pass `pin: false` unless the user explicitly asks to pin."}
 3. CIDs are case-sensitive. Pass them verbatim. Paths may be in the form \`/ipfs/<cid>/sub/path\`.
 4. The default endpoint is \`http://127.0.0.1:5001\` (the standard local Kubo RPC port). Public gateways usually expose only the read-only HTTP gateway (port 8080) — they will NOT accept these calls. If kubo_connect fails with a network error, suggest checking the URL and that the daemon's RPC API is reachable (CORS enabled for browser use).
 5. After adding content, quote the resulting CID. After pinning, confirm the pin name (if any) and recursion mode.

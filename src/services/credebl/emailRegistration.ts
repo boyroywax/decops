@@ -1,6 +1,7 @@
 import api from '@/api/client';
 import type { ApiResponse, EmailRegistrationCredential, AgentType } from '@/types';
 import { CredeblResponse, OOBCredentialOfferResponse as OOBResponse } from './types';
+import { logAggregator } from '@/services/logging';
 
 const ORG_ID = import.meta.env.VITE_CREDEBL_ORG_ID || '';
 const ORG_DID = import.meta.env.VITE_CREDEBL_ORG_DID || '';
@@ -67,13 +68,13 @@ export const emailRegistrationService = {
                 },
             };
         } catch (error) {
-            console.warn('OOB email issuance not available, trying OID4VCI flow...');
+            logAggregator.log("warn", "OOB email issuance not available, trying OID4VCI flow...", { sourceKit: "credebl.emailRegistration" });
 
             // Fallback: Try OID4VCI credential offer (if issuer is configured)
             try {
                 return await this.issueViaOID4VCI(userEmail, userDid);
             } catch (oid4vcError) {
-                console.warn('OID4VCI issuance not available, storing locally...');
+                logAggregator.log("warn", "OID4VCI issuance not available, storing locally...", { sourceKit: "credebl.emailRegistration" });
 
                 // Store credential locally as a placeholder (demo mode)
                 const localCredential = this.createLocalEmailCredential(userEmail, userDid);

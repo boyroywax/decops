@@ -212,7 +212,6 @@ export function evaluateCondition(
       if (s.name) acc[s.name] = s;
       return acc;
     }, {});
-    // eslint-disable-next-line no-new-func
     const fn = new Function('steps', 'context', `return ${condition}`);
     return fn(stepMap, context);
   } catch (e) {

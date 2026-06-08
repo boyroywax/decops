@@ -91,10 +91,10 @@ export const createNetworkCommand: CommandDefinition = {
         const colorIdx = existingNetworks.length % (NETWORK_COLORS?.length || 6);
         const color = NETWORK_COLORS?.[colorIdx] || "#00e5a0";
 
-        let agents: Agent[] = [];
-        let channels: Channel[] = [];
-        let groups: Group[] = [];
-        let messages: Message[] = [];
+        const agents: Agent[] = [];
+        const channels: Channel[] = [];
+        const groups: Group[] = [];
+        const messages: Message[] = [];
 
         // If architectPrompt is provided, generate the network contents via AI
         if (args.architectPrompt) {

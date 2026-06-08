@@ -99,7 +99,7 @@ export interface ChatAgent {
     /** [start, end] for GradientIcon. */
     gradient?: [string, string];
     /** Sticky banner shown at the top of the chat conversation when active. */
-    banner?: ComponentType<{}>;
+    banner?: ComponentType<Record<string, never>>;
     /**
      * Optional welcome panel rendered in place of the generic empty-state
      * when this agent is active and the conversation has no messages yet.

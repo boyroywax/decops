@@ -229,14 +229,16 @@ export function GroupsView({
       />
 
       {/* Trading card modal */}
-      <GroupTradingCard
-        group={tradingCardGroup?.group!}
-        members={tradingCardGroup?.members || []}
-        networkName={tradingCardGroup?.networkName}
-        networkColor={tradingCardGroup?.networkColor}
-        isOpen={!!tradingCardGroup}
-        onClose={() => setTradingCardGroup(null)}
-      />
+      {tradingCardGroup && (
+        <GroupTradingCard
+          group={tradingCardGroup.group}
+          members={tradingCardGroup.members || []}
+          networkName={tradingCardGroup.networkName}
+          networkColor={tradingCardGroup.networkColor}
+          isOpen={!!tradingCardGroup}
+          onClose={() => setTradingCardGroup(null)}
+        />
+      )}
     </div>
   );
 }

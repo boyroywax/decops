@@ -84,6 +84,8 @@ export function GroupDetailView({
 }: GroupDetailViewProps) {
   const group = groups.find(g => g.id === groupId);
   const network = networks.find(n => n.id === networkId);
+  const [showTradingCard, setShowTradingCard] = useState(false);
+  const delConfirm = useDeleteConfirm();
 
   if (!group) {
     return (
@@ -96,8 +98,6 @@ export function GroupDetailView({
   const gov = GOVERNANCE_MODELS.find(g => g.id === group.governance);
   const memberAgents = agents.filter(a => group.members.includes(a.id));
   const nonMembers = agents.filter(a => a.networkId === networkId && !group.members.includes(a.id));
-  const [showTradingCard, setShowTradingCard] = useState(false);
-  const delConfirm = useDeleteConfirm();
 
   return (
     <div className="group-detail">

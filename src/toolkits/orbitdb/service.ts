@@ -180,7 +180,6 @@ interface DatabaseLike {
     iterator?: (opts?: { amount?: number; gt?: string; gte?: string; lt?: string; lte?: string }) =>
         AsyncIterable<{ hash?: string; key?: string; value: unknown }>;
     // KV
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     put?: (...args: any[]) => Promise<string>;
     set?: (key: string, value: unknown) => Promise<string>;
     del?: (key: string) => Promise<string>;
@@ -798,7 +797,6 @@ class OrbitdbNode {
     async docQuery(address: string, findFnSource: string): Promise<unknown[]> {
         const db = this.getOpenDb(address);
         if (!db.query) throw new Error("Database is not a documents store");
-        // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
         const fn = new Function("doc", `return (${findFnSource})(doc);`) as (doc: unknown) => boolean;
         return db.query(fn);
     }

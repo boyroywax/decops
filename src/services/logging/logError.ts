@@ -76,7 +76,6 @@ export function logError(
     });
   } catch {
     // Logger must never throw. Last-ditch best-effort to surface the original.
-    // eslint-disable-next-line no-console
     console.error(`[logError:${context}]`, err);
   }
 }

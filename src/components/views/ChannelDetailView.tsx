@@ -26,6 +26,7 @@ export function ChannelDetailView({
   navigateTo, removeChannel, setActiveChannel, setView,
 }: ChannelDetailViewProps) {
   const channel = channels.find(c => c.id === channelId);
+  const delConfirm = useDeleteConfirm();
   if (!channel) {
     return (
       <div className="channel-detail__empty-root">
@@ -41,7 +42,6 @@ export function ChannelDetailView({
   const chType = CHANNEL_TYPES.find(t => t.id === channel.type);
   const fromRole = ROLES.find(r => r.id === fromAgent?.role);
   const toRole = ROLES.find(r => r.id === toAgent?.role);
-  const delConfirm = useDeleteConfirm();
 
   const handleOpenMessages = () => {
     setActiveChannel(channelId);

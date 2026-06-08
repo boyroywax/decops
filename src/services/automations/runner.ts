@@ -52,7 +52,6 @@ export class AutomationRunner {
                             acc[s.stepId] = s;
                             return acc;
                         }, {});
-                        // eslint-disable-next-line no-new-func
                         const fn = new Function('steps', 'context', `return ${condition}`);
                         return fn(stepMap, context);
                     } catch (e) {

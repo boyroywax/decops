@@ -23,7 +23,7 @@ const getCommandColor = (tags: string[]) => {
 
 /** Extract 2-letter initials from a command id (e.g. "bulk_delete" → "BD") */
 function getInitials(id: string): string {
-    const parts = id.split(/[_\-]/).filter(Boolean);
+    const parts = id.split(/[_-]/).filter(Boolean);
     if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
     if (id.length >= 2) return (id[0] + id[1]).toUpperCase();
     return id[0]?.toUpperCase() ?? "?";

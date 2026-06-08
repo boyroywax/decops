@@ -327,7 +327,7 @@ function autoLayoutSteps(steps: StudioStep[]): StudioStep[] {
         step.x = x;
         step.y = y;
 
-        let nextX = x + NODE_SPACING_X;
+        const nextX = x + NODE_SPACING_X;
         let maxBottomY = y;
 
         // If this is a parallel group, layout its concurrent children vertically

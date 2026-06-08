@@ -36,7 +36,7 @@ export function ConfigurationItem({ field, value, onChange, onReset }: Configura
               checked={Boolean(effectiveValue)}
               onChange={(e) => onChange(e.target.checked)}
             />
-            <span>{Boolean(effectiveValue) ? "Enabled" : "Disabled"}</span>
+            <span>{effectiveValue ? "Enabled" : "Disabled"}</span>
           </label>
         )}
 

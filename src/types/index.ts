@@ -587,7 +587,7 @@ export interface CreateNetworkRequest {
   architectPrompt?: string;  // Optional: use Architect to generate the network
 }
 
-export interface ResetWorkspaceRequest { }
+export type ResetWorkspaceRequest = Record<string, never>;
 
 // Discriminated Union for all Job types
 export type JobRequest =

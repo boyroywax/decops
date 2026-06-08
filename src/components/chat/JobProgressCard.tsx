@@ -283,6 +283,19 @@ export function JobProgressCard({ jobId, toolCalls = [] }: JobProgressCardProps)
         [jobs, jobId],
     );
 
+    const [showDetails, setShowDetails] = useState<boolean>(() => {
+        const done = job?.status === "completed" || job?.status === "failed";
+        return !done;
+    });
+    useEffect(() => {
+        if (!job) return;
+        if (job.status === "completed" || job.status === "failed") {
+            setShowDetails(false);
+        } else {
+            setShowDetails(true);
+        }
+    }, [job]);
+
     if (!job) {
         // Suppress stale placeholder cards: if a message references a job id
         // that is no longer in memory, we hide the card instead of pinning a
@@ -300,7 +313,6 @@ export function JobProgressCard({ jobId, toolCalls = [] }: JobProgressCardProps)
     const pendingReplies = getPendingRepliesCount(job);
     const isQueued = job.status === "queued";
     const isAwaitingInput = job.status === "awaiting-input";
-    const [showDetails, setShowDetails] = useState(!(isDone || isFailed));
     const hasToolErrors = toolCalls.some(tc => !!tc.error);
     const displayStatus: "queued" | "running" | "completed" | "failed" | "awaiting-input" =
         isAwaitingInput
@@ -339,14 +351,6 @@ export function JobProgressCard({ jobId, toolCalls = [] }: JobProgressCardProps)
         const remSeconds = Math.floor(seconds % 60);
         return `${minutes}m ${remSeconds}s`;
     };
-
-    useEffect(() => {
-        if (isDone || isFailed) {
-            setShowDetails(false);
-            return;
-        }
-        setShowDetails(true);
-    }, [isDone, isFailed, job.id]);
 
     const isTerminal = isDone || isFailed;
     const collapseToTitle = isTerminal && !showDetails;

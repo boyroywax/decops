@@ -8,7 +8,7 @@ import {
   MessageSquare, Network, Download, Zap, Vote, FileText,
   Clapperboard, ListChecks, Image, Settings, FolderOpen,
   Sparkles, Wrench, Terminal, Hash, Shield,
-  ExternalLink, Play, Link2, Search, Camera,
+  ExternalLink, Link2, Search, Camera,
   Layers, Clock, CheckCircle2, AlertCircle,
   ChevronDown, ChevronUp,
   Briefcase, RefreshCcw, ClipboardList, Database, Bell,
@@ -56,10 +56,6 @@ export function ToolkitDetailView({ toolkitId, agent, updateAgent, navigateTo }:
   const [expandedTool, setExpandedTool] = useState<string | null>(null);
   const [expandedCommand, setExpandedCommand] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [crawlUrl, setCrawlUrl] = useState("");
-  const [crawlDepth, setCrawlDepth] = useState(2);
-  const [crawlMaxPages, setCrawlMaxPages] = useState(10);
-  const [crawlFormat, setCrawlFormat] = useState<"markdown" | "text" | "html">("markdown");
   const { getFieldValue, setFieldValue, resetFieldValue } = useToolkitConfiguration();
   const toggleSection = (id: string) => setExpandedSection(prev => prev === id ? null : id);
 
@@ -989,104 +985,6 @@ export function ToolkitDetailView({ toolkitId, agent, updateAgent, navigateTo }:
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {/* Web Crawler Quick Actions */}
-      {toolkitId === "web-crawler" && isEnabled && (
-        <div className="toolkit-detail__section">
-          <div className="toolkit-detail__section-title">
-            Quick Actions
-          </div>
-          <div className="toolkit-detail__quick-actions">
-            <div className="toolkit-detail__action-card">
-              <div className="toolkit-detail__action-header">
-                <GradientIcon icon={ExternalLink} size={16} gradient={toolkit.gradient} />
-                <span>Fetch URL</span>
-              </div>
-              <div className="toolkit-detail__action-form">
-                <input
-                  className="toolkit-detail__input"
-                  type="text"
-                  placeholder="https://example.com"
-                  value={crawlUrl}
-                  onChange={e => setCrawlUrl(e.target.value)}
-                />
-                <div className="toolkit-detail__action-row">
-                  <label className="toolkit-detail__label">Format</label>
-                  <div className="toolkit-detail__pills">
-                    {(["markdown", "text", "html"] as const).map(f => (
-                      <button
-                        key={f}
-                        className={`toolkit-detail__pill ${crawlFormat === f ? "toolkit-detail__pill--active" : ""}`}
-                        onClick={() => setCrawlFormat(f)}
-                      >
-                        {f}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <button
-                  className="toolkit-detail__run-btn"
-                  disabled={!crawlUrl.trim()}
-                  onClick={() => {
-                    // TODO: Wire to job executor
-                    alert(`Would fetch: ${crawlUrl} as ${crawlFormat}`);
-                  }}
-                >
-                  <Play size={12} /> Fetch
-                </button>
-              </div>
-            </div>
-
-            <div className="toolkit-detail__action-card">
-              <div className="toolkit-detail__action-header">
-                <GradientIcon icon={Search} size={16} gradient={toolkit.gradient} />
-                <span>Crawl Site</span>
-              </div>
-              <div className="toolkit-detail__action-form">
-                <input
-                  className="toolkit-detail__input"
-                  type="text"
-                  placeholder="https://example.com"
-                  value={crawlUrl}
-                  onChange={e => setCrawlUrl(e.target.value)}
-                />
-                <div className="toolkit-detail__action-row">
-                  <label className="toolkit-detail__label">Max depth</label>
-                  <input
-                    className="toolkit-detail__input toolkit-detail__input--small"
-                    type="number"
-                    min={1}
-                    max={5}
-                    value={crawlDepth}
-                    onChange={e => setCrawlDepth(Number(e.target.value))}
-                  />
-                </div>
-                <div className="toolkit-detail__action-row">
-                  <label className="toolkit-detail__label">Max pages</label>
-                  <input
-                    className="toolkit-detail__input toolkit-detail__input--small"
-                    type="number"
-                    min={1}
-                    max={100}
-                    value={crawlMaxPages}
-                    onChange={e => setCrawlMaxPages(Number(e.target.value))}
-                  />
-                </div>
-                <button
-                  className="toolkit-detail__run-btn"
-                  disabled={!crawlUrl.trim()}
-                  onClick={() => {
-                    // TODO: Wire to job executor
-                    alert(`Would crawl: ${crawlUrl} depth=${crawlDepth} maxPages=${crawlMaxPages}`);
-                  }}
-                >
-                  <Play size={12} /> Crawl
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       )}
 

@@ -39,6 +39,7 @@ import type {
   OCILayer,
   OCIReference,
 } from "./types";
+import { logAggregator, logError } from "@/services/logging";
 
 export class ToolkitRegistry {
   private modules = new Map<string, ToolkitModule>();
@@ -60,7 +61,7 @@ export class ToolkitRegistry {
     const id = module.manifest.id;
 
     if (this.modules.has(id)) {
-      console.warn(`Toolkit "${id}" already registered — unregistering first.`);
+      logAggregator.log("warn", `Toolkit "${id}" already registered — unregistering first.`, { sourceKit: "toolkits.registry" });
       await this.unregister(id);
     }
 
@@ -70,8 +71,10 @@ export class ToolkitRegistry {
         const depModule = this.modules.get(dep.id);
         if (!depModule) {
           if (!dep.optional) {
-            console.warn(
-              `Toolkit "${id}" depends on "${dep.id}" (${dep.version}) which is not registered.`
+            logAggregator.log(
+              "warn",
+              `Toolkit "${id}" depends on "${dep.id}" (${dep.version}) which is not registered.`,
+              { sourceKit: "toolkits.registry" }
             );
           }
           continue;
@@ -81,25 +84,31 @@ export class ToolkitRegistry {
 
         // Check minimum version (hard floor)
         if (dep.minimumVersion && depVersion < dep.minimumVersion) {
-          console.warn(
+          logAggregator.log(
+            "warn",
             `Toolkit "${id}" requires "${dep.id}" >= ${dep.minimumVersion} ` +
-            `but ${depVersion} is registered. Kit may not function correctly.`
+            `but ${depVersion} is registered. Kit may not function correctly.`,
+            { sourceKit: "toolkits.registry" }
           );
         }
 
         // Check recommended version (soft warning)
         if (dep.recommendedVersion && depVersion < dep.recommendedVersion) {
-          console.info(
+          logAggregator.log(
+            "info",
             `Toolkit "${id}": dependency "${dep.id}" is at ${depVersion}, ` +
-            `recommended ${dep.recommendedVersion}. Consider upgrading.`
+            `recommended ${dep.recommendedVersion}. Consider upgrading.`,
+            { sourceKit: "toolkits.registry" }
           );
         }
 
         // Log latest version availability (informational)
         if (dep.latestVersion && depVersion < dep.latestVersion) {
-          console.debug(
+          logAggregator.log(
+            "debug",
             `Toolkit "${id}": dependency "${dep.id}" has newer version ` +
-            `${dep.latestVersion} available (current: ${depVersion}).`
+            `${dep.latestVersion} available (current: ${depVersion}).`,
+            { sourceKit: "toolkits.registry" }
           );
         }
       }
@@ -378,7 +387,7 @@ export class ToolkitRegistry {
       try {
         fn();
       } catch (e) {
-        console.error("ToolkitRegistry listener error:", e);
+        logError("toolkits.registry.notify", e);
       }
     }
   }
