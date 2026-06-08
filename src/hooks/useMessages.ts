@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps -- intentional deps */
 import { useState, useRef, useEffect } from "react";
 import { useWorkspaceStore } from "@/stores";
-import type { Message, Agent, Channel, JobRequest } from "@/types";
+import type { Agent, Channel, JobRequest } from "@/types";
 
 export function useMessages(
     addJob: (job: JobRequest) => void,

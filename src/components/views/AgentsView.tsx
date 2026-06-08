@@ -1,6 +1,6 @@
 import type { Agent, Channel, Group, Message, NewAgentForm, Network, ViewId, NavContext } from "@/types";
 import { ROLES, PROMPT_TEMPLATES } from "@/constants";
-import { inputStyle, SectionTitle, PillButton, BulkCheckbox, BulkActionBar } from "@/components/shared/ui";
+import { SectionTitle, PillButton, BulkCheckbox, BulkActionBar } from "@/components/shared/ui";
 import { useState, useCallback } from "react";
 import { Bot, Hexagon, X, Globe, Download, Sparkles, ExternalLink, MessageSquare, GitBranch, Users, Zap, LayoutGrid, List, Cpu, Wrench } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
@@ -40,7 +40,7 @@ interface AgentsViewProps {
 export function AgentsView({
   agents, channels, groups, messages, networks,
   showCreate, setShowCreate, newAgent, setNewAgent,
-  selectedAgent, setSelectedAgent, editingPrompt, setEditingPrompt,
+  editingPrompt, setEditingPrompt,
   editPromptText, setEditPromptText,
   createAgent, updateAgentPrompt, removeAgent, removeAgents, navigateTo,
 }: AgentsViewProps) {

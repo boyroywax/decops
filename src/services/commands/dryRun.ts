@@ -11,7 +11,7 @@
  */
 
 import { getCommandErrors, type CommandError } from "./commandErrors";
-import type { CommandDefinition, CommandArg, CommandContext } from "./types";
+import type { CommandDefinition, CommandContext } from "./types";
 import type { JobStep } from "@/types";
 import { DELIVERABLE_STORAGE_PREFIX } from "@/utils/jobRuntime";
 

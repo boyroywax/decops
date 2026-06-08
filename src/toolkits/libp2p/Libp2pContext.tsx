@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * Libp2pContext — React provider that mirrors the libp2p manager state.
  *

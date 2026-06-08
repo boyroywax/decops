@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- jobs-snapshot effect intentional */
 /**
  * HeliaView — main UI surface for the Helia (IPFS) toolkit.
  *
@@ -9,7 +10,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Boxes, Power, PowerOff, Plus, X, Copy, Trash2, Pin, PinOff,
+    Boxes, Power, PowerOff, Plus, X, Copy, Pin, PinOff,
     Download, FileText, Braces, ListTree, Bot, RefreshCw, Link2,
     Network, Binary, Upload,
 } from "lucide-react";

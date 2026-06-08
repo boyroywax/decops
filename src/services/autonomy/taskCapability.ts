@@ -30,7 +30,7 @@ export async function handleCapabilityGaps(
     .flat()
     .filter(Boolean) as string[];
 
-  const { missingCommands, recommendations } = identifyGaps(agents, requiredCommands);
+  const { recommendations } = identifyGaps(agents, requiredCommands);
 
   if (recommendations.length === 0) return false;
 

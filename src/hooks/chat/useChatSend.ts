@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- intentional deps (stable refs) */
 import { useCallback, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import { streamChatWithWorkspace, chatWithAgent } from "@/services/ai";
@@ -528,7 +529,6 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
                 // Build the final conversation. If the model returned no
                 // visible text, skip the assistant bubble but still persist
                 // the conversation so prior context is not lost.
-                const trimmed = response.trim();
                 const hasResponse = response.length > 0;
                 // Persist the assistant turn if there's text OR tool calls
                 const hasToolCalls = toolCalls.length > 0;

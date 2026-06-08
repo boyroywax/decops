@@ -33,7 +33,7 @@ export const broadcastMessageCommand: CommandDefinition = {
     execute: async (args, context) => {
         const { group_id, message, sender_id } = args;
         const awaitResponses = Boolean(args.await_responses);
-        const { agents, channels, groups, setMessages, setActiveChannels, addLog } = context.workspace;
+        const { agents, channels, groups, setMessages, addLog } = context.workspace;
 
         const group = groups.find((g: Group) => g.id === group_id);
         if (!group) throw new Error("Group not found");

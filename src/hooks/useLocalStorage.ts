@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- storage-sync effect keyed intentionally */
 import { useState, useEffect, useCallback, useRef } from "react";
 import { logError } from "@/services/logging";
 
@@ -98,7 +99,6 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
         setStoredValue(readValue());
         // reason: re-sync once on mount; readValue is stable via useCallback and
         // adding it would re-run on every render-fresh ref. §5.4.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {

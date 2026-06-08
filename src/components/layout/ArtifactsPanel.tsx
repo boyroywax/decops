@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- resize effect with intentional deps */
 import { useState, useRef, useEffect, useMemo } from "react";
 import { X, Gem, Plus, FileText, Image, Code, File, Tag, Layers, Clock, Hash, ChevronRight, Search, Upload, PenLine, ChevronsUp, ChevronsDown, Edit3 } from "lucide-react";
 import type { JobArtifact, ArtifactType } from "@/types";
@@ -186,7 +187,7 @@ function CreateArtifactModal({ onClose, onCreate }: {
  * MAIN COMPONENT
  * ═══════════════════════════════════════════════════════════════════════ */
 
-export function ArtifactsPanel({ artifacts, importArtifact, removeArtifact, updateArtifact, onClose, height, setHeight, isExpanded, onToggleExpand, onOpenInEditor }: ArtifactsPanelProps) {
+export function ArtifactsPanel({ artifacts, importArtifact, removeArtifact, onClose, height, setHeight, isExpanded, onToggleExpand, onOpenInEditor }: ArtifactsPanelProps) {
     const [isResizing, setIsResizing] = useState(false);
     const [search, setSearch] = useState("");
     const [selectedArtifact, setSelectedArtifact] = useState<JobArtifact | null>(null);

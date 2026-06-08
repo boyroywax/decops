@@ -1,8 +1,8 @@
 import React from "react";
 import type { RefObject } from "react";
 import { useState, useMemo, useCallback } from "react";
-import type { Agent, Channel, Group, Message, Network, Bridge, BridgeMessage, JobArtifact, ViewId } from "@/types";
-import { MessageSquare, ArrowLeftRight, Hexagon, X, Link2, Globe, FileText, FileJson, FileCode, Image, FileSpreadsheet, File, Eye, EyeOff } from "lucide-react";
+import type { Agent, Channel, Group, Message, Network, Bridge, BridgeMessage, JobArtifact } from "@/types";
+import { MessageSquare, ArrowLeftRight, Hexagon, Link2, Globe, FileText, FileJson, FileCode, Image, FileSpreadsheet, File, Eye, EyeOff } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { MarkdownContent } from "@/components/shared/MarkdownContent";
 import { ThinkingIndicator } from "@/components/chat/ThinkingIndicator";

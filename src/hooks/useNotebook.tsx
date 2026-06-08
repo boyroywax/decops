@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Settings } from "lucide-react";
-import type { NotebookEntry, NotebookCategory } from "@/types";
+import type { NotebookEntry } from "@/types";
 
 const STORAGE_KEY = "decops_notebook";
 const MAX_ENTRIES = 500;
@@ -22,7 +22,7 @@ export function useNotebook() {
     // here so the React tree does not unmount (which previously caused a black screen).
     useEffect(() => {
         try {
-            const serializableEntries = entries.map(({ icon, ...rest }) => rest);
+            const serializableEntries = entries.map(({ icon: _icon, ...rest }) => rest);
             localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableEntries));
         } catch (err) {
             console.warn(`useNotebook: failed to persist ${entries.length} entries — clearing oldest and retrying.`, err);
@@ -30,7 +30,7 @@ export function useNotebook() {
                 // Drop to half size and retry once; if it still fails, give up
                 // silently — in-memory state remains usable until reload.
                 const trimmed = entries.slice(0, Math.max(1, Math.floor(entries.length / 2)));
-                const serializableTrimmed = trimmed.map(({ icon, ...rest }) => rest);
+                const serializableTrimmed = trimmed.map(({ icon: _icon, ...rest }) => rest);
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableTrimmed));
             } catch (err2) {
                 console.warn("useNotebook: trim+retry also failed; persistence disabled for this session.", err2);

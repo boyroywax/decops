@@ -26,7 +26,7 @@ type ManagerListener = (state: HeliaManagerSnapshot) => void;
 
 // Minimal structural interfaces — we keep `any` at the boundary because the
 // Helia types are heavy and dynamically imported.
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 interface HeliaLike {
     libp2p: Libp2p;
     blockstore: any;
@@ -60,7 +60,7 @@ interface DagCborLike {
     add: (value: unknown) => Promise<any>;
     get: (cid: any, options?: { path?: string; signal?: AbortSignal }) => Promise<unknown>;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
+ 
 
 const NODES_STORAGE_KEY = "decops:helia-nodes:v1";
 
@@ -227,7 +227,7 @@ class HeliaNode {
                 let libp2pNode;
                 try {
                     libp2pNode = libp2pService.getNode(this.libp2pNodeId);
-                } catch (err) {
+                } catch {
                     throw new Error(
                         `libp2p node "${this.libp2pNodeId}" not found — pick another or leave the selection empty`,
                     );
@@ -260,7 +260,7 @@ class HeliaNode {
 
                 // ── 3) Boot Helia using the existing libp2p instance ──────
                 // Cast to `any` — helia's Libp2p generic is stricter than ours.
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 const helia = await createHelia({ libp2p: libp2p as any });
                 this.helia = helia as unknown as HeliaLike;
                 this.fs = unixfs(helia) as unknown as UnixfsLike;

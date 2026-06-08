@@ -42,7 +42,7 @@ export interface ToolkitViewContribution {
    *   - `workspace` (WorkspaceContextType)
    * Additional props are passed through from ViewSwitcher.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   Component: ComponentType<any>;
 }
 

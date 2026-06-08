@@ -24,7 +24,7 @@
  */
 
 import { useEffect } from "react";
-import { Bot, Boxes, Compass, Database, HardDrive, Network, Server, Waypoints } from "lucide-react";
+import { Boxes, Compass, Database, HardDrive, Network, Server, Waypoints } from "lucide-react";
 import { useChatAgentsStore } from "@/services/chat/agents";
 import { Libp2pChatBanner } from "./libp2p/components/Libp2pChatBanner";
 import { HeliaChatBanner } from "./helia/components/HeliaChatBanner";

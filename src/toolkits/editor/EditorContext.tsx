@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * EditorContext — bridges the Editor view's internal state/callbacks
  * to the rest of the app (ChatPanel AI, etc.).

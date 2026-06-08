@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useWorkspaceStore } from "@/stores";
-import type { Channel, ChannelForm, JobRequest } from "@/types";
+import type { ChannelForm, JobRequest } from "@/types";
 
 export function useChannels(addJob: (job: JobRequest) => void) {
     const channels = useWorkspaceStore((s) => s.channels);

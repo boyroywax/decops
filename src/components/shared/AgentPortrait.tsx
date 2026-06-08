@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- intentional memo deps */
 /**
  * AgentPortrait — AI-generated portrait via Google Imagen 4.0
  *

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { Agent, Group, GroupForm, GovernanceModelId, Channel, Message, ViewId, Network } from "@/types";
-import { Hexagon, X, MessageSquare, Check, Plus, Globe } from "lucide-react";
+import type { Agent, Group, GroupForm, ViewId, Network } from "@/types";
+import { Hexagon, X, MessageSquare, Globe } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { ROLES, GOVERNANCE_MODELS } from "@/constants";
 import { SectionTitle, BulkCheckbox, BulkActionBar } from "@/components/shared/ui";

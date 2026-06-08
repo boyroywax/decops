@@ -21,7 +21,7 @@ import type {
 
 type ManagerListener = (state: KuboManagerSnapshot) => void;
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 /**
  * Structural shape we rely on from `kubo-rpc-client`. Keeping `any` at the
  * boundary because the real types are heavy and dynamically imported.
@@ -45,7 +45,7 @@ interface KuboClientLike {
     };
     stop?: (opts?: any) => Promise<void>;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
+ 
 
 const NODES_STORAGE_KEY = "decops:kubo-nodes:v1";
 const PREVIEW_CHARS = 240;
@@ -229,9 +229,9 @@ class KuboNode {
             try {
                 const mod = await import("kubo-rpc-client");
                 // Cast: kubo-rpc-client publishes its `create` factory without a typedef in our module resolution mode.
-                /* eslint-disable @typescript-eslint/no-explicit-any */
+                 
                 const create = (mod as any).create as (opts: any) => KuboClientLike;
-                /* eslint-enable @typescript-eslint/no-explicit-any */
+                 
                 if (typeof create !== "function") {
                     throw new Error("kubo-rpc-client.create is not a function");
                 }

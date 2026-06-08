@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- jobs-snapshot effect intentional */
 /**
  * OrbitdbView — main UI surface for the OrbitDB toolkit.
  *

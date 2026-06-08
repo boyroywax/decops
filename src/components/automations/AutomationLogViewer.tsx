@@ -1,6 +1,6 @@
 
-import { useState, useMemo } from "react";
-import { X, Clock, Terminal, ChevronRight, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { X, Clock, ChevronRight, ChevronDown } from "lucide-react";
 import type { AutomationRun } from "@/services/automations/types";
 import "../../styles/components/automation-log-viewer.css";
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useWorkspaceStore } from "@/stores";
-import type { Group, GroupForm, JobRequest } from "@/types";
+import type { GroupForm, JobRequest } from "@/types";
 
 export function useGroups(addJob: (job: JobRequest) => void) {
     const groups = useWorkspaceStore((s) => s.groups);

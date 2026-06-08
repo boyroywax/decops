@@ -18,7 +18,7 @@
 
 import { registry } from "@/services/commands/registry";
 import type { CommandContext } from "@/services/commands/types";
-import type { JobDefinition, JobStep, JobDeliverable, EntityInput } from "@/types/jobs";
+import type { JobDefinition, JobStep, JobDeliverable } from "@/types/jobs";
 import {
   resolveRefs, applyInputBindings, applyOutputMappings,
   evaluateCondition, getStepContext, executeStepHandler,

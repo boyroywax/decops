@@ -1,8 +1,6 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import type {
-  AieosEntity, AieosSkill, AieosIdentity, AieosPhysicality,
-  AieosPsychology, AieosLinguistics, AieosHistory, AieosInterests,
-  AieosMotivations,
+  AieosEntity,
 } from "@/types";
 import {
   Save, X, Brain, Users, Sparkles, Compass, Shield, Mic,

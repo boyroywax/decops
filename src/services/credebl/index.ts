@@ -4,7 +4,6 @@ import { verificationService } from './verification';
 import { connectionService } from './connection';
 import { schemaService } from './schema';
 import { agentService } from './agent';
-import { emailRegistrationService } from './emailRegistration';
 import { emailValidationService } from './emailValidation';
 import { generateUserSeed } from './did';
 

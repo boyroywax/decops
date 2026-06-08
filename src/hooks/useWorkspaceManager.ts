@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import type { Workspace, WorkspaceMetadata, Ecosystem } from '@/types';
 import { generateEcosystemDID } from '@/utils/identity';
@@ -157,11 +157,6 @@ export function useWorkspaceManager() {
         setWorkspaces(prev => [...prev, newMetadata]);
 
         return newId;
-    };
-
-    const importWorkspace = (fileMatches: FileList | null) => {
-        // This would handle file reading, parsing JSON, and then calling create/save
-        // We can implement this in the UI component or return a helper here.
     };
 
     /** Lightweight metadata-only stats update (no full localStorage save) */

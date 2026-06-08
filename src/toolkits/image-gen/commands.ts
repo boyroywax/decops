@@ -76,7 +76,7 @@ export const generateImageCommand: CommandDefinition = {
         },
     },
     execute: async (args, context) => {
-        const { target, prompt: userPrompt, entityId, style: styleArg, force } = args;
+        const { target, prompt: userPrompt, entityId, style: styleArg } = args;
         const { workspace } = context;
 
         // Validate Gemini API key

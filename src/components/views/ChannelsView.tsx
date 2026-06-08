@@ -1,6 +1,6 @@
 import type { Agent, Channel, ChannelForm, ViewId, NavContext, Message, Network } from "@/types";
 import { CHANNEL_TYPES, ROLES } from "@/constants";
-import { inputStyle, SectionTitle, BulkCheckbox, BulkActionBar, PillButton } from "@/components/shared/ui";
+import { SectionTitle, BulkCheckbox, BulkActionBar, PillButton } from "@/components/shared/ui";
 import { ArrowLeftRight, X, Globe } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { useBulkSelect } from "@/hooks/useBulkSelect";

@@ -99,7 +99,7 @@ export class CommandRegistry {
         return Array.from(this.commands.values());
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     async execute<T extends Record<string, unknown> = Record<string, unknown>>(id: string, args: T, context: CommandContext): Promise<any> {
         const command = this.get(id);
         if (!command) {

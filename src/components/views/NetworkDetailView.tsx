@@ -21,7 +21,7 @@ interface NetworkDetailViewProps {
 
 export function NetworkDetailView({
   networkId, agents, channels, groups,
-  networks, bridges, navigateTo, dissolveNetwork,
+  networks, bridges, navigateTo,
 }: NetworkDetailViewProps) {
   const network = networks.find(n => n.id === networkId);
   if (!network) {

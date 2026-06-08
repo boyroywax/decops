@@ -1,6 +1,6 @@
 
 import type {
-    RoleId, JobRequest, JobDeliverable,
+    RoleId, JobRequest,
     Agent, Channel, Group, Message,
     Network, Bridge, BridgeMessage, Ecosystem,
     User, JobArtifact,
@@ -88,7 +88,7 @@ export interface CommandContext {
     };
     /** Mutable shared storage for inter-step data passing within jobs/automations.
      *  Values are arbitrary command results so the type is intentionally loose. */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     storage: Record<string, any>;
     /** Produce a deliverable (auto-creates artifact and tags it with the job) */
     addDeliverable: (deliverable: {
@@ -159,7 +159,7 @@ export interface CommandContext {
  * commands should narrow it explicitly (e.g.
  * `CommandDefinition<{ agentId: string }>`).
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export interface CommandDefinition<TArgs = any> {
     id: string;
     description: string;
@@ -188,6 +188,6 @@ export interface CommandDefinition<TArgs = any> {
      * `spawnsChildJobs` heuristic.
      */
     timeoutMs?: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     execute: (args: TArgs, context: CommandContext) => Promise<any>;
 }

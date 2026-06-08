@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- stable useLocalStorage setters (memoized) intentionally omitted */
 import { useState, useCallback, useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import type { Job, JobStatus, JobArtifact, JobRequest, JobEvent, EntityInput } from "@/types";
@@ -94,7 +95,6 @@ export function useJobs() {
             return trimJobs(fixed);
         });
         // Intentionally run once on mount — setJobs identity is stable from useLocalStorage.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const addJob = useCallback((jobData: JobRequest) => {
@@ -251,29 +251,6 @@ export function useJobs() {
             }
             return job;
         }));
-    }, []);
-
-    const reorderJobs = useCallback((fromIndex: number, toIndex: number) => {
-        setJobs(prev => {
-            // Only reorder queued jobs. We need to find the indices in the full array.
-            // Simplified: We'll assume the UI passes indices relative to the *queue* view, 
-            // but for safety, let's just reorder the whole array or expect the UI to handle logic?
-            // Better: active jobs are at the top usually. 
-            // Actually, `jobs` contains history too. 
-            // Let's filter for queued/running? No, history is typically at end or filtered out.
-            // Reordering usually only applies to "queued" items. "Running" is locked.
-
-            // To be safe and simple: The UI will pass ids or we assume we are moving `jobs[from]` to `jobs[to]`.
-            // But if `jobs` has history, indices are messy.
-            // Let's change the signature to take IDs if possible, or just reorder the underlying array if the UI shows all.
-            // For now, let's implement validation: we find the items and swap them. 
-
-            // Wait, UI Drag and Drop usually gives indices of the *rendered list*.
-            // If the rendered list is just `queue`, we need to map that back to the main `jobs` array.
-            // Let's keep it simple: `reorderJobs` will accept the new order of IDs for the queue.
-
-            return prev; // Placeholder, see actual logic below
-        });
     }, []);
 
     // Re-implementing reorder correctly based on IDs is safer

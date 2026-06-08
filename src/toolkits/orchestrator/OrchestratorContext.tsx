@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * OrchestratorContext — React provider mirroring the orchestrator manager
  * state, and wiring the artifact subsystem into the service.

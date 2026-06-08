@@ -55,7 +55,6 @@ export function ViewSwitcher({
     navContext,
     navigateTo,
     workspace,
-    architect,
     ecosystem,
     allArtifacts,
     importArtifact,
@@ -66,9 +65,6 @@ export function ViewSwitcher({
     exportNotebook,
     addNotebookEntry,
     addJob,
-    savedJobs,
-    onSaveJob,
-    onDeleteJob
 }: ViewSwitcherProps) {
     const breadcrumb = (navContext.networkId || navContext.groupId || navContext.agentId || navContext.channelId || navContext.toolkitId) ? (
         <Breadcrumb

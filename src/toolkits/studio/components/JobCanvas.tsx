@@ -2,7 +2,7 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import { Workflow, Package, Database, Tag, X, GitFork } from "lucide-react";
 import { JobNode } from "./JobNode";
 import type { StudioStep, SelectedElement, AnchorSide } from "@/toolkits/studio/components/StudioView";
-import { isParallelGroup, PARALLEL_GROUP_CMD } from "@/toolkits/studio/components/StudioView";
+import { isParallelGroup } from "@/toolkits/studio/components/StudioView";
 import type { JobDeliverable, EntityInput } from "@/types";
 import {
     NODE_WIDTH, NODE_HEIGHT, DELIV_WIDTH, DELIV_HEIGHT,
@@ -266,7 +266,7 @@ export function JobCanvas({
 
     // ── Compute all layout: group bounds, connectors, positions, canvas extents ──
     const {
-        groupBounds, connectors, leafSteps,
+        connectors,
         delivPositions, storagePositions, inputPositions,
         delivConnectors, storageConnectors, inputConnectors,
         maxX, maxY,
@@ -503,10 +503,6 @@ export function JobCanvas({
 
                 {/* ── Step Nodes (draggable) ── */}
                 {steps.filter(s => !isParallelGroup(s)).map((step, idx) => {
-                    const stepIndex = steps.filter(s => {
-                        // BFS order index based on parentId tree
-                        return steps.indexOf(s) <= steps.indexOf(step);
-                    }).length;
                     const isSelected = (selectedElement?.type === "step" && selectedElement.id === step.id) || isInMultiSelect("step", step.id);
                     return (
                         <div

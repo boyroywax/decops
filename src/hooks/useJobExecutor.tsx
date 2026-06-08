@@ -1,12 +1,12 @@
+/* eslint-disable react-hooks/exhaustive-deps -- job-processing effect with intentional deps */
 import { useEffect, useRef } from "react";
 import { Rocket, CheckCircle, XCircle } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
-import { useNotebook } from "./useNotebook";
 import { registry } from "@/services/commands/registry";
 import { resolveToolJob, rejectToolJob } from "@/services/commands/tools";
 import type { CommandContext } from "@/services/commands/types";
 import type { WorkspaceContextType } from "@/context/WorkspaceContext";
-import type { User, JobEvent, Job, JobArtifact, JobRequest, NotebookEntry, EntityInput } from "@/types";
+import type { User, JobEvent, Job, JobArtifact, NotebookEntry, EntityInput } from "@/types";
 import type { JobStep, JobDeliverable, JobCompletionDetails } from "@/types/jobs";
 import type { UseJobsReturn } from "./useJobs";
 import type { UseJobCatalogReturn } from "./useJobCatalog";
@@ -303,7 +303,7 @@ export function useJobExecutor({
                             }
                             pushTimelineEvent({ kind: "step:started", label: `All ${steps.length} steps started (parallel)` });
 
-                            const promises = queuedJob.steps.map(async (step: JobStep, idx: number) => {
+                            const promises = queuedJob.steps.map(async (step: JobStep, _idx: number) => {
                                 const stepStarted = Date.now();
                                 try {
                                     const boundArgs = applyInputBindings(step.args, step.inputBindings, jobStorage, deliverableContents);

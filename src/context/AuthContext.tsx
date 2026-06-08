@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
 import type { User, AuthState, EmailValidation } from '@/types';
 import { authService, emailRegistrationService, emailValidationService } from '@/services/credebl';
@@ -143,7 +144,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                             if (didResponse.success && didResponse.data?.did) {
                                 userDid = didResponse.data.did;
                             }
-                        } catch (didError) {
+                        } catch {
                             console.warn('Failed to create DID via API, using local generation flow');
                         }
                     }
@@ -288,7 +289,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 return true;
             }
             return false;
-        } catch (error) {
+        } catch {
             return false;
         }
     };

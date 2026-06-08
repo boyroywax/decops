@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- mount/unmount effects use refs for fresh values */
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
@@ -14,7 +15,7 @@ import {
   Sparkles, Columns,
 } from "lucide-react";
 import { useEditorContext } from "./EditorContext";
-import type { EditorAPI, PersistedEditorState } from "./EditorContext";
+import type { EditorAPI } from "./EditorContext";
 import "./editor.css";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
@@ -740,7 +741,7 @@ export function EditorView({ updateArtifact, importArtifact }: EditorViewProps) 
     if (pending) loadArtifactRef.current(pending);
   }, [consumePendingArtifact]);
 
-  const newFile = useCallback((type: FileType = "markdown") => {
+  const _newFile = useCallback((type: FileType = "markdown") => {
     const templates: Record<FileType, string> = {
       markdown: "# New Document\n\nStart writing here...\n",
       json: '{\n  \n}',

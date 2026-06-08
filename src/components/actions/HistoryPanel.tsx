@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
     LayoutGrid, List, CheckCircle, AlertCircle, ChevronDown, ChevronUp,
-    Terminal, FileText, Timer, Clock, Search,
+    Terminal, FileText, Timer, Clock,
 } from "lucide-react";
 import { useJobsContext } from "@/context/JobsContext";
 import { GradientIcon } from "@/components/shared/GradientIcon";

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { findDelegationTarget, buildDelegationRequest, delegationEvent, escalationEvent } from "@/services/autonomy/delegation";
 import type { Agent, Network } from "@/types";
 import type { AgentTask, DelegationTarget } from "@/types/autonomy";

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * CommandContextProvider — exposes the assembled CommandContext via React context
  * so deep components (e.g. AgentChat) can run tool-calls without prop-drilling

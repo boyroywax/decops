@@ -22,7 +22,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const ecoBridges = eco.bridges;
   const llm = useLLM();
 
-  const [status, setStatus] = useState("");
   const [importStatus, setImportStatus] = useState("");
   const del = useDeleteConfirm();
   const fileInputRef = useRef<HTMLInputElement>(null);

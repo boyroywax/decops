@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { AlertTriangle, Key, Bot, Download, Upload, Check, Image as ImageIcon } from "lucide-react";
 import { CopyableId } from "@/components/shared/CopyableId";
-import { GradientIcon } from "@/components/shared/GradientIcon";
 import { useAuth } from "@/context/AuthContext";
 import { ANTHROPIC_MODELS } from "@/constants";
 import { getSelectedModel, setSelectedModel } from "@/services/ai";

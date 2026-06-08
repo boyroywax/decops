@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { assessAgent, rankAgentsForGoal, findBestGroupMember, identifyGaps } from "@/services/autonomy/capability";
 import type { Agent } from "@/types";
 

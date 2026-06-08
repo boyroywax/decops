@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
     Cpu, MessageSquare, Users, Network,
-    Calendar, Trash2, Power, RotateCcw, Info
+    Calendar, Trash2, Power, RotateCcw
 } from "lucide-react";
 import { WorkspaceMetadata } from "@/types";
 import "../../styles/components/workspace-card.css";

@@ -21,8 +21,8 @@ import type { JobDefinition } from "@/types/jobs";
 import { registry } from "@/services/commands/registry";
 import { getCommandIdsForAgent } from "@/services/commands/tools";
 import { getAgentModel } from "@/services/ai/models";
-import { getModelProvider, buildProviderRequest, parseProviderResponse } from "@/services/ai/providers";
-import { assessAgent, rankAgentsForGoal } from "./capability";
+import { buildProviderRequest, parseProviderResponse } from "@/services/ai/providers";
+import { assessAgent } from "./capability";
 
 /**
  * Ask the assigned agent to analyze the goal and produce a TaskPlan.
@@ -247,7 +247,7 @@ function buildPlannerUserMessage(goal: string, constraints: string[]): string {
 
 // ── Response parser ────────────────────────────────
 
-function parsePlanResponse(text: string, peerAgents: Agent[]): TaskPlan {
+function parsePlanResponse(text: string, _peerAgents: Agent[]): TaskPlan {
   // Try to extract JSON from the response
   let json: Record<string, unknown>;
   try {

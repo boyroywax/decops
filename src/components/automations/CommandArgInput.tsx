@@ -1,5 +1,5 @@
 import React from "react";
-import { CommandArg, CommandArgType } from "@/services/commands/types";
+import { CommandArg } from "@/services/commands/types";
 import { useWorkspaceStore, useEcosystemStore } from "@/stores";
 import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
 import "../../styles/components/command-arg-input.css";

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- intentional memo deps */
 import { useState, useMemo } from "react";
 import type { NotebookEntry, NotebookCategory } from "@/types";
 import { Zap, Download, Edit, Trash2 } from "lucide-react";

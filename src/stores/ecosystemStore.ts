@@ -74,7 +74,7 @@ function createDefaultEcosystem(): Ecosystem {
 
 export const useEcosystemStore = create<EcosystemStore>()(
   persist(
-    immer((set, get) => ({
+    immer((set, _get) => ({
       // Initial state
       ecosystem: createDefaultEcosystem(),
       activeNetworkId: null,

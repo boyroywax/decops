@@ -162,7 +162,7 @@ function CreateArtifactModal({ onClose, onCreate }: {
  * MAIN COMPONENT
  * ═══════════════════════════════════════════════════════════════════════ */
 
-export function ArtifactsView({ artifacts, importArtifact, removeArtifact, updateArtifact, initialSelectedId }: ArtifactsViewProps) {
+export function ArtifactsView({ artifacts, importArtifact, removeArtifact, initialSelectedId }: ArtifactsViewProps) {
     const [search, setSearch] = useState("");
     const [groupBy, setGroupBy] = useState<GroupBy>("none");
     const [activeTagFilter, setActiveTagFilter] = useState<string | null>(null);

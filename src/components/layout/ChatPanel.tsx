@@ -1,7 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps -- intentional deps (stable refs) */
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { getChatModel } from "@/services/ai";
-import type { ChatMessage, ToolCallDisplay, WorkspaceContext } from "@/services/ai";
-import { useLLM } from "@/context/LLMContext";
+import type { WorkspaceContext } from "@/services/ai";
 import { useStreamingChatState } from "@/components/chat/useStreamingChatState";
 import { makeId } from "@/components/chat/utils";
 import { MemoriesPanel } from "@/components/chat/MemoriesPanel";
@@ -16,12 +15,11 @@ import type { EcosystemSelection } from "@/components/chat/ecosystemSelection";
 import { useChatMentions } from "@/hooks/chat/useChatMentions";
 import { useChatScroll } from "@/hooks/chat/useChatScroll";
 import { useChatSend } from "@/hooks/chat/useChatSend";
-import type { Conversation } from "@/components/chat/types";
 import { useCommandContext } from "@/hooks/useCommandContext";
 import type { EcosystemInput } from "@/hooks/useCommandContext";
 import { useJobsContext } from "@/context/JobsContext";
 import { useArchitectContext } from "@/toolkits/architect";
-import { useEcosystem } from "@/hooks/useEcosystem"; // Bridge UI — needed for command context ecosystem prop
+// Bridge UI — needed for command context ecosystem prop
 import { useAuth } from "@/context/AuthContext";
 import { CommandPrompt } from "@/components/actions/CommandPrompt";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
@@ -365,13 +363,9 @@ export function ChatPanel({ context, refreshContext, ecosystem, onClose, addLog,
         return height;
     }, [isSide, activeAgent?.preferredSideWidth, activeAgent?.id, height, layoutOverrides]);
 
-    const modelId = getChatModel();
-    const llm = useLLM();
-
     const studioAvailable = !!studioApi && view === "jobs";
     const studioActive = activeAgent?.id === "studio";
 
-    const editorAvailable = !!editorApi && view === "editor";
     const editorActive = activeAgent?.id === "editor";
     const conversationEcosystemSelection = useMemo(() => {
         if (!active?.ecosystemKind || !active?.ecosystemId) return null;

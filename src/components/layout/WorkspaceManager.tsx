@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { useWorkspaceManager } from "@/hooks/useWorkspaceManager";
 import { useWorkspaceStore } from "@/stores";
-import { Grid, Plus, Download, Upload, Check, Trash2, FolderOpen, Save } from "lucide-react";
+import { Grid, Plus, Download, Upload, Check, Trash2, Save } from "lucide-react";
 import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
-import { WorkspaceMetadata } from "@/types";
 import "../../styles/components/workspace-manager.css";
 
 interface WorkspaceManagerProps {
@@ -64,7 +63,7 @@ export function WorkspaceManager({ onClose }: WorkspaceManagerProps) {
             }
         }
 
-        const newWs = createWorkspace(newWorkspaceName.trim());
+        createWorkspace(newWorkspaceName.trim());
         clearWorkspace(); // Reset UI
         // New workspace starts empty, so no need to import anything other than maybe default agents if we wanted.
         setIsCreating(false);

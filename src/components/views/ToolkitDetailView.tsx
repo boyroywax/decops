@@ -14,7 +14,7 @@ import {
   Briefcase, RefreshCcw, ClipboardList, Database, Bell,
   BarChart3, FlaskConical, BookOpen, Plug, Package,
   Activity, User, GitBranch, Lock, Eye, Tag,
-  FileCode, Server, Workflow,
+  FileCode, Server,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { ArchitectBotPanel } from "@/toolkits/architect";

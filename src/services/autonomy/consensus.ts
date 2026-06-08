@@ -15,12 +15,11 @@ import type {
   ConsensusProposal,
   MemberPosition,
   ConsensusOutcome,
-  ProposalKind,
   AgentSpec,
   WorkflowSpec,
   EcosystemChangeSpec,
 } from "@/types/autonomy";
-import { getGroupModel, getAgentModel } from "@/services/ai/models";
+import { getGroupModel } from "@/services/ai/models";
 import { buildProviderRequest, parseProviderResponse } from "@/services/ai/providers";
 
 /**

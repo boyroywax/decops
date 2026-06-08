@@ -8,7 +8,6 @@ import {
   Download, Upload, ChevronDown, ChevronUp,
   Brain, Sparkles, Compass, BookOpen, Heart, Mic,
   Shield, Target, Cpu, Wrench, Globe, ScanText, AudioLines, Video, ChevronRight,
-  Activity,
 } from "lucide-react";
 import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
@@ -200,7 +199,7 @@ const TOOLKIT_ICON_MAP: Record<string, any> = { Globe, ScanText, AudioLines, Vid
 // ── Agent Toolkits Section ──
 
 function AgentToolkitsSection({
-  agent, navigateTo, networkId, groupId, updateAgent,
+  agent, navigateTo, updateAgent,
 }: {
   agent: Agent;
   navigateTo: (view: ViewId, ctx: NavContext) => void;
@@ -209,7 +208,6 @@ function AgentToolkitsSection({
   updateAgent?: (id: string, patch: Partial<Agent>) => void;
 }) {
   const enabledToolkitIds = new Set((agent.toolkits || []).map(t => t.toolkitId));
-  const hasNetworkContext = !!networkId;
 
   const handleToggle = (toolkitId: ToolkitId) => {
     if (!updateAgent) return;
@@ -282,7 +280,7 @@ export function AgentDetailView({
   agentId, networkId, groupId,
   agents, channels, groups, messages,
   networks, navigateTo,
-  updateAgentPrompt, updateAgent, importAgentFromAieos, removeAgent,
+  updateAgentPrompt, updateAgent, removeAgent,
 }: AgentDetailViewProps) {
   const agent = agents.find(a => a.id === agentId);
   const network = networks.find(n => n.id === networkId);

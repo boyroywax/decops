@@ -18,7 +18,6 @@ import "../styles/node-edit-modal.css";
  * Shared constants
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-const ENTITY_TYPES: EntityInput["type"][] = ["agent", "channel", "group", "network", "text", "number_range", "list"];
 const SOURCE_KINDS: InputSourceKind[] = ["prompt", "storage", "hardcoded", "artifact"];
 const ARTIFACT_TYPES: ArtifactType[] = ["json", "txt", "code", "image", "markdown", "yaml", "csv"];
 

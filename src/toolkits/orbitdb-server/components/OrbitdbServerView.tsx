@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- jobs-snapshot effect intentional */
 /**
  * OrbitdbServerView — main UI surface for the OrbitDB Server Connector.
  *
@@ -9,7 +10,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    HardDrive, Cloud, CloudOff, Plus, X, Copy, Trash2,
+    HardDrive, Cloud, CloudOff, Plus, X, Copy,
     Bot, RefreshCw, Globe, Hash, KeyRound, Eye, EyeOff,
     Database, ShieldCheck, ShieldAlert, KeyIcon, Network,
     PlusSquare, Trash, Search, FileText,

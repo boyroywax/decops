@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Plus, X, Play, Save, Settings, ArrowUp, ArrowDown, Trash2, Search, Briefcase, Clock, Zap, Package, Database, ChevronDown, ChevronRight } from "lucide-react";
 import { registry } from "@/services/commands/registry";
-import { CommandDefinition } from "@/services/commands/types";
 import { CommandArgInput } from "@/components/automations/CommandArgInput";
 import type { JobDefinition, JobStep, JobDeliverable, ArtifactType } from "@/types";
 import type { DeclarativeAutomationDefinition, AutomationStep } from "@/services/automations/types";

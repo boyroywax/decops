@@ -1,7 +1,7 @@
-import type { Agent, Group, Network, Bridge, BridgeForm } from "@/types";
+import type { Agent, Group, Network, BridgeForm } from "@/types";
 import { ROLES, CHANNEL_TYPES } from "@/constants";
 import { inputStyle, PillButton } from "@/components/shared/ui";
-import { ArrowLeftRight, Link2, Users } from "lucide-react";
+import { ArrowLeftRight, Link2 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import "../../../styles/components/bridge-builder.css";
 
@@ -19,7 +19,6 @@ interface BridgeBuilderProps {
 
 export function BridgeBuilder({
   networks, agents, groups, bridgeForm, setBridgeForm,
-  bridgeFromNet, bridgeToNet,
   createBridge, onClose,
 }: BridgeBuilderProps) {
   // Use workspace-level agents filtered by networkId (always fresh)

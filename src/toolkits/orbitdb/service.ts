@@ -157,7 +157,7 @@ function withPubsubEnabled(opts: Libp2pStartOptions): Libp2pStartOptions {
     };
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 interface OrbitdbLike {
     open: (
         addressOrName: string,
@@ -189,7 +189,7 @@ interface DatabaseLike {
     // Events
     add?: (value: unknown) => Promise<string>;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
+ 
 
 const NODES_STORAGE_KEY = "decops:orbitdb-nodes:v1";
 
@@ -247,7 +247,7 @@ class OrbitdbNode {
     private startedAt?: string;
     private orbitdb: OrbitdbLike | null = null;
     /** Cached `@orbitdb/core` module — populated on start; reused by openDatabase. */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     private orbitdbMod: any | null = null;
     /** Open database handles, keyed by address. */
     private dbHandles = new Map<string, DatabaseLike>();
@@ -389,7 +389,7 @@ class OrbitdbNode {
 
                 // The helia node exposes its underlying instance via a private field.
                 // Use the public service API to reach for the live helia instance.
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 
                 const ipfs: any = await this.ensureHeliaPubsubReady(this.heliaNodeId);
 
                 // ── 2) Dynamic import — keep the bundle slim ──────────────
@@ -399,7 +399,7 @@ class OrbitdbNode {
                         ipfs: unknown;
                         id?: string;
                         directory?: string;
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         identities?: any;
                     }) => Promise<OrbitdbLike>;
                 };
@@ -475,7 +475,7 @@ class OrbitdbNode {
             ipfs: unknown;
             id?: string;
             directory?: string;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             identities?: any;
         }) => Promise<OrbitdbLike>,
         orbitdbMod: Record<string, unknown>,
@@ -526,14 +526,14 @@ class OrbitdbNode {
             ipfs: unknown;
             id?: string;
             directory?: string;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             identities?: any;
         }) => Promise<OrbitdbLike>,
         orbitdbMod: Record<string, unknown>,
         params: { ipfs: unknown; id?: string; directory?: string },
     ): Promise<OrbitdbLike> {
         // Cast: @orbitdb/core ships no TypeScript declarations for KeyStore/Identities/MemoryStorage; we introspect the module at runtime.
-        /* eslint-disable @typescript-eslint/no-explicit-any */
+         
         const KeyStore = (orbitdbMod as any).KeyStore as
             | ((opts: { storage: unknown }) => Promise<unknown>)
             | undefined;
@@ -543,7 +543,7 @@ class OrbitdbNode {
         const MemoryStorage = (orbitdbMod as any).MemoryStorage as
             | (() => Promise<unknown>)
             | undefined;
-        /* eslint-enable @typescript-eslint/no-explicit-any */
+         
         if (!KeyStore || !Identities || !MemoryStorage) {
             throw new Error(
                 "OrbitDB memory fallback unavailable — missing KeyStore / Identities / MemoryStorage exports",
@@ -563,11 +563,11 @@ class OrbitdbNode {
         const mod = this.orbitdbMod ?? (await import("@orbitdb/core"));
         if (!this.orbitdbMod) this.orbitdbMod = mod;
         // Cast: @orbitdb/core storage factories (MemoryStorage / LRUStorage / ComposedStorage) are untyped — runtime introspection only.
-        /* eslint-disable @typescript-eslint/no-explicit-any */
+         
         const MemoryStorage = (mod as any).MemoryStorage as (() => Promise<unknown>) | undefined;
         const LRUStorage = (mod as any).LRUStorage as ((o?: { size?: number }) => Promise<unknown>) | undefined;
         const ComposedStorage = (mod as any).ComposedStorage as ((a: unknown, b: unknown) => Promise<unknown>) | undefined;
-        /* eslint-enable @typescript-eslint/no-explicit-any */
+         
         if (!MemoryStorage) return {};
         const make = async () =>
             LRUStorage && ComposedStorage
@@ -621,12 +621,12 @@ class OrbitdbNode {
         const orbitdb = this.requireRunning();
         // Documents type supports an `indexBy` factory; we wire it via the optional Database param
         // when callers want a non-default `_id` field.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         let DatabaseFactory: any | undefined;
         if (opts.type === "documents" && opts.indexBy && opts.indexBy !== "_id") {
             const mod = this.orbitdbMod ?? (await import("@orbitdb/core"));
             // Cast: @orbitdb/core Documents database factory has no published typedef.
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             const Documents = (mod as any).Documents as ((params: { indexBy: string }) => unknown);
             if (typeof Documents === "function") {
                 DatabaseFactory = Documents({ indexBy: opts.indexBy });

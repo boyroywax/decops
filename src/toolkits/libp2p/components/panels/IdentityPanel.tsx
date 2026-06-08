@@ -9,7 +9,7 @@
  */
 import {
     KeyRound, Copy, Sparkles, Upload, Download, Trash2,
-    X, AlertTriangle, Lock,
+    X, AlertTriangle,
 } from "lucide-react";
 import type { Libp2pSnapshot } from "../../service";
 import type { Contact } from "../../utils/collections";

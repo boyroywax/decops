@@ -13,7 +13,6 @@ import type { Agent, Group, Network } from "@/types";
 import type {
   AgentTask,
   DelegationRequest,
-  DelegationResponse,
   DelegationTarget,
   TaskEvent,
   EscalationLevel,

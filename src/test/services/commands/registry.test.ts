@@ -17,7 +17,7 @@ describe('CommandRegistry', () => {
             optionalArg: { name: 'optionalArg', type: 'string', required: false, defaultValue: 'default', description: 'Optional arg' },
             numberArg: { name: 'numberArg', type: 'number', required: false, description: 'Number arg' }
         },
-        execute: vi.fn(async (args, context) => {
+        execute: vi.fn(async (args, _context) => {
             return { success: true, args };
         }),
         rbac: ['builder', 'orchestrator'],

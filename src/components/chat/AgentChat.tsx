@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- intentional deps (stable refs/handlers) */
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import type { Agent, Message } from "@/types";
 import { streamChatWithAgent } from "@/services/ai";

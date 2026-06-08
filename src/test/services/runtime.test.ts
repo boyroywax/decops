@@ -4,7 +4,6 @@ import { getAllTasks } from "@/services/autonomy/taskEngine";
 import { clearAll as clearTaskEngine } from "@/services/autonomy/taskEngine";
 import {
   activateAgent,
-  deactivateAgent,
   getAllActiveRuntimes,
   enqueueMessage,
   getAgentInbox,

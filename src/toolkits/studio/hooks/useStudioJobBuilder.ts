@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- granular p.* deps intentional; p identity changes each render */
 /**
  * useStudioJobBuilder — encapsulates Studio's job serialization handlers.
  *

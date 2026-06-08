@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- jobs-snapshot effect intentional */
 /**
  * KuboView — main UI surface for the Kubo IPFS Connector toolkit.
  *
@@ -9,7 +10,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    Server, Cloud, CloudOff, Plus, X, Copy, Trash2, Pin, PinOff,
+    Server, Cloud, CloudOff, Plus, X, Copy, Pin, PinOff,
     Download, FileText, Braces, Bot, RefreshCw, Upload, ListTree,
     Globe, Hash, KeyRound, Eye, EyeOff,
 } from "lucide-react";

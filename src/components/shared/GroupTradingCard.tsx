@@ -7,8 +7,8 @@
  */
 
 import { useRef } from "react";
-import { X, Shield, Users, Hexagon, Globe, Vote, Lock, User, Sparkles, Star, Zap } from "lucide-react";
-import type { Agent, Group, GovernanceModelId, RoleId } from "@/types";
+import { X, Shield, Users, Globe, Vote, Lock, User, Sparkles, Zap } from "lucide-react";
+import type { Agent, Group, GovernanceModelId } from "@/types";
 import { ROLES, GOVERNANCE_MODELS } from "@/constants";
 import { GroupBadge } from "./GroupBadge";
 import { CopyableId } from "./CopyableId";

@@ -6,9 +6,9 @@ import {
   Zap, Vote, FileText, Clapperboard, ListChecks, Image, Settings,
   FolderOpen, Sparkles, Search, Wrench, ScanText, AudioLines, Video,
   ChevronDown, ChevronUp, Play, ExternalLink, Link2, Camera, Layers,
-  Terminal, Clock, CheckCircle2, Lock, Hash, Filter, X, Package,
+  Terminal, Clock, CheckCircle2, Hash, Filter, X, Package,
   Briefcase, Database, Shield, FlaskConical, BookOpen, Bell,
-  GitBranch, RefreshCcw, ClipboardList, BarChart3, Activity, Plug,
+  GitBranch, RefreshCcw, ClipboardList, BarChart3, Plug,
   ScrollText, Brain,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
@@ -230,9 +230,7 @@ export function ToolKitsView({ navigateTo }: ToolKitsViewProps) {
       <div className="toolkits__grid">
         {filtered.map(tk => {
           const isExpanded = expandedToolkit === tk.id;
-          const IconComp = ICON_MAP[tk.icon] || Wrench;
           const agentCount = (tk.agents || []).length;
-          const itemCount = tk.commands.length + tk.tools.length + agentCount;
 
           return (
             <div

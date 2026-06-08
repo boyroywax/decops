@@ -11,9 +11,9 @@ import type { StepHandler, JobStep } from "@/types/jobs";
 
 export interface RefContext {
   // Storage/deliverables hold opaque command results; reads need narrowing.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   storage: Record<string, any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   deliverables: Record<string, any>;
   inputs: Record<string, string>;
 }
@@ -25,7 +25,7 @@ export interface RefContext {
  */
 // `value` is a user-supplied template — may be string, number, object, array,
 // or null. Returns the same shape with $ref placeholders resolved.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function resolveRefs(value: any, refs: RefContext): any {
   if (typeof value === 'string') {
     // Whole-string exact match → return raw value (preserves non-string types)
@@ -115,7 +115,7 @@ export const DELIVERABLE_STORAGE_PREFIX = '_deliverable_';
 export function applyOutputMappings(
   mappings: Array<{ outputKey: string; target: string; targetKey: string }> | undefined,
   result: unknown,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   storage: Record<string, any>,
 ): void {
   if (!mappings || result == null) return;
@@ -150,9 +150,9 @@ export function applyOutputMappings(
  */
 export async function assembleDeliverables(
   declaredDeliverables: Array<{ key: string; label: string; type: string; description?: string; sourceStorageKey?: string }>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   storage: Record<string, any>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   executeCommand: (commandId: string, args: Record<string, any>) => Promise<any>,
   addLog: (msg: string) => void,
 ): Promise<Array<{ key: string; artifactId: string }>> {
@@ -255,7 +255,7 @@ export interface HandlerRefContext extends RefContext {
  * Resolve handler-specific references: $result and $error in addition to
  * the standard $storage.*, $deliverable.*, $input.* refs.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function resolveHandlerRefs(value: any, refs: HandlerRefContext): any {
   if (typeof value === 'string') {
     // Whole-string exact match for $result / $error
@@ -324,9 +324,9 @@ export interface StepHandlerResult {
 export async function executeStepHandler(
   handler: StepHandler | undefined,
   refs: HandlerRefContext,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   storage: Record<string, any>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   execute: (commandId: string, args: Record<string, any>) => Promise<any>,
   addLog: (msg: string) => void,
 ): Promise<StepHandlerResult> {

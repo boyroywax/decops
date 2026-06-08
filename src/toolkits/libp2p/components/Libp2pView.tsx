@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- jobs/snapshot effects intentional */
 /**
  * Libp2pView — main UI surface for the libp2p toolkit.
  *
@@ -12,8 +13,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
     Globe, Power, PowerOff, Link2, Trash2,
-    Wifi, WifiOff, Copy, AlertTriangle, Activity,
-    Plus, X, KeyRound, Download, Upload, Sparkles, BookUser,
+    Wifi, WifiOff, AlertTriangle, Activity,
+    Plus, X, KeyRound, BookUser,
     Check, Bot, Network, UserPlus,
 } from "lucide-react";
 import { useLibp2p } from "../Libp2pContext";
@@ -33,7 +34,6 @@ import { IdentityPanel, type VaultEntry } from "./panels/IdentityPanel";
 import { NetworkPanel } from "./panels/NetworkPanel";
 import { StartOptionsPanel } from "./panels/StartOptionsPanel";
 import { useChatAgentsStore } from "@/services/chat/agents";
-import { useCommandCtx } from "@/context/CommandContextProvider";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import "../styles/libp2p.css";
 

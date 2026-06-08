@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- intentional deps (TDZ-guarded callbacks, stable helpers) */
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Compass } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
@@ -6,7 +7,7 @@ import { useNotebook } from "@/hooks/useNotebook";
 import { useWorkspaceContext } from "@/context/WorkspaceContext";
 import { useArchitect, ArchitectProvider } from "@/toolkits/architect";
 import { useEcosystem } from "@/hooks/useEcosystem";
-import { Footer, type PanelMode } from "./Footer";
+import { type PanelMode } from "./Footer";
 import { ChatPanel } from "./ChatPanel";
 import { useAuth } from "@/context/AuthContext";
 import { useJobsContext } from "@/context/JobsContext";

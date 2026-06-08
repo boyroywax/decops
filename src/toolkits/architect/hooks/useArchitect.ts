@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import type { ArchPhase, DeployProgress, MeshConfig, JobRequest, Job } from "@/types";
 import { registry } from "@/services/commands/registry";
 import type { CommandContext } from "@/services/commands/types";
@@ -65,7 +65,7 @@ export function useArchitect(
         setArchGenerating(false);
         setArchJobId(null);
         addLog(`Architect: Job completed. Generated ${config.agents.length} agents.`);
-      } catch (e) {
+      } catch {
         setArchError("Failed to parse architect result");
         setArchGenerating(false);
         setArchJobId(null);

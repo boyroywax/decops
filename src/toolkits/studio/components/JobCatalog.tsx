@@ -1,4 +1,4 @@
-import { Play, Edit, Trash2, Briefcase, Lock, FlaskConical } from "lucide-react";
+import { Play, Edit, Trash2, Briefcase, FlaskConical } from "lucide-react";
 import type { JobDefinition } from "@/types";
 import { isSeedJob } from "@/services/jobs/seedCatalog";
 import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";

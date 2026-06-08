@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- intentional memo deps */
 /**
  * PubsubPanel — gossipsub topic + message UI for the active libp2p node.
  *

@@ -1,4 +1,3 @@
-import type { Dispatch, SetStateAction } from "react";
 import { Sparkles } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { SectionTitle, inputStyle } from "@/components/shared/ui";

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { chatDuringTask, type TaskChatResult } from "@/services/autonomy/taskChat";
+import { chatDuringTask } from "@/services/autonomy/taskChat";
 import type { AgentTask } from "@/types/autonomy";
 import type { Agent } from "@/types";
 

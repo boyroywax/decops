@@ -2,10 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useEcosystemStore } from "@/stores";
 import type {
   Agent, Channel, Group, Message, Network, Bridge,
-  BridgeMessage, BridgeForm, ViewId, Ecosystem, JobRequest,
+  BridgeMessage, BridgeForm, ViewId, JobRequest,
 } from "@/types";
-import { NETWORK_COLORS } from "@/constants";
-import { generateNetworkDID } from "@/utils/identity";
 
 interface UseEcosystemDeps {
   addLog: (msg: string) => void;
@@ -21,8 +19,7 @@ interface UseEcosystemDeps {
 }
 
 export function useEcosystem({
-  addLog, agents, channels, groups, messages,
-  setAgents, setChannels, setGroups, setMessages, setView,
+  agents,
 }: UseEcosystemDeps, addJob?: (job: JobRequest) => void) {
   // ─── Ecosystem state (backed by Zustand store) ───
   const ecosystem = useEcosystemStore((s) => s.ecosystem);

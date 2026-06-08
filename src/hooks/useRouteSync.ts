@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import type { ViewId, NavContext } from "@/types";
 
 /** Map ViewId to URL path segment */

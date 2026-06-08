@@ -103,8 +103,6 @@ export function SettingsView({
             return;
         }
 
-        let count = 0;
-
         // Handle full backup or individual types
         if (json.type === "full-backup") {
             // Support both old nested format and new flat format
@@ -114,11 +112,9 @@ export function SettingsView({
             setChannels(ws.channels || []);
             setGroups(ws.groups || []);
             setMessages(ws.messages || []);
-            count++;
             if (setNetworks && setBridges) {
                 setNetworks(eco.networks || eco.ecosystems || []);
                 setBridges(eco.bridges || []);
-                count++;
             }
         } else if (json.type === "workspace") {
             setAgents(json.data.agents || []);
@@ -131,12 +127,10 @@ export function SettingsView({
             if (setBridges && json.data.bridges) {
                 setBridges(json.data.bridges || []);
             }
-            count++;
         } else if (json.type === "ecosystem" && setNetworks && setBridges) {
             // Legacy ecosystem-only imports
             setNetworks(json.data.networks || json.data.ecosystems || []);
             setBridges(json.data.bridges || []);
-            count++;
         } else {
             setImportStatus("Error: Unknown or unsupported file type");
             return;

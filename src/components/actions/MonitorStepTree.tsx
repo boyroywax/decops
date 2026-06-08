@@ -72,6 +72,7 @@ export function StepRow({ step, isCurrent }: { step: any; isCurrent?: boolean })
     );
 }
 
+/* eslint-disable react-refresh/only-export-components */
 export type StepNode = { kind: "step"; step: any; idx: number }
              | { kind: "group"; group: { id: string; label: string; stepIds: string[] }; children: any[] };
 

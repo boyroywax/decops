@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- intentional memo deps */
 import { Fragment, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { ChatMessage, WorkspaceContext } from "@/services/ai";
@@ -295,7 +296,7 @@ function isActionSeg(seg: ParsedSegment): seg is { type: "action"; action: any }
     return seg.type === "action";
 }
 
-export default function MessageBubble({ msg, context, setView, isStreaming, isLatestMessage, onStopPromptAction }: MessageBubbleProps) {
+export default function MessageBubble({ msg, context, setView, isStreaming, isLatestMessage }: MessageBubbleProps) {
     const { jobs } = useJobsContext();
     const isUser = msg.role === "user";
     const { cleanText, segments } = parseActions(msg.content);
@@ -361,7 +362,6 @@ export default function MessageBubble({ msg, context, setView, isStreaming, isLa
     );
     const completedToolCalls = visibleToolCalls.filter(tc => tc.duration_ms > 0 && !tc.error).length;
     const failedToolCalls = visibleToolCalls.filter(tc => !!tc.error).length;
-    const pendingToolCalls = visibleToolCalls.filter(tc => tc.duration_ms === 0 && !tc.error && !tc.result).length;
     const resolvedToolCalls = completedToolCalls + failedToolCalls;
     const toolProgressPct = visibleToolCalls.length > 0
         ? Math.round((resolvedToolCalls / visibleToolCalls.length) * 100)

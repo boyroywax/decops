@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- intentional deps */
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "@/types";
 import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor, Globe, Users, Radio, Boxes, Pin, Database, Layers, Server, HardDrive, ChevronLeft, ChevronRight } from "lucide-react";
@@ -56,7 +57,7 @@ export type PanelMode = "none" | "chat" | "jobs" | "artifacts" | "llm" | "displa
 
 const DEFAULT_PANEL_HEIGHT = 420;
 
-export function Footer({ agents, channels, groups, messages, networks, bridges, ecosystem, addLog, setView, jobs, removeJob, clearJobs, addJob, allArtifacts, importArtifact, removeArtifact, updateArtifact, savedJobs, saveJob, deleteJob, view, panel, setPanel, chatPosition, sideChatVisible, toggleSideChat, ...jobsProps }: FooterProps) {
+export function Footer({ setView, jobs, allArtifacts, importArtifact, removeArtifact, updateArtifact, savedJobs, saveJob, deleteJob, view, panel, setPanel, chatPosition, sideChatVisible, toggleSideChat, ...jobsProps }: FooterProps) {
     const isSideChat = chatPosition === "left" || chatPosition === "right";
     const [panelHeight, setPanelHeight] = useState(DEFAULT_PANEL_HEIGHT);
     const [isExpanded, setIsExpanded] = useState(false);

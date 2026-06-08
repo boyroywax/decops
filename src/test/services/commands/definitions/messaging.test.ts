@@ -24,7 +24,7 @@ describe('sendMessageCommand', () => {
             agents: mockAgents,
             channels: mockChannels,
             messages: [],
-            setMessages: vi.fn((cb) => {
+            setMessages: vi.fn((_cb) => {
                 // Simulate state update if needed, but for unit test we check mock call
             }),
             addLog: vi.fn(),

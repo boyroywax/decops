@@ -3,7 +3,6 @@ import {
     studioGetStateCommand,
     studioSetJobMetaCommand,
     studioAddStepCommand,
-    studioRemoveStepCommand,
     studioAddParallelGroupCommand,
     studioAddTriggerCommand,
     studioRemoveTriggerCommand,

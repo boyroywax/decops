@@ -6,7 +6,6 @@
  * (it uses the popup overlay triggered from AuthenticatedApp).
  */
 
-import { registerToolkitGlobal } from "@/services/toolkits/uiRegistry";
 
 // Note: ArchitectPopup requires props (isOpen, onClose, architect state),
 // so it cannot be registered as a simple global. The popup rendering stays

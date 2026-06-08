@@ -2,7 +2,7 @@
 import type { CommandDefinition, CommandContext } from "@/services/commands/types";
 import { generateMeshConfig } from "@/services/ai";
 import { slugifyStorageKey } from "@/utils/storageKey";
-import type { MeshConfig, MeshConfigNetwork, MeshConfigBridge } from "@/types/mesh";
+import type { MeshConfigNetwork, MeshConfigBridge } from "@/types/mesh";
 import type { JobStep, JobRequest } from "@/types";
 
 export const promptArchitectCommand: CommandDefinition = {

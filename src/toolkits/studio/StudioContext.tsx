@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * StudioContext — bridges the Studio view's internal state/callbacks
  * to the rest of the app (command system, AI chatbot, etc.).
@@ -6,7 +7,7 @@
  */
 
 import { createContext, useContext, useState, useCallback, ReactNode } from "react";
-import type { JobDeliverable, JobDefinition, EntityInput, JobTrigger, TriggerEvent, StepHandler } from "@/types";
+import type { JobDeliverable, EntityInput, JobTrigger, TriggerEvent, StepHandler } from "@/types";
 import type { OutputMapping, InputBinding, StudioStep } from "@/toolkits/studio/types/studio";
 
 /** The state snapshot returned by getState() */

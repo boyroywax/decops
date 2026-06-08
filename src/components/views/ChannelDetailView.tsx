@@ -1,7 +1,6 @@
 import type { Agent, Channel, Message, Network, ViewId, NavContext } from "@/types";
 import { CHANNEL_TYPES, ROLES } from "@/constants";
 import { Radio, Calendar, ArrowLeftRight, MessageSquare, Globe, Zap, Users, Clock, Trash2 } from "lucide-react";
-import { GradientIcon } from "@/components/shared/GradientIcon";
 import { CopyableId } from "@/components/shared/CopyableId";
 import { MarkdownContent } from "@/components/shared/MarkdownContent";
 import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";

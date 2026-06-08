@@ -299,7 +299,6 @@ function autoLayoutSteps(steps: StudioStep[]): StudioStep[] {
     if (steps.length === 0) return steps;
 
     const positioned = steps.map(s => ({ ...s }));
-    const byId = new Map(positioned.map(s => [s.id, s]));
 
     // Find root steps (parentId is null)
     const roots = positioned.filter(s => s.parentId === null);

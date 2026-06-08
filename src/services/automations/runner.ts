@@ -1,8 +1,7 @@
 
 import { CommandContext } from "@/services/commands/types";
-import { AutomationDefinition, AutomationRun } from "./types";
+import { AutomationRun } from "./types";
 import { getAutomation } from "./registry";
-import { chatWithWorkspace, ChatMessage } from "@/services/ai";
 import { DELIVERABLE_STORAGE_PREFIX } from "@/utils/jobRuntime";
 
 export class AutomationRunner {

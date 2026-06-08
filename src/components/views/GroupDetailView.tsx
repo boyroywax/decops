@@ -1,8 +1,7 @@
 import { useState } from "react";
 import type { Agent, Group, Network, ViewId, NavContext } from "@/types";
 import { ROLES, GOVERNANCE_MODELS } from "@/constants";
-import {
-  Users, Calendar, Trash2, Radio, Cpu, ChevronDown, X,
+import { Calendar, Trash2, Radio, Cpu, ChevronDown, X,
 } from "lucide-react";
 import { CopyableId } from "@/components/shared/CopyableId";
 import { GroupBadge } from "@/components/shared/GroupBadge";

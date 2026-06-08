@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { runJob, type JobResult } from "@/services/jobs/executor";
+import { runJob } from "@/services/jobs/executor";
 import { registry } from "@/services/commands/registry";
 import type { CommandContext } from "@/services/commands/types";
 import type { JobDefinition } from "@/types/jobs";

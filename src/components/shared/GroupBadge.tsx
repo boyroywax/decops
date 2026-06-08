@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- intentional memo deps */
 /**
  * GroupBadge — AI-generated emblem/badge for groups via Imagen 4.0
  *

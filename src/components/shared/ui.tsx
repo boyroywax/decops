@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import type { CSSProperties, ReactNode } from "react";
 import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
 
@@ -86,7 +87,6 @@ export function BulkActionBar({
   onDelete,
   allSelected,
   entityName,
-  color = "#ef4444",
 }: {
   count: number;
   total: number;

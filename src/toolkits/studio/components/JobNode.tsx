@@ -12,7 +12,7 @@ interface JobNodeProps {
     childCount: number;
 }
 
-export function JobNode({ step, index, total, selected, isDragging, onRemove, childCount }: JobNodeProps) {
+export function JobNode({ step, index, selected, isDragging, onRemove, childCount }: JobNodeProps) {
     const cmd = registry.get(step.commandId);
     const allArgs = cmd ? Object.entries(cmd.args) : [];
     const filledCount = Object.entries(step.args).filter(([, v]) => v !== null && v !== "" && v !== undefined).length;

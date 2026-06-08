@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps -- mount/resize effect with intentional deps */
 import { useState, useEffect } from "react";
 import { X, Terminal, Zap, Activity, ChevronsUp, ChevronsDown, Briefcase, TerminalSquare, Clock } from "lucide-react";
 import { ActivityFeed } from "@/components/activity/ActivityFeed";
@@ -6,7 +7,6 @@ import { HistoryPanel } from "./HistoryPanel";
 import { CommandsPanel } from "./CommandsPanel";
 import { JobCatalog } from "@/toolkits/studio";
 import { useJobsContext } from "@/context/JobsContext";
-import { useAutomations } from "@/context/AutomationsContext";
 
 import { useStudioContext } from "@/toolkits/studio";
 import { JobDefinition, ViewId } from "@/types";
@@ -26,13 +26,12 @@ interface ActionManagerProps {
     setView?: (view: ViewId) => void;
 }
 
-export function ActionManager({ onClose, isMobile, savedJobs, saveJob, deleteJob, height, setHeight, isExpanded, onToggleExpand, isStudioMode, setView }: ActionManagerProps) {
+export function ActionManager({ onClose, savedJobs, deleteJob, height, setHeight, isExpanded, onToggleExpand, isStudioMode, setView }: ActionManagerProps) {
     const [isResizing, setIsResizing] = useState(false);
     const [activeTab, setActiveTab] = useState<"monitor" | "automations" | "history" | "catalog" | "commands">("monitor");
 
     // Contexts
-    const { jobs, addJob, removeJob, stopJob, clearJobs } = useJobsContext();
-    const { automations, register, deleteAutomation } = useAutomations();
+    const { addJob } = useJobsContext();
     const { api: studioApi } = useStudioContext();
 
     // Auto-switch to commands tab when studio mode activates

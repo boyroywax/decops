@@ -107,7 +107,6 @@ export const studioSetJobMetaCommand: CommandDefinition = {
     execute: async (args, context) => {
         const studio = context.extensions?.studio as StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
-        const createArgs = args as StudioCreateJobArgs;
         if (args.name !== undefined) studio.setName(args.name);
         if (args.description !== undefined) studio.setDescription(args.description);
         return { name: args.name ?? studio.getState().name, description: args.description ?? studio.getState().description };

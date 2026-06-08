@@ -57,9 +57,7 @@ export function AgentTradingCard({ agent, isOpen, onClose }: AgentTradingCardPro
   const identity = aieos?.identity;
   const phys = aieos?.physicality;
   const psych = aieos?.psychology;
-  const ling = aieos?.linguistics;
   const hist = aieos?.history;
-  const interests = aieos?.interests;
   const motivations = aieos?.motivations;
   const skills = aieos?.capabilities?.skills || [];
 

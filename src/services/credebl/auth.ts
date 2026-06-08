@@ -126,7 +126,7 @@ export const authService = {
     },
 
     // Login with DID (placeholder - needs DID wallet integration)
-    async loginWithDID(did: string, signature: string): Promise<ApiResponse<{ user: User; token: string }>> {
+    async loginWithDID(_did: string, _signature: string): Promise<ApiResponse<{ user: User; token: string }>> {
         // Implementation depends on CREDEBL DID auth flow
         // This is a placeholder
         return {
@@ -193,7 +193,7 @@ export const authService = {
                 success: false,
                 error: 'No local identity found'
             };
-        } catch (error) {
+        } catch {
             return {
                 success: false,
                 error: 'Invalid password or corrupted key' // Most likely cause

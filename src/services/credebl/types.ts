@@ -1,6 +1,5 @@
 import type {
     DIDDocument,
-    AgentType,
 } from '@/types';
 
 // CREDEBL API Response wrapper

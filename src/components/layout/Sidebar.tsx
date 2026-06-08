@@ -4,8 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Sparkles, Globe, Bot, ArrowLeftRight,
   Hexagon, Clapperboard,
-  ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight,
-  Activity, Zap, FileText, ChevronDown, Layers, Wrench, Monitor,
+  ChevronsLeft, ChevronsRight, ChevronLeft, ChevronRight, FileText, ChevronDown, Layers, Wrench, Monitor,
   Workflow, Boxes, Server, Database, HardDrive,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
@@ -62,7 +61,7 @@ const NAV_ITEMS: { id: ViewId; label: string; icon: LucideIcon; accent: string; 
 
 const ECOSYSTEM_VIEWS: Set<ViewId> = new Set(["networks", "agents", "channels", "groups"]);
 
-export function Sidebar({ view, setView, networks, messages, bridgeMessages, agents, channels, groups, collapsed, setCollapsed, isMobile, ecosystemName, totalUnread }: SidebarProps) {
+export function Sidebar({ view, setView, networks, messages, bridgeMessages, agents, channels, groups, collapsed, setCollapsed, isMobile, ecosystemName }: SidebarProps) {
   const navRef = useRef<HTMLElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);

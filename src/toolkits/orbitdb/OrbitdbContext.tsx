@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * OrbitdbContext — React provider that mirrors the orbitdb manager state.
  */

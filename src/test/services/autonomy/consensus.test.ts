@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { tallyVotes, buildAgentProposal, buildWorkflowProposal, buildEcosystemProposal } from "@/services/autonomy/consensus";
-import type { MemberPosition, ConsensusOutcome } from "@/types/autonomy";
+import type { MemberPosition } from "@/types/autonomy";
 
 describe("consensus", () => {
   describe("tallyVotes", () => {

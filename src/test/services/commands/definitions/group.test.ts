@@ -61,7 +61,7 @@ describe('createGroupCommand', () => {
             governance: 'majority'
         };
 
-        const result = await createGroupCommand.execute(args, mockContext as any);
+        await createGroupCommand.execute(args, mockContext as any);
 
         // 3 members -> 3 connections (1-2, 1-3, 2-3)
         // Check log message or mock call

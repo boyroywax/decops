@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * KuboContext — React provider mirroring the Kubo manager state.
  */

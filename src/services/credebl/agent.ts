@@ -18,7 +18,7 @@ export const agentService = {
                 success: response.data.statusCode === 200,
                 data: response.data.data,
             };
-        } catch (error) {
+        } catch {
             return { success: false, data: { isAlive: false }, error: 'Agent not reachable' };
         }
     },
@@ -48,7 +48,7 @@ export const agentService = {
                     network: data.ledgers?.networkType,
                 },
             };
-        } catch (error) {
+        } catch {
             return { success: false, error: 'Failed to get agent configuration' };
         }
     },

@@ -5,9 +5,6 @@ import {
 } from "@/types/autonomy";
 import type {
   EscalationLevel,
-  TaskStatus,
-  AgentTask,
-  AutonomyConfig,
 } from "@/types/autonomy";
 
 describe("autonomy types", () => {

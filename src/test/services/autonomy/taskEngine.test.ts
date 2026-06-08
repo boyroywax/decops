@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { createTask, getTask, getAllTasks, clearTasks } from "@/services/autonomy/taskEngine";
 
 // We test only the synchronous, non-AI parts of the task engine:

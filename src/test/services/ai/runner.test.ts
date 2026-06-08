@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { runChatTurn, type ChatRunResult } from "@/services/ai/runner";
+import { runChatTurn } from "@/services/ai/runner";
 import type { CommandContext } from "@/services/commands/types";
 import type { AnthropicTool } from "@/services/commands/tools";
 

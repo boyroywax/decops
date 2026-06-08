@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components, react-hooks/exhaustive-deps -- backward-compat re-exports; mount effect uses refs */
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Play, Save, FolderOpen, Plus, X, Package, Database, Tag, GitFork, Zap } from "lucide-react";
 import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
@@ -47,7 +48,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const [selectedElements, setSelectedElements] = useState<NonNullable<SelectedElement>[]>([]);
 
     // ── Properties drawer ──
-    const [propertiesOpen, setPropertiesOpen] = useState(false);
+    const [, setPropertiesOpen] = useState(false);
 
     // ── Step card modal ──
     const [modalStepId, setModalStepId] = useState<string | null>(null);
@@ -86,7 +87,6 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     });
 
     const effectiveStepId = selectedElement?.type === "step" ? selectedElement.id : null;
-    const selectedStep = effectiveStepId ? steps.find(s => s.id === effectiveStepId) || null : null;
 
     // ── Step CRUD ──
     const addStep = useCallback((commandId: string): string => {
@@ -392,10 +392,6 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
         setSelectedElement(el);
         setSelectedElements([]);
         if (el) setPropertiesOpen(true);
-    }, []);
-
-    const handleCloseProperties = useCallback(() => {
-        setPropertiesOpen(false);
     }, []);
 
     const handleMultiSelect = useCallback((items: NonNullable<SelectedElement>[]) => {

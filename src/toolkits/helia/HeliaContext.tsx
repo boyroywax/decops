@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * HeliaContext — React provider that mirrors the helia manager state.
  */
