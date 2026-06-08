@@ -11,10 +11,18 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
+export interface VerificationMethod {
+  id: string;
+  type: string;
+  controller: string;
+  publicKeyMultibase?: string;
+  publicKeyJwk?: Record<string, unknown>;
+}
+
 export interface DIDDocument {
   id: string;
   controller: string;
-  verificationMethod: any[];
+  verificationMethod: VerificationMethod[];
   authentication: string[];
   assertionMethod: string[];
 }
@@ -25,8 +33,8 @@ export interface VerifiableCredential {
   type: string[];
   issuer: { id: string; name?: string } | string;
   issuanceDate: string;
-  credentialSubject: Record<string, any>;
-  proof?: any;
+  credentialSubject: Record<string, unknown>;
+  proof?: Record<string, unknown>;
 }
 
 export interface CredentialOffer {
@@ -38,13 +46,13 @@ export interface CredentialOffer {
 export interface VerificationRequest {
   proofRecordId?: string;
   state: string;
-  presentationRequest?: any;
+  presentationRequest?: Record<string, unknown>;
 }
 
 export interface ProofRequest {
   name: string;
   version: string;
-  attributes: Record<string, any>;
+  attributes: Record<string, unknown>;
 }
 
 export interface Connection {

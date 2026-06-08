@@ -3,6 +3,20 @@ import { Download, Upload, AlertTriangle, Database } from "lucide-react";
 import type { Agent, Channel, Group, Message, Network, Bridge } from "@/types";
 import "../../styles/components/settings.css";
 
+/** Shape of an imported workspace/ecosystem/backup JSON file (all fields optional/dynamic). */
+type ImportSection = {
+    agents?: Agent[];
+    channels?: Channel[];
+    groups?: Group[];
+    messages?: Message[];
+    networks?: Network[];
+    ecosystems?: Network[];
+    bridges?: Bridge[];
+    workspace?: ImportSection;
+    ecosystem?: ImportSection;
+};
+type ImportPayload = { type?: string; data?: ImportSection };
+
 interface SettingsViewProps {
     agents: Agent[];
     channels: Channel[];
@@ -36,7 +50,7 @@ export function SettingsView({
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // --- Export ---
-    const downloadJSON = (data: any, filename: string) => {
+    const downloadJSON = (data: unknown, filename: string) => {
         const blob = new Blob([JSON.stringify(data, null, 2)], {
             type: "application/json",
         });
@@ -97,7 +111,8 @@ export function SettingsView({
         e.target.value = "";
     };
 
-    const processImport = (json: any) => {
+    const processImport = (raw: unknown) => {
+        const json = raw as ImportPayload;
         if (!json.data) {
             setImportStatus("Error: Invalid file format (missing data field)");
             return;

@@ -20,7 +20,7 @@ function formatDuration(ms: number): string {
 }
 
 /** Render key request params as compact badges */
-function renderRequestParams(request: Record<string, any>) {
+function renderRequestParams(request: Record<string, unknown>) {
     if (!request || typeof request !== "object") return null;
     const skip = new Set(["steps", "mode"]);
     const entries = Object.entries(request).filter(

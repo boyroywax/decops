@@ -83,7 +83,7 @@ export interface AgentToolDefinition {
   function: {
     name: string;
     description: string;
-    parameters: Record<string, any>; // JSON Schema
+    parameters: Record<string, unknown>; // JSON Schema
   };
 }
 
@@ -180,7 +180,7 @@ export interface AgentLifecycleEvent {
   kind: AgentLifecycleEventKind;
   agentId: string;
   timestamp: string;
-  detail: Record<string, any>;
+  detail: Record<string, unknown>;
 }
 
 // ── Agent inbox / message queue ────────────────────

@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps -- intentional deps */
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact } from "@/types";
+import type { Agent, Channel, Group, Message, Network, Bridge, ViewId, Job, JobArtifact, JobDefinition, JobRequest } from "@/types";
 import { MessageCircle, Zap, WifiOff, Terminal, Gem, Monitor, Globe, Users, Radio, Boxes, Pin, Database, Layers, Server, HardDrive, ChevronLeft, ChevronRight } from "lucide-react";
 import type { ChatPosition } from "@/context/ThemeContext";
 import { ActionManager } from "@/components/actions/ActionManager";
@@ -14,6 +14,8 @@ import { useHeliaMetrics } from "@/toolkits/helia";
 import { useKuboMetrics } from "@/toolkits/kubo";
 import { useOrbitdbMetrics } from "@/toolkits/orbitdb";
 import { useOrbitdbServerMetrics } from "@/toolkits/orbitdb-server";
+import type { UseJobCatalogReturn } from "@/hooks/useJobCatalog";
+import type { useEcosystem } from "@/hooks/useEcosystem";
 import "../../styles/components/footer.css";
 import "../../styles/components/llm-manager.css";
 
@@ -25,13 +27,13 @@ interface FooterProps {
     messages: Message[];
     networks: Network[];
     bridges: Bridge[];
-    ecosystem?: any; // Automated ecosystem object
+    ecosystem?: ReturnType<typeof useEcosystem>; // Automated ecosystem object
     addLog?: (msg: string) => void;
     setView: (view: ViewId) => void;
     jobs: Job[];
     removeJob: (id: string) => void;
     clearJobs: () => void;
-    addJob: (job: any) => void;
+    addJob: (job: JobRequest) => void;
     allArtifacts: JobArtifact[];
     importArtifact: (artifact: JobArtifact) => void;
     removeArtifact: (id: string) => void;
@@ -42,8 +44,8 @@ interface FooterProps {
     reorderQueue: (ids: string[]) => void;
     activityPulse?: boolean;
     isMobile?: boolean;
-    savedJobs: any[];
-    saveJob: (job: any) => void;
+    savedJobs: JobDefinition[];
+    saveJob: UseJobCatalogReturn["saveJob"];
     deleteJob: (id: string) => void;
     view?: ViewId;
     panel: PanelMode;

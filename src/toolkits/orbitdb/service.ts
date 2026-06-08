@@ -161,11 +161,11 @@ function withPubsubEnabled(opts: Libp2pStartOptions): Libp2pStartOptions {
 interface OrbitdbLike {
     open: (
         addressOrName: string,
-        options?: { type?: OrbitdbDbType; meta?: Record<string, unknown>; sync?: boolean; Database?: any; AccessController?: any },
+        options?: { type?: OrbitdbDbType; meta?: Record<string, unknown>; sync?: boolean; Database?: unknown; AccessController?: unknown },
     ) => Promise<DatabaseLike>;
     stop: () => Promise<void>;
     identity?: { id: string; publicKey?: string };
-    ipfs?: any;
+    ipfs?: unknown;
 }
 
 interface DatabaseLike {
@@ -180,12 +180,12 @@ interface DatabaseLike {
     iterator?: (opts?: { amount?: number; gt?: string; gte?: string; lt?: string; lte?: string }) =>
         AsyncIterable<{ hash?: string; key?: string; value: unknown }>;
     // KV
-    put?: (...args: any[]) => Promise<string>;
+    put?: (...args: unknown[]) => Promise<string>;
     set?: (key: string, value: unknown) => Promise<string>;
     del?: (key: string) => Promise<string>;
     get?: (key: string) => Promise<unknown>;
     // Documents
-    query?: (findFn: (doc: any) => boolean) => Promise<unknown[]>;
+    query?: (findFn: (doc: unknown) => boolean) => Promise<unknown[]>;
     // Events
     add?: (value: unknown) => Promise<string>;
 }
@@ -247,8 +247,7 @@ class OrbitdbNode {
     private startedAt?: string;
     private orbitdb: OrbitdbLike | null = null;
     /** Cached `@orbitdb/core` module — populated on start; reused by openDatabase. */
-     
-    private orbitdbMod: any | null = null;
+    private orbitdbMod: Record<string, unknown> | null = null;
     /** Open database handles, keyed by address. */
     private dbHandles = new Map<string, DatabaseLike>();
     private startPromise: Promise<void> | null = null;
@@ -334,7 +333,7 @@ class OrbitdbNode {
         }
 
         // Cast: heliaService.getNode() returns our wrapper; the underlying `helia` instance is exposed by index access since it isn't part of the wrapper's public typed surface.
-        let ipfs: any = (heliaService.getNode(heliaNodeId) as any)["helia"];
+        let ipfs: unknown = (heliaService.getNode(heliaNodeId) as unknown as { helia?: unknown }).helia;
         if (!ipfs) {
             throw new Error("Failed to obtain a running helia (IPFS) instance");
         }
@@ -359,7 +358,7 @@ class OrbitdbNode {
         await heliaService.start({ libp2pNodeId }, heliaNodeId);
 
         // Cast: same as above — re-fetch the underlying helia instance after a libp2p auto-restart.
-        ipfs = (heliaService.getNode(heliaNodeId) as any)["helia"];
+        ipfs = (heliaService.getNode(heliaNodeId) as unknown as { helia?: unknown }).helia;
         if (!ipfs || !isPubsubReady(ipfs)) {
             throw new Error("libp2p pubsub could not be auto-started for the selected Helia node");
         }
@@ -389,8 +388,7 @@ class OrbitdbNode {
 
                 // The helia node exposes its underlying instance via a private field.
                 // Use the public service API to reach for the live helia instance.
-                 
-                const ipfs: any = await this.ensureHeliaPubsubReady(this.heliaNodeId);
+                const ipfs = await this.ensureHeliaPubsubReady(this.heliaNodeId);
 
                 // ── 2) Dynamic import — keep the bundle slim ──────────────
                 const orbitdbMod = await import("@orbitdb/core");
@@ -399,8 +397,7 @@ class OrbitdbNode {
                         ipfs: unknown;
                         id?: string;
                         directory?: string;
-                         
-                        identities?: any;
+                        identities?: unknown;
                     }) => Promise<OrbitdbLike>;
                 };
 
@@ -475,8 +472,7 @@ class OrbitdbNode {
             ipfs: unknown;
             id?: string;
             directory?: string;
-             
-            identities?: any;
+            identities?: unknown;
         }) => Promise<OrbitdbLike>,
         orbitdbMod: Record<string, unknown>,
         params: { ipfs: unknown; id?: string; directory?: string },
@@ -526,21 +522,19 @@ class OrbitdbNode {
             ipfs: unknown;
             id?: string;
             directory?: string;
-             
-            identities?: any;
+            identities?: unknown;
         }) => Promise<OrbitdbLike>,
         orbitdbMod: Record<string, unknown>,
         params: { ipfs: unknown; id?: string; directory?: string },
     ): Promise<OrbitdbLike> {
-        // Cast: @orbitdb/core ships no TypeScript declarations for KeyStore/Identities/MemoryStorage; we introspect the module at runtime.
-         
-        const KeyStore = (orbitdbMod as any).KeyStore as
+        // @orbitdb/core ships no TypeScript declarations for KeyStore/Identities/MemoryStorage; we introspect the module at runtime.
+        const KeyStore = orbitdbMod.KeyStore as
             | ((opts: { storage: unknown }) => Promise<unknown>)
             | undefined;
-        const Identities = (orbitdbMod as any).Identities as
+        const Identities = orbitdbMod.Identities as
             | ((opts: { ipfs?: unknown; keystore?: unknown }) => Promise<unknown>)
             | undefined;
-        const MemoryStorage = (orbitdbMod as any).MemoryStorage as
+        const MemoryStorage = orbitdbMod.MemoryStorage as
             | (() => Promise<unknown>)
             | undefined;
          
@@ -562,12 +556,10 @@ class OrbitdbNode {
     private async buildMemoryStorages(): Promise<Record<string, unknown>> {
         const mod = this.orbitdbMod ?? (await import("@orbitdb/core"));
         if (!this.orbitdbMod) this.orbitdbMod = mod;
-        // Cast: @orbitdb/core storage factories (MemoryStorage / LRUStorage / ComposedStorage) are untyped — runtime introspection only.
-         
-        const MemoryStorage = (mod as any).MemoryStorage as (() => Promise<unknown>) | undefined;
-        const LRUStorage = (mod as any).LRUStorage as ((o?: { size?: number }) => Promise<unknown>) | undefined;
-        const ComposedStorage = (mod as any).ComposedStorage as ((a: unknown, b: unknown) => Promise<unknown>) | undefined;
-         
+        // @orbitdb/core storage factories (MemoryStorage / LRUStorage / ComposedStorage) are untyped — runtime introspection only.
+        const MemoryStorage = (mod as Record<string, unknown>).MemoryStorage as (() => Promise<unknown>) | undefined;
+        const LRUStorage = (mod as Record<string, unknown>).LRUStorage as ((o?: { size?: number }) => Promise<unknown>) | undefined;
+        const ComposedStorage = (mod as Record<string, unknown>).ComposedStorage as ((a: unknown, b: unknown) => Promise<unknown>) | undefined;
         if (!MemoryStorage) return {};
         const make = async () =>
             LRUStorage && ComposedStorage
@@ -621,13 +613,11 @@ class OrbitdbNode {
         const orbitdb = this.requireRunning();
         // Documents type supports an `indexBy` factory; we wire it via the optional Database param
         // when callers want a non-default `_id` field.
-         
-        let DatabaseFactory: any | undefined;
+        let DatabaseFactory: unknown;
         if (opts.type === "documents" && opts.indexBy && opts.indexBy !== "_id") {
             const mod = this.orbitdbMod ?? (await import("@orbitdb/core"));
-            // Cast: @orbitdb/core Documents database factory has no published typedef.
-             
-            const Documents = (mod as any).Documents as ((params: { indexBy: string }) => unknown);
+            // @orbitdb/core Documents database factory has no published typedef.
+            const Documents = (mod as Record<string, unknown>).Documents as ((params: { indexBy: string }) => unknown);
             if (typeof Documents === "function") {
                 DatabaseFactory = Documents({ indexBy: opts.indexBy });
             }

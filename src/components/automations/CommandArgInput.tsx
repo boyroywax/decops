@@ -6,8 +6,8 @@ import "../../styles/components/command-arg-input.css";
 
 interface CommandArgInputProps {
     arg: CommandArg;
-    value: any;
-    onChange: (value: any) => void;
+    value: unknown;
+    onChange: (value: unknown) => void;
 }
 
 export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) {
@@ -15,10 +15,14 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
     const networks = useEcosystemStore((s) => s.ecosystem.networks);
     const { workspaces } = useWorkspaceManager();
 
+    /** Coerce the stored (unknown) value into a React-acceptable input value. */
+    const displayValue: string | number | readonly string[] =
+        typeof value === "number" || Array.isArray(value) ? (value as number | readonly string[]) : value == null ? "" : String(value);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        let newValue: any = e.target.value;
+        let newValue: string | number = e.target.value;
         if (arg.type === "number") {
-            newValue = parseFloat(newValue);
+            newValue = parseFloat(e.target.value);
         } else if (arg.type === "boolean") {
             // handled separately for checkbox
         }
@@ -42,7 +46,7 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
     if (arg.type === "agent") {
         return (
             <select
-                value={value || ""}
+                value={displayValue}
                 onChange={handleChange}
                 className="command-arg__select"
             >
@@ -60,7 +64,7 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
     if (arg.type === "channel") {
         return (
             <select
-                value={value || ""}
+                value={displayValue}
                 onChange={handleChange}
                 className="command-arg__select"
             >
@@ -80,7 +84,7 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
     if (arg.type === "group") {
         return (
             <select
-                value={value || ""}
+                value={displayValue}
                 onChange={handleChange}
                 className="command-arg__select"
             >
@@ -95,7 +99,7 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
     if (arg.type === "network") {
         return (
             <select
-                value={value || ""}
+                value={displayValue}
                 onChange={handleChange}
                 className="command-arg__select"
             >
@@ -110,7 +114,7 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
     if (arg.type === "workspace") {
         return (
             <select
-                value={value || ""}
+                value={displayValue}
                 onChange={handleChange}
                 className="command-arg__select"
             >
@@ -127,7 +131,7 @@ export function CommandArgInput({ arg, value, onChange }: CommandArgInputProps) 
         <div className="command-arg__field">
             <input
                 type={arg.type === "number" ? "number" : "text"}
-                value={value || ""}
+                value={displayValue}
                 onChange={handleChange}
                 placeholder={arg.description}
                 className="command-arg__input"

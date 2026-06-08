@@ -173,7 +173,7 @@ export function useJobExecutor({
                     });
 
                     // Initialize shared storage from the request's storageDefaults
-                    const jobStorage: Record<string, any> = { ...(queuedJob.request?.storageDefaults || {}) };
+                    const jobStorage: Record<string, unknown> = { ...(queuedJob.request?.storageDefaults || {}) };
 
                     // Initialize entity input map from the request's inputDefaults
                     const inputMap: Record<string, string> = {};
@@ -269,7 +269,7 @@ export function useJobExecutor({
                         commandId: step.commandId,
                         name: step.name,
                         status: (step.status === "failed" || step.status === "skipped") ? step.status : "completed" as const,
-                        input: toSerializableValue(step.args) as Record<string, any> | undefined,
+                        input: toSerializableValue(step.args) as Record<string, unknown> | undefined,
                         result: toSerializableValue(step.result),
                         startedAt: step.startedAt,
                         completedAt: step.completedAt,
@@ -355,7 +355,11 @@ export function useJobExecutor({
                             if (updateJob) {
                                 const finalSteps: JobStep[] = queuedJob.steps.map((s) => {
                                     const res = results.find(r => r.stepId === s.id);
-                                    return res ? { ...s, result: res.result || res.error, status: res.status as JobStep["status"], startedAt: res.startedAt, completedAt: res.completedAt } : s;
+                                    if (!res) return s;
+                                    const resultText = typeof res.result === "string"
+                                        ? res.result
+                                        : res.result != null ? JSON.stringify(res.result) : res.error;
+                                    return { ...s, result: resultText, status: res.status as JobStep["status"], startedAt: res.startedAt, completedAt: res.completedAt };
                                 });
                                 syncJobState({ steps: finalSteps });
                             }
@@ -630,7 +634,7 @@ export function useJobExecutor({
                                 commandId: queuedJob.type,
                                 name: queuedJob.type,
                                 status: "completed",
-                                input: toSerializableValue(queuedJob.request) as Record<string, any> | undefined,
+                                input: toSerializableValue(queuedJob.request) as Record<string, unknown> | undefined,
                                 result: toSerializableValue(legacyResult),
                                 startedAt: queuedJob.startedAt,
                                 completedAt: Date.now(),
@@ -642,8 +646,11 @@ export function useJobExecutor({
 
                     // ═══ DELIVERABLE ASSEMBLY ═══
                     // After all steps complete, assemble declared deliverables from storage
+                    const requestDeliverables = Array.isArray(queuedJob.request?.deliverables)
+                        ? (queuedJob.request.deliverables as JobDeliverable[])
+                        : undefined;
                     const declaredDeliverables = queuedJob.deliverables
-                        || queuedJob.request?.deliverables
+                        || requestDeliverables
                         || [];
                     if (declaredDeliverables.length > 0) {
                         addLog(`Assembling ${declaredDeliverables.length} deliverable(s) from storage…`);

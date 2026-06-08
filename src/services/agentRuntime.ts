@@ -79,7 +79,7 @@ export function getAllActiveRuntimes(): AgentRuntimeState[] {
 }
 
 /** Update agent runtime status */
-export function setAgentStatus(agentId: string, status: AgentRuntimeStatus, detail?: Record<string, any>): void {
+export function setAgentStatus(agentId: string, status: AgentRuntimeStatus, detail?: Record<string, unknown>): void {
   const state = runtimeStates.get(agentId);
   if (!state) return;
 
@@ -87,7 +87,7 @@ export function setAgentStatus(agentId: string, status: AgentRuntimeStatus, deta
   state.status = status;
   state.lastActivityAt = new Date().toISOString();
 
-  if (status === "error" && detail?.error) {
+  if (status === "error" && typeof detail?.error === "string") {
     state.lastError = detail.error;
   }
 
@@ -114,7 +114,7 @@ export function setAgentAutonomyLevel(
 function recordLifecycleEvent(
   agentId: string,
   kind: AgentLifecycleEventKind,
-  detail: Record<string, any>,
+  detail: Record<string, unknown>,
 ): void {
   const event: AgentLifecycleEvent = {
     kind,

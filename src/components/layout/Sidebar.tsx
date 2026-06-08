@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import type { ViewId, Network, Message, BridgeMessage } from "@/types";
+import type { ViewId, Network, Message, BridgeMessage, Agent, Channel, Group } from "@/types";
 import type { LucideIcon } from "lucide-react";
 import {
   Sparkles, Globe, Bot, ArrowLeftRight,
@@ -17,9 +17,9 @@ interface SidebarProps {
   networks: Network[];
   messages: Message[];
   bridgeMessages: BridgeMessage[];
-  agents: any[];
-  channels: any[];
-  groups: any[];
+  agents: Agent[];
+  channels: Channel[];
+  groups: Group[];
   collapsed: boolean;
   setCollapsed: (v: boolean) => void;
   isMobile?: boolean;

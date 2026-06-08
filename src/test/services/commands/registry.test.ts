@@ -33,7 +33,7 @@ describe('CommandRegistry', () => {
 
     it('executes valid commands', async () => {
         registry.register(mockCommand);
-        const result = await registry.execute('test_command', { requiredArg: 'foo' }, {} as CommandContext);
+        const result = await registry.execute('test_command', { requiredArg: 'foo' }, {} as CommandContext) as any;
         expect(result.success).toBe(true);
         expect(result.args.requiredArg).toBe('foo');
         expect(mockCommand.execute).toHaveBeenCalled();
@@ -41,7 +41,7 @@ describe('CommandRegistry', () => {
 
     it('applies default values', async () => {
         registry.register(mockCommand);
-        const result = await registry.execute('test_command', { requiredArg: 'foo' }, {} as CommandContext);
+        const result = await registry.execute('test_command', { requiredArg: 'foo' }, {} as CommandContext) as any;
         expect(result.args.optionalArg).toBe('default');
     });
 
@@ -96,14 +96,14 @@ describe('CommandRegistry', () => {
 
         it('resolves agent names to IDs', async () => {
             registry.register(agentCommand);
-            const result = await registry.execute('msg_test', { from: 'Lead', to: 'Ideator' }, ctx);
+            const result = await registry.execute('msg_test', { from: 'Lead', to: 'Ideator' }, ctx) as any;
             expect(result.resolved.from).toBe('a-001');
             expect(result.resolved.to).toBe('a-002');
         });
 
         it('passes through valid IDs unchanged', async () => {
             registry.register(agentCommand);
-            const result = await registry.execute('msg_test', { from: 'a-001', to: 'a-002' }, ctx);
+            const result = await registry.execute('msg_test', { from: 'a-001', to: 'a-002' }, ctx) as any;
             expect(result.resolved.from).toBe('a-001');
             expect(result.resolved.to).toBe('a-002');
         });
@@ -112,20 +112,20 @@ describe('CommandRegistry', () => {
             registry.register(agentCommand);
             const result = await registry.execute('msg_test', {
                 from: 'a-001', to: 'a-002', networkId: 'Marketing Net',
-            }, ctx);
+            }, ctx) as any;
             expect(result.resolved.networkId).toBe('n-001');
         });
 
         it('is case-insensitive for name lookup', async () => {
             registry.register(agentCommand);
-            const result = await registry.execute('msg_test', { from: 'lead', to: 'IDEATOR' }, ctx);
+            const result = await registry.execute('msg_test', { from: 'lead', to: 'IDEATOR' }, ctx) as any;
             expect(result.resolved.from).toBe('a-001');
             expect(result.resolved.to).toBe('a-002');
         });
 
         it('leaves unresolvable values unchanged', async () => {
             registry.register(agentCommand);
-            const result = await registry.execute('msg_test', { from: 'Ghost', to: 'a-002' }, ctx);
+            const result = await registry.execute('msg_test', { from: 'Ghost', to: 'a-002' }, ctx) as any;
             // 'Ghost' doesn't match any agent — passes through as-is
             expect(result.resolved.from).toBe('Ghost');
         });
@@ -149,7 +149,7 @@ describe('CommandRegistry', () => {
                     { agent_id: 'Lead' },
                     { agent_id: 'a-002' },
                 ],
-            }, ctx);
+            }, ctx) as any;
             expect(result.items[0].agent_id).toBe('a-001');
             expect(result.items[1].agent_id).toBe('a-002');
         });

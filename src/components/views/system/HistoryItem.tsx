@@ -149,7 +149,7 @@ export function HistoryItem({ job }: { job: Job }) {
                                             if (node.kind === "step") {
                                                 return <StepRow key={node.step.id || ni} step={node.step} />;
                                             }
-                                            const groupDone = node.children.filter((c: any) => c.status === "completed").length;
+                                            const groupDone = node.children.filter((c) => c.status === "completed").length;
                                             return (
                                                 <div key={node.group.id} className="sys-process__parallel-group">
                                                     <div className="sys-process__parallel-header">
@@ -158,7 +158,7 @@ export function HistoryItem({ job }: { job: Job }) {
                                                         <span className="sys-process__parallel-count">{groupDone}/{node.children.length}</span>
                                                     </div>
                                                     <div className="sys-process__parallel-children">
-                                                        {node.children.map((child: any, ci: number) => (
+                                                        {node.children.map((child, ci: number) => (
                                                             <StepRow key={child.id || ci} step={child} />
                                                         ))}
                                                     </div>

@@ -61,7 +61,7 @@ export interface AgentTask {
   /** ISO timestamp of last update */
   updatedAt: string;
   /** Persistent workspace storage for cross-action data during task execution */
-  workspaceStorage?: Record<string, any>;
+  workspaceStorage?: Record<string, unknown>;
   /** AI chat message history maintained across re-planning rounds */
   chatHistory?: Array<{ role: "user" | "assistant"; content: string; timestamp: string }>;
 }
@@ -97,7 +97,7 @@ export interface TaskEvent {
   kind: TaskEventKind;
   timestamp: string;
   agentId: string;
-  detail: Record<string, any>;
+  detail: Record<string, unknown>;
 }
 
 // ── Task result ────────────────────────────────────
@@ -112,7 +112,7 @@ export interface TaskResult {
   /** If delegation chain was used, the final resolver */
   resolvedBy?: string;
   /** Raw data (command outputs, deliverables, etc.) */
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 // ── Action plan (AI-generated) ─────────────────────
@@ -125,7 +125,7 @@ export interface PlannedAction {
   /** Which command to invoke (when type is "command" or unset) */
   commandId: string;
   /** Arguments (may contain $storage refs) */
-  args: Record<string, any>;
+  args: Record<string, unknown>;
   /** Why the agent chose this action */
   reasoning: string;
   /** If true, the agent deems this optional / best-effort */
@@ -203,7 +203,7 @@ export interface ConsensusProposal {
   /** Group deliberating */
   groupId: string;
   /** Structured spec (depends on kind) */
-  spec: AgentSpec | WorkflowSpec | EcosystemChangeSpec | Record<string, any>;
+  spec: AgentSpec | WorkflowSpec | EcosystemChangeSpec | Record<string, unknown>;
   /** Member votes / positions */
   positions: MemberPosition[];
   /** Outcome after deliberation */
@@ -253,7 +253,7 @@ export interface WorkflowSpec {
   /** Command IDs the workflow should compose */
   steps: Array<{
     commandId: string;
-    args: Record<string, any>;
+    args: Record<string, unknown>;
     reasoning: string;
   }>;
   /** Expected deliverables */
@@ -263,7 +263,7 @@ export interface WorkflowSpec {
 export interface EcosystemChangeSpec {
   changeType: "add_network" | "add_bridge" | "restructure_group" | "add_channel" | "custom";
   description: string;
-  entities: Record<string, any>;
+  entities: Record<string, unknown>;
   justification: string;
 }
 

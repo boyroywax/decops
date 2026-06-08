@@ -1,4 +1,5 @@
 import { Bot, Check, ChevronDown, ChevronRight, Clapperboard, Edit3, LayoutTemplate, Square } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { useChatAgentsStore, type ChatAgent } from "@/services/chat/agents";
 
@@ -53,8 +54,8 @@ export function BotMenu({
         setBotMenuOpen(false);
       }}
     >
-      {/* Cast: ChatAgent.icon is typed as a generic ComponentType; lucide-react's icon prop expects its own LucideIcon union which isn't structurally assignable. */}
-      <GradientIcon icon={agent.icon as any} size={14} gradient={agent.gradient ?? ["#38bdf8", "#a78bfa"]} />
+      {/* ChatAgent.icon is a generic ComponentType; narrow to lucide-react's LucideIcon for GradientIcon. */}
+      <GradientIcon icon={agent.icon as LucideIcon} size={14} gradient={agent.gradient ?? ["#38bdf8", "#a78bfa"]} />
       <span style={{ flex: 1 }}>{agent.name}</span>
       {activeAgent?.id === agent.id && <Check size={12} />}
     </button>
@@ -75,8 +76,8 @@ export function BotMenu({
       >
         {activeAgent?.icon ? (
           <GradientIcon
-            // Cast: see renderAgentButton — agent.icon is a generic ComponentType, lucide-react expects LucideIcon.
-            icon={activeAgent.icon as any}
+            // ChatAgent.icon is a generic ComponentType; narrow to LucideIcon for GradientIcon.
+            icon={activeAgent.icon as LucideIcon}
             size={13}
             gradient={activeAgent.gradient ?? ["#38bdf8", "#a78bfa"]}
           />
@@ -113,8 +114,8 @@ export function BotMenu({
                     setBotMenuOpen(false);
                   }}
                 >
-                  {/* Cast: orchestrator.icon is a generic ComponentType; lucide-react LucideIcon isn't structurally assignable. */}
-                  <GradientIcon icon={orchestrator.icon as any} size={14} gradient={orchestrator.gradient ?? ["#38bdf8", "#a78bfa"]} />
+                  {/* orchestrator.icon is a generic ComponentType; narrow to LucideIcon for GradientIcon. */}
+                  <GradientIcon icon={orchestrator.icon as LucideIcon} size={14} gradient={orchestrator.gradient ?? ["#38bdf8", "#a78bfa"]} />
                   <span style={{ flex: 1 }}>{orchestrator.name}</span>
                   {activeAgent?.id === orchestrator.id && <Check size={12} />}
                 </button>

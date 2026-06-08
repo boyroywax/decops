@@ -2,7 +2,7 @@ import type { ChatMessage } from "@/services/ai";
 
 export interface ParsedAction {
     type: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 /** A reasoning block emitted by the agent inside a ```thinking fence.

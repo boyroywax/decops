@@ -11,10 +11,8 @@ import type { StepHandler, JobStep } from "@/types/jobs";
 
 export interface RefContext {
   // Storage/deliverables hold opaque command results; reads need narrowing.
-   
-  storage: Record<string, any>;
-   
-  deliverables: Record<string, any>;
+  storage: Record<string, unknown>;
+  deliverables: Record<string, unknown>;
   inputs: Record<string, string>;
 }
 
@@ -25,8 +23,9 @@ export interface RefContext {
  */
 // `value` is a user-supplied template — may be string, number, object, array,
 // or null. Returns the same shape with $ref placeholders resolved.
- 
-export function resolveRefs(value: any, refs: RefContext): any {
+export function resolveRefs(value: Record<string, unknown>, refs: RefContext): Record<string, unknown>;
+export function resolveRefs(value: unknown, refs: RefContext): unknown;
+export function resolveRefs(value: unknown, refs: RefContext): unknown {
   if (typeof value === 'string') {
     // Whole-string exact match → return raw value (preserves non-string types)
     if (value.startsWith('$storage.') && !value.includes('\n') && !value.includes(' ')) {
@@ -83,11 +82,11 @@ export function resolveRefs(value: any, refs: RefContext): any {
  * Returns a new args object with bindings resolved.
  */
 export function applyInputBindings(
-  args: Record<string, any>,
+  args: Record<string, unknown>,
   inputBindings: Record<string, { source: string; sourceKey: string }> | undefined,
-  storage: Record<string, any>,
-  deliverables: Record<string, any>,
-): Record<string, any> {
+  storage: Record<string, unknown>,
+  deliverables: Record<string, unknown>,
+): Record<string, unknown> {
   const bound = { ...args };
   if (!inputBindings) return bound;
   for (const [argKey, binding] of Object.entries(inputBindings)) {
@@ -115,8 +114,7 @@ export const DELIVERABLE_STORAGE_PREFIX = '_deliverable_';
 export function applyOutputMappings(
   mappings: Array<{ outputKey: string; target: string; targetKey: string }> | undefined,
   result: unknown,
-   
-  storage: Record<string, any>,
+  storage: Record<string, unknown>,
 ): void {
   if (!mappings || result == null) return;
   for (const mapping of mappings) {
@@ -150,10 +148,8 @@ export function applyOutputMappings(
  */
 export async function assembleDeliverables(
   declaredDeliverables: Array<{ key: string; label: string; type: string; description?: string; sourceStorageKey?: string }>,
-   
-  storage: Record<string, any>,
-   
-  executeCommand: (commandId: string, args: Record<string, any>) => Promise<any>,
+  storage: Record<string, unknown>,
+  executeCommand: (commandId: string, args: Record<string, unknown>) => Promise<unknown>,
   addLog: (msg: string) => void,
 ): Promise<Array<{ key: string; artifactId: string }>> {
   const produced: Array<{ key: string; artifactId: string }> = [];
@@ -182,7 +178,8 @@ export async function assembleDeliverables(
         deliverableKey: deliverable.key,
       });
 
-      const artifactId = (result as { artifact?: { id?: string } } | undefined)?.artifact?.id || storage.lastArtifactId;
+      const artifactId = (result as { artifact?: { id?: string } } | undefined)?.artifact?.id
+        || (storage.lastArtifactId as string | undefined);
       if (artifactId) {
         produced.push({ key: deliverable.key, artifactId });
       }
@@ -256,7 +253,7 @@ export interface HandlerRefContext extends RefContext {
  * the standard $storage.*, $deliverable.*, $input.* refs.
  */
  
-export function resolveHandlerRefs(value: any, refs: HandlerRefContext): any {
+export function resolveHandlerRefs(value: unknown, refs: HandlerRefContext): unknown {
   if (typeof value === 'string') {
     // Whole-string exact match for $result / $error
     if (value === '$result' && refs.result !== undefined) return refs.result;
@@ -324,10 +321,8 @@ export interface StepHandlerResult {
 export async function executeStepHandler(
   handler: StepHandler | undefined,
   refs: HandlerRefContext,
-   
-  storage: Record<string, any>,
-   
-  execute: (commandId: string, args: Record<string, any>) => Promise<any>,
+  storage: Record<string, unknown>,
+  execute: (commandId: string, args: Record<string, unknown>) => Promise<unknown>,
   addLog: (msg: string) => void,
 ): Promise<StepHandlerResult> {
   if (!handler) {
@@ -357,7 +352,7 @@ export async function executeStepHandler(
 
     // 3. Execute handler command (if specified)
     if (handler.commandId) {
-      const resolvedArgs = resolveHandlerRefs(handler.args || {}, refs);
+      const resolvedArgs = resolveHandlerRefs(handler.args || {}, refs) as Record<string, unknown>;
       result.commandResult = await execute(handler.commandId, resolvedArgs);
     }
   } catch (e: unknown) {

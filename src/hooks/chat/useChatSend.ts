@@ -66,7 +66,7 @@ type EditorApiLike = {
 
 interface PendingCommand {
     command: CommandDefinition;
-    initialArgs: Record<string, any>;
+    initialArgs: Record<string, unknown>;
     convoId: string;
     msgs: ChatMessage[];
 }
@@ -115,7 +115,7 @@ export interface UseChatSendResult {
         prompt: NonNullable<ChatMessage["stopPrompt"]>,
     ) => void;
     pendingCommand: PendingCommand | null;
-    handlePromptSubmit: (commandId: string, args: Record<string, any>) => void;
+    handlePromptSubmit: (commandId: string, args: Record<string, unknown>) => void;
     handlePromptCancel: () => void;
 }
 
@@ -240,7 +240,7 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
     const queueCommandAsJob = useCallback((
         commandId: string,
         cmdDef: CommandDefinition,
-        args: Record<string, any>,
+        args: Record<string, unknown>,
         convoId: string,
         msgs: ChatMessage[],
     ) => {
@@ -409,7 +409,7 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
                 }
 
                 // Parse any inline args
-                let parsedArgs: Record<string, any> = {};
+                let parsedArgs: Record<string, unknown> = {};
                 if (argsString) {
                     if (argsString.startsWith("{")) {
                         try { parsedArgs = JSON.parse(argsString); } catch { /* ignore */ }
@@ -563,7 +563,7 @@ export function useChatSend(opts: UseChatSendOptions): UseChatSendResult {
     ]);
 
     // Handle prompt modal submission
-    const handlePromptSubmit = useCallback((commandId: string, args: Record<string, any>) => {
+    const handlePromptSubmit = useCallback((commandId: string, args: Record<string, unknown>) => {
         if (!pendingCommand) return;
         queueCommandAsJob(commandId, pendingCommand.command, args, pendingCommand.convoId, pendingCommand.msgs);
         setPendingCommand(null);

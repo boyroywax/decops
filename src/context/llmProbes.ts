@@ -68,9 +68,9 @@ export async function fetchOpenRouterModels(apiKey: string): Promise<LLMModel[]>
     const data = await res.json();
     if (!data.data || !Array.isArray(data.data)) return [];
     return data.data
-      .filter((m: any) => m.id && !m.id.includes(":free")) // skip free-tier duplicates
+      .filter((m: { id?: string }) => m.id && !m.id.includes(":free")) // skip free-tier duplicates
       .slice(0, 50) // cap to prevent UI overload
-      .map((m: any) => ({
+      .map((m: { id: string; name?: string; description?: string }) => ({
         id: `openrouter:${m.id}`,
         label: m.name || m.id,
         desc: m.description?.slice(0, 80) || `via OpenRouter`,
@@ -99,7 +99,7 @@ export async function fetchOllamaModelTags(baseUrl: string, instanceId: string, 
     if (!res.ok) return [];
     const data = await res.json();
     if (!data.models || !Array.isArray(data.models)) return [];
-    return data.models.map((m: any) => ({
+    return data.models.map((m: { name: string; details?: { parameter_size?: string; family?: string; quantization_level?: string } }) => ({
       id: `ollama:${instanceId}:${m.name}`,
       label: m.name,
       desc: m.details

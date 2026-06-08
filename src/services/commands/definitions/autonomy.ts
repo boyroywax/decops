@@ -650,7 +650,7 @@ export const executeProposalCommand: CommandDefinition = {
 async function executeProposal(
   proposal: ConsensusProposal,
   context: CommandContext,
-): Promise<any> {
+): Promise<unknown> {
   const { registry } = await import("../registry");
 
   switch (proposal.kind) {

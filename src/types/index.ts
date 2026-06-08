@@ -1,7 +1,7 @@
 import type React from "react";
 import type { AieosEntity } from "./aieos";
 import type { MeshConfig } from "./mesh";
-import type { Job, JobArtifact, JobStep, JobEvent } from "./jobs";
+import type { Job, JobArtifact, JobStep, JobEvent, JobDeliverable, EntityInput } from "./jobs";
 export type { JobEvent };
 
 export type RoleId = "researcher" | "builder" | "curator" | "validator" | "orchestrator";
@@ -58,7 +58,7 @@ export interface NotebookEntry {
   icon: React.ReactNode;
   title: string;
   description: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   tags?: string[];
 }
 
@@ -95,7 +95,7 @@ export interface UserProfile {
   email?: string;
   firstName?: string;
   lastName?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface AuthContextType extends AuthState {
@@ -216,7 +216,7 @@ export interface ToolkitTool {
   id: string;
   name: string;
   description: string;
-  inputSchema?: Record<string, any>;
+  inputSchema?: Record<string, unknown>;
   /**
    * Optional command-registry ID this tool is backed by.
    *
@@ -315,7 +315,7 @@ export interface Toolkit {
 export interface AgentToolkitBinding {
   toolkitId: ToolkitId;
   enabledAt: string;
-  config?: Record<string, any>;  // Toolkit-specific settings
+  config?: Record<string, unknown>;  // Toolkit-specific settings
 }
 
 export interface Agent {
@@ -606,7 +606,7 @@ export type JobRequest =
   | { type: "create_network"; request: CreateNetworkRequest }
   | { type: "reset_workspace"; request: ResetWorkspaceRequest }
   // Fallback for dynamic/other jobs
-  | { type: string; request: Record<string, any>; steps?: JobStep[]; mode?: 'serial' | 'parallel' | 'mixed'; parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }> };
+  | { type: string; request: Record<string, unknown>; steps?: JobStep[]; mode?: 'serial' | 'parallel' | 'mixed'; parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>; storageDefaults?: Record<string, unknown>; deliverables?: JobDeliverable[]; inputDefaults?: EntityInput[]; dryRun?: boolean };
 
 
 export interface WorkspaceMetadata {
@@ -649,6 +649,6 @@ export interface Workspace {
 
   jobs?: Job[];
   artifacts?: JobArtifact[];
-  automations?: any[]; // AutomationDefinition
-  automationRuns?: any[]; // AutomationRun
+  automations?: import("@/services/automations/types").AutomationDefinition[];
+  automationRuns?: import("@/services/automations/types").AutomationRun[];
 }

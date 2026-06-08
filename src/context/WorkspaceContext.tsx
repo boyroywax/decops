@@ -4,7 +4,7 @@ import { useAgents } from '@/hooks/useAgents';
 import { useChannels } from '@/hooks/useChannels';
 import { useGroups } from '@/hooks/useGroups';
 import { useMessages } from '@/hooks/useMessages';
-import type { Agent, Channel, Group, Message, NewAgentForm, ChannelForm, GroupForm } from '@/types';
+import type { Agent, Channel, Group, Message, NewAgentForm, ChannelForm, GroupForm, JobRequest } from '@/types';
 
 export interface WorkspaceContextType {
     // Agents
@@ -98,7 +98,7 @@ export function useWorkspaceContext() {
 
 interface WorkspaceProviderProps {
     children: ReactNode;
-    addJob: (job: any) => void;
+    addJob: (job: JobRequest) => void;
 }
 
 export function WorkspaceProvider({ children, addJob }: WorkspaceProviderProps) {

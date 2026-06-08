@@ -92,7 +92,7 @@ export function StudioView({ savedJobs, onSaveJob, onDeleteJob, onRunJob }: Stud
     const addStep = useCallback((commandId: string): string => {
         const command = registry.get(commandId);
         if (!command) return "";
-        const args: Record<string, any> = {};
+        const args: Record<string, unknown> = {};
         Object.entries(command.args).forEach(([key, def]) => {
             if (def.defaultValue !== undefined) args[key] = def.defaultValue;
             else if (def.type === "boolean") args[key] = false;

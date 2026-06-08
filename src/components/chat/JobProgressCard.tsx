@@ -12,15 +12,16 @@ import {
     Database, Package, Layers, ChevronRight, ChevronDown, AlertTriangle, Keyboard, Wrench, FileText,
 } from "lucide-react";
 import { useJobsContext } from "@/context/JobsContext";
-import type { Job, JobStep } from "@/types";
+import type { Job, JobStep, JobDeliverable } from "@/types";
 import type { ToolCallDisplay } from "@/services/ai";
 import "../../styles/components/job-progress-card.css";
 
-function extractArtifactIds(result: any): string[] {
+function extractArtifactIds(result: unknown): string[] {
     if (!result || typeof result !== "object") return [];
-    if (Array.isArray(result.artifactIds)) return result.artifactIds;
-    if (result.result && Array.isArray(result.result.artifactIds)) return result.result.artifactIds;
-    if (result.jobResult && Array.isArray(result.jobResult.artifactIds)) return result.jobResult.artifactIds;
+    const r = result as { artifactIds?: unknown; result?: { artifactIds?: unknown }; jobResult?: { artifactIds?: unknown } };
+    if (Array.isArray(r.artifactIds)) return r.artifactIds as string[];
+    if (r.result && Array.isArray(r.result.artifactIds)) return r.result.artifactIds as string[];
+    if (r.jobResult && Array.isArray(r.jobResult.artifactIds)) return r.jobResult.artifactIds as string[];
     return [];
 }
 
@@ -164,7 +165,7 @@ function StepRow({ step, index }: { step: JobStep; index: number }) {
 
 // ── Storage snapshot ──
 
-function StorageSnapshot({ storage }: { storage: Record<string, any> }) {
+function StorageSnapshot({ storage }: { storage: Record<string, unknown> }) {
     const entries = Object.entries(storage).filter(([k]) => !k.startsWith("__deliverable_"));
     if (entries.length === 0) return null;
 
@@ -194,7 +195,7 @@ function StorageSnapshot({ storage }: { storage: Record<string, any> }) {
 
 // ── Deliverables status ──
 
-function DeliverablesStatus({ deliverables, storage }: { deliverables: any[]; storage: Record<string, any> }) {
+function DeliverablesStatus({ deliverables, storage }: { deliverables: JobDeliverable[]; storage: Record<string, unknown> }) {
     if (!deliverables || deliverables.length === 0) return null;
 
     return (

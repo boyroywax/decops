@@ -16,6 +16,17 @@ import { SystemView } from "@/components/views/SystemView";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { Breadcrumb } from "./Breadcrumb";
 import type { WorkspaceContextType } from "@/context/WorkspaceContext";
+import type { useEcosystem } from "@/hooks/useEcosystem";
+import type { useArchitect } from "@/toolkits/architect";
+import type { useJobsContext } from "@/context/JobsContext";
+import type { useJobCatalog } from "@/hooks/useJobCatalog";
+import type { useNotebook } from "@/hooks/useNotebook";
+
+type Ecosystem = ReturnType<typeof useEcosystem>;
+type Architect = ReturnType<typeof useArchitect>;
+type JobsCtx = ReturnType<typeof useJobsContext>;
+type JobCatalog = ReturnType<typeof useJobCatalog>;
+type Notebook = ReturnType<typeof useNotebook>;
 
 const ToolkitDetailView = lazy(async () => {
     const mod = await import("@/components/views/ToolkitDetailView");
@@ -33,19 +44,19 @@ interface ViewSwitcherProps {
     navContext: NavContext;
     navigateTo: (view: ViewId, ctx: NavContext) => void;
     workspace: WorkspaceContextType;
-    architect: any;
-    ecosystem: any;
-    allArtifacts: any[];
-    importArtifact: any;
-    removeArtifact: any;
-    updateArtifact: any;
-    notebookEntries: any[];
+    architect: Architect;
+    ecosystem: Ecosystem;
+    allArtifacts: JobsCtx["allArtifacts"];
+    importArtifact: JobsCtx["importArtifact"];
+    removeArtifact: JobsCtx["removeArtifact"];
+    updateArtifact: JobsCtx["updateArtifact"];
+    notebookEntries: Notebook["entries"];
     clearNotebook: () => void;
     exportNotebook: () => void;
-    addNotebookEntry: (entry: any) => void;
-    addJob: (job: any) => void;
-    savedJobs: any[];
-    onSaveJob: (job: any) => void;
+    addNotebookEntry: Notebook["addEntry"];
+    addJob: JobsCtx["addJob"];
+    savedJobs: JobCatalog["savedJobs"];
+    onSaveJob: JobCatalog["saveJob"];
     onDeleteJob: (id: string) => void;
 }
 

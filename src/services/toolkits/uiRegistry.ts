@@ -42,7 +42,7 @@ export interface ToolkitViewContribution {
    *   - `workspace` (WorkspaceContextType)
    * Additional props are passed through from ViewSwitcher.
    */
-   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogeneous toolkit views declare their own prop shapes; ComponentType is contravariant in props so a precise union/Record type would reject valid registrations. Props are spread dynamically by ViewSwitcher.
   Component: ComponentType<any>;
 }
 

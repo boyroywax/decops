@@ -524,7 +524,7 @@ export function StepCardModal({
               <div className="scm-outputs">
                 {step.outputMappings.map((m, i) => {
                   const outputKeys = cmd?.outputSchema?.properties
-                    ? ["*", ...Object.keys(cmd.outputSchema.properties as Record<string, any>)]
+                    ? ["*", ...Object.keys(cmd.outputSchema.properties as Record<string, unknown>)]
                     : ["*"];
                   return (
                     <div key={i} className={`scm-output scm-output--${m.target} scm-output--edit`}>
@@ -718,7 +718,7 @@ export function StepCardModal({
                           placeholder='e.g. {"status": "done"}'
                           value={step.onSuccess.setStorage ? JSON.stringify(step.onSuccess.setStorage) : ""}
                           onChange={(e) => {
-                            let parsed: Record<string, any> | undefined;
+                            let parsed: Record<string, unknown> | undefined;
                             try { parsed = e.target.value ? JSON.parse(e.target.value) : undefined; } catch { return; }
                             onUpdateStepOnSuccess(step.id, { ...step.onSuccess!, setStorage: parsed });
                           }}
@@ -779,7 +779,7 @@ export function StepCardModal({
                           placeholder='e.g. {"error_count": 1}'
                           value={step.onFailure.setStorage ? JSON.stringify(step.onFailure.setStorage) : ""}
                           onChange={(e) => {
-                            let parsed: Record<string, any> | undefined;
+                            let parsed: Record<string, unknown> | undefined;
                             try { parsed = e.target.value ? JSON.parse(e.target.value) : undefined; } catch { return; }
                             onUpdateStepOnFailure(step.id, { ...step.onFailure!, setStorage: parsed });
                           }}

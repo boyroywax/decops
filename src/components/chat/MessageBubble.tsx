@@ -1,9 +1,9 @@
 /* eslint-disable react-hooks/exhaustive-deps -- intentional memo deps */
 import { Fragment, useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import type { ReactNode, CSSProperties } from "react";
 import type { ChatMessage, WorkspaceContext } from "@/services/ai";
 import { parseActions } from "./utils";
-import type { ParsedSegment } from "./types";
+import type { ParsedSegment, ParsedAction } from "./types";
 import ActionCard from "./ActionCard";
 import { ThinkingCard } from "./ThinkingCard";
 import { JobProgressCard } from "./JobProgressCard";
@@ -50,11 +50,12 @@ function summarizeToolResult(result: unknown): string {
     }
 }
 
-function extractArtifactIds(result: any): string[] {
+function extractArtifactIds(result: unknown): string[] {
     if (!result || typeof result !== "object") return [];
-    if (Array.isArray(result.artifactIds)) return result.artifactIds;
-    if (result.result && Array.isArray(result.result.artifactIds)) return result.result.artifactIds;
-    if (result.jobResult && Array.isArray(result.jobResult.artifactIds)) return result.jobResult.artifactIds;
+    const r = result as { artifactIds?: unknown; result?: { artifactIds?: unknown }; jobResult?: { artifactIds?: unknown } };
+    if (Array.isArray(r.artifactIds)) return r.artifactIds as string[];
+    if (r.result && Array.isArray(r.result.artifactIds)) return r.result.artifactIds as string[];
+    if (r.jobResult && Array.isArray(r.jobResult.artifactIds)) return r.jobResult.artifactIds as string[];
     return [];
 }
 
@@ -292,7 +293,7 @@ function isTextSeg(seg: ParsedSegment): seg is { type: "text"; text: string } {
     return seg.type === "text";
 }
 
-function isActionSeg(seg: ParsedSegment): seg is { type: "action"; action: any } {
+function isActionSeg(seg: ParsedSegment): seg is { type: "action"; action: ParsedAction } {
     return seg.type === "action";
 }
 
@@ -442,13 +443,13 @@ export default function MessageBubble({ msg, context, setView, isStreaming, isLa
             <div
                 className={`mb-bubble ${isUser ? "mb-bubble--user" : "mb-bubble--assistant"}${isStreaming ? " mb-bubble--streaming" : ""}${themedAgent ? " mb-bubble--themed" : ""}`}
                 data-agent-id={themedAgent?.id}
-                style={themedAgent?.gradient ? {
+                style={themedAgent?.gradient ? ({
                     // Banner color scheme → bubble tint. The CSS rules in
                     // message-bubble.css use these custom properties to draw
                     // the accent border + soft background gradient.
-                    ["--mb-agent-start" as any]: themedAgent.gradient[0],
-                    ["--mb-agent-end" as any]: themedAgent.gradient[1],
-                } : undefined}
+                    ["--mb-agent-start"]: themedAgent.gradient[0],
+                    ["--mb-agent-end"]: themedAgent.gradient[1],
+                } as CSSProperties) : undefined}
             >
                 {(themedAgent || msg.createdAt) && !isUser ? (
                     <div className="mb-bubble__meta" aria-hidden={false}>

@@ -23,7 +23,7 @@ export interface AutomationRun {
 export interface AutomationStep {
     id: string;
     commandId: string;
-    args: Record<string, any>;
+    args: Record<string, unknown>;
     condition?: string;
 }
 
@@ -39,7 +39,7 @@ export interface BaseAutomationDefinition {
 
 export interface CodeAutomationDefinition extends BaseAutomationDefinition {
     type: "code";
-    execute: (context: CommandContext, runId: string) => Promise<any>;
+    execute: (context: CommandContext, runId: string) => Promise<unknown>;
 }
 
 export interface DeclarativeAutomationDefinition extends BaseAutomationDefinition {
@@ -47,7 +47,7 @@ export interface DeclarativeAutomationDefinition extends BaseAutomationDefinitio
     steps: AutomationStep[];
     mode?: "serial" | "parallel";
     deliverables?: import("../../types").JobDeliverable[];
-    storageDefaults?: Record<string, any>;
+    storageDefaults?: Record<string, unknown>;
 }
 
 export type AutomationDefinition = CodeAutomationDefinition | DeclarativeAutomationDefinition;

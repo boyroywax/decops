@@ -121,15 +121,15 @@ function getExampleValue(
 }
 
 /** Render a JSON schema as flat rows */
-function renderSchemaRows(schema: Record<string, any>, depth = 0): { key: string; type: string; depth: number }[] {
+function renderSchemaRows(schema: Record<string, unknown>, depth = 0): { key: string; type: string; depth: number }[] {
   const rows: { key: string; type: string; depth: number }[] = [];
   if (!schema) return rows;
 
   const props = schema.properties || (schema.type === "object" ? {} : null);
   if (props) {
     for (const [key, val] of Object.entries(props)) {
-      // Cast: JSON-Schema sub-properties are typed as `unknown` in our schema model; downstream code reads `type`/`properties`/`items` defensively.
-      const v = val as any;
+      // JSON-Schema sub-properties are typed as `unknown`; read `type`/`properties`/`items` defensively via a structural cast.
+      const v = val as { type?: string; properties?: Record<string, unknown>; items?: { properties?: Record<string, unknown> } };
       const type = v.type || "any";
       rows.push({ key, type, depth });
       if (v.properties) {

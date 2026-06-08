@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import type { RefObject } from "react";
 import { X, Play, AlertCircle, ChevronDown, FlaskConical } from "lucide-react";
-import type { CommandDefinition, CommandArg } from "@/services/commands/types";
+import type { CommandDefinition, CommandArg, CommandContext } from "@/services/commands/types";
 import type { User } from "@/types";
 import { registry } from "@/services/commands/registry";
 import { DryRunReport } from "./DryRunReport";
@@ -12,7 +13,7 @@ import "../../styles/components/command-prompt.css";
 interface CommandPromptProps {
     command: CommandDefinition;
     /** Pre-filled arg values (e.g. from CLI parsing) */
-    initialArgs?: Record<string, any>;
+    initialArgs?: Record<string, unknown>;
     /** Workspace entities for entity pickers */
     entities?: {
         agents: { id: string; name: string }[];
@@ -22,9 +23,9 @@ interface CommandPromptProps {
     };
     /** Current user for includeUserOption */
     currentUser?: User | null;
-    onSubmit: (commandId: string, args: Record<string, any>) => void;
+    onSubmit: (commandId: string, args: Record<string, unknown>) => void;
     /** Workspace context for dry-run entity resolution */
-    dryRunContext?: any;
+    dryRunContext?: Partial<CommandContext>;
     onCancel: () => void;
 }
 
@@ -84,8 +85,8 @@ export function CommandPrompt({
     );
 
     // Initialize values — pre-fill defaults and initialArgs
-    const [values, setValues] = useState<Record<string, any>>(() => {
-        const init: Record<string, any> = {};
+    const [values, setValues] = useState<Record<string, unknown>>(() => {
+        const init: Record<string, unknown> = {};
         for (const [name, arg] of argEntries) {
             if (name in initialArgs && initialArgs[name] !== undefined) {
                 init[name] = initialArgs[name];
@@ -106,11 +107,12 @@ export function CommandPrompt({
     const [showOptional, setShowOptional] = useState(false);
     const [dryRunReport, setDryRunReport] = useState<DryRunJobResult | null>(null);
     /**
-     * Cast: `firstInputRef` is typed for the union of the three concrete element
+     * `firstInputRef` is typed for the union of the three concrete element
      * kinds we render below (input/select/textarea), but React's per-element
-     * `ref` prop only accepts a `Ref<ConcreteElement>`. Each JSX `ref={... as any}`
-     * below intentionally widens the ref to bypass that contravariant mismatch;
-     * the runtime element really is one of the three union members.
+     * `ref` prop only accepts a `Ref<ConcreteElement>`. Each JSX site narrows
+     * the union ref to the concrete element it renders (e.g.
+     * `firstInputRef as RefObject<HTMLSelectElement>`); the runtime element
+     * really is the asserted union member.
      */
     const firstInputRef = useRef<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(null);
 
@@ -128,11 +130,15 @@ export function CommandPrompt({
         return () => window.removeEventListener("keydown", handler);
     }, [onCancel]);
 
-    const setValue = useCallback((name: string, value: any) => {
+    const setValue = useCallback((name: string, value: unknown) => {
         setValues(prev => ({ ...prev, [name]: value }));
         // Clear error for this field
         setErrors(prev => prev.filter(e => e.argName !== name));
     }, []);
+
+    /** Coerce a stored (unknown) field value into a React-acceptable input value. */
+    const inputValue = (v: unknown): string | number | readonly string[] =>
+        typeof v === "number" || Array.isArray(v) ? (v as number | readonly string[]) : v == null ? "" : String(v);
 
     const validate = useCallback((): boolean => {
         const errs: FieldError[] = [];
@@ -181,7 +187,7 @@ export function CommandPrompt({
         if (!validate()) return;
 
         // Coerce types
-        const coerced: Record<string, any> = {};
+        const coerced: Record<string, unknown> = {};
         for (const [name, arg] of argEntries) {
             let val = values[name];
             if (val === "" && arg.required === false && arg.defaultValue === undefined) continue; // skip empty optionals
@@ -201,7 +207,7 @@ export function CommandPrompt({
 
     /** Build coerced args (shared between submit and dry-run) */
     const buildCoercedArgs = useCallback(() => {
-        const coerced: Record<string, any> = {};
+        const coerced: Record<string, unknown> = {};
         for (const [name, arg] of argEntries) {
             let val = values[name];
             if (val === "" && arg.required === false && arg.defaultValue === undefined) continue;
@@ -220,7 +226,7 @@ export function CommandPrompt({
 
     const handleDryRun = useCallback(() => {
         const coerced = buildCoercedArgs();
-        const cmdResult = registry.dryRun(command.id, coerced, dryRunContext || {});
+        const cmdResult = registry.dryRun(command.id, coerced, (dryRunContext ?? {}) as CommandContext);
         const report: DryRunJobResult = {
             valid: cmdResult.valid,
             mode: 'single',
@@ -273,8 +279,8 @@ export function CommandPrompt({
                     <p className="cmd-prompt__hint">{arg.description}</p>
                     <div className="cmd-prompt__select-wrap">
                         <select
-                            ref={isFirst ? firstInputRef as any : undefined}
-                            value={values[name] || ""}
+                            ref={isFirst ? (firstInputRef as RefObject<HTMLSelectElement>) : undefined}
+                            value={inputValue(values[name])}
                             onChange={e => setValue(name, e.target.value)}
                             className="cmd-prompt__select"
                         >
@@ -304,8 +310,8 @@ export function CommandPrompt({
                     <p className="cmd-prompt__hint">{arg.description}</p>
                     <div className="cmd-prompt__select-wrap">
                         <select
-                            ref={isFirst ? firstInputRef as any : undefined}
-                            value={values[name] ?? ""}
+                            ref={isFirst ? (firstInputRef as RefObject<HTMLSelectElement>) : undefined}
+                            value={inputValue(values[name])}
                             onChange={e => setValue(name, e.target.value)}
                             className="cmd-prompt__select"
                         >
@@ -356,8 +362,8 @@ export function CommandPrompt({
                     </label>
                     <p className="cmd-prompt__hint">{arg.description}</p>
                     <textarea
-                        ref={isFirst ? firstInputRef as any : undefined}
-                        value={values[name] ?? ""}
+                        ref={isFirst ? (firstInputRef as RefObject<HTMLTextAreaElement>) : undefined}
+                        value={inputValue(values[name])}
                         onChange={e => setValue(name, e.target.value)}
                         placeholder={getPlaceholder(arg)}
                         className="cmd-prompt__textarea"
@@ -378,9 +384,9 @@ export function CommandPrompt({
                     </label>
                     <p className="cmd-prompt__hint">{arg.description}</p>
                     <input
-                        ref={isFirst ? firstInputRef as any : undefined}
+                        ref={isFirst ? (firstInputRef as RefObject<HTMLInputElement>) : undefined}
                         type="number"
-                        value={values[name] ?? ""}
+                        value={inputValue(values[name])}
                         onChange={e => setValue(name, e.target.value)}
                         placeholder={getPlaceholder(arg)}
                         className="cmd-prompt__input"
@@ -401,9 +407,9 @@ export function CommandPrompt({
                     {arg.type === "array" && <span className="cmd-prompt__hint-badge">comma-separated</span>}
                 </p>
                 <input
-                    ref={isFirst ? firstInputRef as any : undefined}
+                    ref={isFirst ? (firstInputRef as RefObject<HTMLInputElement>) : undefined}
                     type="text"
-                    value={values[name] ?? ""}
+                    value={inputValue(values[name])}
                     onChange={e => setValue(name, e.target.value)}
                     placeholder={getPlaceholder(arg)}
                     className="cmd-prompt__input"

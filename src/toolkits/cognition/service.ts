@@ -49,8 +49,8 @@ function normalizeManifest(manifest: AgentCognitionProfileManifest): AgentCognit
     ...manifest,
     spec: {
       ...manifest.spec,
-      subAgentPlots: Array.isArray((manifest.spec as any).subAgentPlots)
-        ? ((manifest.spec as any).subAgentPlots as CognitionSubAgentPlot[]).map(normalizePlot)
+      subAgentPlots: Array.isArray((manifest.spec as { subAgentPlots?: unknown }).subAgentPlots)
+        ? ((manifest.spec as { subAgentPlots?: unknown }).subAgentPlots as CognitionSubAgentPlot[]).map(normalizePlot)
         : [],
     },
   };

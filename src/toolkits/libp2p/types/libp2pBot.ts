@@ -15,7 +15,7 @@ export type Libp2pBotStatus = "idle" | "planning" | "executing" | "reviewing" | 
 
 export interface Libp2pBotOperation {
     command: string;
-    args: Record<string, any>;
+    args: Record<string, unknown>;
     description: string;
     /** Order in execution sequence */
     order: number;

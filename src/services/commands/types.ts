@@ -88,7 +88,7 @@ export interface CommandContext {
     };
     /** Mutable shared storage for inter-step data passing within jobs/automations.
      *  Values are arbitrary command results so the type is intentionally loose. */
-     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic command-bus storage bag; values are arbitrary command results narrowed at use sites
     storage: Record<string, any>;
     /** Produce a deliverable (auto-creates artifact and tags it with the job) */
     addDeliverable: (deliverable: {
@@ -160,6 +160,7 @@ export interface CommandContext {
  * `CommandDefinition<{ agentId: string }>`).
  */
  
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic command-bus args; each command narrows via its own TArgs generic
 export interface CommandDefinition<TArgs = any> {
     id: string;
     description: string;
@@ -189,5 +190,6 @@ export interface CommandDefinition<TArgs = any> {
      */
     timeoutMs?: number;
      
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- command results are heterogeneous; callers narrow as needed
     execute: (args: TArgs, context: CommandContext) => Promise<any>;
 }

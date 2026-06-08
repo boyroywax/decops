@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Globe, Plus, X, Sparkles } from "lucide-react";
+import type { JobRequest } from "@/types";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import "../../../styles/components/create-network-modal.css";
 
 interface CreateNetworkModalProps {
-  addJob: (job: any) => void;
+  addJob: (job: JobRequest) => void;
   onClose: () => void;
 }
 

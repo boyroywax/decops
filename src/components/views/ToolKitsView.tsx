@@ -12,13 +12,14 @@ import {
   ScrollText, Brain,
 } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
+import type { LucideIcon } from "lucide-react";
 import { StudioBotPanel } from "@/toolkits/studio";
 import { ArchitectBotPanel } from "@/toolkits/architect";
 import { Libp2pBotPanel } from "@/toolkits/libp2p";
 import "../../styles/components/toolkits.css";
 
 /** Map toolkit icon names → Lucide components */
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, LucideIcon> = {
   Bot, ArrowLeftRight, MessageSquare, Globe, Network, Download,
   Zap, Vote, FileText, Clapperboard, ListChecks, Image, Settings,
   FolderOpen, Sparkles, Search, Wrench, ScanText, AudioLines, Video,
@@ -27,7 +28,7 @@ const ICON_MAP: Record<string, any> = {
 };
 
 /** Map tool IDs → icons */
-const TOOL_ICONS: Record<string, any> = {
+const TOOL_ICONS: Record<string, LucideIcon> = {
   fetch_url: ExternalLink,
   crawl_site: Search,
   extract_links: Link2,
@@ -122,7 +123,10 @@ export function ToolKitsView({ navigateTo }: ToolKitsViewProps) {
     const tool = tk.tools.find(t => t.id === quickActionTool);
     if (!tool) return null;
 
-    const schema = tool.inputSchema || {};
+    const schema = (tool.inputSchema || {}) as Record<
+      string,
+      { type?: string; required?: boolean; default?: string | number; description?: string }
+    >;
     const paramKeys = Object.keys(schema);
 
     return (

@@ -96,7 +96,7 @@ function ContactsPanel({
     const [multiaddr, setMultiaddr] = useState("");
     const [notes, setNotes] = useState("");
 
-    const dispatch = (type: string, request: Record<string, any>) =>
+    const dispatch = (type: string, request: Record<string, unknown>) =>
         addJob({ type, request: activeNodeId ? { ...request, nodeId: activeNodeId } : request } as JobRequest);
 
     const handleAdd = () => {
@@ -200,7 +200,7 @@ function VaultPanel({ activeNodeId }: { activeNodeId: string | null }) {
     const [unlockId, setUnlockId] = useState<string | null>(null);
     const [unlockPassphrase, setUnlockPassphrase] = useState("");
 
-    const dispatch = (type: string, request: Record<string, any>) =>
+    const dispatch = (type: string, request: Record<string, unknown>) =>
         addJob({ type, request: activeNodeId ? { ...request, nodeId: activeNodeId } : request } as JobRequest);
 
     const handleStoreCurrent = () => {

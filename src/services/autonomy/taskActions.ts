@@ -17,7 +17,7 @@ export async function executeActions(
   const jobIds: string[] = [];
   const artifactIds: string[] = [];
   const errors: string[] = [];
-  const results: Record<string, any> = {};
+  const results: Record<string, unknown> = {};
 
   for (const action of actions) {
     try {
@@ -156,9 +156,12 @@ export async function executeActions(
       results[`action_${action.order}`] = result;
 
       // Track created entities
-      if (result?.id) {
-        if (action.commandId.includes("artifact")) artifactIds.push(result.id);
-        if (action.commandId.includes("job")) jobIds.push(result.id);
+      const resultId = result && typeof result === "object" && "id" in result
+        ? (result as { id?: unknown }).id
+        : undefined;
+      if (typeof resultId === "string") {
+        if (action.commandId.includes("artifact")) artifactIds.push(resultId);
+        if (action.commandId.includes("job")) jobIds.push(resultId);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

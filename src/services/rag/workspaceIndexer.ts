@@ -329,8 +329,9 @@ function buildDocs(ctx: WorkspaceContext, workspaceId?: string | null): RagDocum
 
   for (const a of ctx.agents) {
     const toolkitIds = (a.toolkits ?? []).map((b) => b.toolkitId).join(", ") || "none";
-    const autonomyLevel = (a as any).autonomyConfig?.level ?? (a as any).autonomyConfig?.mode ?? "none";
-    const endpointType = (a as any).endpoint?.type ?? "none";
+    const ax = a as { autonomyConfig?: { level?: string; mode?: string }; endpoint?: { type?: string }; runtimeStatus?: string };
+    const autonomyLevel = ax.autonomyConfig?.level ?? ax.autonomyConfig?.mode ?? "none";
+    const endpointType = ax.endpoint?.type ?? "none";
     docs.push({
       id: `ws:${resolvedWorkspaceId}:agent:${a.id}`,
       workspaceId: resolvedWorkspaceId,
@@ -342,7 +343,7 @@ function buildDocs(ctx: WorkspaceContext, workspaceId?: string | null): RagDocum
         `Agent ${a.name} (${a.id}).`,
         `Role: ${a.role}. Title: ${a.title || "none"}.`,
         `Network: ${a.networkId || "none"}. DID: ${a.did || "none"}.`,
-        `RuntimeStatus: ${(a as any).runtimeStatus || "unknown"}. Endpoint: ${endpointType}. Dark: ${a.isDarkAgent ? "yes" : "no"}.`,
+        `RuntimeStatus: ${ax.runtimeStatus || "unknown"}. Endpoint: ${endpointType}. Dark: ${a.isDarkAgent ? "yes" : "no"}.`,
         `RecommendedModel: ${a.recommendedModel || "none"}. AutonomyLevel: ${autonomyLevel}.`,
         `Toolkits: ${toolkitIds}.`,
         `LastActive: ${a.lastActivityAt || "unknown"}. ActiveSince: ${a.activeSince || "unknown"}.`,

@@ -79,9 +79,9 @@ const AutomationsProviderInner = ({ children, addLog }: { children: ReactNode, a
             workspace: {
                 ...workspace,
                 addLog: addLog, // Use the prop!
-            } as any, // Cast: workspace context shape varies across hosts; CommandContext only consumes the subset we pass.
-            // Cast: JobsContext value is structurally compatible; React contexts can't narrow generic state types without re-typing the consumer.
-            jobs: jobs as any,
+            } as CommandContext["workspace"], // workspace context shape varies across hosts; CommandContext only consumes the subset we pass.
+            // JobsContext value is structurally compatible; assert through unknown to the CommandContext slot.
+            jobs: jobs as unknown as CommandContext["jobs"],
             // Mocking the rest for now as they aren't used in Health Check
             auth: { user: null },
             ecosystem: {

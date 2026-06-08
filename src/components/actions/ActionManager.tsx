@@ -10,13 +10,14 @@ import { useJobsContext } from "@/context/JobsContext";
 
 import { useStudioContext } from "@/toolkits/studio";
 import { JobDefinition, ViewId } from "@/types";
+import type { UseJobCatalogReturn } from "@/hooks/useJobCatalog";
 import "../../styles/components/action-manager.css";
 
 interface ActionManagerProps {
     onClose: () => void;
     isMobile?: boolean;
-    savedJobs: any[];
-    saveJob: (job: any) => void;
+    savedJobs: JobDefinition[];
+    saveJob: UseJobCatalogReturn["saveJob"];
     deleteJob: (id: string) => void;
     height: number;
     setHeight: (h: number) => void;
@@ -68,8 +69,7 @@ export function ActionManager({ onClose, savedJobs, deleteJob, height, setHeight
             ...(jobDef.inputDefaults && jobDef.inputDefaults.length > 0 ? { inputDefaults: jobDef.inputDefaults } : {}),
             ...(jobDef.parallelGroups && jobDef.parallelGroups.length > 0 ? { parallelGroups: jobDef.parallelGroups } : {}),
             dryRun: true,
-            // Cast: we assemble a partial JobDefinition for dry-run; the runtime accepts this subset but the strict shape requires every optional cluster.
-        } as any);
+        });
         setActiveTab("monitor");
     };
 

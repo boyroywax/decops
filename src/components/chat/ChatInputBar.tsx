@@ -1,5 +1,5 @@
 import { Send, Square, X } from "lucide-react";
-import type { Dispatch, RefObject, SetStateAction } from "react";
+import type { CSSProperties, Dispatch, RefObject, SetStateAction } from "react";
 import { BotMenu } from "@/components/chat/BotMenu";
 import { ChatMentionPicker, type MentionCandidate } from "@/components/chat/ChatMentionPicker";
 import type { PinnedMention } from "@/hooks/chat/useChatMentions";
@@ -89,10 +89,10 @@ export function ChatInputBar({
             <div
                 className={`chat-panel__input-bar${activeAgent ? " chat-panel__input-bar--agent" : studioActive ? " chat-panel__input-bar--studio" : editorActive ? " chat-panel__input-bar--editor" : ""}`}
                 style={activeAgent ? {
-                    // Cast: React's CSSProperties index signature rejects `--` custom-property keys; cast widens the key type for CSS variables.
-                    ["--agent-gradient-start" as any]: activeAgent.gradient?.[0] ?? "#38bdf8",
-                    ["--agent-gradient-end" as any]: activeAgent.gradient?.[1] ?? "#a78bfa",
-                } : undefined}
+                    // React's CSSProperties index signature rejects `--` custom-property keys; cast the whole object instead.
+                    ["--agent-gradient-start"]: activeAgent.gradient?.[0] ?? "#38bdf8",
+                    ["--agent-gradient-end"]: activeAgent.gradient?.[1] ?? "#a78bfa",
+                } as CSSProperties : undefined}
             >
                 <BotMenu
                     activeAgent={activeAgent}

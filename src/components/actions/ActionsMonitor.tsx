@@ -153,11 +153,11 @@ export function ActionsMonitor() {
                                                             return <StepRow key={node.step.id || ni} step={node.step} isCurrent={isCurrent} />;
                                                         }
                                                         // Parallel group container
-                                                        const groupCompleted = node.children.filter((c: any) => c.status === "completed").length;
+                                                        const groupCompleted = node.children.filter((c) => c.status === "completed").length;
                                                         const groupTotal = node.children.length;
                                                         const groupPct = groupTotal > 0 ? Math.round((groupCompleted / groupTotal) * 100) : 0;
-                                                        const groupRunning = node.children.some((c: any) => c.status === "running");
-                                                        const groupFailed = node.children.some((c: any) => c.status === "failed");
+                                                        const groupRunning = node.children.some((c) => c.status === "running");
+                                                        const groupFailed = node.children.some((c) => c.status === "failed");
                                                         return (
                                                             <div key={node.group.id} className="actions-monitor__parallel-group">
                                                                 <div className="actions-monitor__parallel-group-header">
@@ -179,7 +179,7 @@ export function ActionsMonitor() {
                                                                     />
                                                                 </div>
                                                                 <div className="actions-monitor__parallel-children">
-                                                                    {node.children.map((child: any, ci: number) => (
+                                                                    {node.children.map((child, ci: number) => (
                                                                         <StepRow key={child.id || ci} step={child} />
                                                                     ))}
                                                                 </div>
@@ -368,7 +368,7 @@ export function ActionsMonitor() {
                                                         if (node.kind === "step") {
                                                             return <StepRow key={node.step.id || ni} step={node.step} />;
                                                         }
-                                                        const groupDone = node.children.filter((c: any) => c.status === "completed").length;
+                                                        const groupDone = node.children.filter((c) => c.status === "completed").length;
                                                         const groupTotal = node.children.length;
                                                         return (
                                                             <div key={node.group.id} className="actions-monitor__parallel-group">
@@ -378,7 +378,7 @@ export function ActionsMonitor() {
                                                                     <span className="actions-monitor__parallel-count">{groupDone}/{groupTotal}</span>
                                                                 </div>
                                                                 <div className="actions-monitor__parallel-children">
-                                                                    {node.children.map((child: any, ci: number) => (
+                                                                    {node.children.map((child, ci: number) => (
                                                                         <StepRow key={child.id || ci} step={child} />
                                                                     ))}
                                                                 </div>

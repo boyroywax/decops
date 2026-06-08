@@ -7,7 +7,7 @@ export type OrbitdbBotStatus = "idle" | "planning" | "executing" | "reviewing" |
 
 export interface OrbitdbBotOperation {
     command: string;
-    args: Record<string, any>;
+    args: Record<string, unknown>;
     description: string;
     order: number;
     status: "pending" | "executing" | "completed" | "failed";

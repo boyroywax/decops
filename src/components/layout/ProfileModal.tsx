@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { X, AlertTriangle, Clipboard, Download, Upload, Check, Zap } from "lucide-react";
+import type { Agent, Channel, Group, Message, Network, Bridge } from "@/types";
 import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 import { useAuth } from "@/context/AuthContext";
@@ -8,6 +9,20 @@ import { useLLM } from "@/context/LLMContext";
 import { GemAvatar } from "@/components/shared/GemAvatar";
 import { CopyableId } from "@/components/shared/CopyableId";
 import "../../styles/components/profile-modal.css";
+
+/** Shape of an imported workspace/ecosystem/backup JSON file (all fields optional/dynamic). */
+type ImportSection = {
+  agents?: Agent[];
+  channels?: Channel[];
+  groups?: Group[];
+  messages?: Message[];
+  networks?: Network[];
+  ecosystems?: Network[];
+  bridges?: Bridge[];
+  workspace?: ImportSection;
+  ecosystem?: ImportSection;
+};
+type ImportPayload = { type?: string; data?: ImportSection };
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -36,7 +51,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
   if (!isOpen || !user) return null;
 
-  const downloadJSON = (data: any, filename: string) => {
+  const downloadJSON = (data: unknown, filename: string) => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -79,7 +94,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     e.target.value = "";
   };
 
-  const processImport = (json: any) => {
+  const processImport = (raw: unknown) => {
+    const json = raw as ImportPayload;
     if (!json.data) { setImportStatus("Error: Invalid file format"); return; }
     if (json.type === "full-backup") {
       const ws = json.data.workspace || json.data;

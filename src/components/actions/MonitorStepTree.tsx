@@ -2,6 +2,7 @@ import {
     CheckCircle, Clock, AlertCircle,
     ArrowRight, Loader,
 } from "lucide-react";
+import type { JobStep } from "@/types";
 
 /** Status icon for a single step */
 export function StepStatusIcon({ status }: { status?: string }) {
@@ -34,7 +35,7 @@ export function StepProgressBar({ status }: { status?: string }) {
 }
 
 /** Single step row — reused in both serial list and parallel group */
-export function StepRow({ step, isCurrent }: { step: any; isCurrent?: boolean }) {
+export function StepRow({ step, isCurrent }: { step: JobStep; isCurrent?: boolean }) {
     const stepDuration = step.startedAt && step.completedAt
         ? step.completedAt - step.startedAt : null;
     return (
@@ -59,7 +60,7 @@ export function StepRow({ step, isCurrent }: { step: any; isCurrent?: boolean })
                 <StepProgressBar status={step.status} />
                 {step.outputMappings && step.outputMappings.length > 0 && (
                     <div className="actions-monitor__step-mappings">
-                        {step.outputMappings.map((m: any, mi: number) => (
+                        {step.outputMappings.map((m, mi: number) => (
                             <span key={mi} className="actions-monitor__mapping-badge">
                                 <ArrowRight size={9} />{m.target}.{m.targetKey}
                             </span>
@@ -73,12 +74,12 @@ export function StepRow({ step, isCurrent }: { step: any; isCurrent?: boolean })
 }
 
 /* eslint-disable react-refresh/only-export-components */
-export type StepNode = { kind: "step"; step: any; idx: number }
-             | { kind: "group"; group: { id: string; label: string; stepIds: string[] }; children: any[] };
+export type StepNode = { kind: "step"; step: JobStep; idx: number }
+             | { kind: "group"; group: { id: string; label: string; stepIds: string[] }; children: JobStep[] };
 
 /** Build a structured list: serial steps interleaved with parallel group containers */
 export function buildStepTree(
-    steps: any[],
+    steps: JobStep[],
     parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>
 ): StepNode[] {
     if (!parallelGroups || parallelGroups.length === 0) {
@@ -97,7 +98,7 @@ export function buildStepTree(
             const g = stepToGroup.get(s.id)!;
             if (!insertedGroups.has(g.id)) {
                 insertedGroups.add(g.id);
-                const children = g.stepIds.map(sid => steps.find(st => st.id === sid)).filter(Boolean);
+                const children = g.stepIds.map(sid => steps.find(st => st.id === sid)).filter((st): st is JobStep => Boolean(st));
                 result.push({ kind: "group", group: g, children });
             }
         } else {

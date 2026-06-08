@@ -68,7 +68,7 @@ export async function parseAnthropicSSE(
         const { done, value } = stopReasonSeen
           ? await Promise.race<ReadableStreamReadResult<Uint8Array>>([
               readPromise,
-              new Promise((resolve) => setTimeout(() => resolve({ done: true, value: undefined as any }), POST_STOP_REASON_IDLE_MS)),
+              new Promise<ReadableStreamReadResult<Uint8Array>>((resolve) => setTimeout(() => resolve({ done: true, value: undefined }), POST_STOP_REASON_IDLE_MS)),
             ])
           : await readPromise;
       if (done) break;
@@ -238,7 +238,7 @@ export async function parseOpenAISSE(
         const { done, value } = finishReason !== null
           ? await Promise.race<ReadableStreamReadResult<Uint8Array>>([
               readPromise,
-              new Promise((resolve) => setTimeout(() => resolve({ done: true, value: undefined as any }), POST_FINISH_REASON_IDLE_MS)),
+              new Promise<ReadableStreamReadResult<Uint8Array>>((resolve) => setTimeout(() => resolve({ done: true, value: undefined }), POST_FINISH_REASON_IDLE_MS)),
             ])
           : await readPromise;
       if (done) break;

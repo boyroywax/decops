@@ -32,12 +32,9 @@ export default tseslint.config(
       // (src/services/logging) is the sanctioned path. console.warn/error
       // are tolerated for now to avoid a large immediate refactor.
       "no-console": ["warn", { allow: ["warn", "error"] }],
-      // The codebase intentionally uses `any` at dynamic boundaries: command
-      // arg/result bags (`Record<string, any>`), context prop bridges, and job
-      // storage refs. Typing all of these is a large refactor deferred past
-      // v0.0.1; `tsc --noEmit` (strict) remains the authoritative type gate, so
-      // this advisory rule is disabled to keep `lint` clean.
-      "@typescript-eslint/no-explicit-any": "off",
+      // `any` is disallowed; use precise types or `unknown` at boundaries.
+      // `tsc --noEmit` (strict) is the authoritative type gate.
+      "@typescript-eslint/no-explicit-any": "warn",
       // unused-imports owns unused detection: it can auto-remove dead imports
       // on --fix; the base rule is disabled to avoid duplicate reports.
       "@typescript-eslint/no-unused-vars": "off",

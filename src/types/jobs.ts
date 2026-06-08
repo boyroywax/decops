@@ -58,9 +58,9 @@ export interface StepHandler {
   /** Command to execute as a reaction (optional) */
   commandId?: string;
   /** Args for the handler command — supports $storage.*, $result.*, $error.* refs */
-  args?: Record<string, any>;
+  args?: Record<string, unknown>;
   /** Key→value pairs to write into shared storage */
-  setStorage?: Record<string, any>;
+  setStorage?: Record<string, unknown>;
   /** Message to add to the job log */
   log?: string;
   /** (onFailure only) If true, swallow the error and continue to next step */
@@ -72,7 +72,7 @@ export interface StepHandler {
 export interface JobStep {
   id: string;
   commandId: string;
-  args: Record<string, any>;
+  args: Record<string, unknown>;
   name?: string;
   status?: "pending" | "running" | "completed" | "failed" | "skipped";
   result?: string;
@@ -166,7 +166,7 @@ export interface JobDefinition {
   icon?: string;
   steps: JobStep[];
   deliverables?: JobDeliverable[];
-  storageDefaults?: Record<string, any>;
+  storageDefaults?: Record<string, unknown>;
   inputDefaults?: EntityInput[];
   parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>;
   triggers?: JobTrigger[];
@@ -190,7 +190,7 @@ export interface JobPendingPrompt {
 export interface JobBase {
   id: string;
   type: string;
-  request: Record<string, any>;
+  request: Record<string, unknown>;
   artifacts: JobArtifact[];
   createdAt: number;
   updatedAt: number;
@@ -201,9 +201,9 @@ export interface JobBase {
   jobDefinitionId?: string;
   steps?: JobStep[];
   currentStepIndex?: number;
-  stepResults?: Record<string, any>;
+  stepResults?: Record<string, unknown>;
   mode?: 'serial' | 'parallel' | 'mixed';
-  storage?: Record<string, any>;
+  storage?: Record<string, unknown>;
   deliverables?: JobDeliverable[];
   inputs?: EntityInput[];
   parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>;
@@ -216,7 +216,7 @@ export interface JobCompletionStepDetail {
   commandId: string;
   name?: string;
   status: "completed" | "failed" | "skipped";
-  input?: Record<string, any>;
+  input?: Record<string, unknown>;
   result?: unknown;
   error?: string;
   startedAt?: number;

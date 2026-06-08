@@ -99,8 +99,7 @@ export class CommandRegistry {
         return Array.from(this.commands.values());
     }
 
-     
-    async execute<T extends Record<string, unknown> = Record<string, unknown>>(id: string, args: T, context: CommandContext): Promise<any> {
+    async execute<T extends Record<string, unknown> = Record<string, unknown>>(id: string, args: T, context: CommandContext): Promise<unknown> {
         const command = this.get(id);
         if (!command) {
             throw new Error(`Command ${id} not found`);

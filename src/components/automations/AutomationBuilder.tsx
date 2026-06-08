@@ -19,7 +19,7 @@ export function AutomationBuilder({ onClose }: AutomationBuilderProps) {
     // Step creation state
     const [isAddingStep, setIsAddingStep] = useState(false);
     const [selectedCommandId, setSelectedCommandId] = useState("");
-    const [stepArgs, setStepArgs] = useState<Record<string, any>>({});
+    const [stepArgs, setStepArgs] = useState<Record<string, unknown>>({});
     const [stepCondition, setStepCondition] = useState("");
 
     const allCommands = registry.getAll();

@@ -6,7 +6,7 @@ import { WorkspaceManagerModal } from "./WorkspaceManagerModal";
 import "../../styles/components/header.css";
 
 interface HeaderProps {
-  user?: any;
+  user?: { id?: string; name?: string; email?: string } | null;
   logout?: () => void;
   setView?: (v: ViewId) => void;
   onProfileClick?: () => void;
@@ -55,9 +55,9 @@ export function Header({ user, logout, setView, onProfileClick, activityPulse, o
             onClick={() => onProfileClick ? onProfileClick() : setView?.("profile")}
             className="header-user-btn"
           >
-            <GemAvatar seed={user.email || user.username || "user"} size={28} />
+            <GemAvatar seed={user.email || "user"} size={28} />
             <div className="header-user-info">
-              <div className="header-user-name">{user.firstName || user.username}</div>
+              <div className="header-user-name">{user.name || user.email}</div>
               <div className="header-user-email">{user.email || "User"}</div>
             </div>
           </button>

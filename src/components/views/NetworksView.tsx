@@ -1,11 +1,12 @@
 import { useState } from "react";
 import type {
   Agent, Channel, Group, Network, Bridge,
-  BridgeMessage, BridgeForm, ViewId, NavContext,
+  BridgeMessage, BridgeForm, ViewId, NavContext, JobRequest,
 } from "@/types";
 import {
   Globe, Plus, Sparkles, Link2, Layers,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { NetworkCard } from "./networks/NetworkCard";
 import { BridgeBuilder } from "./networks/BridgeBuilder";
@@ -30,7 +31,7 @@ interface NetworksViewProps {
   createBridge: () => void;
   removeBridge: (id: string) => void;
   setView: (v: ViewId) => void;
-  addJob: (job: any) => void;
+  addJob: (job: JobRequest) => void;
   navigateTo?: (view: ViewId, ctx: NavContext) => void;
 }
 
@@ -50,7 +51,7 @@ export function NetworksView({
   const [showBridgeBuilder, setShowBridgeBuilder] = useState(false);
   const [expandedNetwork, setExpandedNetwork] = useState<string | null>(null);
 
-  const tabs: { id: ManagerTab; label: string; icon: any; count?: number }[] = [
+  const tabs: { id: ManagerTab; label: string; icon: LucideIcon; count?: number }[] = [
     { id: "networks", label: "Networks", icon: Globe, count: networks.length },
     { id: "bridges", label: "Bridges", icon: Link2, count: bridges.length },
     { id: "topology", label: "Topology", icon: Layers },

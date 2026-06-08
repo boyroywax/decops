@@ -9,6 +9,7 @@ import {
   Brain, Sparkles, Compass, BookOpen, Heart, Mic,
   Shield, Target, Cpu, Wrench, Globe, ScanText, AudioLines, Video, ChevronRight,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useDeleteConfirm } from "@/hooks/useDeleteConfirm";
 import { DeleteConfirmInline } from "@/components/shared/DeleteConfirmInline";
 import { AgentChat } from "@/components/chat/AgentChat";
@@ -194,7 +195,7 @@ function AgentCognitionProfileSelector({ agent, updateAgent }: { agent: Agent; u
 }
 
 // ── Toolkit icon map ──
-const TOOLKIT_ICON_MAP: Record<string, any> = { Globe, ScanText, AudioLines, Video };
+const TOOLKIT_ICON_MAP: Record<string, LucideIcon> = { Globe, ScanText, AudioLines, Video };
 
 // ── Agent Toolkits Section ──
 

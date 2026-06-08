@@ -24,43 +24,49 @@ import type {
 
 type ManagerListener = (state: HeliaManagerSnapshot) => void;
 
-// Minimal structural interfaces — we keep `any` at the boundary because the
-// Helia types are heavy and dynamically imported.
- 
+/** A value we only ever stringify (CID, …). */
+type StringifyLike = { toString(): string };
+
+// Minimal structural interfaces mirroring the dynamically-imported Helia
+// modules. Inputs are opaque `unknown` pass-throughs (CIDs, blockstores);
+// `add*` calls return a CID we only stringify.
 interface HeliaLike {
     libp2p: Libp2p;
-    blockstore: any;
-    datastore?: any;
-    pins?: any;
+    blockstore: unknown;
+    datastore?: unknown;
+    pins?: {
+        add: (cid: unknown) => AsyncIterable<unknown>;
+        rm: (cid: unknown) => AsyncIterable<unknown>;
+    };
     gc?: () => Promise<void>;
     stop?: () => Promise<void>;
 }
 
 interface UnixfsLike {
-    addBytes: (bytes: Uint8Array, options?: { signal?: AbortSignal }) => Promise<any>;
-    cat: (cid: any, options?: { signal?: AbortSignal; offline?: boolean }) => AsyncIterable<Uint8Array>;
+    addBytes: (bytes: Uint8Array, options?: { signal?: AbortSignal }) => Promise<StringifyLike>;
+    cat: (cid: unknown, options?: { signal?: AbortSignal; offline?: boolean }) => AsyncIterable<Uint8Array>;
 }
 
 interface StringsLike {
-    add: (text: string) => Promise<any>;
-    get: (cid: any, options?: { signal?: AbortSignal }) => Promise<string>;
+    add: (text: string) => Promise<StringifyLike>;
+    get: (cid: unknown, options?: { signal?: AbortSignal }) => Promise<string>;
 }
 
 interface JsonLike {
-    add: (value: unknown) => Promise<any>;
-    get: (cid: any, options?: { signal?: AbortSignal }) => Promise<unknown>;
+    add: (value: unknown) => Promise<StringifyLike>;
+    get: (cid: unknown, options?: { signal?: AbortSignal }) => Promise<unknown>;
 }
 
 interface DagJsonLike {
-    add: (value: unknown) => Promise<any>;
-    get: (cid: any, options?: { path?: string; signal?: AbortSignal }) => Promise<unknown>;
+    add: (value: unknown) => Promise<StringifyLike>;
+    get: (cid: unknown, options?: { path?: string; signal?: AbortSignal }) => Promise<unknown>;
 }
 
 interface DagCborLike {
-    add: (value: unknown) => Promise<any>;
-    get: (cid: any, options?: { path?: string; signal?: AbortSignal }) => Promise<unknown>;
+    add: (value: unknown) => Promise<StringifyLike>;
+    get: (cid: unknown, options?: { path?: string; signal?: AbortSignal }) => Promise<unknown>;
 }
- 
+
 
 const NODES_STORAGE_KEY = "decops:helia-nodes:v1";
 
@@ -257,11 +263,8 @@ class HeliaNode {
                     import("@helia/dag-json"),
                     import("@helia/dag-cbor"),
                 ]);
-
-                // ── 3) Boot Helia using the existing libp2p instance ──────
-                // Cast to `any` — helia's Libp2p generic is stricter than ours.
-                 
-                const helia = await createHelia({ libp2p: libp2p as any });
+                // helia's Libp2p generic is stricter than ours; bridge via unknown.
+                const helia = await createHelia({ libp2p } as unknown as Parameters<typeof createHelia>[0]);
                 this.helia = helia as unknown as HeliaLike;
                 this.fs = unixfs(helia) as unknown as UnixfsLike;
                 this.strings = strings(helia) as unknown as StringsLike;

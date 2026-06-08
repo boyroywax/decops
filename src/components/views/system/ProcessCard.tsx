@@ -117,7 +117,7 @@ export function ProcessCard({ job, onStop }: ProcessCardProps) {
                                             if (node.kind === "step") {
                                                 return <StepRow key={node.step.id || ni} step={node.step} isCurrent={node.idx === currentIdx} />;
                                             }
-                                            const groupDone = node.children.filter((c: any) => c.status === "completed").length;
+                                            const groupDone = node.children.filter((c) => c.status === "completed").length;
                                             const groupTotal = node.children.length;
                                             return (
                                                 <div key={node.group.id} className="sys-process__parallel-group">
@@ -127,7 +127,7 @@ export function ProcessCard({ job, onStop }: ProcessCardProps) {
                                                         <span className="sys-process__parallel-count">{groupDone}/{groupTotal}</span>
                                                     </div>
                                                     <div className="sys-process__parallel-children">
-                                                        {node.children.map((child: any, ci: number) => (
+                                                        {node.children.map((child, ci: number) => (
                                                             <StepRow key={child.id || ci} step={child} />
                                                         ))}
                                                     </div>

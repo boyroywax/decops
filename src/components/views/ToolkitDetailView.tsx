@@ -16,6 +16,7 @@ import {
   Activity, User, GitBranch, Lock, Eye, Tag,
   FileCode, Server,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { GradientIcon } from "@/components/shared/GradientIcon";
 import { ArchitectBotPanel } from "@/toolkits/architect";
 import { ConfigurationItem } from "@/components/config/ConfigurationItem";
@@ -23,7 +24,7 @@ import { useToolkitConfiguration } from "@/hooks/useToolkitConfiguration";
 import "../../styles/components/toolkit-detail.css";
 
 /** Map toolkit icon names to actual Lucide components */
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, LucideIcon> = {
   Globe, ScanText, AudioLines, Video, Bot, ArrowLeftRight,
   MessageSquare, Network, Download, Zap, Vote, FileText,
   Clapperboard, ListChecks, Image, Settings, FolderOpen,
@@ -38,7 +39,7 @@ interface ToolkitDetailViewProps {
 }
 
 /** Map tool IDs to icons */
-const TOOL_ICONS: Record<string, any> = {
+const TOOL_ICONS: Record<string, LucideIcon> = {
   fetch_url: ExternalLink,
   crawl_site: Search,
   extract_links: Link2,
@@ -391,7 +392,9 @@ export function ToolkitDetailView({ toolkitId, agent, updateAgent, navigateTo }:
                 {isExpanded && tool.inputSchema && (
                   <div className="toolkit-detail__tool-schema">
                     <div className="toolkit-detail__schema-title">Parameters</div>
-                    {Object.entries(tool.inputSchema).map(([key, schema]: [string, any]) => (
+                    {Object.entries(tool.inputSchema).map(([key, schemaRaw]) => {
+                      const schema = schemaRaw as { type?: string; description?: string; required?: boolean; default?: unknown };
+                      return (
                       <div key={key} className="toolkit-detail__schema-row">
                         <code className="toolkit-detail__schema-key">{key}</code>
                         <span className="toolkit-detail__schema-type">{schema.type || "string"}</span>
@@ -401,7 +404,8 @@ export function ToolkitDetailView({ toolkitId, agent, updateAgent, navigateTo }:
                           <span className="toolkit-detail__schema-default">default: {String(schema.default)}</span>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

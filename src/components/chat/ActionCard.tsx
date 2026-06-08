@@ -99,7 +99,7 @@ export default function ActionCard({ action, context }: ActionCardProps) {
                 <div className="action-card__artifacts">
                     <div className="action-card__artifacts-title">Generated Artifacts:</div>
                     <div className="action-card__artifacts-list">
-                        {matchingJob.artifacts.map((art: any) => (
+                        {matchingJob.artifacts.map((art) => (
                             <button
                                 key={art.id}
                                 onClick={() => setExpandedArtifact(expandedArtifact === art.id ? null : art.id)}
@@ -111,7 +111,7 @@ export default function ActionCard({ action, context }: ActionCardProps) {
                         ))}
                     </div>
                     {expandedArtifact && (() => {
-                        const art = matchingJob.artifacts.find((a: any) => a.id === expandedArtifact);
+                        const art = matchingJob.artifacts.find((a) => a.id === expandedArtifact);
                         if (!art) return null;
 
                         let content = art.content;

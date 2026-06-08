@@ -43,7 +43,7 @@ export interface JobResult {
   /** Per-step outcomes */
   stepResults: JobStepResult[];
   /** Shared storage after execution (contains inter-step data) */
-  storage: Record<string, any>;
+  storage: Record<string, unknown>;
   /** Assembled deliverables: [{ key, artifactId }] */
   deliverables: Array<{ key: string; artifactId: string }>;
   /** Error message if the job failed */
@@ -83,7 +83,7 @@ export async function runJob(
   const onStepUpdate = callbacks?.onStepUpdate;
 
   // Initialize shared storage from job defaults
-  const jobStorage: Record<string, any> = {
+  const jobStorage: Record<string, unknown> = {
     ...(definition.storageDefaults || {}),
     ...context.storage,
   };
@@ -96,7 +96,7 @@ export async function runJob(
   if (inputOverrides) Object.assign(inputMap, inputOverrides);
 
   // Deliverable content tracking
-  const deliverableContents: Record<string, any> = {};
+  const deliverableContents: Record<string, unknown> = {};
 
   // Wire up a job-scoped context with shared storage and deliverable staging
   const jobContext: CommandContext = {
@@ -414,7 +414,7 @@ async function executeMixed(
 
 async function assembleJobDeliverables(
   declaredDeliverables: JobDeliverable[],
-  storage: Record<string, any>,
+  storage: Record<string, unknown>,
   context: CommandContext,
   addLog: (msg: string) => void,
 ): Promise<Array<{ key: string; artifactId: string }>> {

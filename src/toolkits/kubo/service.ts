@@ -21,31 +21,71 @@ import type {
 
 type ManagerListener = (state: KuboManagerSnapshot) => void;
 
- 
+/** A value we only ever stringify (CID, PeerId, Multiaddr, …). */
+type StringifyLike = { toString(): string };
+
+interface KuboIdResult {
+    id?: StringifyLike | string;
+    publicKey?: unknown;
+    agentVersion?: unknown;
+    protocolVersion?: unknown;
+    addresses?: unknown;
+}
+
+interface KuboVersionResult {
+    version?: unknown;
+    commit?: unknown;
+    repo?: unknown;
+}
+
+interface KuboAddResult {
+    cid: StringifyLike | string;
+    size: number;
+    path: string;
+}
+
+interface KuboLsEntry {
+    cid?: StringifyLike | string;
+    name?: unknown;
+    size?: unknown;
+    type?: unknown;
+}
+
+interface KuboPinEntry {
+    cid?: StringifyLike | string;
+    type?: unknown;
+}
+
+interface KuboSwarmPeer {
+    peer?: StringifyLike;
+    addr?: StringifyLike;
+}
+
 /**
- * Structural shape we rely on from `kubo-rpc-client`. Keeping `any` at the
- * boundary because the real types are heavy and dynamically imported.
+ * Structural shape we rely on from `kubo-rpc-client`. Inputs are `unknown`
+ * pass-throughs (CIDs, multiaddrs, options); results are narrowed minimal
+ * shapes. The real types are heavy and dynamically imported.
  */
 interface KuboClientLike {
-    id: (opts?: any) => Promise<any>;
-    version: (opts?: any) => Promise<any>;
-    add: (entry: any, opts?: any) => Promise<{ cid: any; size: number; path: string }>;
-    cat: (path: any, opts?: any) => AsyncIterable<Uint8Array>;
-    get: (path: any, opts?: any) => AsyncIterable<Uint8Array>;
-    ls: (path: any, opts?: any) => AsyncIterable<any>;
+    id: (opts?: unknown) => Promise<KuboIdResult>;
+    version: (opts?: unknown) => Promise<KuboVersionResult>;
+    add: (entry: unknown, opts?: unknown) => Promise<KuboAddResult>;
+    cat: (path: unknown, opts?: unknown) => AsyncIterable<Uint8Array>;
+    get: (path: unknown, opts?: unknown) => AsyncIterable<Uint8Array>;
+    ls: (path: unknown, opts?: unknown) => AsyncIterable<KuboLsEntry>;
     pin: {
-        add: (cid: any, opts?: any) => Promise<any>;
-        rm: (cid: any, opts?: any) => Promise<any>;
-        ls: (opts?: any) => AsyncIterable<{ cid: any; type: string }>;
+        add: (cid: unknown, opts?: unknown) => Promise<unknown>;
+        rm: (cid: unknown, opts?: unknown) => Promise<unknown>;
+        ls: (opts?: unknown) => AsyncIterable<KuboPinEntry>;
     };
     swarm: {
-        peers: (opts?: any) => Promise<any[]>;
-        connect: (addr: any, opts?: any) => Promise<void>;
-        disconnect: (addr: any, opts?: any) => Promise<void>;
+        peers: (opts?: unknown) => Promise<KuboSwarmPeer[]>;
+        connect: (addr: unknown, opts?: unknown) => Promise<void>;
+        disconnect: (addr: unknown, opts?: unknown) => Promise<void>;
     };
-    stop?: (opts?: any) => Promise<void>;
+    stop?: (opts?: unknown) => Promise<void>;
 }
- 
+
 
 const NODES_STORAGE_KEY = "decops:kubo-nodes:v1";
 const PREVIEW_CHARS = 240;
@@ -229,9 +269,7 @@ class KuboNode {
             try {
                 const mod = await import("kubo-rpc-client");
                 // Cast: kubo-rpc-client publishes its `create` factory without a typedef in our module resolution mode.
-                 
-                const create = (mod as any).create as (opts: any) => KuboClientLike;
-                 
+                const create = (mod as { create?: (opts: unknown) => KuboClientLike }).create;
                 if (typeof create !== "function") {
                     throw new Error("kubo-rpc-client.create is not a function");
                 }

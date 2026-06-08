@@ -8,7 +8,7 @@ import type { DeclarativeAutomationDefinition, AutomationStep } from "@/services
 const ARTIFACT_TYPES: ArtifactType[] = ["markdown", "json", "yaml", "csv", "image", "code", "txt"];
 
 interface UnifiedBuilderProps {
-    onRunJob: (job: JobDefinition) => any;
+    onRunJob: (job: JobDefinition) => void;
     onSaveAutomation: (automation: DeclarativeAutomationDefinition) => void;
     onCancel: () => void;
     initialJob?: JobDefinition | null;
@@ -25,8 +25,7 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
 
     // Execution mode (shared across job & automation)
     const [execMode, setExecMode] = useState<"serial" | "parallel">(
-        // Cast: legacy AutomationDefinition (pre-unified-builder) didn't declare `mode`; we read it opportunistically when migrating older saved automations.
-        initialJob?.mode || (initialAutomation as any)?.mode || "serial"
+        (initialJob?.mode || initialAutomation?.mode) === "parallel" ? "parallel" : "serial"
     );
 
     // Automation Specific
@@ -34,26 +33,23 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
     const [customSchedule, setCustomSchedule] = useState(false);
 
     // Steps
-    const [steps, setSteps] = useState<any[]>((initialJob?.steps || initialAutomation?.steps || []).map(s => ({
+    const [steps, setSteps] = useState<JobStep[]>((initialJob?.steps || initialAutomation?.steps || []).map(s => ({
         ...s,
         id: s.id || crypto.randomUUID(),
         args: s.args || {},
-        // Cast: pre-conditional-steps AutomationStep didn't declare `condition`; we preserve it when round-tripping legacy automations.
-        condition: (s as any).condition || ""
+        condition: s.condition || ""
     })));
 
     const [selectedStepId, setSelectedStepId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
 
     // Deliverables (shared across job & automation)
-    // Cast: legacy AutomationDefinition didn't declare `deliverables`; same migration story as `mode`/`condition` above.
-    const initDeliverables = initialJob?.deliverables || (initialAutomation as any)?.deliverables || [];
+    const initDeliverables = initialJob?.deliverables || initialAutomation?.deliverables || [];
     const [deliverables, setDeliverables] = useState<JobDeliverable[]>(initDeliverables);
     const [showDeliverables, setShowDeliverables] = useState(initDeliverables.length > 0);
 
     // Inter-step Storage Defaults (shared across job & automation)
-    // Cast: legacy AutomationDefinition didn't declare `storageDefaults`; same migration story as above.
-    const initStorage = initialJob?.storageDefaults || (initialAutomation as any)?.storageDefaults || {};
+    const initStorage = initialJob?.storageDefaults || initialAutomation?.storageDefaults || {};
     const [storageEntries, setStorageEntries] = useState<Array<{ key: string; value: string }>>(
         Object.entries(initStorage).map(([key, value]) => ({
             key,
@@ -75,7 +71,7 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
         const command = registry.get(commandId);
         if (!command) return;
 
-        const args: Record<string, any> = {};
+        const args: Record<string, unknown> = {};
         Object.entries(command.args).forEach(([key, def]) => {
             if (def.defaultValue !== undefined) args[key] = def.defaultValue;
             else if (def.type === 'boolean') args[key] = false;
@@ -95,7 +91,7 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
         setSelectedStepId(newStep.id);
     };
 
-    const updateStepArg = (stepId: string, argName: string, value: any) => {
+    const updateStepArg = (stepId: string, argName: string, value: unknown) => {
         setSteps(prev => prev.map(s => {
             if (s.id === stepId) {
                 return { ...s, args: { ...s.args, [argName]: value } };
@@ -135,7 +131,7 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
         setShowDeliverables(true);
     };
 
-    const updateDeliverable = (index: number, field: keyof JobDeliverable, value: any) => {
+    const updateDeliverable = <K extends keyof JobDeliverable>(index: number, field: K, value: JobDeliverable[K]) => {
         setDeliverables(prev => prev.map((d, i) => i === index ? { ...d, [field]: value } : d));
     };
 
@@ -157,10 +153,10 @@ export function UnifiedBuilder({ onRunJob, onSaveAutomation, onCancel, initialJo
         setStorageEntries(prev => prev.filter((_, i) => i !== index));
     };
 
-    const buildStorageDefaults = (): Record<string, any> | undefined => {
+    const buildStorageDefaults = (): Record<string, unknown> | undefined => {
         const entries = storageEntries.filter(e => e.key.trim());
         if (entries.length === 0) return undefined;
-        const obj: Record<string, any> = {};
+        const obj: Record<string, unknown> = {};
         entries.forEach(({ key, value }) => {
             try { obj[key] = JSON.parse(value); }
             catch { obj[key] = value; }

@@ -146,13 +146,21 @@ export interface AieosImportResult {
   message: string;
 }
 
+/** Shape of an externally-parsed AIEOS document (entity fields plus JSON-LD/provenance extras). */
+type AieosImportDocument = AieosEntity & {
+  "@type"?: string;
+  metadata: AieosEntity["metadata"] & {
+    _decops?: { agent_id?: string; role?: string; system_prompt?: string };
+  };
+};
+
 /** Parse an AIEOS JSON document and return partial Agent data for creation */
 export function aieosToAgent(json: unknown): AieosImportResult {
   if (!json || typeof json !== "object") {
     return { success: false, message: "Invalid JSON: expected an object." };
   }
 
-  const obj = json as Record<string, any>;
+  const obj = json as AieosImportDocument;
 
   // Validate it's an AIEOS document
   const isAieos = obj["@type"] === "aieos:AIEntityObject" ||
@@ -512,7 +520,7 @@ function extractStyleHints(prompt: string): string[] {
   return hints;
 }
 
-function guessRoleFromAieos(obj: Record<string, any>): RoleId {
+function guessRoleFromAieos(obj: AieosImportDocument): RoleId {
   // Check if originating decops metadata has the role
   if (obj.metadata?._decops?.role) {
     const r = obj.metadata._decops.role as string;
@@ -536,7 +544,7 @@ function guessRoleFromAieos(obj: Record<string, any>): RoleId {
   return "researcher"; // default fallback
 }
 
-function reconstructPrompt(obj: Record<string, any>): string {
+function reconstructPrompt(obj: AieosImportDocument): string {
   // If the original prompt was preserved
   if (obj.metadata?._decops?.system_prompt) {
     return obj.metadata._decops.system_prompt;

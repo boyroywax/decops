@@ -99,7 +99,10 @@ export function useJobs() {
 
     const addJob = useCallback((jobData: JobRequest) => {
         const now = Date.now();
-        const newJob: Job = {
+        // `jobData.request` is a specific request interface (e.g. CreateAgentRequest)
+        // which lacks an index signature; `as Job` bridges it to JobBase's loose
+        // `Record<string, unknown>` request payload.
+        const newJob = {
             id: `job-${now}-${Math.random().toString(36).substr(2, 9)}`,
             status: "queued",
             artifacts: [],
@@ -107,7 +110,7 @@ export function useJobs() {
             updatedAt: now,
             timeline: [{ timestamp: now, kind: "created", label: `Job created` }],
             ...jobData,
-        };
+        } as Job;
         setJobs((prev) => trimJobs([newJob, ...prev]));
         return newJob;
     }, []);
@@ -231,7 +234,7 @@ export function useJobs() {
         setJobs(prev => prev.map(job => {
             if (job.id === jobId && job.status === "awaiting-input" && job.pendingPrompt?.inputName === inputName) {
                 // Update the input's entityId with the user-provided value
-                const updatedInputs = (job.inputs || job.request?.inputDefaults || []).map((inp: EntityInput) =>
+                const updatedInputs = (job.inputs || (job.request?.inputDefaults as EntityInput[] | undefined) || []).map((inp: EntityInput) =>
                     inp.name === inputName ? { ...inp, entityId: value } : inp
                 );
                 const now = Date.now();
