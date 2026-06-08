@@ -68,7 +68,6 @@ function InternalApp() {
 
 export function Main() {
     const { isInitialized, isLoading, isAuthenticated } = useAuth();
-    console.log('[App] Main render:', { isInitialized, isLoading, isAuthenticated });
 
     if (!isInitialized || isLoading) {
         return (

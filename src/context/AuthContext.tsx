@@ -24,7 +24,6 @@ const initialState: AuthState = {
 
 // Reducer
 function authReducer(state: AuthState, action: AuthAction): AuthState {
-    console.log('[Auth] Reducer action:', action.type);
     switch (action.type) {
         case 'AUTH_START':
             return { ...state, isLoading: true, error: null };
@@ -95,7 +94,6 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
     const [state, dispatch] = useReducer(authReducer, initialState);
-    console.log('[Auth] Render state:', { isLoading: state.isLoading, isAuthenticated: state.isAuthenticated });
 
     // Check for existing auth on mount
     useEffect(() => {

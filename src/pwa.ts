@@ -1,14 +1,15 @@
 import { registerSW } from 'virtual:pwa-register'
+import { logAggregator } from '@/services/logging'
 
 export function registerPWA() {
-    const updateSW = registerSW({
+    registerSW({
         onNeedRefresh() {
             // Show a prompt to user to refresh?
             // For now, we use autoUpdate so this might not hit often unless we change config
-            console.log('New content available, click on reload button to update.')
+            logAggregator.log('info', 'New content available, reload to update.', { channel: 'pwa' })
         },
         onOfflineReady() {
-            console.log('App is ready to work offline.')
+            logAggregator.log('info', 'App is ready to work offline.', { channel: 'pwa' })
         },
     })
 }

@@ -43,6 +43,7 @@ export function perfLog(event: string, payload: Record<string, unknown>): void {
     ts: Date.now(),
   };
   try {
+    // eslint-disable-next-line no-console -- intentional, flag-gated perf diagnostics
     console.debug(`[perf] ${event}`, payload);
     if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
       window.dispatchEvent(new CustomEvent<PerfEventRecord>(PERF_EVENT_NAME, { detail: record }));
