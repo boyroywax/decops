@@ -19,7 +19,7 @@ describe('createChannelCommand', () => {
 
     it('creates a new channel', async () => {
         const args = { from: 'agent-1', to: 'agent-2', type: 'data' };
-        const result = await createChannelCommand.execute(args, mockContext as any);
+        const result: any = await createChannelCommand.execute(args, mockContext as any);
 
         expect(result.status).toBe('created');
         expect(result).toHaveProperty('channelId');
@@ -46,7 +46,7 @@ describe('createChannelCommand', () => {
         };
 
         const args = { from: 'agent-1', to: 'agent-2' };
-        const result = await createChannelCommand.execute(args, contextWithChannel as any);
+        const result: any = await createChannelCommand.execute(args, contextWithChannel as any);
         expect(result.status).toBe('exists');
     });
 });

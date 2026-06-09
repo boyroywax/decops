@@ -3,13 +3,44 @@
  */
 
 import { CommandDefinition } from "@/services/commands/types";
-import type { EntityInput } from "@/types";
+import type { ArtifactType, EntityInput } from "@/types";
+
+/** Each interface carries an index signature so it stays assignable to the
+ * registry's `CommandDefinition<Record<string, unknown>>` slot. */
+interface AddDeliverableArgs {
+    key: string;
+    label: string;
+    type?: string;
+    description?: string;
+    [key: string]: unknown;
+}
+interface IndexArgs {
+    index: number;
+    [key: string]: unknown;
+}
+interface AddStorageArgs {
+    key: string;
+    value?: string;
+    [key: string]: unknown;
+}
+interface AddInputArgs {
+    name: string;
+    type: EntityInput["type"];
+    entityId?: string;
+    [key: string]: unknown;
+}
+interface UpdateInputArgs {
+    index: number;
+    field?: string;
+    value: string;
+    [key: string]: unknown;
+}
 
 // ────────────────────────────────────────────────────
 // Deliverables
 // ────────────────────────────────────────────────────
 
-export const studioAddDeliverableCommand: CommandDefinition = {
+export const studioAddDeliverableCommand: CommandDefinition<AddDeliverableArgs> = {
     id: "studio_add_deliverable",
     description: "Adds a deliverable declaration to the Studio job. Deliverables are declared outputs the job is expected to produce.",
     tags: ["studio", "edit", "deliverable"],
@@ -25,12 +56,12 @@ export const studioAddDeliverableCommand: CommandDefinition = {
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
-        studio.addDeliverableEntry({ key: args.key, label: args.label, type: args.type, description: args.description });
+        studio.addDeliverableEntry({ key: args.key, label: args.label, type: (args.type ?? "json") as ArtifactType, description: args.description });
         return { key: args.key, label: args.label, type: args.type };
     },
 };
 
-export const studioRemoveDeliverableCommand: CommandDefinition = {
+export const studioRemoveDeliverableCommand: CommandDefinition<IndexArgs> = {
     id: "studio_remove_deliverable",
     description: "Removes a deliverable from the Studio job by its index (0-based).",
     tags: ["studio", "edit", "deliverable"],
@@ -52,7 +83,7 @@ export const studioRemoveDeliverableCommand: CommandDefinition = {
 // Storage Defaults
 // ────────────────────────────────────────────────────
 
-export const studioAddStorageCommand: CommandDefinition = {
+export const studioAddStorageCommand: CommandDefinition<AddStorageArgs> = {
     id: "studio_add_storage",
     description: "Adds a default storage key-value pair to the Studio job. Storage provides inter-step shared state.",
     tags: ["studio", "edit", "storage"],
@@ -66,12 +97,12 @@ export const studioAddStorageCommand: CommandDefinition = {
     execute: async (args, context) => {
         const studio = context.extensions?.studio as import("@/toolkits/studio/StudioContext").StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
-        studio.addStorageEntryWithValues(args.key, args.value);
+        studio.addStorageEntryWithValues(args.key, args.value ?? "");
         return { key: args.key, value: args.value };
     },
 };
 
-export const studioRemoveStorageCommand: CommandDefinition = {
+export const studioRemoveStorageCommand: CommandDefinition<IndexArgs> = {
     id: "studio_remove_storage",
     description: "Removes a storage entry from the Studio job by its index (0-based).",
     tags: ["studio", "edit", "storage"],
@@ -93,7 +124,7 @@ export const studioRemoveStorageCommand: CommandDefinition = {
 // Entity Inputs
 // ────────────────────────────────────────────────────
 
-export const studioAddInputCommand: CommandDefinition = {
+export const studioAddInputCommand: CommandDefinition<AddInputArgs> = {
     id: "studio_add_input",
     description: "Adds an entity input reference to the Studio job. Inputs map friendly names to entity IDs (agents, channels, groups, networks) and are resolved via $input.name in step args at runtime.",
     tags: ["studio", "edit", "input"],
@@ -113,7 +144,7 @@ export const studioAddInputCommand: CommandDefinition = {
     },
 };
 
-export const studioRemoveInputCommand: CommandDefinition = {
+export const studioRemoveInputCommand: CommandDefinition<IndexArgs> = {
     id: "studio_remove_input",
     description: "Removes an entity input from the Studio job by its index (0-based).",
     tags: ["studio", "edit", "input"],
@@ -131,7 +162,7 @@ export const studioRemoveInputCommand: CommandDefinition = {
     },
 };
 
-export const studioUpdateInputCommand: CommandDefinition = {
+export const studioUpdateInputCommand: CommandDefinition<UpdateInputArgs> = {
     id: "studio_update_input",
     description: "Updates a field on an entity input in the Studio job.",
     tags: ["studio", "edit", "input"],

@@ -1,7 +1,8 @@
 
 import type { CommandDefinition, CommandContext } from "@/services/commands/types";
+import type { ArtifactType } from "@/types/jobs";
 
-export const createArtifactCommand: CommandDefinition = {
+export const createArtifactCommand: CommandDefinition<{ name: string; type: string; content: string; tags?: string; description?: string; deliverableKey?: string }> = {
     id: "create_artifact",
     description: "Create a new text-based artifact (Markdown, Code, JSON, Plain Text).",
     tags: ["artifact", "content", "create"],
@@ -59,7 +60,7 @@ export const createArtifactCommand: CommandDefinition = {
         const artifact = {
             id: crypto.randomUUID(),
             name: args.name,
-            type: args.type,
+            type: args.type as ArtifactType,
             content: args.content,
             tags,
             createdAt: Date.now(),
@@ -82,7 +83,7 @@ export const createArtifactCommand: CommandDefinition = {
     }
 };
 
-export const editArtifactCommand: CommandDefinition = {
+export const editArtifactCommand: CommandDefinition<{ id: string; content: string }> = {
     id: "edit_artifact",
     description: "Edit an existing artifact's content.",
     tags: ["artifact", "content", "edit"],
@@ -117,7 +118,7 @@ export const editArtifactCommand: CommandDefinition = {
     }
 };
 
-export const tagArtifactCommand: CommandDefinition = {
+export const tagArtifactCommand: CommandDefinition<{ id: string; add?: string; remove?: string; set?: string }> = {
     id: "tag_artifact",
     description: "Add, remove, or replace tags on an existing artifact.",
     tags: ["artifact", "edit", "tags"],
@@ -189,7 +190,7 @@ export const tagArtifactCommand: CommandDefinition = {
     }
 };
 
-export const deleteArtifactCommand: CommandDefinition = {
+export const deleteArtifactCommand: CommandDefinition<{ id: string }> = {
     id: "delete_artifact",
     description: "Permanently remove an artifact.",
     tags: ["artifact", "delete"],
@@ -211,7 +212,7 @@ export const deleteArtifactCommand: CommandDefinition = {
     }
 };
 
-export const listArtifactsCommand: CommandDefinition = {
+export const listArtifactsCommand: CommandDefinition<{ type?: string; source?: string; tag?: string; limit?: number }> = {
     id: "list_artifacts",
     description: "List artifacts, optionally filtered by type, source, or tags.",
     tags: ["artifact", "query", "list"],
@@ -290,7 +291,7 @@ export const listArtifactsCommand: CommandDefinition = {
     }
 };
 
-export const searchArtifactsCommand: CommandDefinition = {
+export const searchArtifactsCommand: CommandDefinition<{ query: string; type?: string; limit?: number }> = {
     id: "search_artifacts",
     description: "Search artifacts by keyword across name, content, tags, and description.",
     tags: ["artifact", "query", "search"],

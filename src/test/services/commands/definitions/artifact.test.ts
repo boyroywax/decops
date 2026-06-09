@@ -43,7 +43,7 @@ describe('Artifact Commands', () => {
     describe('create_artifact', () => {
         it('should create a new artifact', async () => {
             const args = { name: 'test.md', type: 'markdown', content: '# Hello' };
-            const result = await createArtifactCommand.execute(args, context);
+            const result: any = await createArtifactCommand.execute(args, context);
 
             expect(result.success).toBe(true);
             expect(result.artifact.name).toBe('test.md');
@@ -62,7 +62,7 @@ describe('Artifact Commands', () => {
             mockArtifacts.push(existing);
 
             const args = { id: 'art-1', content: 'New' };
-            const result = await editArtifactCommand.execute(args, context);
+            const result: any = await editArtifactCommand.execute(args, context);
 
             expect(result.success).toBe(true);
             expect(result.artifact.content).toBe('New');
@@ -81,7 +81,7 @@ describe('Artifact Commands', () => {
     describe('delete_artifact', () => {
         it('should delete an artifact', async () => {
             const args = { id: 'art-1' };
-            const result = await deleteArtifactCommand.execute(args, context);
+            const result: any = await deleteArtifactCommand.execute(args, context);
 
             expect(result.success).toBe(true);
             expect(mockRemoveArtifact).toHaveBeenCalledWith('art-1');
@@ -93,7 +93,7 @@ describe('Artifact Commands', () => {
         it('should add tags to an artifact', async () => {
             mockArtifacts.push({ id: 'art-1', name: 'test.md', type: 'markdown', tags: ['type:markdown'] });
 
-            const result = await tagArtifactCommand.execute({ id: 'art-1', add: 'status:reviewed,priority:high' }, context);
+            const result: any = await tagArtifactCommand.execute({ id: 'art-1', add: 'status:reviewed,priority:high' }, context);
 
             expect(result.success).toBe(true);
             expect(result.artifact.tags).toContain('type:markdown');
@@ -105,7 +105,7 @@ describe('Artifact Commands', () => {
         it('should not duplicate existing tags when adding', async () => {
             mockArtifacts.push({ id: 'art-1', name: 'test.md', type: 'markdown', tags: ['existing'] });
 
-            const result = await tagArtifactCommand.execute({ id: 'art-1', add: 'existing,new-tag' }, context);
+            const result: any = await tagArtifactCommand.execute({ id: 'art-1', add: 'existing,new-tag' }, context);
 
             expect(result.artifact.tags).toEqual(['existing', 'new-tag']);
         });
@@ -113,7 +113,7 @@ describe('Artifact Commands', () => {
         it('should remove tags from an artifact', async () => {
             mockArtifacts.push({ id: 'art-1', name: 'test.md', type: 'markdown', tags: ['keep', 'remove-me', 'also-remove'] });
 
-            const result = await tagArtifactCommand.execute({ id: 'art-1', remove: 'remove-me,also-remove' }, context);
+            const result: any = await tagArtifactCommand.execute({ id: 'art-1', remove: 'remove-me,also-remove' }, context);
 
             expect(result.artifact.tags).toEqual(['keep']);
             expect(mockUpdateArtifact).toHaveBeenCalled();
@@ -122,7 +122,7 @@ describe('Artifact Commands', () => {
         it('should replace all tags when using set', async () => {
             mockArtifacts.push({ id: 'art-1', name: 'test.md', type: 'markdown', tags: ['old1', 'old2'] });
 
-            const result = await tagArtifactCommand.execute({ id: 'art-1', set: 'new1,new2,new3' }, context);
+            const result: any = await tagArtifactCommand.execute({ id: 'art-1', set: 'new1,new2,new3' }, context);
 
             expect(result.artifact.tags).toEqual(['new1', 'new2', 'new3']);
         });
@@ -150,7 +150,7 @@ describe('Artifact Commands', () => {
         });
 
         it('should list all artifacts', async () => {
-            const result = await listArtifactsCommand.execute({}, context);
+            const result: any = await listArtifactsCommand.execute({}, context);
 
             expect(result.total).toBe(3);
             expect(result.returned).toBe(3);
@@ -160,28 +160,28 @@ describe('Artifact Commands', () => {
         });
 
         it('should filter by type', async () => {
-            const result = await listArtifactsCommand.execute({ type: 'json' }, context);
+            const result: any = await listArtifactsCommand.execute({ type: 'json' }, context);
 
             expect(result.total).toBe(1);
             expect(result.artifacts[0].name).toBe('data.json');
         });
 
         it('should filter by source', async () => {
-            const result = await listArtifactsCommand.execute({ source: 'command' }, context);
+            const result: any = await listArtifactsCommand.execute({ source: 'command' }, context);
 
             expect(result.total).toBe(1);
             expect(result.artifacts[0].name).toBe('report.md');
         });
 
         it('should filter by tag', async () => {
-            const result = await listArtifactsCommand.execute({ tag: 'project:alpha' }, context);
+            const result: any = await listArtifactsCommand.execute({ tag: 'project:alpha' }, context);
 
             expect(result.total).toBe(2);
             expect(result.artifacts.map((a: any) => a.id)).toEqual(expect.arrayContaining(['a1', 'a3']));
         });
 
         it('should respect limit', async () => {
-            const result = await listArtifactsCommand.execute({ limit: 2 }, context);
+            const result: any = await listArtifactsCommand.execute({ limit: 2 }, context);
 
             expect(result.total).toBe(3);
             expect(result.returned).toBe(2);
@@ -189,14 +189,14 @@ describe('Artifact Commands', () => {
         });
 
         it('should include content preview', async () => {
-            const result = await listArtifactsCommand.execute({}, context);
+            const result: any = await listArtifactsCommand.execute({}, context);
 
             expect(result.artifacts[0].contentPreview).toBeDefined();
             expect(typeof result.artifacts[0].contentPreview).toBe('string');
         });
 
         it('should return empty for no matches', async () => {
-            const result = await listArtifactsCommand.execute({ type: 'image' }, context);
+            const result: any = await listArtifactsCommand.execute({ type: 'image' }, context);
 
             expect(result.total).toBe(0);
             expect(result.artifacts).toHaveLength(0);
@@ -213,7 +213,7 @@ describe('Artifact Commands', () => {
         });
 
         it('should search by name', async () => {
-            const result = await searchArtifactsCommand.execute({ query: 'architecture' }, context);
+            const result: any = await searchArtifactsCommand.execute({ query: 'architecture' }, context);
 
             expect(result.total).toBe(1);
             expect(result.results[0].id).toBe('a1');
@@ -221,7 +221,7 @@ describe('Artifact Commands', () => {
         });
 
         it('should search by content', async () => {
-            const result = await searchArtifactsCommand.execute({ query: 'microservice' }, context);
+            const result: any = await searchArtifactsCommand.execute({ query: 'microservice' }, context);
 
             expect(result.total).toBe(1);
             expect(result.results[0].matchFields).toContain('content');
@@ -229,7 +229,7 @@ describe('Artifact Commands', () => {
         });
 
         it('should search by tag', async () => {
-            const result = await searchArtifactsCommand.execute({ query: 'devops' }, context);
+            const result: any = await searchArtifactsCommand.execute({ query: 'devops' }, context);
 
             expect(result.total).toBe(1);
             expect(result.results[0].id).toBe('a3');
@@ -237,7 +237,7 @@ describe('Artifact Commands', () => {
         });
 
         it('should search by description', async () => {
-            const result = await searchArtifactsCommand.execute({ query: 'design' }, context);
+            const result: any = await searchArtifactsCommand.execute({ query: 'design' }, context);
 
             expect(result.total).toBeGreaterThanOrEqual(1);
             const matchedFields = result.results.flatMap((r: any) => r.matchFields);
@@ -245,20 +245,20 @@ describe('Artifact Commands', () => {
         });
 
         it('should be case-insensitive', async () => {
-            const result = await searchArtifactsCommand.execute({ query: 'NGINX' }, context);
+            const result: any = await searchArtifactsCommand.execute({ query: 'NGINX' }, context);
 
             expect(result.total).toBe(1);
             expect(result.results[0].id).toBe('a3');
         });
 
         it('should filter by type', async () => {
-            const result = await searchArtifactsCommand.execute({ query: 'a', type: 'json' }, context);
+            const result: any = await searchArtifactsCommand.execute({ query: 'a', type: 'json' }, context);
 
             expect(result.results.every((r: any) => r.type === 'json')).toBe(true);
         });
 
         it('should respect limit', async () => {
-            const result = await searchArtifactsCommand.execute({ query: 'a', limit: 1 }, context);
+            const result: any = await searchArtifactsCommand.execute({ query: 'a', limit: 1 }, context);
 
             expect(result.results).toHaveLength(1);
         });
@@ -276,7 +276,7 @@ describe('Artifact Commands', () => {
                 { id: 'x2', name: 'design-doc.md', type: 'markdown', tags: ['design'], content: 'some design concepts', description: 'A design document', createdAt: 2000 },
             );
 
-            const result = await searchArtifactsCommand.execute({ query: 'design' }, context);
+            const result: any = await searchArtifactsCommand.execute({ query: 'design' }, context);
 
             // x2 matches in name, tags, content, description (4 fields) vs x1 in content only (1 field)
             expect(result.results[0].id).toBe('x2');

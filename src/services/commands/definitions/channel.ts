@@ -117,7 +117,7 @@ export const createChannelCommand: CommandDefinition = {
         }
 
         // Accumulate in storage so downstream steps can find channels
-        context.storage._channels = [...(context.storage._channels || []), ...created];
+        context.storage._channels = [...(Array.isArray(context.storage._channels) ? context.storage._channels : []), ...created];
 
         // Single mode: backwards-compatible return shape
         if (!args.items) {

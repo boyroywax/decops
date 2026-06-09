@@ -1,5 +1,6 @@
 import { CommandDefinition } from "@/services/commands/types";
 import type { JobDeliverable, JobRequest, JobStep } from "@/types";
+import type { JobDefinition } from "@/types/jobs";
 
 // --- Queue Management ---
 
@@ -74,7 +75,7 @@ export const resumeQueueCommand: CommandDefinition = {
     }
 };
 
-export const deleteQueuedJobCommand: CommandDefinition = {
+export const deleteQueuedJobCommand: CommandDefinition<{ id: string }> = {
     id: "delete_queued_job",
     description: "Removes a job from the queue (cancel).",
     tags: ["job", "system"],
@@ -118,7 +119,17 @@ export const listCatalogJobsCommand: CommandDefinition = {
     }
 };
 
-export const saveJobDefinitionCommand: CommandDefinition = {
+export const saveJobDefinitionCommand: CommandDefinition<{
+    name: string;
+    description?: string;
+    mode?: "serial" | "parallel" | "mixed";
+    steps: JobStep[];
+    deliverables?: JobDeliverable[];
+    storageDefaults?: Record<string, unknown>;
+    parallelGroups?: Array<{ id: string; label: string; stepIds: string[] }>;
+    inputDefaults?: JobDefinition["inputDefaults"];
+    triggers?: JobDefinition["triggers"];
+}> = {
     id: "save_job_definition",
     description: "Saves a job definition to the catalog. Supports deliverables (declared outputs) and storageDefaults (inter-step shared state).",
     tags: ["job", "catalog"],
@@ -139,11 +150,11 @@ export const saveJobDefinitionCommand: CommandDefinition = {
     execute: async (args, context) => {
         const id = `job-def-${Date.now()}`;
         const now = Date.now();
-        const def = {
+        const def: JobDefinition = {
             id,
             name: args.name,
-            description: args.description,
-            mode: args.mode,
+            description: args.description ?? "",
+            mode: args.mode ?? "serial",
             steps: args.steps,
             deliverables: args.deliverables || undefined,
             storageDefaults: args.storageDefaults || undefined,
@@ -158,7 +169,7 @@ export const saveJobDefinitionCommand: CommandDefinition = {
     }
 };
 
-export const deleteJobDefinitionCommand: CommandDefinition = {
+export const deleteJobDefinitionCommand: CommandDefinition<{ id: string }> = {
     id: "delete_job_definition",
     description: "Deletes a job definition from the catalog.",
     tags: ["job", "catalog"],

@@ -147,7 +147,7 @@ describe('Studio Commands', () => {
 
         it('creates a trigger with label and name-pattern filter', async () => {
             // Use a short string (< 8 chars) so the ID regex doesn't match
-            const result = await studioAddTriggerCommand.execute(
+            const result: any = await studioAddTriggerCommand.execute(
                 { event: 'agent:created', filter: 'scout', label: 'On new agent' },
                 context,
             );
@@ -161,7 +161,7 @@ describe('Studio Commands', () => {
 
         it('parses an ID-like filter string as entityId', async () => {
             const idVal = 'abcdef12-3456-7890-abcd-ef1234567890';
-            const result = await studioAddTriggerCommand.execute(
+            const result: any = await studioAddTriggerCommand.execute(
                 { event: 'artifact:updated', filter: idVal },
                 context,
             );
@@ -169,7 +169,7 @@ describe('Studio Commands', () => {
         });
 
         it('parses a tag-like filter string as tag', async () => {
-            const result = await studioAddTriggerCommand.execute(
+            const result: any = await studioAddTriggerCommand.execute(
                 { event: 'artifact:deleted', filter: 'type:report' },
                 context,
             );

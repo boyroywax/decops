@@ -51,7 +51,7 @@ describe("Collective memory archive commands", () => {
     const cmd = collectiveMemoryCommands.find(c => c.id === "archive_collective_memory");
     expect(cmd).toBeDefined();
 
-    const result = await cmd!.execute({ name: "memory-archive.json", includeDisabled: true }, context);
+    const result: any = await cmd!.execute({ name: "memory-archive.json", includeDisabled: true }, context);
     expect(result.success).toBe(true);
     expect(result.memory.id).toBeDefined();
     expect(mockArtifacts).toHaveLength(1);
@@ -104,7 +104,7 @@ describe("Collective memory archive commands", () => {
     const cmd = collectiveMemoryCommands.find(c => c.id === "import_collective_memory_archive");
     expect(cmd).toBeDefined();
 
-    const result = await cmd!.execute({ tag: "memory:archive", mode: "upsert" }, context);
+    const result: any = await cmd!.execute({ tag: "memory:archive", mode: "upsert" }, context);
     expect(result.success).toBe(true);
     expect(result.artifactsScanned).toBe(2);
     expect(result.artifactsImported).toBe(1);

@@ -12,6 +12,18 @@ export const NODE_ID_ARG = {
     required: false,
 };
 
+/**
+ * Common command-arg shape: a dynamic bag plus the optional `nodeId`.
+ *
+ * Declared as an interface (not an intersection) so direct member access
+ * `args.nodeId` resolves to the explicit `string | undefined` rather than the
+ * index signature's `unknown`.
+ */
+export interface OrbitdbNodeArgs {
+    nodeId?: string;
+    [key: string]: unknown;
+}
+
 export const ADDRESS_ARG = {
     name: "address",
     type: "string" as const,

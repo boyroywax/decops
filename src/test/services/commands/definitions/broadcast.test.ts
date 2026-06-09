@@ -46,7 +46,7 @@ describe('broadcastMessageCommand', () => {
             sender_id: 'a1'
         };
 
-        const result = await broadcastMessageCommand.execute(args, mockContext as any);
+        const result: any = await broadcastMessageCommand.execute(args, mockContext as any);
 
         expect(result.success).toBe(true);
         expect(result.count).toBe(2); // a2 and a3
@@ -66,7 +66,7 @@ describe('broadcastMessageCommand', () => {
         };
 
         const args = { group_id: 'g1', message: 'Hi', sender_id: 'a1' };
-        const result = await broadcastMessageCommand.execute(args, contextNoChannel as any);
+        const result: any = await broadcastMessageCommand.execute(args, contextNoChannel as any);
 
         expect(result.count).toBe(0);
     });

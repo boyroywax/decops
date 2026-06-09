@@ -13,7 +13,28 @@ import {
 } from "../utils/collections";
 import { NODE_ID_ARG } from "./shared";
 
-export const libp2pVaultStoreCommand: CommandDefinition = {
+interface VaultStoreArgs {
+    label?: string;
+    peerId?: string;
+    privateKey?: string;
+    passphrase?: string;
+    notes?: string;
+}
+
+interface VaultLoadArgs {
+    nodeId?: string;
+    vaultId?: string;
+    passphrase?: string;
+}
+
+interface VaultExportArgs {
+    nodeId?: string;
+    label?: string;
+    passphrase?: string;
+    notes?: string;
+}
+
+export const libp2pVaultStoreCommand: CommandDefinition<VaultStoreArgs> = {
     id: "libp2p_vault_store",
     description: "Encrypt a libp2p private key with a passphrase and store it in the identity vault.",
     tags: ["libp2p", "identity", "vault"],
@@ -79,7 +100,7 @@ export const libp2pVaultListCommand: CommandDefinition = {
     },
 };
 
-export const libp2pVaultLoadCommand: CommandDefinition = {
+export const libp2pVaultLoadCommand: CommandDefinition<VaultLoadArgs> = {
     id: "libp2p_vault_load",
     description: "Decrypt a vault identity and load it into the active node for the next start. The node must be stopped.",
     tags: ["libp2p", "identity", "vault"],
@@ -101,7 +122,7 @@ export const libp2pVaultLoadCommand: CommandDefinition = {
     },
 };
 
-export const libp2pVaultExportCurrentCommand: CommandDefinition = {
+export const libp2pVaultExportCurrentCommand: CommandDefinition<VaultExportArgs> = {
     id: "libp2p_vault_export_current",
     description: "Encrypt the active node's current identity and store it in the vault.",
     tags: ["libp2p", "identity", "vault"],

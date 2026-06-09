@@ -5,9 +5,9 @@
  */
 import type { CommandDefinition } from "@/services/commands/types";
 import { libp2pService } from "../service";
-import { NODE_ID_ARG } from "./shared";
+import { NODE_ID_ARG, type Libp2pNodeArgs } from "./shared";
 
-export const libp2pPubsubSubscribeCommand: CommandDefinition = {
+export const libp2pPubsubSubscribeCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_pubsub_subscribe",
     description: "Subscribe to a gossipsub topic.",
     tags: ["libp2p", "pubsub"],
@@ -26,7 +26,7 @@ export const libp2pPubsubSubscribeCommand: CommandDefinition = {
     },
 };
 
-export const libp2pPubsubUnsubscribeCommand: CommandDefinition = {
+export const libp2pPubsubUnsubscribeCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_pubsub_unsubscribe",
     description: "Unsubscribe from a gossipsub topic.",
     tags: ["libp2p", "pubsub"],
@@ -45,7 +45,7 @@ export const libp2pPubsubUnsubscribeCommand: CommandDefinition = {
     },
 };
 
-export const libp2pPubsubPublishCommand: CommandDefinition = {
+export const libp2pPubsubPublishCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_pubsub_publish",
     description: "Publish a message to a gossipsub topic.",
     tags: ["libp2p", "pubsub"],

@@ -16,7 +16,26 @@ import {
 } from "../utils/collections";
 import { NODE_ID_ARG } from "./shared";
 
-export const libp2pPnetGenerateCommand: CommandDefinition = {
+interface PnetGenerateArgs {
+    label?: string;
+    passphrase?: string;
+    notes?: string;
+}
+
+interface PnetAddArgs {
+    label?: string;
+    psk?: string;
+    passphrase?: string;
+    notes?: string;
+}
+
+interface PnetApplyArgs {
+    nodeId?: string;
+    pnetId?: string;
+    passphrase?: string;
+}
+
+export const libp2pPnetGenerateCommand: CommandDefinition<PnetGenerateArgs> = {
     id: "libp2p_pnet_generate",
     description: "Generate a new libp2p private-swarm pre-shared key, encrypt it with a passphrase, and store it in the networks collection.",
     tags: ["libp2p", "network", "pnet"],
@@ -46,7 +65,7 @@ export const libp2pPnetGenerateCommand: CommandDefinition = {
     },
 };
 
-export const libp2pPnetAddCommand: CommandDefinition = {
+export const libp2pPnetAddCommand: CommandDefinition<PnetAddArgs> = {
     id: "libp2p_pnet_add",
     description: "Import an existing libp2p PSK document, encrypt it with a passphrase, and store it in the networks collection.",
     tags: ["libp2p", "network", "pnet"],
@@ -114,7 +133,7 @@ export const libp2pPnetRemoveCommand: CommandDefinition = {
     },
 };
 
-export const libp2pPnetApplyCommand: CommandDefinition = {
+export const libp2pPnetApplyCommand: CommandDefinition<PnetApplyArgs> = {
     id: "libp2p_pnet_apply",
     description: "Decrypt a stored private-network key and start the node on that swarm. Node must be stopped.",
     tags: ["libp2p", "network", "pnet"],

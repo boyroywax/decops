@@ -11,6 +11,9 @@ import type { CommandDefinition } from "@/services/commands/types";
 import { heliaService } from "../service";
 import { libp2pService } from "@/toolkits/libp2p/service";
 
+/** Args common to helia commands: a dynamic bag plus the optional node id. */
+type HeliaArgs = Record<string, unknown> & { nodeId?: string };
+
 const NODE_ID_ARG = {
     name: "nodeId",
     type: "string" as const,
@@ -20,7 +23,7 @@ const NODE_ID_ARG = {
 
 // ── helia_start ──
 
-export const heliaStartCommand: CommandDefinition = {
+export const heliaStartCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_start",
     description:
         "Start a Helia (in-browser IPFS) node, binding it to a libp2p instance. " +
@@ -68,7 +71,7 @@ export const heliaStartCommand: CommandDefinition = {
 
 // ── helia_stop ──
 
-export const heliaStopCommand: CommandDefinition = {
+export const heliaStopCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_stop",
     description: "Stop a running Helia node. The underlying libp2p node is left untouched.",
     tags: ["helia", "ipfs"],
@@ -87,7 +90,7 @@ export const heliaStopCommand: CommandDefinition = {
 
 // ── helia_add_node ──
 
-export const heliaAddNodeCommand: CommandDefinition = {
+export const heliaAddNodeCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_add_node",
     description: "Add a new (stopped) Helia node. Optionally pre-bind it to a libp2p node id.",
     tags: ["helia", "ipfs"],
@@ -113,7 +116,7 @@ export const heliaAddNodeCommand: CommandDefinition = {
     },
 };
 
-export const heliaRemoveNodeCommand: CommandDefinition = {
+export const heliaRemoveNodeCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_remove_node",
     description: "Stop and remove a Helia node.",
     tags: ["helia", "ipfs"],
@@ -131,7 +134,7 @@ export const heliaRemoveNodeCommand: CommandDefinition = {
     },
 };
 
-export const heliaSetActiveNodeCommand: CommandDefinition = {
+export const heliaSetActiveNodeCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_set_active_node",
     description: "Switch the active Helia node.",
     tags: ["helia", "ipfs"],
@@ -149,7 +152,7 @@ export const heliaSetActiveNodeCommand: CommandDefinition = {
     },
 };
 
-export const heliaRenameNodeCommand: CommandDefinition = {
+export const heliaRenameNodeCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_rename_node",
     description: "Rename a Helia node.",
     tags: ["helia", "ipfs"],
@@ -172,7 +175,7 @@ export const heliaRenameNodeCommand: CommandDefinition = {
 
 // ── helia_set_libp2p ──
 
-export const heliaSetLibp2pCommand: CommandDefinition = {
+export const heliaSetLibp2pCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_set_libp2p",
     description:
         "Bind this Helia node to a libp2p node id (must be stopped first). " +
@@ -204,7 +207,7 @@ export const heliaSetLibp2pCommand: CommandDefinition = {
 
 // ── helia_add_text ──
 
-export const heliaAddTextCommand: CommandDefinition = {
+export const heliaAddTextCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_add_text",
     description: "Add a UTF-8 string to IPFS via Helia. Returns the resulting CID.",
     tags: ["helia", "ipfs", "add"],
@@ -227,7 +230,7 @@ export const heliaAddTextCommand: CommandDefinition = {
 
 // ── helia_add_json ──
 
-export const heliaAddJsonCommand: CommandDefinition = {
+export const heliaAddJsonCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_add_json",
     description: "Add a JSON-serialisable value to IPFS via Helia (`json` codec, no CID links). Returns the resulting CID.",
     tags: ["helia", "ipfs", "add"],
@@ -249,7 +252,7 @@ export const heliaAddJsonCommand: CommandDefinition = {
 
 // ── helia_add_dag_json ──
 
-export const heliaAddDagJsonCommand: CommandDefinition = {
+export const heliaAddDagJsonCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_add_dag_json",
     description:
         "Add an IPLD block encoded as `dag-json`. Unlike `helia_add_json`, embedded `{ \"/\": \"<cid>\" }` " +
@@ -273,7 +276,7 @@ export const heliaAddDagJsonCommand: CommandDefinition = {
 
 // ── helia_add_dag_cbor ──
 
-export const heliaAddDagCborCommand: CommandDefinition = {
+export const heliaAddDagCborCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_add_dag_cbor",
     description:
         "Add an IPLD block encoded as `dag-cbor` (compact binary IPLD). Supports CID links via " +
@@ -297,7 +300,7 @@ export const heliaAddDagCborCommand: CommandDefinition = {
 
 // ── helia_add_bytes ──
 
-export const heliaAddBytesCommand: CommandDefinition = {
+export const heliaAddBytesCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_add_bytes",
     description:
         "Add raw binary bytes to IPFS via UnixFS. Accepts either a base64 string or an array of byte values. " +
@@ -344,7 +347,7 @@ export const heliaAddBytesCommand: CommandDefinition = {
 
 // ── helia_get_dag ──
 
-export const heliaGetDagCommand: CommandDefinition = {
+export const heliaGetDagCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_get_dag",
     description:
         "Resolve and decode an IPLD block by CID. The codec is inferred from the CID (dag-cbor, dag-json, json, raw). " +
@@ -370,7 +373,7 @@ export const heliaGetDagCommand: CommandDefinition = {
 
 // ── helia_cat ──
 
-export const heliaCatCommand: CommandDefinition = {
+export const heliaCatCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_cat",
     description: "Fetch a CID via Helia and return its content as a UTF-8 string.",
     tags: ["helia", "ipfs", "cat"],
@@ -393,7 +396,7 @@ export const heliaCatCommand: CommandDefinition = {
 
 // ── helia_pin / unpin / list ──
 
-export const heliaPinCommand: CommandDefinition = {
+export const heliaPinCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_pin",
     description: "Pin a CID so it is held against garbage collection.",
     tags: ["helia", "ipfs", "pin"],
@@ -412,7 +415,7 @@ export const heliaPinCommand: CommandDefinition = {
     },
 };
 
-export const heliaUnpinCommand: CommandDefinition = {
+export const heliaUnpinCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_unpin",
     description: "Remove a pin from a CID.",
     tags: ["helia", "ipfs", "pin"],
@@ -431,7 +434,7 @@ export const heliaUnpinCommand: CommandDefinition = {
     },
 };
 
-export const heliaListEntriesCommand: CommandDefinition = {
+export const heliaListEntriesCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_list_entries",
     description: "List content entries known to this Helia node (added or fetched).",
     tags: ["helia", "ipfs"],
@@ -445,7 +448,7 @@ export const heliaListEntriesCommand: CommandDefinition = {
     },
 };
 
-export const heliaClearEntriesCommand: CommandDefinition = {
+export const heliaClearEntriesCommand: CommandDefinition<HeliaArgs> = {
     id: "helia_clear_entries",
     description: "Clear the local entries list (does not remove blocks from the store).",
     tags: ["helia", "ipfs"],

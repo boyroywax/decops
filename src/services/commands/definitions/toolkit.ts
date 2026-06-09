@@ -8,7 +8,7 @@ import { CommandDefinition } from "@/services/commands/types";
 import { TOOLKITS } from "@/services/toolkits";
 import type { Agent, ToolkitId, AgentToolkitBinding } from "@/types";
 
-export const enableToolkitCommand: CommandDefinition = {
+export const enableToolkitCommand: CommandDefinition<{ agentId: string; toolkitId: string; config?: Record<string, unknown> }> = {
   id: "enable_toolkit",
   description: "Enable a toolkit for a specific agent, granting it access to that toolkit's commands and capabilities.",
   tags: ["toolkit", "agent", "configuration"],
@@ -231,7 +231,7 @@ export const listAgentToolkitsCommand: CommandDefinition = {
   },
 };
 
-export const setAgentToolkitsCommand: CommandDefinition = {
+export const setAgentToolkitsCommand: CommandDefinition<{ agentId: string; toolkitIds: string[] }> = {
   id: "set_agent_toolkits",
   description: "Set the complete list of enabled toolkits for an agent at once. Replaces all existing toolkit bindings.",
   tags: ["toolkit", "agent", "configuration"],

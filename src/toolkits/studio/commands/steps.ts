@@ -5,12 +5,45 @@
 
 import { CommandDefinition } from "@/services/commands/types";
 import { registry } from "@/services/commands/registry";
+import type { InputBinding, OutputMapping } from "@/toolkits/studio/types/studio";
+
+/** Per-command arg shapes (index signature keeps them assignable to the
+ * registry's `CommandDefinition<Record<string, unknown>>` slot). */
+interface AddStepArgs {
+    commandId: string;
+    args?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+interface StepIdArgs {
+    stepId: string;
+    [key: string]: unknown;
+}
+interface SetStepArgsArgs {
+    stepId: string;
+    args: Record<string, unknown>;
+    [key: string]: unknown;
+}
+interface SetConditionArgs {
+    stepId: string;
+    condition: string;
+    [key: string]: unknown;
+}
+interface SetInputBindingsArgs {
+    stepId: string;
+    bindings: Record<string, InputBinding>;
+    [key: string]: unknown;
+}
+interface SetOutputMappingsArgs {
+    stepId: string;
+    mappings: OutputMapping[];
+    [key: string]: unknown;
+}
 
 // ────────────────────────────────────────────────────
 // Step Operations
 // ────────────────────────────────────────────────────
 
-export const studioAddStepCommand: CommandDefinition = {
+export const studioAddStepCommand: CommandDefinition<AddStepArgs> = {
     id: "studio_add_step",
     description: "Adds a new step to the Studio canvas using a registered command ID. Optionally provide initial arg values. Returns the new step ID.",
     tags: ["studio", "edit", "step"],
@@ -36,7 +69,7 @@ export const studioAddStepCommand: CommandDefinition = {
     },
 };
 
-export const studioRemoveStepCommand: CommandDefinition = {
+export const studioRemoveStepCommand: CommandDefinition<StepIdArgs> = {
     id: "studio_remove_step",
     description: "Removes a step from the Studio canvas by step ID. Children are reparented to the removed step's parent.",
     tags: ["studio", "edit", "step"],
@@ -54,7 +87,7 @@ export const studioRemoveStepCommand: CommandDefinition = {
     },
 };
 
-export const studioSetStepArgsCommand: CommandDefinition = {
+export const studioSetStepArgsCommand: CommandDefinition<SetStepArgsArgs> = {
     id: "studio_set_step_args",
     description: "Sets one or more argument values on an existing Studio step.",
     tags: ["studio", "edit", "step"],
@@ -91,7 +124,7 @@ export const studioAddParallelGroupCommand: CommandDefinition = {
     },
 };
 
-export const studioSetStepConditionCommand: CommandDefinition = {
+export const studioSetStepConditionCommand: CommandDefinition<SetConditionArgs> = {
     id: "studio_set_step_condition",
     description: "Sets a pre-condition (JS expression) on a Studio step. The step will only execute if this expression returns truthy.",
     tags: ["studio", "edit", "step"],
@@ -114,7 +147,7 @@ export const studioSetStepConditionCommand: CommandDefinition = {
 // Input Bindings & Output Mappings
 // ────────────────────────────────────────────────────
 
-export const studioSetInputBindingsCommand: CommandDefinition = {
+export const studioSetInputBindingsCommand: CommandDefinition<SetInputBindingsArgs> = {
     id: "studio_set_input_bindings",
     description: "Sets input bindings on a Studio step. Bindings connect step arguments to data from shared storage or deliverables. Each binding maps an argument name to a source (storage or deliverable) and a key.",
     tags: ["studio", "edit", "step", "binding"],
@@ -138,7 +171,7 @@ export const studioSetInputBindingsCommand: CommandDefinition = {
     },
 };
 
-export const studioSetOutputMappingsCommand: CommandDefinition = {
+export const studioSetOutputMappingsCommand: CommandDefinition<SetOutputMappingsArgs> = {
     id: "studio_set_output_mappings",
     description: 'Sets output mappings on a Studio step. Mappings route command output keys to shared storage or deliverables. Use outputKey "*" to capture the entire output.',
     tags: ["studio", "edit", "step", "mapping"],

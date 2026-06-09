@@ -8,7 +8,32 @@ import { generateDID, generateKeyPair, generateGroupDID } from "@/utils/identity
 import { createAieosEntity } from "@/utils/aieos";
 import { slugifyStorageKey } from "@/utils/storageKey";
 
-export const createNetworkCommand: CommandDefinition = {
+interface NetworkSpec {
+    name: string;
+    description?: string;
+}
+interface CreateNetworkArgs {
+    name: string;
+    description?: string;
+    architectPrompt?: string;
+    items?: NetworkSpec[] | NetworkSpec;
+    [key: string]: unknown;
+}
+interface NetworkUpdateSpec {
+    id: string;
+    name?: string;
+    description?: string;
+    color?: string;
+}
+interface UpdateNetworkArgs {
+    id?: string;
+    name?: string;
+    description?: string;
+    color?: string;
+    items?: NetworkUpdateSpec[] | NetworkUpdateSpec;
+}
+
+export const createNetworkCommand: CommandDefinition<CreateNetworkArgs> = {
     id: "create_network",
     description: "Create a new network in the workspace, optionally populated via the AI Architect.",
     tags: ["ecosystem", "network", "create"],
@@ -74,7 +99,7 @@ export const createNetworkCommand: CommandDefinition = {
             }
 
             context.ecosystem.setNetworks((prev: Network[]) => [...prev, ...created]);
-            context.storage._networks = [...(context.storage._networks || []), ...created];
+            context.storage._networks = [...(Array.isArray(context.storage._networks) ? context.storage._networks : []), ...created];
             context.workspace.addLog(`Created ${created.length} network(s): ${created.map((n) => n.name).join(", ")}`);
 
             // Auto-activate the last created network
@@ -183,9 +208,9 @@ export const createNetworkCommand: CommandDefinition = {
 
         // Accumulate entities so downstream steps can look them up
         // (React state may be stale within the same job execution cycle)
-        context.storage._networks = [...(context.storage._networks || []), net];
+        context.storage._networks = [...(Array.isArray(context.storage._networks) ? context.storage._networks : []), net];
         if (agents.length > 0) {
-            context.storage._agents = [...(context.storage._agents || []), ...agents];
+            context.storage._agents = [...(Array.isArray(context.storage._agents) ? context.storage._agents : []), ...agents];
             // Also set per-agent storage keys for name→id resolution
             for (const a of agents) {
                 context.storage[`agent_${a.name}`] = a.id;
@@ -193,7 +218,7 @@ export const createNetworkCommand: CommandDefinition = {
             }
         }
         if (channels.length > 0) {
-            context.storage._channels = [...(context.storage._channels || []), ...channels];
+            context.storage._channels = [...(Array.isArray(context.storage._channels) ? context.storage._channels : []), ...channels];
         }
 
         return { success: true, network: net };
@@ -225,7 +250,7 @@ export const listNetworksCommand: CommandDefinition = {
     }
 };
 
-export const updateNetworkCommand: CommandDefinition = {
+export const updateNetworkCommand: CommandDefinition<UpdateNetworkArgs> = {
     id: "update_network",
     description: "Update properties of an existing network in the workspace (name, description, color).",
     tags: ["ecosystem", "network", "update"],

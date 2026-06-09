@@ -97,7 +97,7 @@ describe('Jobs Commands', () => {
                 mode: 'serial',
                 steps: [{ id: 's1' }]
             };
-            const result = await saveJobDefinitionCommand.execute(args, context);
+            const result = await saveJobDefinitionCommand.execute(args as any, context);
 
             expect(result).toContain('job-def-');
             expect(mockSaveDefinition).toHaveBeenCalledWith(expect.objectContaining({

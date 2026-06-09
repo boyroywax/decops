@@ -2,7 +2,15 @@ import { CommandDefinition } from "@/services/commands/types";
 import { Message } from "@/types";
 import { callAgentAI } from "@/services/ai";
 
-export const sendMessageCommand: CommandDefinition = {
+interface SendMessageArgs {
+    from_agent_id: string;
+    to_agent_id: string;
+    message: string;
+    await_response?: boolean;
+    [key: string]: unknown;
+}
+
+export const sendMessageCommand: CommandDefinition<SendMessageArgs> = {
     id: "send_message",
     description: "Sends a direct message from one agent (or the current user) to another agent",
     tags: ["messaging", "interaction"],
@@ -58,8 +66,8 @@ export const sendMessageCommand: CommandDefinition = {
 
         // Combine workspace state with entities created earlier in the same job
         // (some intra-job entities live only in shared storage until persisted)
-        const allAgents = [...liveAgents, ...(context.storage._agents || [])];
-        const allChannels = [...liveChannels, ...(context.storage._channels || [])];
+        const allAgents = [...liveAgents, ...(Array.isArray(context.storage._agents) ? context.storage._agents : [])];
+        const allChannels = [...liveChannels, ...(Array.isArray(context.storage._channels) ? context.storage._channels : [])];
 
         // 1. Resolve sender — 'user' / 'you' keywords map to the current user's DID
         const senderKey = typeof from_agent_id === 'string' ? from_agent_id.trim().toLowerCase() : '';

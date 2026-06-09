@@ -6,9 +6,9 @@
 import type { CommandDefinition } from "@/services/commands/types";
 import { orbitdbService } from "../service";
 import { heliaService } from "@/toolkits/helia/service";
-import { NODE_ID_ARG } from "./shared";
+import { NODE_ID_ARG, type OrbitdbNodeArgs } from "./shared";
 
-export const orbitdbStartCommand: CommandDefinition = {
+export const orbitdbStartCommand: CommandDefinition<OrbitdbNodeArgs> = {
     id: "orbitdb_start",
     description:
         "Start an OrbitDB node, binding it to a Helia (IPFS) instance. " +
@@ -46,7 +46,7 @@ export const orbitdbStartCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbStopCommand: CommandDefinition = {
+export const orbitdbStopCommand: CommandDefinition<OrbitdbNodeArgs> = {
     id: "orbitdb_stop",
     description: "Stop a running OrbitDB node, closing all open databases.",
     tags: ["orbitdb"],

@@ -11,6 +11,12 @@ import type { JobArtifact } from "@/types";
 import { orchestratorService } from "../service";
 import type { OrchestratorManifest } from "../types/orchestrator";
 
+/** Common command-arg shape: a dynamic bag plus the optional `nodeId`. */
+interface OrchestratorNodeArgs {
+    nodeId?: string;
+    [key: string]: unknown;
+}
+
 const NODE_ID_ARG = {
     name: "nodeId",
     type: "string" as const,
@@ -88,7 +94,7 @@ export const orchestratorRenameNodeCommand: CommandDefinition = {
 
 // ── Manifest selection ──
 
-export const orchestratorSetManifestCommand: CommandDefinition = {
+export const orchestratorSetManifestCommand: CommandDefinition<OrchestratorNodeArgs> = {
     id: "orchestrator_set_manifest",
     description:
         "Link a manifest artifact (by artifact id) to the active orchestrator profile.",
@@ -110,7 +116,7 @@ export const orchestratorSetManifestCommand: CommandDefinition = {
 
 // ── Apply / Reconcile / Export ──
 
-export const orchestratorApplyManifestCommand: CommandDefinition = {
+export const orchestratorApplyManifestCommand: CommandDefinition<OrchestratorNodeArgs> = {
     id: "orchestrator_apply_manifest",
     description:
         "Apply the active node's manifest: create missing sub-nodes (libp2p / helia / orbitdb / kubo) and start them where requested.",
@@ -128,7 +134,7 @@ export const orchestratorApplyManifestCommand: CommandDefinition = {
     },
 };
 
-export const orchestratorReconcileCommand: CommandDefinition = {
+export const orchestratorReconcileCommand: CommandDefinition<OrchestratorNodeArgs> = {
     id: "orchestrator_reconcile",
     description:
         "Compare current state against the manifest and report drift. Does NOT mutate sub-toolkits.",
@@ -164,7 +170,7 @@ export const orchestratorExportManifestCommand: CommandDefinition = {
     },
 };
 
-export const orchestratorSaveManifestToArtifactCommand: CommandDefinition = {
+export const orchestratorSaveManifestToArtifactCommand: CommandDefinition<OrchestratorNodeArgs> = {
     id: "orchestrator_save_manifest_to_artifact",
     description:
         "Export the current live state and save it as a JSON manifest artifact, then link it to the active profile.",
@@ -186,7 +192,7 @@ export const orchestratorSaveManifestToArtifactCommand: CommandDefinition = {
     },
 };
 
-export const orchestratorLoadManifestCommand: CommandDefinition = {
+export const orchestratorLoadManifestCommand: CommandDefinition<OrchestratorNodeArgs> = {
     id: "orchestrator_load_manifest",
     description: "Read and parse the manifest currently linked to the active profile.",
     tags: ["orchestrator", "manifest"],
@@ -200,7 +206,7 @@ export const orchestratorLoadManifestCommand: CommandDefinition = {
     },
 };
 
-export const orchestratorStatusCommand: CommandDefinition = {
+export const orchestratorStatusCommand: CommandDefinition<OrchestratorNodeArgs> = {
     id: "orchestrator_status",
     description: "Report the orchestrator's status and last apply/reconcile results.",
     tags: ["orchestrator"],
@@ -214,7 +220,7 @@ export const orchestratorStatusCommand: CommandDefinition = {
     },
 };
 
-export const orchestratorClearResultsCommand: CommandDefinition = {
+export const orchestratorClearResultsCommand: CommandDefinition<OrchestratorNodeArgs> = {
     id: "orchestrator_clear_results",
     description: "Clear the rolling operation log for the active profile.",
     tags: ["orchestrator"],

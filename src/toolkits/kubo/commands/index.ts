@@ -9,6 +9,9 @@
 import type { CommandDefinition } from "@/services/commands/types";
 import { kuboService } from "../service";
 
+/** Args common to kubo commands: a dynamic bag plus the optional node id. */
+type KuboArgs = Record<string, unknown> & { nodeId?: string };
+
 const NODE_ID_ARG = {
     name: "nodeId",
     type: "string" as const,
@@ -21,7 +24,7 @@ const ROLES_RO = ["orchestrator", "builder", "researcher"] as const;
 
 // ── Lifecycle ──
 
-export const kuboConnectCommand: CommandDefinition = {
+export const kuboConnectCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_connect",
     description:
         "Connect to a remote Kubo IPFS daemon over its HTTP RPC API. The handshake calls `id()` " +
@@ -49,7 +52,7 @@ export const kuboConnectCommand: CommandDefinition = {
     },
 };
 
-export const kuboDisconnectCommand: CommandDefinition = {
+export const kuboDisconnectCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_disconnect",
     description: "Drop the local client reference. The remote Kubo daemon keeps running.",
     tags: ["kubo", "ipfs"],
@@ -66,7 +69,7 @@ export const kuboDisconnectCommand: CommandDefinition = {
     },
 };
 
-export const kuboAddNodeCommand: CommandDefinition = {
+export const kuboAddNodeCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_add_node",
     description: "Register a new Kubo endpoint (does not connect).",
     tags: ["kubo", "ipfs"],
@@ -85,7 +88,7 @@ export const kuboAddNodeCommand: CommandDefinition = {
     },
 };
 
-export const kuboRemoveNodeCommand: CommandDefinition = {
+export const kuboRemoveNodeCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_remove_node",
     description: "Remove a Kubo node from the local registry.",
     tags: ["kubo", "ipfs"],
@@ -101,7 +104,7 @@ export const kuboRemoveNodeCommand: CommandDefinition = {
     },
 };
 
-export const kuboSetActiveNodeCommand: CommandDefinition = {
+export const kuboSetActiveNodeCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_set_active_node",
     description: "Set the active Kubo node — subsequent commands default to it.",
     tags: ["kubo", "ipfs"],
@@ -116,7 +119,7 @@ export const kuboSetActiveNodeCommand: CommandDefinition = {
     },
 };
 
-export const kuboRenameNodeCommand: CommandDefinition = {
+export const kuboRenameNodeCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_rename_node",
     description: "Rename a Kubo node.",
     tags: ["kubo", "ipfs"],
@@ -134,7 +137,7 @@ export const kuboRenameNodeCommand: CommandDefinition = {
     },
 };
 
-export const kuboSetEndpointCommand: CommandDefinition = {
+export const kuboSetEndpointCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_set_endpoint",
     description: "Update endpoint URL / auth / timeout. Node must be disconnected first.",
     tags: ["kubo", "ipfs"],
@@ -161,7 +164,7 @@ export const kuboSetEndpointCommand: CommandDefinition = {
 
 // ── Identity / Status ──
 
-export const kuboIdCommand: CommandDefinition = {
+export const kuboIdCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_id",
     description: "Re-issue the `id()` handshake — returns the remote peer's identity.",
     tags: ["kubo", "ipfs", "identity"],
@@ -176,7 +179,7 @@ export const kuboIdCommand: CommandDefinition = {
     },
 };
 
-export const kuboVersionCommand: CommandDefinition = {
+export const kuboVersionCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_version",
     description: "Report the remote Kubo version.",
     tags: ["kubo", "ipfs"],
@@ -189,7 +192,7 @@ export const kuboVersionCommand: CommandDefinition = {
 
 // ── Content ──
 
-export const kuboAddTextCommand: CommandDefinition = {
+export const kuboAddTextCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_add_text",
     description: "Add a UTF-8 string to IPFS via the remote daemon and return its CID.",
     tags: ["kubo", "ipfs", "add"],
@@ -210,7 +213,7 @@ export const kuboAddTextCommand: CommandDefinition = {
     },
 };
 
-export const kuboAddJsonCommand: CommandDefinition = {
+export const kuboAddJsonCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_add_json",
     description: "Add a JSON-serialisable value to IPFS via the remote daemon.",
     tags: ["kubo", "ipfs", "add", "json"],
@@ -231,7 +234,7 @@ export const kuboAddJsonCommand: CommandDefinition = {
     },
 };
 
-export const kuboAddBytesCommand: CommandDefinition = {
+export const kuboAddBytesCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_add_bytes",
     description: "Add base64-encoded bytes to IPFS via the remote daemon.",
     tags: ["kubo", "ipfs", "add", "binary"],
@@ -255,7 +258,7 @@ export const kuboAddBytesCommand: CommandDefinition = {
     },
 };
 
-export const kuboCatCommand: CommandDefinition = {
+export const kuboCatCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_cat",
     description: "Fetch a CID (or IPFS path) from the remote daemon as a UTF-8 string.",
     tags: ["kubo", "ipfs", "cat", "fetch"],
@@ -274,7 +277,7 @@ export const kuboCatCommand: CommandDefinition = {
     },
 };
 
-export const kuboLsCommand: CommandDefinition = {
+export const kuboLsCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_ls",
     description: "List directory entries for an IPFS path.",
     tags: ["kubo", "ipfs", "ls"],
@@ -293,7 +296,7 @@ export const kuboLsCommand: CommandDefinition = {
 
 // ── Pinning ──
 
-export const kuboPinCommand: CommandDefinition = {
+export const kuboPinCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_pin",
     description: "Pin a CID on the remote Kubo node so it is preserved across GC.",
     tags: ["kubo", "ipfs", "pin"],
@@ -317,7 +320,7 @@ export const kuboPinCommand: CommandDefinition = {
     },
 };
 
-export const kuboUnpinCommand: CommandDefinition = {
+export const kuboUnpinCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_unpin",
     description: "Remove a pin from the remote Kubo node.",
     tags: ["kubo", "ipfs", "pin"],
@@ -337,7 +340,7 @@ export const kuboUnpinCommand: CommandDefinition = {
     },
 };
 
-export const kuboListPinsCommand: CommandDefinition = {
+export const kuboListPinsCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_list_pins",
     description: "List pinned CIDs on the remote daemon.",
     tags: ["kubo", "ipfs", "pin"],
@@ -358,7 +361,7 @@ export const kuboListPinsCommand: CommandDefinition = {
 
 // ── Swarm ──
 
-export const kuboSwarmPeersCommand: CommandDefinition = {
+export const kuboSwarmPeersCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_swarm_peers",
     description: "List libp2p peers currently connected to the remote daemon.",
     tags: ["kubo", "ipfs", "swarm", "p2p"],
@@ -372,7 +375,7 @@ export const kuboSwarmPeersCommand: CommandDefinition = {
     },
 };
 
-export const kuboSwarmConnectCommand: CommandDefinition = {
+export const kuboSwarmConnectCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_swarm_connect",
     description: "Tell the remote daemon to dial a multiaddr.",
     tags: ["kubo", "ipfs", "swarm"],
@@ -393,7 +396,7 @@ export const kuboSwarmConnectCommand: CommandDefinition = {
 
 // ── Activity log ──
 
-export const kuboListEntriesCommand: CommandDefinition = {
+export const kuboListEntriesCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_list_entries",
     description: "List the local activity log of CIDs added/fetched via this UI.",
     tags: ["kubo", "ipfs", "history"],
@@ -407,7 +410,7 @@ export const kuboListEntriesCommand: CommandDefinition = {
     },
 };
 
-export const kuboClearEntriesCommand: CommandDefinition = {
+export const kuboClearEntriesCommand: CommandDefinition<KuboArgs> = {
     id: "kubo_clear_entries",
     description: "Clear the local activity log for a node (does NOT touch the remote daemon).",
     tags: ["kubo", "ipfs", "history"],

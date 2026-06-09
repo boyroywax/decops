@@ -5,9 +5,9 @@
  */
 import type { CommandDefinition } from "@/services/commands/types";
 import { libp2pService } from "../service";
-import { NODE_ID_ARG } from "./shared";
+import { NODE_ID_ARG, type Libp2pNodeArgs } from "./shared";
 
-export const libp2pStartCommand: CommandDefinition = {
+export const libp2pStartCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_start",
     description: "Start the in-browser libp2p node. Connects to public bootstrap peers, enables WebRTC + circuit relay, and begins peer discovery.",
     tags: ["libp2p", "network", "p2p"],
@@ -92,7 +92,7 @@ export const libp2pStartCommand: CommandDefinition = {
     },
 };
 
-export const libp2pStopCommand: CommandDefinition = {
+export const libp2pStopCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_stop",
     description: "Stop the running libp2p node and close all connections.",
     tags: ["libp2p", "network", "p2p"],
@@ -108,7 +108,7 @@ export const libp2pStopCommand: CommandDefinition = {
     },
 };
 
-export const libp2pClearPeersCommand: CommandDefinition = {
+export const libp2pClearPeersCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_clear_peers",
     description: "Clear the local peer book (does not affect open connections).",
     tags: ["libp2p", "network"],
@@ -122,7 +122,7 @@ export const libp2pClearPeersCommand: CommandDefinition = {
     },
 };
 
-export const libp2pAddNodeCommand: CommandDefinition = {
+export const libp2pAddNodeCommand: CommandDefinition<{ label?: string }> = {
     id: "libp2p_add_node",
     description: "Spawn a new libp2p node entry. The node is created in the stopped state and becomes active.",
     tags: ["libp2p", "node"],
@@ -145,7 +145,7 @@ export const libp2pAddNodeCommand: CommandDefinition = {
     },
 };
 
-export const libp2pRemoveNodeCommand: CommandDefinition = {
+export const libp2pRemoveNodeCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_remove_node",
     description: "Stop and remove a libp2p node entry.",
     tags: ["libp2p", "node"],
@@ -163,7 +163,7 @@ export const libp2pRemoveNodeCommand: CommandDefinition = {
     },
 };
 
-export const libp2pSetActiveNodeCommand: CommandDefinition = {
+export const libp2pSetActiveNodeCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_set_active_node",
     description: "Switch the UI/active focus to another libp2p node.",
     tags: ["libp2p", "node"],
@@ -180,7 +180,7 @@ export const libp2pSetActiveNodeCommand: CommandDefinition = {
     },
 };
 
-export const libp2pRenameNodeCommand: CommandDefinition = {
+export const libp2pRenameNodeCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_rename_node",
     description: "Rename a libp2p node's UI label.",
     tags: ["libp2p", "node"],

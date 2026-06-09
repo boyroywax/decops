@@ -1,7 +1,7 @@
 
 import type { CommandDefinition, CommandContext } from "@/services/commands/types";
 
-export const setApiKeyCommand: CommandDefinition = {
+export const setApiKeyCommand: CommandDefinition<{ key: string }> = {
     id: "set_api_key",
     description: "Configure the API key for AI services (Anthropic).",
     tags: ["system", "config", "security"],
@@ -24,7 +24,7 @@ export const setApiKeyCommand: CommandDefinition = {
     }
 };
 
-export const selectAiModelCommand: CommandDefinition = {
+export const selectAiModelCommand: CommandDefinition<{ model: string }> = {
     id: "select_ai_model",
     description: "Select the AI model used for agent intelligence.",
     tags: ["system", "config", "ai"],

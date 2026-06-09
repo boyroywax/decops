@@ -70,7 +70,7 @@ export async function executeTask(
   const task = activeTasks.get(taskId);
   if (!task) throw new Error(`Task ${taskId} not found`);
 
-  const agents = [...context.workspace.agents, ...(context.storage._agents || [])];
+  const agents = [...context.workspace.agents, ...(Array.isArray(context.storage._agents) ? context.storage._agents : [])];
   const agent = agents.find((a: Agent) => a.id === task.assigneeId);
   if (!agent) throw new Error(`Assignee agent ${task.assigneeId} not found`);
 

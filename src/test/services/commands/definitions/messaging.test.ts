@@ -50,7 +50,7 @@ describe('sendMessageCommand', () => {
         // Mock AI response
         vi.mocked(aiService.callAgentAI).mockResolvedValue("AI Response");
 
-        const result = await sendMessageCommand.execute(args, mockContext as any);
+        const result: any = await sendMessageCommand.execute(args, mockContext as any);
 
         expect(result.status).toBe('delivered');
         expect(result.response).toBe('AI Response');
@@ -65,7 +65,7 @@ describe('sendMessageCommand', () => {
             message: 'Hello'
         };
 
-        const result = await sendMessageCommand.execute(args, mockContext as any);
+        const result: any = await sendMessageCommand.execute(args, mockContext as any);
 
         expect(result.status).toBe('no-prompt');
         expect(aiService.callAgentAI).not.toHaveBeenCalled();
@@ -113,7 +113,7 @@ describe('sendMessageCommand', () => {
 
         vi.mocked(aiService.callAgentAI).mockResolvedValue("Agent reply to user");
 
-        const result = await sendMessageCommand.execute(args, mockContext as any);
+        const result: any = await sendMessageCommand.execute(args, mockContext as any);
 
         expect(result.status).toBe('delivered');
         expect(result.response).toBe('Agent reply to user');

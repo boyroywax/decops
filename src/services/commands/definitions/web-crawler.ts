@@ -37,7 +37,7 @@ async function readerFetch(url: string, signal?: AbortSignal): Promise<string> {
     return await res.text();
 }
 
-export const fetchUrlCommand: CommandDefinition = {
+export const fetchUrlCommand: CommandDefinition<{ url: string; format?: string; maxChars?: number }> = {
     id: "fetch_url",
     description: "Fetch a single URL and return its content as Markdown (uses the Jina Reader proxy for CORS-safe extraction).",
     tags: ["web", "crawl", "fetch"],
@@ -89,7 +89,7 @@ export const fetchUrlCommand: CommandDefinition = {
     },
 };
 
-export const extractLinksCommand: CommandDefinition = {
+export const extractLinksCommand: CommandDefinition<{ url: string; filter?: string }> = {
     id: "extract_links",
     description: "Fetch a URL and extract all unique links from its content.",
     tags: ["web", "crawl", "links"],
@@ -144,7 +144,7 @@ export const extractLinksCommand: CommandDefinition = {
     },
 };
 
-export const crawlSiteCommand: CommandDefinition = {
+export const crawlSiteCommand: CommandDefinition<{ url: string; maxDepth?: number; maxPages?: number }> = {
     id: "crawl_site",
     description: "Crawl a website starting from a root URL, following same-origin links breadth-first up to a depth/page limit.",
     tags: ["web", "crawl"],

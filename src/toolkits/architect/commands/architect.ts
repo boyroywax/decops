@@ -3,9 +3,10 @@ import type { CommandDefinition, CommandContext } from "@/services/commands/type
 import { generateMeshConfig } from "@/services/ai";
 import { slugifyStorageKey } from "@/utils/storageKey";
 import type { MeshConfigNetwork, MeshConfigBridge } from "@/types/mesh";
+import type { MeshConfig } from "@/types/mesh";
 import type { JobStep, JobRequest } from "@/types";
 
-export const promptArchitectCommand: CommandDefinition = {
+export const promptArchitectCommand: CommandDefinition<{ prompt: string }> = {
     id: "prompt_architect",
     description: "Generate a new network design using the AI Architect.",
     tags: ["architect", "create", "ai"],
@@ -43,7 +44,7 @@ export const promptArchitectCommand: CommandDefinition = {
     }
 };
 
-export const deployNetworkCommand: CommandDefinition = {
+export const deployNetworkCommand: CommandDefinition<{ prompt?: string; config?: MeshConfig; mode?: "serial" | "parallel" }> = {
     id: "deploy_network",
     description: "Generate and deploy a full agent mesh network. Provide a natural-language prompt to auto-generate the config, or supply a pre-built MeshConfig directly. Multi-network configs create parallel jobs for A/B testing.",
     tags: ["architect", "deploy", "provision", "job"],
@@ -77,7 +78,7 @@ export const deployNetworkCommand: CommandDefinition = {
         const { addLog } = context.workspace;
 
         // ── Resolve config: args.config → storage → generate from prompt ──
-        let config = args.config || context.storage.lastConfig;
+        let config = (args.config ?? context.storage.lastConfig) as MeshConfig | undefined;
 
         if (!config) {
             const prompt = args.prompt || context.storage.lastArchitectPrompt;
@@ -90,7 +91,7 @@ export const deployNetworkCommand: CommandDefinition = {
                 );
             }
             addLog(`Architect generating config from prompt: "${String(prompt).slice(0, 60)}…"`);
-            config = await generateMeshConfig(prompt);
+            config = await generateMeshConfig(String(prompt));
 
             // Store generated config for downstream steps / re-runs
             context.storage.lastConfig = config;

@@ -27,7 +27,7 @@ describe('createGroupCommand', () => {
             governance: 'majority'
         };
 
-        const result = await createGroupCommand.execute(args, mockContext as any);
+        const result: any = await createGroupCommand.execute(args, mockContext as any);
 
         expect(result.status).toBe('created');
         expect(result).toHaveProperty('groupId');

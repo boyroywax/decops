@@ -6,9 +6,9 @@
 import type { CommandDefinition } from "@/services/commands/types";
 import { orbitdbService } from "../service";
 import type { OrbitdbDbType } from "../types/orbitdb";
-import { NODE_ID_ARG, ADDRESS_ARG, VALID_TYPES } from "./shared";
+import { NODE_ID_ARG, ADDRESS_ARG, VALID_TYPES, type OrbitdbNodeArgs } from "./shared";
 
-export const orbitdbOpenCommand: CommandDefinition = {
+export const orbitdbOpenCommand: CommandDefinition<OrbitdbNodeArgs> = {
     id: "orbitdb_open",
     description:
         "Open (or create) a database. Pass a friendly local name to create a new one, or a full " +

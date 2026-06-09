@@ -1,6 +1,6 @@
 import type { CommandDefinition, CommandContext } from "@/services/commands/types";
 
-export const createWorkspaceCommand: CommandDefinition = {
+export const createWorkspaceCommand: CommandDefinition<{ name: string; description?: string }> = {
     id: "create_workspace",
     description: "Create a new workspace",
     tags: ["workspace", "system"],
@@ -29,7 +29,7 @@ export const createWorkspaceCommand: CommandDefinition = {
     }
 };
 
-export const switchWorkspaceCommand: CommandDefinition = {
+export const switchWorkspaceCommand: CommandDefinition<{ id: string }> = {
     id: "switch_workspace",
     description: "Switch to a different workspace",
     tags: ["workspace", "system"],
@@ -51,7 +51,7 @@ export const switchWorkspaceCommand: CommandDefinition = {
     }
 };
 
-export const deleteWorkspaceCommand: CommandDefinition = {
+export const deleteWorkspaceCommand: CommandDefinition<{ id: string }> = {
     id: "delete_workspace",
     description: "Delete a workspace",
     tags: ["workspace", "system"],

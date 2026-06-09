@@ -124,7 +124,7 @@ export const createAgentCommand: CommandDefinition = {
 
         // Accumulate in storage so downstream steps (channels, groups) can look up
         // agents even when React state hasn't re-rendered yet
-        context.storage._agents = [...(context.storage._agents || []), ...created];
+        context.storage._agents = [...(Array.isArray(context.storage._agents) ? context.storage._agents : []), ...created];
 
         // Single mode: backwards-compatible return shape
         if (!args.items) {

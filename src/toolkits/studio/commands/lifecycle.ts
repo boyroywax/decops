@@ -55,6 +55,30 @@ interface StudioCreateJobResult {
     jobError?: string;
 }
 
+interface StudioSetJobMetaArgs {
+    name?: string;
+    description?: string;
+    [key: string]: unknown;
+}
+
+interface StudioLoadJobArgs {
+    jobId: string;
+    [key: string]: unknown;
+}
+
+interface StudioAddTriggerArgs {
+    event: string;
+    filter?: string;
+    label?: string;
+    cron?: string;
+    [key: string]: unknown;
+}
+
+interface StudioRemoveTriggerArgs {
+    triggerId: string;
+    [key: string]: unknown;
+}
+
 function errorMessage(err: unknown): string {
     return err instanceof Error ? err.message : String(err || "Job failed");
 }
@@ -93,7 +117,7 @@ export const studioGetStateCommand: CommandDefinition = {
 // Job Metadata
 // ────────────────────────────────────────────────────
 
-export const studioSetJobMetaCommand: CommandDefinition = {
+export const studioSetJobMetaCommand: CommandDefinition<StudioSetJobMetaArgs> = {
     id: "studio_set_job_meta",
     description: "Sets the Studio job's name and/or description.",
     tags: ["studio", "edit"],
@@ -171,7 +195,7 @@ export const studioRunJobCommand: CommandDefinition = {
     },
 };
 
-export const studioLoadJobCommand: CommandDefinition = {
+export const studioLoadJobCommand: CommandDefinition<StudioLoadJobArgs> = {
     id: "studio_load_job",
     description: "Loads a saved job definition from the catalog into the Studio canvas by its ID.",
     tags: ["studio", "job", "load"],
@@ -273,7 +297,7 @@ export const studioCreateJobCommand: CommandDefinition = {
     execute: async (args, context) => {
         const studio = context.extensions?.studio as StudioAPI | undefined;
         if (!studio) return { error: "Studio is not available." };
-        const createArgs = args as StudioCreateJobArgs;
+        const createArgs = args as unknown as StudioCreateJobArgs;
 
         // 1. Clear canvas
         studio.clearCanvas();
@@ -401,7 +425,7 @@ export const studioCreateJobCommand: CommandDefinition = {
 // Trigger Commands
 // ────────────────────────────────────────────────────
 
-export const studioAddTriggerCommand: CommandDefinition = {
+export const studioAddTriggerCommand: CommandDefinition<StudioAddTriggerArgs> = {
     id: "studio_add_trigger",
     description: "Add an automated trigger rule to the current Studio job. The job will fire automatically when the specified workspace event occurs.",
     tags: ["studio", "trigger", "automation"],
@@ -428,7 +452,7 @@ export const studioAddTriggerCommand: CommandDefinition = {
     },
 };
 
-export const studioRemoveTriggerCommand: CommandDefinition = {
+export const studioRemoveTriggerCommand: CommandDefinition<StudioRemoveTriggerArgs> = {
     id: "studio_remove_trigger",
     description: "Remove an automated trigger from the current Studio job by ID.",
     tags: ["studio", "trigger", "automation"],

@@ -6,9 +6,9 @@
 import type { CommandDefinition } from "@/services/commands/types";
 import { libp2pService } from "../service";
 import { logAudit } from "@/services/logging";
-import { NODE_ID_ARG } from "./shared";
+import { NODE_ID_ARG, type Libp2pNodeArgs } from "./shared";
 
-export const libp2pGenerateIdentityCommand: CommandDefinition = {
+export const libp2pGenerateIdentityCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_generate_identity",
     description: "Generate a fresh Ed25519 identity for the node. The node must be stopped. The new key is used on the next start.",
     tags: ["libp2p", "identity"],
@@ -23,7 +23,7 @@ export const libp2pGenerateIdentityCommand: CommandDefinition = {
     },
 };
 
-export const libp2pImportIdentityCommand: CommandDefinition = {
+export const libp2pImportIdentityCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_import_identity",
     description: "Import a base64-encoded protobuf private key. The node must be stopped; the key is used on the next start.",
     tags: ["libp2p", "identity"],
@@ -49,7 +49,7 @@ export const libp2pImportIdentityCommand: CommandDefinition = {
     },
 };
 
-export const libp2pExportIdentityCommand: CommandDefinition = {
+export const libp2pExportIdentityCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_export_identity",
     description: "Export the node's private key (base64 protobuf) along with its peer id. Treat the returned key as a credential.",
     tags: ["libp2p", "identity"],
@@ -73,7 +73,7 @@ export const libp2pExportIdentityCommand: CommandDefinition = {
     },
 };
 
-export const libp2pClearIdentityCommand: CommandDefinition = {
+export const libp2pClearIdentityCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_clear_identity",
     description: "Forget the node's preloaded identity so libp2p mints a fresh one on next start. The node must be stopped.",
     tags: ["libp2p", "identity"],

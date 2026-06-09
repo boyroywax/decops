@@ -2,7 +2,14 @@ import { CommandDefinition } from "@/services/commands/types";
 import { Agent, Channel, Group, Message } from "@/types";
 import { callAgentAI } from "@/services/ai";
 
-export const broadcastMessageCommand: CommandDefinition = {
+interface BroadcastMessageArgs {
+    group_id?: string;
+    message?: string;
+    sender_id?: string;
+    await_responses?: boolean;
+}
+
+export const broadcastMessageCommand: CommandDefinition<BroadcastMessageArgs> = {
     id: "broadcast_message",
     description: "Sends a message to all members of a group.",
     tags: ["messaging", "interaction", "group"],

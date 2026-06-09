@@ -88,8 +88,7 @@ export interface CommandContext {
     };
     /** Mutable shared storage for inter-step data passing within jobs/automations.
      *  Values are arbitrary command results so the type is intentionally loose. */
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic command-bus storage bag; values are arbitrary command results narrowed at use sites
-    storage: Record<string, any>;
+    storage: Record<string, unknown>;
     /** Produce a deliverable (auto-creates artifact and tags it with the job) */
     addDeliverable: (deliverable: {
         key: string;
@@ -154,14 +153,16 @@ export interface CommandContext {
 
 /**
  * A command definition. `TArgs` is the shape of the args object passed to
- * `execute()`. Defaults to `any` for backward compatibility with the large
- * existing command catalog that accesses args without narrowing — new
- * commands should narrow it explicitly (e.g.
+ * `execute()`. Defaults to `Record<string, unknown>`; commands that read
+ * specific args declare a per-command interface (e.g.
  * `CommandDefinition<{ agentId: string }>`).
+ *
+ * `execute` is written in method-shorthand form on purpose: this makes its
+ * parameters bivariant so a `CommandDefinition<SpecificArgs>` remains
+ * assignable to the type-erased `CommandDefinition` used by the registry's
+ * collection arrays.
  */
- 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic command-bus args; each command narrows via its own TArgs generic
-export interface CommandDefinition<TArgs = any> {
+export interface CommandDefinition<TArgs = Record<string, unknown>> {
     id: string;
     description: string;
     args: Record<string, CommandArg>;
@@ -190,6 +191,5 @@ export interface CommandDefinition<TArgs = any> {
      */
     timeoutMs?: number;
      
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- command results are heterogeneous; callers narrow as needed
-    execute: (args: TArgs, context: CommandContext) => Promise<any>;
+    execute(args: TArgs, context: CommandContext): Promise<unknown>;
 }

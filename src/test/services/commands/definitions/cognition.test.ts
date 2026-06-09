@@ -42,7 +42,7 @@ describe("cognition commands", () => {
   });
 
   it("lists default cognition profiles", async () => {
-    const result = await cognitionListProfilesCommand.execute({}, { workspace: {}, storage: {} } as any);
+    const result: any = await cognitionListProfilesCommand.execute({}, { workspace: {}, storage: {} } as any);
     expect(result.count).toBeGreaterThanOrEqual(2);
     expect(result.profiles.some((p: any) => p.profileId === "linear-v1")).toBe(true);
   });
@@ -75,7 +75,7 @@ describe("cognition commands", () => {
   });
 
   it("renders protocol text for an explicit profile", async () => {
-    const result = await cognitionRenderProtocolCommand.execute(
+    const result: any = await cognitionRenderProtocolCommand.execute(
       { profileId: "linear-v1" },
       { workspace: {}, storage: {} } as any,
     );

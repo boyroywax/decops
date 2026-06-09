@@ -14,9 +14,35 @@ function errorMessage(err: unknown): string {
     return err instanceof Error ? err.message : String(err || "Image generation failed");
 }
 
+/** Per-command arg shapes (index signature keeps them assignable to the
+ * registry's `CommandDefinition<Record<string, unknown>>` slot). */
+interface GenerateImageArgs {
+    target: string;
+    prompt?: string;
+    entityId?: string;
+    style?: string;
+    force?: boolean;
+    [key: string]: unknown;
+}
+
+interface GenerateAllImagesArgs {
+    targets?: string;
+    force?: boolean;
+    [key: string]: unknown;
+}
+
+interface GenerateIconArgs {
+    target: string;
+    name: string;
+    description?: string;
+    tags?: string;
+    force?: boolean;
+    [key: string]: unknown;
+}
+
 // ── generate_image ──
 
-export const generateImageCommand: CommandDefinition = {
+export const generateImageCommand: CommandDefinition<GenerateImageArgs> = {
     id: "generate_image",
     description: "Generates an AI image via Imagen 4.0. Supports agent portraits, group badges, and custom prompts. Results are cached in IndexedDB.",
     tags: ["image", "agent", "workspace"],
@@ -201,7 +227,7 @@ export const generateImageCommand: CommandDefinition = {
 
 // ── generate_all_images ──
 
-export const generateAllImagesCommand: CommandDefinition = {
+export const generateAllImagesCommand: CommandDefinition<GenerateAllImagesArgs> = {
     id: "generate_all_images",
     description: "Batch-generates images for all agents and/or groups that don't have cached images yet.",
     tags: ["image", "agent", "workspace"],
@@ -364,7 +390,7 @@ export const clearImageCacheCommand: CommandDefinition = {
 
 // ── generate_icon ──
 
-export const generateIconCommand: CommandDefinition = {
+export const generateIconCommand: CommandDefinition<GenerateIconArgs> = {
     id: "generate_icon",
     description:
         "Generates a unique AI icon/badge for a job, command, or automation via Imagen 4.0. " +

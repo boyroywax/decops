@@ -6,9 +6,17 @@
 import type { CommandDefinition } from "@/services/commands/types";
 import { libp2pService } from "../service";
 import { useLibp2pCollections, getContact } from "../utils/collections";
-import { NODE_ID_ARG } from "./shared";
+import { NODE_ID_ARG, type Libp2pNodeArgs } from "./shared";
 
-export const libp2pContactAddCommand: CommandDefinition = {
+interface ContactAddArgs {
+    peerId?: string;
+    name?: string;
+    multiaddr?: string;
+    notes?: string;
+    tags?: unknown;
+}
+
+export const libp2pContactAddCommand: CommandDefinition<ContactAddArgs> = {
     id: "libp2p_contact_add",
     description: "Save a peer to the contact book.",
     tags: ["libp2p", "contacts"],
@@ -64,7 +72,7 @@ export const libp2pContactListCommand: CommandDefinition = {
     },
 };
 
-export const libp2pContactDialCommand: CommandDefinition = {
+export const libp2pContactDialCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_contact_dial",
     description: "Dial a saved contact (uses its multiaddr if present, otherwise its peer id).",
     tags: ["libp2p", "contacts", "network"],

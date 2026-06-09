@@ -29,7 +29,7 @@ import type { ConsensusProposal, AgentSpec, WorkflowSpec, EcosystemChangeSpec, T
 
 // ── assign_task ────────────────────────────────────
 
-export const assignTaskCommand: CommandDefinition = {
+export const assignTaskCommand: CommandDefinition<{ agentId: string; goal: string; constraints?: string[]; maxRounds?: number; maxEscalations?: number; allowAgentCreation?: boolean; autoExecuteConsensus?: boolean }> = {
   id: "assign_task",
   description: "Assign a task to an agent for autonomous execution. The agent will plan, execute, delegate, and escalate as needed to complete the goal.",
   tags: ["autonomy", "task", "agent", "ai"],
@@ -148,7 +148,7 @@ export const assignTaskCommand: CommandDefinition = {
 
 // ── delegate_task ──────────────────────────────────
 
-export const delegateTaskCommand: CommandDefinition = {
+export const delegateTaskCommand: CommandDefinition<{ taskId: string; targetAgentId: string; subGoal?: string }> = {
   id: "delegate_task",
   description: "Delegate an active task to another agent or group. The target will take over execution.",
   tags: ["autonomy", "task", "delegation"],
@@ -213,7 +213,7 @@ export const delegateTaskCommand: CommandDefinition = {
 
 // ── escalate_task ──────────────────────────────────
 
-export const escalateTaskCommand: CommandDefinition = {
+export const escalateTaskCommand: CommandDefinition<{ taskId: string; reason?: string }> = {
   id: "escalate_task",
   description: "Escalate a task to the next organizational level (self → group → network → ecosystem).",
   tags: ["autonomy", "task", "escalation"],
@@ -273,7 +273,7 @@ export const escalateTaskCommand: CommandDefinition = {
 
 // ── task_status ────────────────────────────────────
 
-export const taskStatusCommand: CommandDefinition = {
+export const taskStatusCommand: CommandDefinition<{ taskId: string }> = {
   id: "task_status",
   description: "Check the current status, history, and result of an autonomous task.",
   tags: ["autonomy", "task", "query"],
@@ -371,7 +371,7 @@ export const listTasksCommand: CommandDefinition = {
 
 // ── group_ideate ───────────────────────────────────
 
-export const groupIdeateCommand: CommandDefinition = {
+export const groupIdeateCommand: CommandDefinition<{ groupId: string; topic: string; focus?: ("networks" | "agents" | "channels" | "bridges" | "workflows")[]; maxProposals?: number; autoExecute?: boolean }> = {
   id: "group_ideate",
   description: "Run an AI-powered group ideation session. The group analyzes the workspace and proposes improvements: new agents, workflows, network changes, and collaboration strategies.",
   tags: ["autonomy", "group", "ideation", "ai", "consensus"],
@@ -477,7 +477,7 @@ export const groupIdeateCommand: CommandDefinition = {
 
 // ── propose_agent ──────────────────────────────────
 
-export const proposeAgentCommand: CommandDefinition = {
+export const proposeAgentCommand: CommandDefinition<{ groupId: string; name: string; role: "researcher" | "builder" | "curator" | "validator" | "orchestrator"; prompt: string; title?: string; justification: string; autoExecute?: boolean }> = {
   id: "propose_agent",
   description: "Propose creating a new agent to fill a capability gap. Triggers group consensus deliberation.",
   tags: ["autonomy", "agent", "consensus", "ai"],

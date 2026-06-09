@@ -11,7 +11,7 @@ import { getGroupModel } from "@/services/ai";
  * the command simulates each member's position and produces a consensus decision
  * based on the governance rules (majority, threshold, delegated, unanimous).
  */
-export const groupDecideCommand: CommandDefinition = {
+export const groupDecideCommand: CommandDefinition<{ groupId: string; prompt?: string; artifactKey?: string; decisionType?: string }> = {
     id: "group_decide",
     description: "Facilitate a group decision using AI. Simulates member deliberation based on the group's governance model and produces a consensus outcome.",
     tags: ["governance", "group", "ai", "decision"],

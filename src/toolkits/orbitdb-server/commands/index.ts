@@ -10,6 +10,12 @@ import type { CommandDefinition } from "@/services/commands/types";
 import { orbitdbServerService } from "../service";
 import { ORBITDB_SERVER_STORE_TYPES, type OrbitdbServerStoreType } from "../types/orbitdbServer";
 
+/** Args common to orbitdb-server commands: a dynamic bag plus the optional node id. */
+interface OrbitServerArgs {
+    nodeId?: string;
+    [key: string]: unknown;
+}
+
 const NODE_ID_ARG = {
     name: "nodeId",
     type: "string" as const,
@@ -29,7 +35,7 @@ function asStoreType(value: unknown): OrbitdbServerStoreType {
 
 // ── Lifecycle ──
 
-export const orbitdbServerConnectCommand: CommandDefinition = {
+export const orbitdbServerConnectCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_connect",
     description:
         "Connect to a remote orbitdb-server (OrbitDB v2 HTTP RPC API). " +
@@ -57,7 +63,7 @@ export const orbitdbServerConnectCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerDisconnectCommand: CommandDefinition = {
+export const orbitdbServerDisconnectCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_disconnect",
     description: "Drop the local connection state. The remote server keeps running.",
     tags: ["orbitdb-server"],
@@ -73,7 +79,7 @@ export const orbitdbServerDisconnectCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerAddNodeCommand: CommandDefinition = {
+export const orbitdbServerAddNodeCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_add_node",
     description: "Register a new orbitdb-server endpoint (does not connect).",
     tags: ["orbitdb-server"],
@@ -94,7 +100,7 @@ export const orbitdbServerAddNodeCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerRemoveNodeCommand: CommandDefinition = {
+export const orbitdbServerRemoveNodeCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_remove_node",
     description: "Remove an orbitdb-server node from the local registry.",
     tags: ["orbitdb-server"],
@@ -109,7 +115,7 @@ export const orbitdbServerRemoveNodeCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerSetActiveNodeCommand: CommandDefinition = {
+export const orbitdbServerSetActiveNodeCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_set_active_node",
     description: "Set the active orbitdb-server node — subsequent commands default to it.",
     tags: ["orbitdb-server"],
@@ -123,7 +129,7 @@ export const orbitdbServerSetActiveNodeCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerRenameNodeCommand: CommandDefinition = {
+export const orbitdbServerRenameNodeCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_rename_node",
     description: "Rename an orbitdb-server node.",
     tags: ["orbitdb-server"],
@@ -140,7 +146,7 @@ export const orbitdbServerRenameNodeCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerSetEndpointCommand: CommandDefinition = {
+export const orbitdbServerSetEndpointCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_set_endpoint",
     description: "Update endpoint URL / auth / timeout. Node must be disconnected first.",
     tags: ["orbitdb-server"],
@@ -166,7 +172,7 @@ export const orbitdbServerSetEndpointCommand: CommandDefinition = {
 
 // ── Identity / status ──
 
-export const orbitdbServerIdCommand: CommandDefinition = {
+export const orbitdbServerIdCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_id",
     description: "Re-issue the `/id` call — returns the remote peer id, DID, and pnet status.",
     tags: ["orbitdb-server", "identity"],
@@ -180,7 +186,7 @@ export const orbitdbServerIdCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerHealthCommand: CommandDefinition = {
+export const orbitdbServerHealthCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_health",
     description: "Hit `/health` — liveness probe (no auth required).",
     tags: ["orbitdb-server"],
@@ -193,7 +199,7 @@ export const orbitdbServerHealthCommand: CommandDefinition = {
 
 // ── Database lifecycle ──
 
-export const orbitdbServerCreateDbCommand: CommandDefinition = {
+export const orbitdbServerCreateDbCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_create_db",
     description:
         "Create / open a database on the server. Types: events, documents, keyvalue, keyvalue-indexed.",
@@ -215,7 +221,7 @@ export const orbitdbServerCreateDbCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerDropDbCommand: CommandDefinition = {
+export const orbitdbServerDropDbCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_drop_db",
     description: "Drop a database on the server. Irreversible.",
     tags: ["orbitdb-server", "db"],
@@ -233,7 +239,7 @@ export const orbitdbServerDropDbCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerListDbsCommand: CommandDefinition = {
+export const orbitdbServerListDbsCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_list_dbs",
     description: "List databases the server currently has open.",
     tags: ["orbitdb-server", "db"],
@@ -249,7 +255,7 @@ export const orbitdbServerListDbsCommand: CommandDefinition = {
 
 // ── Data operations ──
 
-export const orbitdbServerPutCommand: CommandDefinition = {
+export const orbitdbServerPutCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_put",
     description: "Put a value into a keyvalue / documents store (body is the JSON value).",
     tags: ["orbitdb-server", "db", "put"],
@@ -274,7 +280,7 @@ export const orbitdbServerPutCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerGetCommand: CommandDefinition = {
+export const orbitdbServerGetCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_get",
     description: "Get a value by key from a keyvalue / documents store.",
     tags: ["orbitdb-server", "db", "get"],
@@ -292,7 +298,7 @@ export const orbitdbServerGetCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerDelCommand: CommandDefinition = {
+export const orbitdbServerDelCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_del",
     description: "Delete an entry by key from a keyvalue / documents store.",
     tags: ["orbitdb-server", "db"],
@@ -311,7 +317,7 @@ export const orbitdbServerDelCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerAllCommand: CommandDefinition = {
+export const orbitdbServerAllCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_all",
     description: "Return all entries from a database.",
     tags: ["orbitdb-server", "db", "read"],
@@ -328,7 +334,7 @@ export const orbitdbServerAllCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerQueryCommand: CommandDefinition = {
+export const orbitdbServerQueryCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_query",
     description: "Query a documents store with a filter object (server-side equality match).",
     tags: ["orbitdb-server", "db", "query"],
@@ -347,7 +353,7 @@ export const orbitdbServerQueryCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerAddEventCommand: CommandDefinition = {
+export const orbitdbServerAddEventCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_add_event",
     description: "Append an event to an `events` log database.",
     tags: ["orbitdb-server", "db", "event"],
@@ -368,7 +374,7 @@ export const orbitdbServerAddEventCommand: CommandDefinition = {
 
 // ── Swarm ──
 
-export const orbitdbServerSwarmPeersCommand: CommandDefinition = {
+export const orbitdbServerSwarmPeersCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_swarm_peers",
     description: "List libp2p peers currently connected to the remote server.",
     tags: ["orbitdb-server", "swarm", "p2p"],
@@ -382,7 +388,7 @@ export const orbitdbServerSwarmPeersCommand: CommandDefinition = {
     },
 };
 
-export const orbitdbServerSwarmConnectCommand: CommandDefinition = {
+export const orbitdbServerSwarmConnectCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_swarm_connect",
     description: "Tell the server to dial a multiaddr.",
     tags: ["orbitdb-server", "swarm"],
@@ -402,7 +408,7 @@ export const orbitdbServerSwarmConnectCommand: CommandDefinition = {
 
 // ── Pnet ──
 
-export const orbitdbServerPnetStatusCommand: CommandDefinition = {
+export const orbitdbServerPnetStatusCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_pnet_status",
     description: "Report the private-network mode and (truncated) swarm key fingerprint.",
     tags: ["orbitdb-server", "pnet"],
@@ -413,7 +419,7 @@ export const orbitdbServerPnetStatusCommand: CommandDefinition = {
     execute: async (args) => orbitdbServerService.pnetStatus(args.nodeId),
 };
 
-export const orbitdbServerPnetGenerateCommand: CommandDefinition = {
+export const orbitdbServerPnetGenerateCommand: CommandDefinition<OrbitServerArgs> = {
     id: "orbitdb_server_pnet_generate",
     description:
         "Ask the server to generate a fresh pnet swarm key. NOTE: the server does not auto-apply it — copy to config/swarm.key and restart.",

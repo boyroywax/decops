@@ -5,9 +5,9 @@
  */
 import type { CommandDefinition } from "@/services/commands/types";
 import { libp2pService } from "../service";
-import { NODE_ID_ARG } from "./shared";
+import { NODE_ID_ARG, type Libp2pNodeArgs } from "./shared";
 
-export const libp2pDialCommand: CommandDefinition = {
+export const libp2pDialCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_dial",
     description: "Dial a remote peer by multiaddr or peer id.",
     tags: ["libp2p", "network", "p2p"],
@@ -32,7 +32,7 @@ export const libp2pDialCommand: CommandDefinition = {
     },
 };
 
-export const libp2pHangupCommand: CommandDefinition = {
+export const libp2pHangupCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_hangup",
     description: "Close the open connection to a remote peer.",
     tags: ["libp2p", "network", "p2p"],
@@ -57,7 +57,7 @@ export const libp2pHangupCommand: CommandDefinition = {
     },
 };
 
-export const libp2pPingCommand: CommandDefinition = {
+export const libp2pPingCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_ping",
     description: "Ping a connected peer and return its latency in ms.",
     tags: ["libp2p", "network", "diagnostics"],
@@ -81,7 +81,7 @@ export const libp2pPingCommand: CommandDefinition = {
     },
 };
 
-export const libp2pListPeersCommand: CommandDefinition = {
+export const libp2pListPeersCommand: CommandDefinition<Libp2pNodeArgs> = {
     id: "libp2p_list_peers",
     description: "List discovered and connected libp2p peers for a node.",
     tags: ["libp2p", "network"],
